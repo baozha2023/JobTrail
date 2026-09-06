@@ -1,6 +1,23 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type Locale = 'zh-CN' | 'en-US'
 export type CloseBehavior = 'tray' | 'quit'
+export type AppErrorCode =
+  | 'VALIDATION_ERROR'
+  | 'NOT_FOUND'
+  | 'BUILTIN_DATA'
+  | 'STATUS_IN_USE'
+  | 'LAST_STATUS'
+  | 'RESUME_IN_USE'
+  | 'COMPANY_IN_USE'
+  | 'INDUSTRY_IN_USE'
+  | 'FILE_IMPORT_FAILED'
+  | 'FILE_OPEN_FAILED'
+  | 'DATABASE_ERROR'
+  | 'INTERNAL_ERROR'
+
+export interface VelopackConfig {
+  [key: string]: unknown
+}
 
 export interface AppConfig {
   configVersion: number
@@ -8,10 +25,8 @@ export interface AppConfig {
   locale: Locale
   closeBehavior: CloseBehavior
   launchAtStartup: boolean
-  velopack: {
-    githubRepository: string
-    includePrerelease: boolean
-  }
+  companyReadValidityMonths: number
+  velopack: VelopackConfig
   mcp: {
     enabled: boolean
     requireWriteConfirmation: boolean
@@ -31,9 +46,10 @@ export interface Status {
 export interface Company {
   id: number
   name: string
-  industryId: number | null
+  industryIds: number[]
   industryName: string | null
   careerUrl: string | null
+  lastReadAt: number | null
   aliases: string[]
   isBuiltin: boolean
   isFavorite: boolean
@@ -50,13 +66,6 @@ export interface Industry {
   updatedAt: number
 }
 
-export interface CompanyAlias {
-  id: number
-  companyId: number
-  alias: string
-  createdAt: number
-}
-
 export interface ResumeVersion {
   id: number
   name: string
@@ -64,7 +73,7 @@ export interface ResumeVersion {
   sizeBytes: number | null
   sha256: string | null
   note: string | null
-  isActive: boolean
+  sortOrder: number
   createdAt: number
   updatedAt: number
 }
@@ -95,6 +104,7 @@ export interface CalendarEvent {
   id: number
   opportunityId: number | null
   opportunityTitle: string | null
+  opportunityJobUrl: string | null
   companyName: string | null
   title: string
   eventType: string
@@ -110,9 +120,14 @@ export interface CalendarEvent {
   updatedAt: number
 }
 
+export interface CalendarReminderNotification {
+  eventId: number
+  startAt: number
+}
+
 export interface CreateCompanyInput {
   name: string
-  industryId?: number | null
+  industryIds?: number[]
   careerUrl?: string | null
   aliases?: string[]
 }
@@ -127,13 +142,6 @@ export interface CreateIndustryInput {
 
 export type UpdateIndustryInput = Partial<CreateIndustryInput>
 
-export interface CreateCompanyAliasInput {
-  companyId: number
-  alias: string
-}
-
-export type UpdateCompanyAliasInput = Partial<Pick<CreateCompanyAliasInput, 'alias'>>
-
 export interface CreateStatusInput {
   label: string
 }
@@ -143,7 +151,6 @@ export type UpdateStatusInput = Partial<CreateStatusInput>
 export interface UpdateResumeVersionInput {
   name?: string
   note?: string | null
-  isActive?: boolean
 }
 
 export interface CreateOpportunityInput {
@@ -195,18 +202,19 @@ export interface ResumeImportResult extends ResumeVersion {
 }
 
 export interface AppErrorShape {
-  code: string
+  code: AppErrorCode
   message: string
   details?: Record<string, unknown>
 }
 
-export interface JobTrailApi {
+export interface ZhijiApi {
   config: {
     get(): Promise<AppConfig>
     update(input: Partial<AppConfig>): Promise<AppConfig>
   }
   statuses: {
     list(): Promise<Status[]>
+    get(id: number): Promise<Status>
     create(input: CreateStatusInput): Promise<Status>
     update(id: number, input: UpdateStatusInput): Promise<Status>
     delete(id: number): Promise<void>
@@ -214,6 +222,7 @@ export interface JobTrailApi {
   }
   industries: {
     list(): Promise<Industry[]>
+    get(id: number): Promise<Industry>
     create(input: CreateIndustryInput): Promise<Industry>
     update(id: number, input: UpdateIndustryInput): Promise<Industry>
     delete(id: number): Promise<void>
@@ -221,26 +230,25 @@ export interface JobTrailApi {
   }
   companies: {
     search(keyword: string): Promise<Company[]>
-    recent(): Promise<Company[]>
+    list(): Promise<Company[]>
+    get(id: number): Promise<Company>
+    markRead(id: number): Promise<Company>
     create(input: CreateCompanyInput): Promise<Company>
     update(id: number, input: UpdateCompanyInput): Promise<Company>
     delete(id: number): Promise<void>
-    aliases: {
-      list(companyId: number): Promise<CompanyAlias[]>
-      create(input: CreateCompanyAliasInput): Promise<CompanyAlias>
-      update(id: number, input: UpdateCompanyAliasInput): Promise<CompanyAlias>
-      delete(id: number): Promise<void>
-    }
   }
   resumes: {
     list(): Promise<ResumeVersion[]>
+    get(id: number): Promise<ResumeVersion>
     import(): Promise<ResumeImportResult | null>
     open(id: number): Promise<void>
     update(id: number, input: UpdateResumeVersionInput): Promise<ResumeVersion>
+    reorder(order: number[]): Promise<ResumeVersion[]>
     delete(id: number): Promise<void>
   }
   opportunities: {
     list(query: OpportunityQuery): Promise<Opportunity[]>
+    get(id: number): Promise<Opportunity>
     create(input: CreateOpportunityInput): Promise<Opportunity>
     update(id: number, input: UpdateOpportunityInput): Promise<Opportunity>
     delete(id: number): Promise<void>
@@ -248,21 +256,25 @@ export interface JobTrailApi {
   }
   calendar: {
     list(range: CalendarRange): Promise<CalendarEvent[]>
+    get(id: number): Promise<CalendarEvent>
     create(input: CreateCalendarEventInput): Promise<CalendarEvent>
     update(id: number, input: UpdateCalendarEventInput): Promise<CalendarEvent>
     delete(id: number): Promise<void>
     complete(id: number, completed: boolean): Promise<CalendarEvent>
+    onReminderClick(listener: (notification: CalendarReminderNotification) => void): () => void
   }
   system: {
     openExternal(url: string): Promise<void>
+    isDevelopment(): Promise<boolean>
   }
 }
 
 export interface VelopackApi {
   getVersion(): Promise<string>
-  checkForUpdates(): Promise<unknown | null>
-  downloadUpdates(info: unknown): Promise<boolean>
-  applyUpdates(info: unknown): Promise<boolean>
+  checkForUpdates(): Promise<import('velopack').UpdateInfo | null>
+  downloadUpdates(): Promise<boolean>
+  applyUpdates(): Promise<boolean>
+  uninstall(): Promise<'started' | 'development' | 'unavailable'>
 }
 
 export interface WindowControlsApi {

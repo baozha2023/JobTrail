@@ -1,17 +1,17 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/index.js",
   "author": "Zhiji",
   "license": "MIT",
   "scripts": {
-    "dev": "pnpm rebuild:native && electron-vite dev",
-    "build": "pnpm rebuild:native && electron-vite build",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "pnpm rebuild:node && vitest run",
-    "test:watch": "vitest",
+    "test": "node scripts/run-vitest-electron.mjs",
+    "test:watch": "node scripts/run-vitest-electron.mjs --watch",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
     "rebuild:node": "pnpm rebuild better-sqlite3",
     "postinstall": "electron-builder install-app-deps",
@@ -22,17 +22,17 @@
     "better-sqlite3": "^12.4.1",
     "naive-ui": "^2.43.2",
     "pinia": "^3.0.3",
+    "velopack": "^1.0.0",
     "vue": "^3.5.18",
-    "vue-i18n": "^11.1.11",
-    "velopack": "^1.0.0"
+    "vue-i18n": "^11.1.11"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.15.21",
-    "@electron/rebuild": "^4.0.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.7.0",
-    "electron": "^37.3.1",
+    "electron": "^44.2.0",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.0",
     "typescript": "^5.8.3",
@@ -51,15 +51,21 @@
     ],
     "files": [
       "out/**/*",
-      "build/icon.png",
+      "resource/icon.png",
       "package.json",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "resource/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
     "directories": {
-      "output": "release"
+      "output": "dist"
     },
     "win": {
-      "icon": "build/icon.png",
+      "icon": "resource/icon.ico",
       "target": "dir"
     }
   },

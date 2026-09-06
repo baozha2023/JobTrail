@@ -1,47 +1,89 @@
-import { app, ipcMain } from 'electron'
-import { UpdateManager } from 'velopack'
-import type { ConfigService } from './config'
+import { app } from 'electron'
+import { spawn } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { UpdateManager, type UpdateInfo } from 'velopack'
+import { getStorageRoot } from './config'
+import { registerChannel } from './ipc/register-channel'
+import { AppServiceError } from './services/errors'
 
-export function registerVelopackIpc(configService: ConfigService): void {
-  ipcMain.handle('velopack:get-version', () => {
+export const GITHUB_UPDATE_SOURCE = 'https://github.com/baozha2023/JobTrail'
+
+let pendingUpdateInfo: UpdateInfo | null = null
+
+export function registerVelopackIpc(): void {
+  registerChannel('velopack:get-version', () => {
     try {
-      const manager = createManager(configService)
-      return manager ? manager.getCurrentVersion() : app.getVersion()
+      return createManager().getCurrentVersion()
     } catch {
       return app.getVersion()
     }
   })
 
-  ipcMain.handle('velopack:check-for-update', async () => {
-    const manager = createManager(configService)
-    if (!manager) return null
-    return manager.checkForUpdatesAsync()
+  registerChannel('velopack:check-for-update', async () => {
+    pendingUpdateInfo = null
+    pendingUpdateInfo = await createManager().checkForUpdatesAsync()
+    return pendingUpdateInfo
   })
 
-  ipcMain.handle('velopack:download-update', async (_event, updateInfo) => {
-    const manager = createManager(configService)
-    if (!manager) return false
-    await manager.downloadUpdateAsync(updateInfo)
+  registerChannel('velopack:download-update', async () => {
+    const manager = createManager()
+    await manager.downloadUpdateAsync(requirePendingUpdate())
     return true
   })
 
-  ipcMain.handle('velopack:apply-update', async (_event, updateInfo) => {
-    const manager = createManager(configService)
-    if (!manager) return false
-    await manager.waitExitThenApplyUpdate(updateInfo)
+  registerChannel('velopack:apply-update', async () => {
+    const manager = createManager()
+    await manager.waitExitThenApplyUpdate(requirePendingUpdate())
     app.quit()
     return true
   })
+
+  registerChannel('velopack:uninstall', async () => {
+    if (!app.isPackaged) return 'development'
+    if (process.platform !== 'win32') return 'unavailable'
+
+    const updateExePath = path.join(getStorageRoot(), 'Update.exe')
+    if (!fs.existsSync(updateExePath)) return 'unavailable'
+
+    try {
+      await launchUninstaller(updateExePath)
+    } catch (error) {
+      console.error('Failed to launch Velopack uninstaller', error)
+      return 'unavailable'
+    }
+
+    setImmediate(() => app.quit())
+    return 'started'
+  })
 }
 
-function createManager(configService: ConfigService): UpdateManager | null {
-  const repository = configService.get().velopack.githubRepository.trim()
-  if (!repository) return null
-  // The JavaScript binding accepts Velopack's default URL source. GitHub
-  // Release assets are exposed from the latest stable release download path,
-  // so the feed and package assets share one URL base.
-  const baseUrl = repository.replace(/\/$/, '').endsWith('/releases/latest/download')
-    ? repository.replace(/\/$/, '')
-    : `${repository.replace(/\/$/, '')}/releases/latest/download`
-  return new UpdateManager(baseUrl)
+function requirePendingUpdate(): UpdateInfo {
+  if (!pendingUpdateInfo) throw new AppServiceError('VALIDATION_ERROR', '请先检查更新')
+  return pendingUpdateInfo
+}
+
+function launchUninstaller(updateExePath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(updateExePath, ['--uninstall', '--silent'], {
+      cwd: path.dirname(updateExePath),
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    const handleError = (error: Error) => reject(error)
+    child.once('error', handleError)
+    child.once('spawn', () => {
+      child.removeListener('error', handleError)
+      child.unref()
+      resolve()
+    })
+  })
+}
+
+function createManager(): UpdateManager {
+  // Pass the repository root so Velopack can use its GitHub release source.
+  // Do not pass /releases/latest/download: that path is for downloading one
+  // named GitHub asset and is not a repository URL.
+  return new UpdateManager(GITHUB_UPDATE_SOURCE)
 }

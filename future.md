@@ -38,24 +38,24 @@
 - `create_calendar_event`
 - `update_calendar_event`
 - `delete_calendar_event`
-
-## GitHub Release 发布
-
-状态：未落地，Velopack 更新流程已预留。
-
-- 创建正式 GitHub 仓库。
-- 配置 GitHub Release 发布流程。
-- 使用 `vpk pack` 生成并上传 Release 资产。
-- 使用真实 GitHub Release 验证检查、下载、应用和重启更新。
-- 增加自动发布 CI。
+- 首版已经新增 `src/main/mcp-contracts.ts` 强类型工具注册表，覆盖上述领域的 list/get/create/update/delete/reorder/changeStatus/complete；它不是 MCP Server，也不会直接执行 SQL。
 
 ## 跨平台
 
 状态：未落地。
 
+- 使用 Rust 开发 Windows 自定义安装器，替代当前 Velopack 默认安装器；安装目录选择、安装/卸载体验和数据目录保护由自定义安装器负责。
 - macOS 安装与更新。
 - Linux 安装与更新。
 - 跨平台原生 SQLite 和简历目录验证。
+
+## 发布与更新验证
+
+状态：部分未落地。
+
+- 使用真实 GitHub Release 完成更新检查、下载、应用和重启的端到端验证。
+- 持续完善 GitHub 仓库发布和自动发布 CI 的版本验证。
+- Rust 自定义安装器、安装目录选择和新的安装/卸载体验。
 
 ## 数据能力
 

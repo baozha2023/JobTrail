@@ -3,26 +3,41 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { VelopackApp } from 'velopack'
 import { ConfigService, getAppPaths } from './config'
-import { DatabaseManager } from './database'
-import { FileStorageService } from './file-storage'
+import type { DatabaseManager } from './database'
 import { registerIpc, registerWindowIpc } from './ipc'
-import { CalendarEventService, CompanyAliasService, CompanyService, IndustryService, OpportunityService, ResumeVersionService, StatusService } from './services'
+import { createServiceContainer } from './service-container'
+import { ReminderScheduler } from './reminder-scheduler'
 import { registerVelopackIpc } from './velopack'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_ID = 'zhiji'
+const APP_ICON_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'icon.ico')
+  : path.join(__dirname, '../../resource/icon.ico')
 
 let database: DatabaseManager | undefined
 let mainWindow: BrowserWindow | undefined
 let tray: Tray | undefined
 let isQuitting = false
+let reminderScheduler: ReminderScheduler | undefined
 
 // Velopack must run before Electron startup work.
 VelopackApp.build().run()
-app.setAppUserModelId('zhiji')
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+app.setAppUserModelId(APP_ID)
+
+if (!hasSingleInstanceLock) app.quit()
+
+app.on('second-instance', () => {
+  if (!hasSingleInstanceLock || !mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+})
 
 function ensureTray(window: BrowserWindow): void {
   if (tray) return
-  tray = new Tray(path.join(__dirname, '../../build/icon.png'))
+  tray = new Tray(APP_ICON_PATH)
   tray.setToolTip('职迹')
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '显示职迹', click: () => { window.show(); window.focus() } },
@@ -40,15 +55,25 @@ function createWindow(config: ConfigService): void {
     minHeight: 480,
     title: '职迹',
     frame: false,
-    icon: path.join(__dirname, '../../build/icon.png'),
+    icon: APP_ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   })
   mainWindow = window
+
+  if (process.platform === 'win32') {
+    window.setAppDetails({
+      appId: APP_ID,
+      appIconPath: APP_ICON_PATH,
+      appIconIndex: 0,
+      relaunchCommand: process.execPath,
+      relaunchDisplayName: '职迹',
+    })
+  }
 
   window.on('close', (event) => {
     if (!isQuitting && config.get().closeBehavior === 'tray') {
@@ -74,21 +99,15 @@ function initializeApplication(): void {
   Menu.setApplicationMenu(null)
   const paths = getAppPaths()
   const config = new ConfigService(paths)
-  database = new DatabaseManager(paths)
-  const files = new FileStorageService(paths)
-  registerIpc({
-    statuses: new StatusService(database.db),
-    industries: new IndustryService(database.db),
-    companies: new CompanyService(database.db),
-    companyAliases: new CompanyAliasService(database.db),
-    resumes: new ResumeVersionService(database.db, files),
-    opportunities: new OpportunityService(database.db),
-    calendar: new CalendarEventService(database.db),
-  }, config)
-  registerVelopackIpc(config)
+  const container = createServiceContainer(paths, !app.isPackaged)
+  database = container.database
+  registerIpc(container.services, config)
+  registerVelopackIpc()
   app.setLoginItemSettings({ openAtLogin: config.get().launchAtStartup })
   nativeTheme.themeSource = config.get().themeMode
   createWindow(config)
+  reminderScheduler = new ReminderScheduler(container.services.reminders, () => mainWindow, () => config.get().locale)
+  reminderScheduler.start()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(config)
     else mainWindow?.show()
@@ -96,6 +115,7 @@ function initializeApplication(): void {
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return
   try {
     initializeApplication()
   } catch (error) {
@@ -115,6 +135,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  reminderScheduler?.stop()
   database?.close()
   tray?.destroy()
   tray = undefined

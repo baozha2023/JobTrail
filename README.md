@@ -4,7 +4,7 @@
 
 ## 当前版本
 
-- 版本：`0.1.0`
+- 版本：`0.2.0`
 - 首发平台：Windows x64
 - 界面语言：简体中文、English
 - 主题：浅色、深色、跟随系统
@@ -18,7 +18,7 @@
 - 支持搜索、状态筛选、公司筛选和分页
 - 支持关联简历版本、岗位链接、JD、地点、截止时间和投递时间
 - 支持新增、编辑和删除求职记录
-- 默认状态包括“已查看”“待投递”“初筛”“笔试”“面试”“Offer”等
+- 默认状态包括“感兴趣”“待投递”“初筛”“笔试”“AI面试”“一面”“二面”“三面”“HR面”“Offer”“淘汰”“主动放弃”
 
 ### 日历
 
@@ -67,6 +67,7 @@ claude.md      项目上下文与开发规范
 database.md    SQLite 数据库唯一声明文档
 future.md      首版未落地功能规划
 scripts/       构建和 Velopack 打包脚本
+resource/      应用图片等静态资源
 ```
 
 ## 开发环境
@@ -89,7 +90,7 @@ pnpm install
 pnpm dev
 ```
 
-`better-sqlite3` 是原生模块，安装和启动脚本会自动执行 Electron 对应的原生模块重建。
+`better-sqlite3` 是原生模块。依赖安装后的 `postinstall` 会准备 Electron 对应的原生模块；开发、测试和构建脚本不会重复重建，避免应用运行时占用 `.node` 文件导致 Windows `EPERM`。升级 Electron 或 `better-sqlite3` 后，请先关闭正在运行的职迹实例，再手动执行 `pnpm rebuild:native`。
 
 ## 常用命令
 
@@ -110,11 +111,11 @@ pnpm package:win
 pnpm release:win
 ```
 
-运行 `pnpm release:win` 前，需要在本机安装并配置可执行的 `vpk` 命令。脚本会使用 `zhiji` 作为 Velopack 的 `packId`，并从 `package.json` 读取版本号。
+运行 `pnpm release:win` 前，需要在本机安装并配置可执行的 `vpk` 命令。脚本会使用 `zhiji` 作为 Velopack 的 `packId`、使用“职迹”作为 Windows 安装项名称，从 `package.json` 读取版本号，并将所有构建/打包产物写入 `dist/`。当前仅生成 Velopack 默认 `Setup.exe`、Portable 包和 Release 资产，不生成 MSI；未来计划使用 Rust 自定义安装器。GitHub Actions 发布流程位于 `.github/workflows/release.yml`，推送 `v*` 标签后会自动构建 Windows 包、生成 Velopack Release 资产并发布到当前仓库。
 
 ## 数据和配置位置
 
-只有业务数据、简历文件和应用配置保存到项目或程序所在目录；Electron 自身的缓存、日志等底层数据仍使用系统默认目录。
+只有业务数据、简历文件和应用配置保存到项目目录或 Velopack 安装根目录；Electron 自身的缓存、日志等底层数据仍使用系统默认目录。
 
 开发环境：
 
@@ -127,10 +128,12 @@ pnpm release:win
 打包运行：
 
 ```text
-<exe 所在目录>/config.json
-<exe 所在目录>/data/zhiji.db
-<exe 所在目录>/resumes/
+<Velopack 安装根目录>/config.json
+<Velopack 安装根目录>/data/zhiji.db
+<Velopack 安装根目录>/resumes/
 ```
+
+Velopack 的版本文件位于安装根目录的 `current/` 中，该目录由 Velopack 管理并会在更新时替换；业务数据不会写入 `current/`。
 
 默认配置示例：
 
@@ -141,10 +144,8 @@ pnpm release:win
   "locale": "zh-CN",
   "closeBehavior": "quit",
   "launchAtStartup": false,
-  "velopack": {
-    "githubRepository": "",
-    "includePrerelease": false
-  },
+  "companyReadValidityMonths": 3,
+  "velopack": {},
   "mcp": {
     "enabled": false,
     "requireWriteConfirmation": true
@@ -157,7 +158,7 @@ pnpm release:win
 ## 数据库约定
 
 - SQLite 结构版本使用 `PRAGMA user_version`。
-- 当前结构版本为 `3`。
+- 当前结构版本为 `8`，包含日程提醒发送记录表、简历版本排序字段、公司已读时间字段和多行业公司关联表。
 - 时间字段使用 UTC Unix 毫秒时间戳。
 - 跨表关联统一使用逻辑外键，数据库不使用物理外键约束。
 - 数据库结构以 [database.md](database.md) 为唯一声明。
@@ -169,22 +170,19 @@ pnpm release:win
 
 渲染进程不能直接访问 SQLite、Node.js API 或文件系统。所有业务增删改查必须经过主进程的业务 service，再由 preload 暴露类型安全的 IPC API。
 
-当前业务服务位于 `src/main/services.ts`，未来 MCP 也必须复用这些服务，不能绕过 service 执行任意 SQL。
+当前业务服务位于 `src/main/services/`，SQL 仅位于 `src/main/repositories/`；未来 MCP 也必须复用这些服务，不能绕过 service 执行任意 SQL。
 
 ## Velopack 更新
 
-Velopack 已从首版接入。GitHub 仓库创建后，在 `config.json` 中配置：
+Velopack 已从首版接入。GitHub Release 更新源固定为 `https://github.com/baozha2023/JobTrail`，由程序内置，不在设置页面显示，也不支持修改。`config.json` 不保存更新源或 prerelease 开关：
 
 ```json
-{
-  "velopack": {
-    "githubRepository": "https://github.com/<owner>/<repository>",
-    "includePrerelease": false
-  }
-}
+{ "velopack": {} }
 ```
 
-仓库地址为空时会跳过更新检查。发布流程使用 Velopack 默认机制和 GitHub Release 资产，不使用 Squirrel 或其他更新框架。
+运行时使用 Velopack `UpdateManager`，从固定 GitHub 仓库的 Release 检查、下载并应用更新；更新源使用仓库根地址，不是 `releases/latest/download` 资产下载路径。发布流程使用 `vpk download github -> vpk pack -> vpk upload github`，不使用 Squirrel 或其他更新框架。
+
+更新元数据由主进程持有，下载和应用更新不会信任渲染进程传入的更新对象。
 
 ## MCP 状态
 

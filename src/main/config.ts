@@ -3,16 +3,14 @@ import path from 'node:path'
 import { app } from 'electron'
 import type { AppConfig, CloseBehavior, Locale, ThemeMode } from '../shared/types'
 
-const DEFAULT_CONFIG: AppConfig = {
+export const DEFAULT_CONFIG: AppConfig = {
   configVersion: 1,
   themeMode: 'system',
   locale: 'zh-CN',
   closeBehavior: 'quit',
   launchAtStartup: false,
-  velopack: {
-    githubRepository: '',
-    includePrerelease: false,
-  },
+  companyReadValidityMonths: 3,
+  velopack: {},
   mcp: {
     enabled: false,
     requireWriteConfirmation: true,
@@ -28,7 +26,12 @@ export interface AppPaths {
 }
 
 export function getStorageRoot(): string {
-  const base = app.isPackaged ? path.dirname(process.execPath) : app.getAppPath()
+  if (!app.isPackaged) return path.resolve(app.getAppPath())
+
+  const executableDir = path.dirname(process.execPath)
+  const base = path.basename(executableDir).toLowerCase() === 'current'
+    ? path.dirname(executableDir)
+    : executableDir
   return path.resolve(base)
 }
 
@@ -44,13 +47,23 @@ export function getAppPaths(): AppPaths {
 }
 
 function mergeConfig(value: unknown): AppConfig {
-  const source = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {}
-  const velopack = typeof source.velopack === 'object' && source.velopack !== null
-    ? source.velopack as Record<string, unknown>
-    : {}
-  const mcp = typeof source.mcp === 'object' && source.mcp !== null
-    ? source.mcp as Record<string, unknown>
-    : {}
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('配置格式无效')
+  const source = value as Record<string, unknown>
+  if (source.configVersion !== DEFAULT_CONFIG.configVersion) throw new Error('不支持的配置版本')
+  const velopack = source.velopack === undefined
+    ? {}
+    : asObject(source.velopack, 'velopack')
+  const mcp = source.mcp === undefined
+    ? {}
+    : asObject(source.mcp, 'mcp')
+
+  if (source.themeMode !== undefined && source.themeMode !== 'light' && source.themeMode !== 'dark' && source.themeMode !== 'system') throw new Error('主题配置无效')
+  if (source.locale !== undefined && source.locale !== 'zh-CN' && source.locale !== 'en-US') throw new Error('语言配置无效')
+  if (source.closeBehavior !== undefined && source.closeBehavior !== 'tray' && source.closeBehavior !== 'quit') throw new Error('关闭行为配置无效')
+  if (source.launchAtStartup !== undefined && typeof source.launchAtStartup !== 'boolean') throw new Error('开机启动配置无效')
+  if (source.companyReadValidityMonths !== undefined && (typeof source.companyReadValidityMonths !== 'number' || !Number.isSafeInteger(source.companyReadValidityMonths) || source.companyReadValidityMonths <= 0)) throw new Error('公司链接已读有效期配置无效')
+  if (mcp.enabled !== undefined && typeof mcp.enabled !== 'boolean') throw new Error('MCP 配置无效')
+  if (mcp.requireWriteConfirmation !== undefined && typeof mcp.requireWriteConfirmation !== 'boolean') throw new Error('MCP 配置无效')
 
   const themeMode: ThemeMode = source.themeMode === 'light' || source.themeMode === 'dark' || source.themeMode === 'system'
     ? source.themeMode
@@ -61,20 +74,22 @@ function mergeConfig(value: unknown): AppConfig {
   const closeBehavior: CloseBehavior = source.closeBehavior === 'tray' || source.closeBehavior === 'quit'
     ? source.closeBehavior
     : DEFAULT_CONFIG.closeBehavior
+  const companyReadValidityMonths = typeof source.companyReadValidityMonths === 'number' && Number.isSafeInteger(source.companyReadValidityMonths) && source.companyReadValidityMonths > 0
+    ? source.companyReadValidityMonths
+    : DEFAULT_CONFIG.companyReadValidityMonths
 
   return {
     ...DEFAULT_CONFIG,
     ...source,
-    configVersion: typeof source.configVersion === 'number' ? source.configVersion : DEFAULT_CONFIG.configVersion,
+    configVersion: DEFAULT_CONFIG.configVersion,
     themeMode,
     locale,
     closeBehavior,
     launchAtStartup: source.launchAtStartup === true,
+    companyReadValidityMonths,
     velopack: {
       ...DEFAULT_CONFIG.velopack,
       ...velopack,
-      githubRepository: typeof velopack.githubRepository === 'string' ? velopack.githubRepository : '',
-      includePrerelease: velopack.includePrerelease === true,
     },
     mcp: {
       ...DEFAULT_CONFIG.mcp,
@@ -83,6 +98,11 @@ function mergeConfig(value: unknown): AppConfig {
       requireWriteConfirmation: mcp.requireWriteConfirmation !== false,
     },
   }
+}
+
+function asObject(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${field}配置无效`)
+  return value as Record<string, unknown>
 }
 
 export class ConfigService {
@@ -99,16 +119,18 @@ export class ConfigService {
   }
 
   update(input: Partial<AppConfig>): AppConfig {
+    const velopackInput = input.velopack === undefined ? {} : asObject(input.velopack, 'velopack')
+    const mcpInput = input.mcp === undefined ? {} : asObject(input.mcp, 'mcp')
     const next = mergeConfig({
       ...this.config,
       ...input,
       velopack: {
         ...this.config.velopack,
-        ...(input.velopack ?? {}),
+        ...velopackInput,
       },
       mcp: {
         ...this.config.mcp,
-        ...(input.mcp ?? {}),
+        ...mcpInput,
       },
     })
     this.write(next)

@@ -1,8 +1,8 @@
-import type { JobTrailApi, VelopackApi, WindowControlsApi } from './shared/types'
+import type { ZhijiApi, VelopackApi, WindowControlsApi } from './shared/types'
 
 declare global {
   interface Window {
-    jobTrailApi: JobTrailApi
+    zhijiApi: ZhijiApi
     velopackApi: VelopackApi
     windowControlsApi: WindowControlsApi
   }

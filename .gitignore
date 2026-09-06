@@ -1,8 +1,13 @@
 node_modules/
 out/
+dist/
+# Legacy output directory kept ignored until the old Windows file lock is released.
 release/
 Releases/
 .vite/
+.vitest/
+coverage/
+*.tsbuildinfo
 *.db
 *.db-shm
 *.db-wal
@@ -10,3 +15,13 @@ Releases/
 .env
 .env.*
 !.env.example
+
+# Local application data and secrets
+data/
+.idea
+config.json
+resumes/
+
+# Operating-system files
+.DS_Store
+Thumbs.db

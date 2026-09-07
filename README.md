@@ -4,7 +4,7 @@
 
 ## 当前版本
 
-- 版本：`0.2.0`
+- 版本：`0.3.0`
 - 首发平台：Windows x64
 - 界面语言：简体中文、English
 - 主题：浅色、深色、跟随系统
@@ -24,6 +24,7 @@
 
 - 月视图日历
 - 支持全天日程和时间段日程
+- 日程按各自的 IANA 时区归属和显示；全天日程的结束日期不包含在日程内
 - 支持提醒、完成、编辑、删除
 - 日程可以关联求职记录，也可以独立存在
 
@@ -67,6 +68,7 @@ claude.md      项目上下文与开发规范
 database.md    SQLite 数据库唯一声明文档
 future.md      首版未落地功能规划
 scripts/       构建和 Velopack 打包脚本
+native/bootstrap/ Rust 启动器、离线安装器和卸载器
 resource/      应用图片等静态资源
 ```
 
@@ -74,7 +76,7 @@ resource/      应用图片等静态资源
 
 建议使用：
 
-- Node.js 22+
+- Node.js 24 LTS
 - pnpm 11+
 - Windows x64
 
@@ -111,11 +113,15 @@ pnpm package:win
 pnpm release:win
 ```
 
-运行 `pnpm release:win` 前，需要在本机安装并配置可执行的 `vpk` 命令。脚本会使用 `zhiji` 作为 Velopack 的 `packId`、使用“职迹”作为 Windows 安装项名称，从 `package.json` 读取版本号，并将所有构建/打包产物写入 `dist/`。当前仅生成 Velopack 默认 `Setup.exe`、Portable 包和 Release 资产，不生成 MSI；未来计划使用 Rust 自定义安装器。GitHub Actions 发布流程位于 `.github/workflows/release.yml`，推送 `v*` 标签后会自动构建 Windows 包、生成 Velopack Release 资产并发布到当前仓库。
+运行 `pnpm release:win` 前安装 Rust MSVC 工具链和 Visual Studio C++ Build Tools、.NET 8 SDK，并执行 `dotnet tool install --global vpk --version 1.2.0`。构建脚本读取 package.json 版本，先核验可用的旧版 Full，再生成 Velopack 更新包，最后构建内嵌载荷的 Rust 安装器。网络或校验失败会停止构建，不会伪装成首次发布。
+
+最终产物位于 `dist/velopack/`：`JobTrail-Setup-0.3.0.exe`、更新 Feed 和 nupkg。不生成公开 Portable/MSI；`dist/win-unpacked` 仅供开发验证。GitHub Actions 与本地共用打包脚本，只允许与 package.json 匹配的版本标签发布。
+
+双击安装器后选择父目录，程序安装到其中的 `JobTrail` 文件夹。安装包自带全部程序，无需下载安装载荷。卸载入口为设置页、Windows 已安装应用或根目录 `JobTrail-Uninstall.exe`；卸载保留求职数据和简历。当前用户只安装一份，已有版本请使用应用内更新。
 
 ## 数据和配置位置
 
-只有业务数据、简历文件和应用配置保存到项目目录或 Velopack 安装根目录；Electron 自身的缓存、日志等底层数据仍使用系统默认目录。
+只有业务数据、简历文件和应用配置保存到项目目录或 JobTrail 安装根目录；Electron 自身的缓存、日志等底层数据仍使用系统默认目录。
 
 开发环境：
 
@@ -128,12 +134,12 @@ pnpm release:win
 打包运行：
 
 ```text
-<Velopack 安装根目录>/config.json
-<Velopack 安装根目录>/data/zhiji.db
-<Velopack 安装根目录>/resumes/
+<JobTrail 安装根目录>/config.json
+<JobTrail 安装根目录>/data/zhiji.db
+<JobTrail 安装根目录>/resumes/
 ```
 
-Velopack 的版本文件位于安装根目录的 `current/` 中，该目录由 Velopack 管理并会在更新时替换；业务数据不会写入 `current/`。
+Velopack 的版本文件位于安装根目录的 `.runtime/current/` 中，该目录由 Velopack 管理并会在更新时替换；业务数据不会写入 `current/`。
 
 默认配置示例：
 
@@ -170,7 +176,9 @@ Velopack 的版本文件位于安装根目录的 `current/` 中，该目录由 V
 
 渲染进程不能直接访问 SQLite、Node.js API 或文件系统。所有业务增删改查必须经过主进程的业务 service，再由 preload 暴露类型安全的 IPC API。
 
-当前业务服务位于 `src/main/services/`，SQL 仅位于 `src/main/repositories/`；未来 MCP 也必须复用这些服务，不能绕过 service 执行任意 SQL。
+主窗口启用上下文隔离、沙箱和内容安全策略；禁止创建新窗口及跳转到非应用页面。IPC 仅接受主框架调用，并拒绝业务 DTO 中的未知字段与空更新。
+
+当前业务服务位于 `src/main/services/`，SQL 仅位于 `src/main/repositories/`；渲染进程按业务域使用 `src/renderer/composables/` 组织页面状态和操作。未来 MCP 也必须复用这些服务，不能绕过 service 执行任意 SQL。
 
 ## Velopack 更新
 
@@ -180,7 +188,7 @@ Velopack 已从首版接入。GitHub Release 更新源固定为 `https://github.
 { "velopack": {} }
 ```
 
-运行时使用 Velopack `UpdateManager`，从固定 GitHub 仓库的 Release 检查、下载并应用更新；更新源使用仓库根地址，不是 `releases/latest/download` 资产下载路径。发布流程使用 `vpk download github -> vpk pack -> vpk upload github`，不使用 Squirrel 或其他更新框架。
+运行时使用 Velopack `UpdateManager`，从固定的 `releases/latest/download` HTTP Feed 检查、下载并应用更新。发布流程先从同一 Feed 选择并校验低于目标版本的最新 Full，再执行 `vpk pack`；GitHub Actions 最后通过 `gh release create` 发布安装器、Feed 和更新包，不使用 Squirrel、electron-updater 或其他更新框架。
 
 更新元数据由主进程持有，下载和应用更新不会信任渲染进程传入的更新对象。
 
@@ -201,3 +209,7 @@ Velopack 已从首版接入。GitHub Release 更新源固定为 `https://github.
 ## License
 
 MIT
+
+## 审查记录
+
+详见 [Windows 打包与代码审查记录](docs/REVIEW-2026-09-07.md)。旧版原始 Velopack 安装不自动迁移到新目录布局；已有求职数据请先备份再迁移。

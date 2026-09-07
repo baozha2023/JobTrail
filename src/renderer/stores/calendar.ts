@@ -18,4 +18,3 @@ export const useCalendarStore = defineStore('calendar', () => {
   }
   return { items, loading, load }
 })
-

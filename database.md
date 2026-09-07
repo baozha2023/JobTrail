@@ -169,10 +169,10 @@ Velopack 安装环境：`<Velopack 安装根目录>/resumes/`
 | opportunity_id | INTEGER | 可空逻辑外键，指向 opportunities.id | 关联求职机会 |
 | title | TEXT | NOT NULL | 日程标题 |
 | event_type | TEXT | NOT NULL | 日程类型 |
-| start_at | INTEGER | NOT NULL | 开始时间 |
-| end_at | INTEGER | NOT NULL | 结束时间 |
+| start_at | INTEGER | NOT NULL | UTC Unix 毫秒开始时间；全天日程为其时区开始日期的 00:00 |
+| end_at | INTEGER | NOT NULL | UTC Unix 毫秒结束时间；全天日程为其时区不包含结束日期的 00:00 |
 | is_all_day | INTEGER | NOT NULL DEFAULT 0 | 是否全天 |
-| timezone | TEXT | NOT NULL | 时区 |
+| timezone | TEXT | NOT NULL | 有效的 IANA 时区名称，用于日程显示和日期归属 |
 | location | TEXT | 可空 | 地点或会议链接 |
 | description | TEXT | 可空 | 日程说明 |
 | reminder_minutes | INTEGER | 可空，非负 | 提前提醒分钟数 |
@@ -180,7 +180,7 @@ Velopack 安装环境：`<Velopack 安装根目录>/resumes/`
 | created_at | INTEGER | NOT NULL | 创建时间 |
 | updated_at | INTEGER | NOT NULL | 更新时间 |
 
-约束：`end_at >= start_at`；`reminder_minutes` 为空或为非负整数。
+约束：时间段日程允许 `end_at = start_at` 表示时间点，其他情况 `end_at >= start_at`；全天日程采用半开区间 `[start_at, end_at)`，必须满足 `end_at > start_at`；`reminder_minutes` 为空或为非负整数。
 
 ### calendar_event_reminders
 
@@ -209,6 +209,7 @@ Velopack 安装环境：`<Velopack 安装根目录>/resumes/`
 
 - 首次数据库初始化插入默认状态、内置行业分类和内置公司。
 - 使用 `PRAGMA user_version` 判断首次初始化。
+- seed 数据与 `PRAGMA user_version` 必须在同一事务中提交，避免初始化中断后留下无法识别的半成品数据库。
 - 内置状态、内置行业分类和内置公司的主体数据不可删除，因此 seed 只负责首次初始化。
 - 生产环境内置状态、内置行业分类和内置公司的主体数据禁止编辑，业务 service 返回 `BUILTIN_DATA`，提示“该数据为内置，无法删除/修改”；开发环境放开增删改查，但仍执行逻辑关联删除保护。显示顺序调整属于用户排序偏好，仍可通过重排接口修改；内置公司的收藏标记属于用户偏好，允许修改。
 - seed 操作必须幂等。

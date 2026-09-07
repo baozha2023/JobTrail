@@ -1,40 +1,94 @@
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'))
-const outputDir = path.join(projectRoot, 'dist', 'velopack')
-const githubRepository = 'https://github.com/baozha2023/JobTrail'
-
-fs.mkdirSync(outputDir, { recursive: true })
-const downloadArgs = ['download', 'github', '--outputDir', outputDir, '--repoUrl', githubRepository]
-if (process.env.GITHUB_TOKEN) downloadArgs.push('--token', process.env.GITHUB_TOKEN)
-const previousRelease = spawnSync('vpk', downloadArgs, { cwd: projectRoot, stdio: 'inherit', shell: process.platform === 'win32' })
-if (previousRelease.error && previousRelease.error.code === 'ENOENT') throw previousRelease.error
-// A repository without a previous release is a valid first-release case. vpk
-// will then emit only the full package during the pack step below.
-
-// MSI is intentionally not part of the current distribution. Remove a stale
-// artifact from older local packaging runs without touching Velopack packages
-// needed for delta generation.
-if (fs.existsSync(outputDir)) {
-  for (const name of fs.readdirSync(outputDir)) {
-    if (name.toLowerCase().endsWith('.msi')) fs.rmSync(path.join(outputDir, name), { force: true })
-  }
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const output = path.join(root, 'dist', 'velopack')
+const manifest = path.join(root, 'native', 'bootstrap', 'Cargo.toml')
+const binaries = path.join(root, 'native', 'bootstrap', 'target', 'release')
+const cargo = path.join(os.homedir(), '.cargo', 'bin', 'cargo.exe')
+const vpk = path.join(os.homedir(), '.dotnet', 'tools', 'vpk.exe')
+function run(command, args, env = {}) {
+  const result = spawnSync(command, args, {
+    cwd: root,
+    stdio: 'inherit',
+    env: { ...process.env, JOBTRAIL_VERSION: pkg.version, ...env },
+    shell: false,
+  })
+  if (result.error) throw result.error
+  if (result.status !== 0) throw new Error(`${path.basename(command)} failed (${result.status})`)
 }
-
-const result = spawnSync('vpk', [
+if (process.platform !== 'win32') throw new Error('Windows packaging requires Windows')
+// This generated directory is owned exclusively by this release script.
+if (path.relative(root, output) !== path.join('dist', 'velopack'))
+  throw new Error('Invalid output directory')
+if (fs.existsSync(output) && fs.lstatSync(output).isSymbolicLink())
+  throw new Error('Output must not be a link')
+fs.rmSync(output, { recursive: true, force: true })
+fs.mkdirSync(output, { recursive: true })
+await downloadPreviousVelopackFull({
+  feedUrl: 'https://github.com/baozha2023/JobTrail/releases/latest/download',
+  targetVersion: pkg.version,
+  outputDir: output,
+})
+run(cargo, [
+  'build',
+  '--release',
+  '--locked',
+  '--manifest-path',
+  manifest,
+  '--bin',
+  'launcher',
+  '--bin',
+  'uninstaller',
+])
+run(vpk, [
   'pack',
-  '--outputDir', outputDir,
-  '--packId', 'zhiji',
-  '--packVersion', packageJson.version,
-  '--packDir', path.join(projectRoot, 'dist', 'win-unpacked'),
-  '--packTitle', '职迹',
-  '--mainExe', 'zhiji.exe',
-  '--icon', path.join(projectRoot, 'resource', 'icon.ico'),
-], { cwd: projectRoot, stdio: 'inherit', shell: process.platform === 'win32' })
-
-if (result.error) throw result.error
-if (result.status !== 0) process.exit(result.status ?? 1)
+  '--outputDir',
+  output,
+  '--packId',
+  'zhiji',
+  '--packVersion',
+  pkg.version,
+  '--packDir',
+  path.join(root, 'dist', 'win-unpacked'),
+  '--packTitle',
+  '职迹',
+  '--channel',
+  'win',
+  '--mainExe',
+  'zhiji.exe',
+  '--shortcuts',
+  'None',
+  '--noPortable',
+  '--icon',
+  path.join(root, 'resource', 'icon.ico'),
+])
+run(cargo, ['build', '--release', '--locked', '--manifest-path', manifest, '--bin', 'installer'], {
+  JOBTRAIL_SETUP: path.join(output, 'zhiji-win-Setup.exe'),
+  JOBTRAIL_LAUNCHER: path.join(binaries, 'launcher.exe'),
+  JOBTRAIL_UNINSTALLER: path.join(binaries, 'uninstaller.exe'),
+})
+fs.copyFileSync(
+  path.join(binaries, 'installer.exe'),
+  path.join(output, `JobTrail-Setup-${pkg.version}.exe`),
+)
+const feed = JSON.parse(fs.readFileSync(path.join(output, 'releases.win.json'), 'utf8'))
+for (const asset of feed.Assets) {
+  if (path.basename(asset.FileName) !== asset.FileName) throw new Error('Invalid asset filename')
+  const data = fs.readFileSync(path.join(output, asset.FileName))
+  if (
+    data.length !== asset.Size ||
+    createHash('sha256').update(data).digest('hex') !== asset.SHA256.toLowerCase()
+  )
+    throw new Error(`Invalid release asset: ${asset.FileName}`)
+}
+// Only publish the custom offline setup and the update feed/packages.
+for (const name of ['zhiji-win-Setup.exe', 'RELEASES', 'assets.win.json'])
+  fs.rmSync(path.join(output, name), { force: true })
+console.log(`Release ready: ${output}`)

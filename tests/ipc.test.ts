@@ -1,19 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { parseCalendarRange, parseCompany, parseUrl } from '../src/main/ipc/validators'
+import {
+  parseCalendarRange,
+  parseCompany,
+  parseOpportunity,
+  parseOpportunityQuery,
+  parseResumeUpdate,
+  parseUrl,
+} from '../src/main/ipc/validators'
 import { AppServiceError, errorShape } from '../src/main/services/errors'
 
 describe('typed IPC validation', () => {
   it('rejects malformed DTO values instead of coercing them', () => {
     expect(() => parseCalendarRange({ startAt: '0', endAt: 1 })).toThrowError(AppServiceError)
-    expect(() => parseCompany({ name: '公司', aliases: ['有效', 1] }, false)).toThrowError(AppServiceError)
-    expect(() => parseCompany({ name: '公司', industryIds: [1, '2'] }, false)).toThrowError(AppServiceError)
+    expect(() => parseCompany({ name: '公司', aliases: ['有效', 1] }, false)).toThrowError(
+      AppServiceError,
+    )
+    expect(() => parseCompany({ name: '公司', industryIds: [1, '2'] }, false)).toThrowError(
+      AppServiceError,
+    )
     expect(() => parseCompany({ name: '公司', industryId: 1 }, false)).toThrowError(AppServiceError)
+    expect(() => parseCompany({ name: '公司', unexpected: true }, false)).toThrowError(
+      AppServiceError,
+    )
+    expect(() => parseOpportunityQuery({ search: '', ignored: 1 })).toThrowError(AppServiceError)
+    expect(() => parseCompany({}, true)).toThrowError(AppServiceError)
+    expect(() => parseOpportunity({}, true)).toThrowError(AppServiceError)
+    expect(() => parseResumeUpdate({})).toThrowError(AppServiceError)
     expect(() => parseUrl('file:///tmp/private')).toThrowError(AppServiceError)
+    expect(() => parseUrl('javascript:alert(1)')).toThrowError(AppServiceError)
+    expect(() => parseUrl('data:text/html,unsafe')).toThrowError(AppServiceError)
     expect(() => parseUrl('not a url')).toThrowError(AppServiceError)
   })
 
   it('accepts company industry IDs as an array', () => {
-    expect(parseCompany({ name: '公司', industryIds: [1, 2] }, false)).toEqual({ name: '公司', industryIds: [1, 2] })
+    expect(parseCompany({ name: '公司', industryIds: [1, 2] }, false)).toEqual({
+      name: '公司',
+      industryIds: [1, 2],
+    })
   })
 
   it('returns structured application errors', () => {

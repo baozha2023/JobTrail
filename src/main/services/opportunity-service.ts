@@ -1,9 +1,20 @@
-import type { CreateOpportunityInput, Opportunity, OpportunityQuery, UpdateOpportunityInput } from '../../shared/types'
+import type {
+  CreateOpportunityInput,
+  Opportunity,
+  OpportunityQuery,
+  UpdateOpportunityInput,
+} from '../../shared/types'
 import { CompanyRepository } from '../repositories/company-repository'
 import { OpportunityRepository } from '../repositories/opportunity-repository'
 import { ResumeRepository } from '../repositories/resume-repository'
 import { StatusRepository } from '../repositories/status-repository'
-import { AppServiceError, assertFiniteInteger, assertPositiveId, nullableText } from './errors'
+import {
+  AppServiceError,
+  assertFiniteInteger,
+  assertNonEmptyUpdate,
+  assertPositiveId,
+  nullableText,
+} from './errors'
 
 type CompleteOpportunityInput = CreateOpportunityInput
 
@@ -14,7 +25,15 @@ export class OpportunityService {
     private readonly statuses: StatusRepository,
     private readonly resumes: ResumeRepository,
   ) {}
-  list(query: OpportunityQuery): Opportunity[] { return this.repository.list({ ...query, search: query.search?.trim() }).map((row) => this.repository.map(row)) }
+  list(query: OpportunityQuery): Opportunity[] {
+    if (query.statusId !== null && query.statusId !== undefined)
+      assertPositiveId(query.statusId, '状态 ID')
+    if (query.companyId !== null && query.companyId !== undefined)
+      assertPositiveId(query.companyId, '公司 ID')
+    return this.repository
+      .list({ ...query, search: query.search?.trim() })
+      .map((row) => this.repository.map(row))
+  }
   get(id: number): Opportunity {
     assertPositiveId(id, '求职记录 ID')
     const row = this.repository.get(id)
@@ -27,6 +46,7 @@ export class OpportunityService {
     return this.get(this.repository.create(normalized, Date.now()))
   }
   update(id: number, input: UpdateOpportunityInput): Opportunity {
+    assertNonEmptyUpdate(input, '求职记录')
     const current = this.get(id)
     const normalized = this.normalize({
       companyId: input.companyId ?? current.companyId,
@@ -37,7 +57,8 @@ export class OpportunityService {
       jobUrl: input.jobUrl === undefined ? current.jobUrl : input.jobUrl,
       description: input.description === undefined ? current.description : input.description,
       statusId: input.statusId ?? current.statusId,
-      resumeVersionId: input.resumeVersionId === undefined ? current.resumeVersionId : input.resumeVersionId,
+      resumeVersionId:
+        input.resumeVersionId === undefined ? current.resumeVersionId : input.resumeVersionId,
       discoveredAt: input.discoveredAt === undefined ? current.discoveredAt : input.discoveredAt,
       appliedAt: input.appliedAt === undefined ? current.appliedAt : input.appliedAt,
       deadlineAt: input.deadlineAt === undefined ? current.deadlineAt : input.deadlineAt,
@@ -55,26 +76,37 @@ export class OpportunityService {
   }
   delete(id: number): void {
     this.get(id)
-    if (this.repository.delete(id) === 0) throw new AppServiceError('NOT_FOUND', '求职记录不存在')
+    if (this.repository.delete(id, Date.now()) === 0)
+      throw new AppServiceError('NOT_FOUND', '求职记录不存在')
   }
   private normalize(input: CompleteOpportunityInput): CompleteOpportunityInput {
     return {
       ...input,
       title: input.title.trim(),
-      department: nullableText(input.department), location: nullableText(input.location), source: nullableText(input.source),
-      jobUrl: nullableText(input.jobUrl), description: nullableText(input.description), notes: nullableText(input.notes),
+      department: nullableText(input.department),
+      location: nullableText(input.location),
+      source: nullableText(input.source),
+      jobUrl: nullableText(input.jobUrl),
+      description: nullableText(input.description),
+      notes: nullableText(input.notes),
     }
   }
   private validate(input: CompleteOpportunityInput): void {
     assertPositiveId(input.companyId, '公司 ID')
     if (!input.title) throw new AppServiceError('VALIDATION_ERROR', '岗位名称不能为空')
-    if (!this.companies.get(input.companyId)) throw new AppServiceError('VALIDATION_ERROR', '公司不存在')
+    if (!this.companies.get(input.companyId))
+      throw new AppServiceError('VALIDATION_ERROR', '公司不存在')
     this.requireStatus(input.statusId)
     if (input.resumeVersionId !== null && input.resumeVersionId !== undefined) {
       assertPositiveId(input.resumeVersionId, '简历版本 ID')
-      if (!this.resumes.get(input.resumeVersionId)) throw new AppServiceError('VALIDATION_ERROR', '简历版本不存在')
+      if (!this.resumes.get(input.resumeVersionId))
+        throw new AppServiceError('VALIDATION_ERROR', '简历版本不存在')
     }
-    for (const [value, field] of [[input.discoveredAt, '发现时间'], [input.appliedAt, '投递时间'], [input.deadlineAt, '截止时间']] as const) {
+    for (const [value, field] of [
+      [input.discoveredAt, '发现时间'],
+      [input.appliedAt, '投递时间'],
+      [input.deadlineAt, '截止时间'],
+    ] as const) {
       if (value !== null && value !== undefined) assertFiniteInteger(value, field)
     }
   }
@@ -83,4 +115,3 @@ export class OpportunityService {
     if (!this.statuses.get(id)) throw new AppServiceError('VALIDATION_ERROR', '状态不存在')
   }
 }
-

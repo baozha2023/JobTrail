@@ -99,11 +99,25 @@ export interface CalendarEventRow {
 }
 
 export function mapStatus(row: StatusRow): Status {
-  return { id: row.id, label: row.label, sortOrder: row.sort_order, isBuiltin: row.is_builtin === 1, createdAt: row.created_at, updatedAt: row.updated_at }
+  return {
+    id: row.id,
+    label: row.label,
+    sortOrder: row.sort_order,
+    isBuiltin: row.is_builtin === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 export function mapIndustry(row: IndustryRow): Industry {
-  return { id: row.id, name: row.name, sortOrder: row.sort_order, isBuiltin: row.is_builtin === 1, createdAt: row.created_at, updatedAt: row.updated_at }
+  return {
+    id: row.id,
+    name: row.name,
+    sortOrder: row.sort_order,
+    isBuiltin: row.is_builtin === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
 }
 
 export function mapCompany(row: CompanyRow, aliases: string[], industryIds: number[]): Company {

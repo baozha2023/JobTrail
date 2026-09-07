@@ -17,7 +17,7 @@
 - better-sqlite3
 - Velopack
 
-首发以 Windows x64 为主要验证目标。应用图片等静态资源统一存储在项目根目录的 `resource/`，构建和打包产物统一输出到项目根目录的 `dist/`。开发环境的应用设置、业务数据库和简历文件存储在项目根目录；Velopack 安装环境的这些业务数据存储在 Velopack 安装根目录，不得写入 `current/`。
+首发以 Windows x64 为主要验证目标。应用图片等静态资源统一存储在项目根目录的 `resource/`，构建和打包产物统一输出到项目根目录的 `dist/`。开发环境的应用设置、业务数据库和简历文件存储在项目根目录；Velopack 安装环境的这些业务数据存储在 JobTrail 安装根目录，不得写入 `current/`。
 
 ## 分层规则
 
@@ -33,22 +33,26 @@ renderer
 - renderer 不直接访问 SQLite、Node.js API 或文件系统。
 - preload 只能暴露明确的、经过类型约束的函数。
 - 不暴露完整的 `ipcRenderer`。
+- renderer 必须启用 CSP；主窗口禁止创建新窗口和跳转到非应用页面，业务 IPC 只接受主框架调用。
+- 业务 IPC 必须拒绝未知 DTO 字段与没有有效字段的空更新；配置对象按配置规范继续保留未知字段。
 - main 进程负责数据库、文件复制、文件打开和 Velopack。
 - 业务 CRUD 必须先进入 `src/main/services`，界面和未来 MCP 都复用这些服务；SQL 只能位于对应 Repository。
+- renderer 页面状态和业务操作按领域放在 `src/renderer/composables`，视图组件只负责组合领域控制器和呈现。
 - 服务输入和输出必须是 JSON 可序列化 DTO，不能依赖 Vue 响应式对象、Electron 对象或文件句柄。
 - Repository 只负责持久化，不承载界面规则；删除限制和参数校验放在 service 层。
 - 左侧导航提供独立的“状态管理”“行业分类”“简历版本”“公司管理”页面，各类基础数据的新增、编辑、删除和查询只能从对应页面发起。
 - 求职记录和日历页面只能读取状态、简历版本和公司作为关联选项，不提供这三类业务的快捷写入。
 - 行业分类作为独立基础数据维护，并通过 `company_industries` 多对多关联公司。
 - 日历提醒只使用 Windows 本地通知：主进程每 5 分钟检查一次，只有提醒时间已到、日程未完成且未发送过才通知；不实现邮箱通知。
-- 设置页面只负责主题、语言和更新检查，不承载状态、简历版本或公司管理。
+- 日程时区使用 IANA 时区名称。时间段日程按其时区显示和归属日期；全天日程存储为该时区的日期边界，结束日期采用不包含语义。
+- 设置页面只负责主题、语言、窗口关闭行为、开机启动和更新检查，不承载状态、简历版本或公司管理。
 
 ## 配置规范
 
 配置文件位于：
 
 开发环境：`<项目根目录>/config.json`  
-Velopack 安装环境：`<Velopack 安装根目录>/config.json`
+Velopack 安装环境：`<JobTrail 安装根目录>/config.json`
 
 配置默认值：
 
@@ -87,7 +91,7 @@ Velopack 安装环境：`<Velopack 安装根目录>/config.json`
 数据库位于：
 
 开发环境：`<项目根目录>/data/zhiji.db`  
-Velopack 安装环境：`<Velopack 安装根目录>/data/zhiji.db`
+Velopack 安装环境：`<JobTrail 安装根目录>/data/zhiji.db`
 
 - 使用 better-sqlite3，并在 main 进程加载。
 - 开启 WAL 和 busy timeout；禁止创建 SQLite 物理外键，跨表关联统一作为逻辑外键由 service 层维护。
@@ -117,13 +121,22 @@ Velopack 安装环境：`<Velopack 安装根目录>/data/zhiji.db`
 
 - Velopack 启动钩子必须位于 main 入口最前面。
 - 使用 Velopack 内置默认机制，不使用 Squirrel 或 electron-updater。
-- 更新使用 Velopack JavaScript SDK 的 GitHub 仓库源，地址指向仓库根路径；不使用 GitHub Release 的 `releases/latest/download` 资产下载路径。
-- GitHub Release 更新源固定为 `https://github.com/baozha2023/JobTrail`，由更新模块内置，不从 `config.json` 读取，设置页面也不提供显示或修改入口。
+- 更新使用 Velopack JavaScript SDK 的 HTTP Feed：`https://github.com/baozha2023/JobTrail/releases/latest/download`，通道固定为 `win`，不从配置或 renderer 接收更新源。
 - 更新检查结果只由主进程持有；下载和应用更新的 IPC 不接受 renderer 传入的 `UpdateInfo`，只能使用主进程刚刚检查得到的结果。
 - 默认不包含 prerelease，使用默认 Windows channel。
 - Vite/Rollup 必须外置 Electron 和原生依赖，并正确处理 `.node` 文件。
+- Windows 目录包复用当前安装依赖中的 Electron distribution，避免重复解压默认缓存，并确保打包版本与依赖锁定版本一致。
 - `dev`、`test` 和 `build` 不重复执行 native rebuild；只有升级 Electron 或 better-sqlite3 后，在关闭所有职迹实例的前提下手动执行 `pnpm rebuild:native`。
-- 版本发布使用 `.github/workflows/release.yml` 执行 `vpk download github -> vpk pack -> vpk upload github`，生成并发布 GitHub Release 资产；当前 `vpk pack` 只生成 Velopack 默认 `Setup.exe`、Portable 包和 Release 资产，不生成 MSI；本地 `pnpm release:win` 的所有产物统一写入 `dist/`。
+- 本地和 CI 统一使用 `pnpm release:win`：选择并校验低于目标版本的最新 Full → Velopack pack → Rust 内嵌载荷。只有来源 404、空 Feed 或无合适基线时允许 Full-only；网络错误、无效 Feed、大小/SHA-256 不匹配必须使构建失败。
+- 分发 `JobTrail-Setup-<version>.exe`、`releases.win.json` 和 nupkg；不分发原生 Setup、Portable 或 MSI。发布标签必须与 package.json 一致。
+- Rust crate 位于 `native/bootstrap`，提供简单的目录选择、确认安装和卸载界面；载荷随安装包提供，不联网下载。
+- 安装根目录含 `JobTrail.exe`、`JobTrail-Uninstall.exe`、`.jobtrail-root`，Velopack 程序位于 `.runtime/current`。配置、数据库和简历在根目录，更新与卸载均保留。
+- 只允许当前用户单份安装，目标目录必须以 JobTrail 结尾，拒绝系统目录、UNC、路径穿越和目录联接。卸载 worker 从临时目录执行，等待应用退出；只删除程序文件及指向当前安装的快捷方式和注册项。
+- 进程和窗口 AppUserModelID：安装版 `zhiji`，开发版 `zhiji.development`。窗口图标、PE 图标、重启入口必须一致；任务栏和开机启动均指向根启动器。
+- 启动钩子关闭自动应用更新；更新检查、下载、应用互斥，应用前确认已下载目标版本。更新重启使用 `--handoff-root` 转交根启动器，该中转进程不得争用单实例锁。
+- IPC 仅信任登记主窗口的 mainFrame；打包版禁止环境变量覆盖 renderer URL。
+- `pnpm test` 包含发布基线测试与 Electron ABI 下的业务测试；Rust 使用 cargo test / clippy，格式统一由 Prettier 和 rustfmt 维护。
+
 
 ## MCP 预留规则
 

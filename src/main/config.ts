@@ -1,4 +1,6 @@
 import fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { resolveStorageRoot } from './installation-paths'
 import path from 'node:path'
 import { app } from 'electron'
 import type { AppConfig, CloseBehavior, Locale, ThemeMode } from '../shared/types'
@@ -28,11 +30,7 @@ export interface AppPaths {
 export function getStorageRoot(): string {
   if (!app.isPackaged) return path.resolve(app.getAppPath())
 
-  const executableDir = path.dirname(process.execPath)
-  const base = path.basename(executableDir).toLowerCase() === 'current'
-    ? path.dirname(executableDir)
-    : executableDir
-  return path.resolve(base)
+  return resolveStorageRoot(process.execPath)
 }
 
 export function getAppPaths(): AppPaths {
@@ -47,36 +45,60 @@ export function getAppPaths(): AppPaths {
 }
 
 function mergeConfig(value: unknown): AppConfig {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('配置格式无效')
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new Error('配置格式无效')
   const source = value as Record<string, unknown>
   if (source.configVersion !== DEFAULT_CONFIG.configVersion) throw new Error('不支持的配置版本')
-  const velopack = source.velopack === undefined
-    ? {}
-    : asObject(source.velopack, 'velopack')
-  const mcp = source.mcp === undefined
-    ? {}
-    : asObject(source.mcp, 'mcp')
+  const velopack = source.velopack === undefined ? {} : asObject(source.velopack, 'velopack')
+  const mcp = source.mcp === undefined ? {} : asObject(source.mcp, 'mcp')
 
-  if (source.themeMode !== undefined && source.themeMode !== 'light' && source.themeMode !== 'dark' && source.themeMode !== 'system') throw new Error('主题配置无效')
-  if (source.locale !== undefined && source.locale !== 'zh-CN' && source.locale !== 'en-US') throw new Error('语言配置无效')
-  if (source.closeBehavior !== undefined && source.closeBehavior !== 'tray' && source.closeBehavior !== 'quit') throw new Error('关闭行为配置无效')
-  if (source.launchAtStartup !== undefined && typeof source.launchAtStartup !== 'boolean') throw new Error('开机启动配置无效')
-  if (source.companyReadValidityMonths !== undefined && (typeof source.companyReadValidityMonths !== 'number' || !Number.isSafeInteger(source.companyReadValidityMonths) || source.companyReadValidityMonths <= 0)) throw new Error('公司链接已读有效期配置无效')
+  if (
+    source.themeMode !== undefined &&
+    source.themeMode !== 'light' &&
+    source.themeMode !== 'dark' &&
+    source.themeMode !== 'system'
+  )
+    throw new Error('主题配置无效')
+  if (source.locale !== undefined && source.locale !== 'zh-CN' && source.locale !== 'en-US')
+    throw new Error('语言配置无效')
+  if (
+    source.closeBehavior !== undefined &&
+    source.closeBehavior !== 'tray' &&
+    source.closeBehavior !== 'quit'
+  )
+    throw new Error('关闭行为配置无效')
+  if (source.launchAtStartup !== undefined && typeof source.launchAtStartup !== 'boolean')
+    throw new Error('开机启动配置无效')
+  if (
+    source.companyReadValidityMonths !== undefined &&
+    (typeof source.companyReadValidityMonths !== 'number' ||
+      !Number.isSafeInteger(source.companyReadValidityMonths) ||
+      source.companyReadValidityMonths <= 0)
+  )
+    throw new Error('公司链接已读有效期配置无效')
   if (mcp.enabled !== undefined && typeof mcp.enabled !== 'boolean') throw new Error('MCP 配置无效')
-  if (mcp.requireWriteConfirmation !== undefined && typeof mcp.requireWriteConfirmation !== 'boolean') throw new Error('MCP 配置无效')
+  if (
+    mcp.requireWriteConfirmation !== undefined &&
+    typeof mcp.requireWriteConfirmation !== 'boolean'
+  )
+    throw new Error('MCP 配置无效')
 
-  const themeMode: ThemeMode = source.themeMode === 'light' || source.themeMode === 'dark' || source.themeMode === 'system'
-    ? source.themeMode
-    : DEFAULT_CONFIG.themeMode
-  const locale: Locale = source.locale === 'zh-CN' || source.locale === 'en-US'
-    ? source.locale
-    : DEFAULT_CONFIG.locale
-  const closeBehavior: CloseBehavior = source.closeBehavior === 'tray' || source.closeBehavior === 'quit'
-    ? source.closeBehavior
-    : DEFAULT_CONFIG.closeBehavior
-  const companyReadValidityMonths = typeof source.companyReadValidityMonths === 'number' && Number.isSafeInteger(source.companyReadValidityMonths) && source.companyReadValidityMonths > 0
-    ? source.companyReadValidityMonths
-    : DEFAULT_CONFIG.companyReadValidityMonths
+  const themeMode: ThemeMode =
+    source.themeMode === 'light' || source.themeMode === 'dark' || source.themeMode === 'system'
+      ? source.themeMode
+      : DEFAULT_CONFIG.themeMode
+  const locale: Locale =
+    source.locale === 'zh-CN' || source.locale === 'en-US' ? source.locale : DEFAULT_CONFIG.locale
+  const closeBehavior: CloseBehavior =
+    source.closeBehavior === 'tray' || source.closeBehavior === 'quit'
+      ? source.closeBehavior
+      : DEFAULT_CONFIG.closeBehavior
+  const companyReadValidityMonths =
+    typeof source.companyReadValidityMonths === 'number' &&
+    Number.isSafeInteger(source.companyReadValidityMonths) &&
+    source.companyReadValidityMonths > 0
+      ? source.companyReadValidityMonths
+      : DEFAULT_CONFIG.companyReadValidityMonths
 
   return {
     ...DEFAULT_CONFIG,
@@ -101,7 +123,8 @@ function mergeConfig(value: unknown): AppConfig {
 }
 
 function asObject(value: unknown, field: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${field}配置无效`)
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new Error(`${field}配置无效`)
   return value as Record<string, unknown>
 }
 
@@ -145,11 +168,12 @@ export class ConfigService {
       return structuredClone(DEFAULT_CONFIG)
     }
 
+    const contents = fs.readFileSync(this.paths.config, 'utf8')
     try {
-      const content = JSON.parse(fs.readFileSync(this.paths.config, 'utf8'))
+      const content = JSON.parse(contents)
       return mergeConfig(content)
     } catch {
-      const backup = `${this.paths.config}.broken-${Date.now()}`
+      const backup = `${this.paths.config}.broken-${randomUUID()}`
       fs.copyFileSync(this.paths.config, backup)
       this.write(DEFAULT_CONFIG)
       return structuredClone(DEFAULT_CONFIG)
@@ -158,8 +182,15 @@ export class ConfigService {
 
   private write(config: AppConfig): void {
     fs.mkdirSync(this.paths.root, { recursive: true })
-    const temporaryPath = `${this.paths.config}.tmp`
-    fs.writeFileSync(temporaryPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
-    fs.renameSync(temporaryPath, this.paths.config)
+    const temporaryPath = `${this.paths.config}.${randomUUID()}.tmp`
+    try {
+      fs.writeFileSync(temporaryPath, `${JSON.stringify(config, null, 2)}\n`, {
+        encoding: 'utf8',
+        flag: 'wx',
+      })
+      fs.renameSync(temporaryPath, this.paths.config)
+    } finally {
+      fs.rmSync(temporaryPath, { force: true })
+    }
   }
 }

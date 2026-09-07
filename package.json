@@ -1,43 +1,50 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/index.js",
   "author": "Zhiji",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "pnpm typecheck && electron-vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "node scripts/run-vitest-electron.mjs",
+    "test": "node --test scripts/resolve-velopack-baseline.test.mjs && node scripts/run-vitest-electron.mjs",
     "test:watch": "node scripts/run-vitest-electron.mjs --watch",
-    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
-    "rebuild:node": "pnpm rebuild better-sqlite3",
+    "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
-    "package:win": "pnpm build && electron-builder --win dir",
-    "release:win": "pnpm package:win && node scripts/pack-velopack.mjs"
+    "package:win": "pnpm build && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
+    "release:win": "pnpm package:win && node scripts/pack-velopack.mjs",
+    "format": "prettier --write src tests scripts *.ts *.json .github/workflows/*.yml",
+    "format:check": "prettier --check src tests scripts *.ts *.json .github/workflows/*.yml"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
     "better-sqlite3": "^12.4.1",
-    "naive-ui": "^2.43.2",
-    "pinia": "^3.0.3",
-    "velopack": "^1.0.0",
-    "vue": "^3.5.18",
-    "vue-i18n": "^11.1.11"
+    "velopack": "1.2.0",
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.1",
+    "@modelcontextprotocol/client": "2.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.15.21",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.7.0",
-    "electron": "^44.2.0",
-    "electron-builder": "^26.0.12",
-    "electron-vite": "^4.0.0",
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "jsdom": "^30.0.1",
+    "naive-ui": "^2.43.2",
+    "pinia": "^3.0.3",
+    "prettier": "3.8.1",
+    "semver": "7.7.4",
     "typescript": "^5.8.3",
     "vite": "^7.0.6",
     "vitest": "^3.2.4",
+    "vue": "^3.5.18",
+    "vue-i18n": "^11.1.11",
     "vue-tsc": "^2.2.12"
   },
   "build": {
@@ -51,9 +58,7 @@
     ],
     "files": [
       "out/**/*",
-      "resource/icon.png",
-      "package.json",
-      "node_modules/**/*"
+      "package.json"
     ],
     "extraResources": [
       {

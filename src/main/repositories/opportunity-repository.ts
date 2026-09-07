@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
-import type { CreateOpportunityInput, OpportunityQuery, UpdateOpportunityInput } from '../../shared/types'
+import type { CreateOpportunityInput, OpportunityQuery } from '../../shared/types'
 import { mapOpportunity, type OpportunityRow } from './row-mappers'
+import { containsLikePattern } from './sql'
 
 type SqliteDatabase = InstanceType<typeof Database>
 
@@ -18,39 +19,105 @@ export class OpportunityRepository {
     const clauses: string[] = []
     const params: Array<string | number> = []
     if (query.search) {
-      const value = `%${query.search}%`
-      clauses.push('(c.name LIKE ? OR EXISTS (SELECT 1 FROM company_aliases a WHERE a.company_id = c.id AND a.alias LIKE ?) OR o.title LIKE ? OR COALESCE(o.source, \'\') LIKE ? OR COALESCE(o.notes, \'\') LIKE ?)')
+      const value = containsLikePattern(query.search)
+      clauses.push(
+        "(c.name LIKE ? ESCAPE '\\' OR EXISTS (SELECT 1 FROM company_aliases a WHERE a.company_id = c.id AND a.alias LIKE ? ESCAPE '\\') OR o.title LIKE ? ESCAPE '\\' OR COALESCE(o.source, '') LIKE ? ESCAPE '\\' OR COALESCE(o.notes, '') LIKE ? ESCAPE '\\')",
+      )
       params.push(value, value, value, value, value)
     }
-    if (query.statusId !== null && query.statusId !== undefined) { clauses.push('o.status_id = ?'); params.push(query.statusId) }
-    if (query.companyId !== null && query.companyId !== undefined) { clauses.push('o.company_id = ?'); params.push(query.companyId) }
+    if (query.statusId !== null && query.statusId !== undefined) {
+      clauses.push('o.status_id = ?')
+      params.push(query.statusId)
+    }
+    if (query.companyId !== null && query.companyId !== undefined) {
+      clauses.push('o.company_id = ?')
+      params.push(query.companyId)
+    }
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : ''
-    return this.db.prepare(`${SELECT}${where} ORDER BY COALESCE(o.deadline_at, 9223372036854775807), o.updated_at DESC`).all(...params) as OpportunityRow[]
+    return this.db
+      .prepare(
+        `${SELECT}${where} ORDER BY COALESCE(o.deadline_at, 9223372036854775807), o.updated_at DESC`,
+      )
+      .all(...params) as OpportunityRow[]
   }
-  get(id: number): OpportunityRow | undefined { return this.db.prepare(`${SELECT} WHERE o.id = ?`).get(id) as OpportunityRow | undefined }
+  get(id: number): OpportunityRow | undefined {
+    return this.db.prepare(`${SELECT} WHERE o.id = ?`).get(id) as OpportunityRow | undefined
+  }
   create(input: CreateOpportunityInput, timestamp: number): number {
     return this.db.transaction(() => {
-      const result = this.db.prepare(`
+      const result = this.db
+        .prepare(
+          `
         INSERT INTO opportunities (company_id, title, department, location, source, job_url, description, status_id, resume_version_id, discovered_at, applied_at, deadline_at, notes, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(input.companyId, input.title, input.department ?? null, input.location ?? null, input.source ?? null, input.jobUrl ?? null, input.description ?? null, input.statusId, input.resumeVersionId ?? null, input.discoveredAt ?? null, input.appliedAt ?? null, input.deadlineAt ?? null, input.notes ?? null, timestamp, timestamp)
+      `,
+        )
+        .run(
+          input.companyId,
+          input.title,
+          input.department ?? null,
+          input.location ?? null,
+          input.source ?? null,
+          input.jobUrl ?? null,
+          input.description ?? null,
+          input.statusId,
+          input.resumeVersionId ?? null,
+          input.discoveredAt ?? null,
+          input.appliedAt ?? null,
+          input.deadlineAt ?? null,
+          input.notes ?? null,
+          timestamp,
+          timestamp,
+        )
       return result.lastInsertRowid as number
     })()
   }
   update(id: number, input: CreateOpportunityInput, timestamp: number): void {
     this.db.transaction(() => {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE opportunities SET company_id = ?, title = ?, department = ?, location = ?, source = ?, job_url = ?, description = ?, status_id = ?, resume_version_id = ?, discovered_at = ?, applied_at = ?, deadline_at = ?, notes = ?, updated_at = ? WHERE id = ?
-      `).run(input.companyId, input.title, input.department ?? null, input.location ?? null, input.source ?? null, input.jobUrl ?? null, input.description ?? null, input.statusId, input.resumeVersionId ?? null, input.discoveredAt ?? null, input.appliedAt ?? null, input.deadlineAt ?? null, input.notes ?? null, timestamp, id)
+      `,
+        )
+        .run(
+          input.companyId,
+          input.title,
+          input.department ?? null,
+          input.location ?? null,
+          input.source ?? null,
+          input.jobUrl ?? null,
+          input.description ?? null,
+          input.statusId,
+          input.resumeVersionId ?? null,
+          input.discoveredAt ?? null,
+          input.appliedAt ?? null,
+          input.deadlineAt ?? null,
+          input.notes ?? null,
+          timestamp,
+          id,
+        )
     })()
   }
-  changeStatus(id: number, statusId: number, timestamp: number): void { this.db.transaction(() => { this.db.prepare('UPDATE opportunities SET status_id = ?, updated_at = ? WHERE id = ?').run(statusId, timestamp, id) })() }
-  delete(id: number): number {
+  changeStatus(id: number, statusId: number, timestamp: number): void {
+    this.db.transaction(() => {
+      this.db
+        .prepare('UPDATE opportunities SET status_id = ?, updated_at = ? WHERE id = ?')
+        .run(statusId, timestamp, id)
+    })()
+  }
+  delete(id: number, timestamp: number): number {
     return this.db.transaction(() => {
       const changes = this.db.prepare('DELETE FROM opportunities WHERE id = ?').run(id).changes
-      this.db.prepare('UPDATE calendar_events SET opportunity_id = NULL, updated_at = ? WHERE opportunity_id = ?').run(Date.now(), id)
+      this.db
+        .prepare(
+          'UPDATE calendar_events SET opportunity_id = NULL, updated_at = ? WHERE opportunity_id = ?',
+        )
+        .run(timestamp, id)
       return changes
     })()
   }
-  map(row: OpportunityRow) { return mapOpportunity(row) }
+  map(row: OpportunityRow) {
+    return mapOpportunity(row)
+  }
 }

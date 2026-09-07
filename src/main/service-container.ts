@@ -25,13 +25,20 @@ export interface Services {
   reminders: CalendarReminderService
 }
 
-export function createServiceContainer(paths: AppPaths, allowBuiltinEdit: boolean): { database: DatabaseManager; files: FileStorageService; services: Services } {
+export function createServiceContainer(
+  paths: AppPaths,
+  allowBuiltinEdit: boolean,
+): { database: DatabaseManager; files: FileStorageService; services: Services } {
   const database = new DatabaseManager(paths)
   const files = new FileStorageService(paths)
   return { database, files, services: createServices(database, files, allowBuiltinEdit) }
 }
 
-export function createServices(database: DatabaseManager, files: FileStorageService, allowBuiltinEdit: boolean): Services {
+export function createServices(
+  database: DatabaseManager,
+  files: FileStorageService,
+  allowBuiltinEdit: boolean,
+): Services {
   const statusRepository = new StatusRepository(database.db)
   const industryRepository = new IndustryRepository(database.db)
   const companyRepository = new CompanyRepository(database.db)
@@ -43,7 +50,12 @@ export function createServices(database: DatabaseManager, files: FileStorageServ
     industries: new IndustryService(industryRepository, allowBuiltinEdit),
     companies: new CompanyService(companyRepository, industryRepository, allowBuiltinEdit),
     resumes: new ResumeService(resumeRepository, files),
-    opportunities: new OpportunityService(opportunityRepository, companyRepository, statusRepository, resumeRepository),
+    opportunities: new OpportunityService(
+      opportunityRepository,
+      companyRepository,
+      statusRepository,
+      resumeRepository,
+    ),
     calendar: new CalendarEventService(calendarRepository, opportunityRepository),
     reminders: new CalendarReminderService(calendarRepository),
   }

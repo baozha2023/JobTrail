@@ -19,7 +19,13 @@ describe('职迹最终数据库结构和业务服务', () => {
 
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'zhiji-test-'))
-    paths = { root, config: path.join(root, 'config.json'), data: path.join(root, 'data'), database: path.join(root, 'data', 'zhiji.db'), resumes: path.join(root, 'resumes') }
+    paths = {
+      root,
+      config: path.join(root, 'config.json'),
+      data: path.join(root, 'data'),
+      database: path.join(root, 'data', 'zhiji.db'),
+      resumes: path.join(root, 'resumes'),
+    }
     database = new DatabaseManager(paths)
     files = new FileStorageService(paths)
     services = createServices(database, files, false)
@@ -31,30 +37,122 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   it('creates the final schema before seeding and has no migration or physical foreign key', () => {
-    const names = (database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{ name: string }>).map((item) => item.name)
-    expect(names).toEqual(expect.arrayContaining(['statuses', 'industries', 'companies', 'company_industries', 'company_aliases', 'resume_versions', 'opportunities', 'calendar_events', 'calendar_event_reminders']))
-    expect(names).not.toEqual(expect.arrayContaining(['schema_migrations', 'app_settings', 'opportunity_status_history']))
-    expect((database!.db.prepare('SELECT COUNT(*) AS count FROM industries').get() as { count: number }).count).toBe(83)
-    expect(services.industries.list().map((industry) => industry.id)).toEqual(Array.from({ length: 83 }, (_, index) => index + 1))
+    const names = (
+      database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
+        name: string
+      }>
+    ).map((item) => item.name)
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'statuses',
+        'industries',
+        'companies',
+        'company_industries',
+        'company_aliases',
+        'resume_versions',
+        'opportunities',
+        'calendar_events',
+        'calendar_event_reminders',
+      ]),
+    )
+    expect(names).not.toEqual(
+      expect.arrayContaining(['schema_migrations', 'app_settings', 'opportunity_status_history']),
+    )
+    expect(
+      (database!.db.prepare('SELECT COUNT(*) AS count FROM industries').get() as { count: number })
+        .count,
+    ).toBe(83)
+    expect(services.industries.list().map((industry) => industry.id)).toEqual(
+      Array.from({ length: 83 }, (_, index) => index + 1),
+    )
     expect(new Set(services.industries.list().map((industry) => industry.name)).size).toBe(83)
-    expect(services.statuses.list().map((status) => ({ id: status.id, label: status.label, sortOrder: status.sortOrder }))).toEqual([
-      { id: 1, label: '感兴趣', sortOrder: 1 }, { id: 2, label: '待投递', sortOrder: 2 }, { id: 3, label: '初筛', sortOrder: 3 },
-      { id: 4, label: '笔试', sortOrder: 4 }, { id: 5, label: 'AI面试', sortOrder: 5 }, { id: 6, label: '一面', sortOrder: 6 },
-      { id: 7, label: '二面', sortOrder: 7 }, { id: 8, label: '三面', sortOrder: 8 }, { id: 9, label: 'HR面', sortOrder: 9 },
-      { id: 10, label: 'Offer', sortOrder: 10 }, { id: 11, label: '淘汰', sortOrder: 11 }, { id: 12, label: '主动放弃', sortOrder: 12 },
+    expect(
+      services.statuses
+        .list()
+        .map((status) => ({ id: status.id, label: status.label, sortOrder: status.sortOrder })),
+    ).toEqual([
+      { id: 1, label: '感兴趣', sortOrder: 1 },
+      { id: 2, label: '待投递', sortOrder: 2 },
+      { id: 3, label: '初筛', sortOrder: 3 },
+      { id: 4, label: '笔试', sortOrder: 4 },
+      { id: 5, label: 'AI面试', sortOrder: 5 },
+      { id: 6, label: '一面', sortOrder: 6 },
+      { id: 7, label: '二面', sortOrder: 7 },
+      { id: 8, label: '三面', sortOrder: 8 },
+      { id: 9, label: 'HR面', sortOrder: 9 },
+      { id: 10, label: 'Offer', sortOrder: 10 },
+      { id: 11, label: '淘汰', sortOrder: 11 },
+      { id: 12, label: '主动放弃', sortOrder: 12 },
     ])
-    expect((database!.db.prepare('SELECT COUNT(*) AS count FROM companies').get() as { count: number }).count).toBe(BUILTIN_COMPANIES.length)
-    expect((database!.db.prepare('SELECT COUNT(*) AS count FROM companies c WHERE NOT EXISTS (SELECT 1 FROM company_industries ci WHERE ci.company_id = c.id)').get() as { count: number }).count).toBe(0)
+    expect(
+      (database!.db.prepare('SELECT COUNT(*) AS count FROM companies').get() as { count: number })
+        .count,
+    ).toBe(BUILTIN_COMPANIES.length)
+    expect(
+      (
+        database!.db
+          .prepare(
+            'SELECT COUNT(*) AS count FROM companies c WHERE NOT EXISTS (SELECT 1 FROM company_industries ci WHERE ci.company_id = c.id)',
+          )
+          .get() as { count: number }
+      ).count,
+    ).toBe(0)
     expect(database!.db.pragma('user_version', { simple: true })).toBe(8)
-    const resumeColumns = (database!.db.prepare('PRAGMA table_info(resume_versions)').all() as Array<{ name: string }>).map((column) => column.name)
+    const resumeColumns = (
+      database!.db.prepare('PRAGMA table_info(resume_versions)').all() as Array<{ name: string }>
+    ).map((column) => column.name)
     expect(resumeColumns).toEqual(expect.arrayContaining(['sort_order']))
     expect(resumeColumns).not.toContain('is_active')
-    const companyColumns = (database!.db.prepare('PRAGMA table_info(companies)').all() as Array<{ name: string }>).map((column) => column.name)
+    const companyColumns = (
+      database!.db.prepare('PRAGMA table_info(companies)').all() as Array<{ name: string }>
+    ).map((column) => column.name)
     expect(companyColumns).toContain('last_read_at')
     expect(companyColumns).not.toContain('industry_id')
-    for (const table of ['companies', 'company_industries', 'company_aliases', 'opportunities', 'calendar_events', 'calendar_event_reminders']) expect(database!.db.prepare(`PRAGMA foreign_key_list(${table})`).all()).toHaveLength(0)
-    expect(database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_company_industries_industry_id'").get()).toBeDefined()
-    expect(database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_calendar_event_reminders_event_id'").get()).toBeUndefined()
+    for (const table of [
+      'companies',
+      'company_industries',
+      'company_aliases',
+      'opportunities',
+      'calendar_events',
+      'calendar_event_reminders',
+    ])
+      expect(database!.db.prepare(`PRAGMA foreign_key_list(${table})`).all()).toHaveLength(0)
+    expect(
+      database!.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_company_industries_industry_id'",
+        )
+        .get(),
+    ).toBeDefined()
+    expect(
+      database!.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_calendar_event_reminders_event_id'",
+        )
+        .get(),
+    ).toBeUndefined()
+  })
+
+  it('keeps built-in company seed data internally consistent', () => {
+    expect(new Set(BUILTIN_COMPANIES.map((company) => company.name)).size).toBe(
+      BUILTIN_COMPANIES.length,
+    )
+    for (const company of BUILTIN_COMPANIES) {
+      expect(company.name).toBe(company.name.trim())
+      expect(company.name.length).toBeGreaterThan(0)
+      expect(company.industryIds.length).toBeGreaterThan(0)
+      expect(
+        company.industryIds.every((id) => Number.isSafeInteger(id) && id >= 1 && id <= 83),
+      ).toBe(true)
+      expect(new Set(company.industryIds).size).toBe(company.industryIds.length)
+      expect(company.aliases.every((alias) => alias.length > 0 && alias === alias.trim())).toBe(
+        true,
+      )
+      expect(new Set(company.aliases).size).toBe(company.aliases.length)
+      expect(company.aliases).not.toContain(company.name)
+      if (company.careerUrl)
+        expect(['http:', 'https:']).toContain(new URL(company.careerUrl).protocol)
+    }
   })
 
   it('fails before executing schema SQL for an unsupported database version', () => {
@@ -75,7 +173,9 @@ describe('职迹最终数据库结构和业务服务', () => {
     try {
       expect(() => new DatabaseManager(unsupportedPaths)).toThrow('不支持的数据库结构版本')
       const inspection = new Database(unsupportedDatabasePath, { readonly: true })
-      expect(inspection.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all()).toHaveLength(0)
+      expect(
+        inspection.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all(),
+      ).toHaveLength(0)
       inspection.close()
     } finally {
       fs.rmSync(unsupportedRoot, { recursive: true, force: true })
@@ -95,14 +195,29 @@ describe('职迹最终数据库结构和业务服务', () => {
       () => services.companies.delete(company.id),
     ]) {
       expect(action).toThrowError(AppServiceError)
-      try { action() } catch (error) { expect((error as AppServiceError).code).toBe('BUILTIN_DATA'); expect((error as AppServiceError).message).toBe('该数据为内置，无法删除/修改') }
+      try {
+        action()
+      } catch (error) {
+        expect((error as AppServiceError).code).toBe('BUILTIN_DATA')
+        expect((error as AppServiceError).message).toBe('该数据为内置，无法删除/修改')
+      }
     }
-    expect(services.companies.update(company.id, { isFavorite: !company.isFavorite }).isFavorite).toBe(!company.isFavorite)
+    expect(
+      services.companies.update(company.id, { isFavorite: !company.isFavorite }).isFavorite,
+    ).toBe(!company.isFavorite)
 
     const customIndustry = services.industries.create({ name: '测试行业' })
-    const customCompany = services.companies.create({ name: '测试公司', industryIds: [customIndustry.id], aliases: ['简称'] })
+    const customCompany = services.companies.create({
+      name: '测试公司',
+      industryIds: [customIndustry.id],
+      aliases: ['简称'],
+    })
     expect(() => services.industries.delete(customIndustry.id)).toThrowError(AppServiceError)
-    const opportunity = services.opportunities.create({ companyId: customCompany.id, title: '测试岗位', statusId: status.id })
+    const opportunity = services.opportunities.create({
+      companyId: customCompany.id,
+      title: '测试岗位',
+      statusId: status.id,
+    })
     expect(() => services.companies.delete(customCompany.id)).toThrowError(AppServiceError)
     services.opportunities.delete(opportunity.id)
     services.companies.delete(customCompany.id)
@@ -111,15 +226,20 @@ describe('职迹最终数据库结构和业务服务', () => {
 
   it('supports status and industry CRUD and ordering', () => {
     const status = services.statuses.create({ label: '复试' })
+    expect(() => services.statuses.update(status.id, {})).toThrowError(AppServiceError)
     expect(services.statuses.get(status.id).label).toBe('复试')
     expect(services.statuses.update(status.id, { label: '复试更新' }).label).toBe('复试更新')
     const statusOrder = services.statuses.list().map((item) => item.id)
-    expect(services.statuses.reorder([status.id, ...statusOrder.filter((id) => id !== status.id)])[0].id).toBe(status.id)
+    expect(
+      services.statuses.reorder([status.id, ...statusOrder.filter((id) => id !== status.id)])[0].id,
+    ).toBe(status.id)
     services.statuses.delete(status.id)
     expect(() => services.statuses.get(status.id)).toThrowError(AppServiceError)
 
     const industry = services.industries.create({ name: '其他行业' })
-    expect(services.industries.update(industry.id, { name: '其他行业更新' }).name).toBe('其他行业更新')
+    expect(services.industries.update(industry.id, { name: '其他行业更新' }).name).toBe(
+      '其他行业更新',
+    )
     services.industries.delete(industry.id)
     expect(() => services.industries.delete(industry.id)).toThrowError(AppServiceError)
   })
@@ -129,13 +249,22 @@ describe('职迹最终数据库结构和业务服务', () => {
     const status = developmentServices.statuses.list()[0]
     const industries = developmentServices.industries.list()
     const companies = developmentServices.companies.list()
-    const industry = industries.find((item) => companies.every((company) => !company.industryIds.includes(item.id)))
+    const industry = industries.find((item) =>
+      companies.every((company) => !company.industryIds.includes(item.id)),
+    )
     const company = developmentServices.companies.list()[0]
 
-    expect(developmentServices.statuses.update(status.id, { label: '开发状态' }).label).toBe('开发状态')
+    expect(developmentServices.statuses.update(status.id, { label: '开发状态' }).label).toBe(
+      '开发状态',
+    )
     expect(industry).toBeDefined()
-    expect(developmentServices.industries.update(industry!.id, { name: '开发行业' }).name).toBe('开发行业')
-    expect(developmentServices.companies.update(company.id, { careerUrl: 'https://dev.example.com' }).careerUrl).toBe('https://dev.example.com')
+    expect(developmentServices.industries.update(industry!.id, { name: '开发行业' }).name).toBe(
+      '开发行业',
+    )
+    expect(
+      developmentServices.companies.update(company.id, { careerUrl: 'https://dev.example.com' })
+        .careerUrl,
+    ).toBe('https://dev.example.com')
 
     developmentServices.statuses.delete(status.id)
     developmentServices.industries.delete(industry!.id)
@@ -144,24 +273,39 @@ describe('职迹最终数据库结构和业务服务', () => {
 
   it('manages company aliases internally and searches by alias', () => {
     const company = services.companies.create({ name: '别名公司', aliases: ['Alias One', '简称'] })
+    const wildcardCompany = services.companies.create({ name: '百分%公司', aliases: ['下划_别名'] })
     expect(services.companies.list().map((item) => item.id)).toContain(company.id)
     expect(services.companies.search('简称').map((item) => item.id)).toContain(company.id)
     expect(services.companies.search('Alias One').map((item) => item.id)).toContain(company.id)
-    expect(services.companies.update(company.id, { aliases: ['新简称'] }).aliases).toEqual(['新简称'])
+    expect(services.companies.update(company.id, { aliases: ['新简称'] }).aliases).toEqual([
+      '新简称',
+    ])
     expect(services.companies.search('Alias One').map((item) => item.id)).not.toContain(company.id)
+    expect(services.companies.search('%').map((item) => item.id)).toEqual([wildcardCompany.id])
+    expect(services.companies.search('_').map((item) => item.id)).toEqual([wildcardCompany.id])
     services.companies.delete(company.id)
+    services.companies.delete(wildcardCompany.id)
   })
 
   it('manages company industries through a many-to-many relation', () => {
     const firstIndustry = services.industries.create({ name: '多行业一' })
     const secondIndustry = services.industries.create({ name: '多行业二' })
-    const company = services.companies.create({ name: '多行业公司', industryIds: [secondIndustry.id, firstIndustry.id] })
+    const company = services.companies.create({
+      name: '多行业公司',
+      industryIds: [secondIndustry.id, firstIndustry.id],
+    })
 
     expect(company.industryIds).toEqual([firstIndustry.id, secondIndustry.id])
     expect(company.industryName).toBe('多行业一, 多行业二')
     expect(services.companies.search('多行业一').map((item) => item.id)).toContain(company.id)
     expect(services.companies.search('多行业二').map((item) => item.id)).toContain(company.id)
-    expect((database!.db.prepare('SELECT COUNT(*) AS count FROM company_industries WHERE company_id = ?').get(company.id) as { count: number }).count).toBe(2)
+    expect(
+      (
+        database!.db
+          .prepare('SELECT COUNT(*) AS count FROM company_industries WHERE company_id = ?')
+          .get(company.id) as { count: number }
+      ).count,
+    ).toBe(2)
 
     const updated = services.companies.update(company.id, { industryIds: [secondIndustry.id] })
     expect(updated.industryIds).toEqual([secondIndustry.id])
@@ -172,7 +316,13 @@ describe('职迹最终数据库结构和业务服务', () => {
     services.industries.delete(firstIndustry.id)
     services.industries.delete(secondIndustry.id)
     services.companies.delete(company.id)
-    expect((database!.db.prepare('SELECT COUNT(*) AS count FROM company_industries WHERE company_id = ?').get(company.id) as { count: number }).count).toBe(0)
+    expect(
+      (
+        database!.db
+          .prepare('SELECT COUNT(*) AS count FROM company_industries WHERE company_id = ?')
+          .get(company.id) as { count: number }
+      ).count,
+    ).toBe(0)
   })
 
   it('records the last company career-site read time', () => {
@@ -187,7 +337,10 @@ describe('职迹最终数据库结构和业务服务', () => {
     const second = services.companies.create({ name: '排序B' })
     services.companies.update(second.id, { isFavorite: true })
 
-    const customCompanies = () => services.companies.list().filter((company) => company.id === first.id || company.id === second.id)
+    const customCompanies = () =>
+      services.companies
+        .list()
+        .filter((company) => company.id === first.id || company.id === second.id)
     expect(customCompanies().map((company) => company.name)).toEqual(['排序B', '排序A'])
 
     services.companies.update(second.id, { isFavorite: false })
@@ -203,38 +356,126 @@ describe('职迹最终数据库结构和业务服务', () => {
     const secondSource = path.join(root, 'candidate-second.pdf')
     fs.writeFileSync(secondSource, 'second-resume-content')
     const secondResume = services.resumes.importFromPath(secondSource, '产品简历')
-    expect(resume.relativePath).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/i)
+    expect(resume.relativePath).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.pdf$/i,
+    )
+    expect(resume.sizeBytes).toBe(Buffer.byteLength('resume-content'))
+    expect(resume.sha256).toBe('a23c40904f52de14582323aa1eef0c66fe8e744aa1ab25397b5585e97ad54d2f')
     expect(resume.sortOrder).toBe(0)
     expect(secondResume.sortOrder).toBe(1)
     expect(services.resumes.reorder([secondResume.id, resume.id])[0].id).toBe(secondResume.id)
     expect(fs.readFileSync(services.resumes.getPath(resume.id), 'utf8')).toBe('resume-content')
     const company = services.companies.create({ name: '简历公司' })
-    const opportunity = services.opportunities.create({ companyId: company.id, title: '岗位', statusId: services.statuses.list()[0].id, resumeVersionId: resume.id })
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '岗位',
+      statusId: services.statuses.list()[0].id,
+      resumeVersionId: resume.id,
+    })
     expect(() => services.resumes.delete(resume.id)).toThrowError(AppServiceError)
     services.opportunities.delete(opportunity.id)
     services.resumes.delete(resume.id)
     services.resumes.delete(secondResume.id)
     expect(() => services.resumes.get(resume.id)).toThrowError(AppServiceError)
+    expect(() => services.resumes.delete(0)).toThrowError(AppServiceError)
+    try {
+      services.resumes.delete(0)
+    } catch (error) {
+      expect((error as AppServiceError).code).toBe('VALIDATION_ERROR')
+    }
   })
 
   it('supports opportunity, calendar, and reminder CRUD', () => {
     const company = services.companies.create({ name: '链路公司', aliases: ['链路'] })
     const status = services.statuses.list()[0]
-    const opportunity = services.opportunities.create({ companyId: company.id, title: '后端工程师', statusId: status.id, location: '上海' })
-    expect(services.opportunities.list({ search: '链路' }).map((item) => item.id)).toContain(opportunity.id)
-    expect(services.opportunities.update(opportunity.id, { title: '前端工程师' }).title).toBe('前端工程师')
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '后端工程师',
+      statusId: status.id,
+      location: '上海',
+    })
+    expect(services.opportunities.list({ search: '链路' }).map((item) => item.id)).toContain(
+      opportunity.id,
+    )
+    expect(services.opportunities.update(opportunity.id, { title: '前端%工程师' }).title).toBe(
+      '前端%工程师',
+    )
+    const ordinaryOpportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '普通岗位',
+      statusId: status.id,
+    })
+    expect(services.opportunities.list({ search: '%' }).map((item) => item.id)).toEqual([
+      opportunity.id,
+    ])
     const startAt = Date.now() - 10 * 60 * 1000
-    const event = services.calendar.create({ opportunityId: opportunity.id, title: '面试', eventType: 'interview', startAt, endAt: startAt + 60 * 60 * 1000, timezone: 'Asia/Shanghai', reminderMinutes: 5 })
+    const event = services.calendar.create({
+      opportunityId: opportunity.id,
+      title: '面试',
+      eventType: 'interview',
+      startAt,
+      endAt: startAt + 60 * 60 * 1000,
+      timezone: 'Asia/Shanghai',
+      reminderMinutes: 5,
+    })
     expect(services.calendar.get(event.id).companyName).toBe('链路公司')
-    expect(services.calendar.list({ startAt: startAt - 1, endAt: startAt + 60 * 60 * 1000 + 1 }).map((item) => item.id)).toContain(event.id)
+    expect(
+      services.calendar
+        .list({ startAt: startAt - 1, endAt: startAt + 60 * 60 * 1000 + 1 })
+        .map((item) => item.id),
+    ).toContain(event.id)
+    const pointEvent = services.calendar.create({
+      title: '时间点',
+      eventType: 'reminder',
+      startAt,
+      endAt: startAt,
+      timezone: 'Asia/Shanghai',
+    })
+    expect(
+      services.calendar.list({ startAt: startAt - 1, endAt: startAt + 1 }).map((item) => item.id),
+    ).toContain(pointEvent.id)
+    const allDayEvent = services.calendar.create({
+      title: '全天日程',
+      eventType: 'reminder',
+      isAllDay: true,
+      timezone: 'Asia/Shanghai',
+      startAt: Date.UTC(2026, 8, 7, 6),
+      endAt: Date.UTC(2026, 8, 9, 6),
+    })
+    expect(allDayEvent.startAt).toBe(Date.UTC(2026, 8, 6, 16))
+    expect(allDayEvent.endAt).toBe(Date.UTC(2026, 8, 8, 16))
+    expect(() =>
+      services.calendar.create({
+        title: '无效全天',
+        eventType: 'other',
+        isAllDay: true,
+        timezone: 'Asia/Shanghai',
+        startAt,
+        endAt: startAt,
+      }),
+    ).toThrowError(AppServiceError)
+    expect(() =>
+      services.calendar.create({
+        title: '无效时区',
+        eventType: 'other',
+        timezone: 'Not/A_Timezone',
+        startAt,
+        endAt: startAt,
+      }),
+    ).toThrowError(AppServiceError)
     expect(services.calendar.complete(event.id, true).isCompleted).toBe(true)
     services.calendar.complete(event.id, false)
     const due = services.reminders.listDue(Date.now())
     expect(due.map((item) => item.eventId)).toContain(event.id)
     services.reminders.markSent(event.id, due.find((item) => item.eventId === event.id)!.reminderAt)
-    expect(services.reminders.listDue(Date.now()).map((item) => item.eventId)).not.toContain(event.id)
+    expect(services.reminders.listDue(Date.now()).map((item) => item.eventId)).not.toContain(
+      event.id,
+    )
     services.calendar.delete(event.id)
+    services.calendar.delete(pointEvent.id)
+    services.calendar.delete(allDayEvent.id)
     services.opportunities.delete(opportunity.id)
+    services.opportunities.delete(ordinaryOpportunity.id)
     services.companies.delete(company.id)
   })
 })

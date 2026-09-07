@@ -22,4 +22,6 @@ export function registerIpc(services: Services, config: ConfigService): void {
   registerSystemIpc()
 }
 
-export function registerWindowIpc(window: Electron.BrowserWindow): void { registerWindowHandlers(window) }
+export function registerWindowIpc(window: Electron.BrowserWindow): void {
+  registerWindowHandlers(window)
+}

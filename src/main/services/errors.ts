@@ -2,17 +2,28 @@ import type { AppErrorCode, AppErrorShape } from '../../shared/types'
 
 export class AppServiceError extends Error {
   readonly name = 'AppServiceError'
-  constructor(readonly code: AppErrorCode, message: string, readonly details?: Record<string, unknown>) {
+  constructor(
+    readonly code: AppErrorCode,
+    message: string,
+    readonly details?: Record<string, unknown>,
+  ) {
     super(message)
   }
 }
 
 export function assertPositiveId(value: number, field: string): void {
-  if (!Number.isSafeInteger(value) || value <= 0) throw new AppServiceError('VALIDATION_ERROR', `${field}无效`)
+  if (!Number.isSafeInteger(value) || value <= 0)
+    throw new AppServiceError('VALIDATION_ERROR', `${field}无效`)
 }
 
 export function assertFiniteInteger(value: number, field: string): void {
   if (!Number.isSafeInteger(value)) throw new AppServiceError('VALIDATION_ERROR', `${field}无效`)
+}
+
+export function assertNonEmptyUpdate(input: object, field: string): void {
+  if (!Object.values(input).some((value) => value !== undefined)) {
+    throw new AppServiceError('VALIDATION_ERROR', `${field}没有可更新字段`)
+  }
 }
 
 export function nullableText(value: string | null | undefined): string | null {
@@ -26,8 +37,10 @@ export function uniqueError(error: unknown): boolean {
 export function toAppError(error: unknown): AppServiceError {
   if (error instanceof AppServiceError) return error
   if (error instanceof Error) {
-    if (/SQLITE|database/i.test(error.message)) return new AppServiceError('DATABASE_ERROR', '数据库操作失败')
-    if (/ENOENT|EACCES|EPERM|EISDIR/i.test(error.message)) return new AppServiceError('FILE_IMPORT_FAILED', '文件操作失败')
+    if (/SQLITE|database/i.test(error.message))
+      return new AppServiceError('DATABASE_ERROR', '数据库操作失败')
+    if (/ENOENT|EACCES|EPERM|EISDIR/i.test(error.message))
+      return new AppServiceError('FILE_IMPORT_FAILED', '文件操作失败')
     return new AppServiceError('INTERNAL_ERROR', error.message)
   }
   return new AppServiceError('INTERNAL_ERROR', '发生未知错误')
@@ -35,5 +48,9 @@ export function toAppError(error: unknown): AppServiceError {
 
 export function errorShape(error: unknown): AppErrorShape {
   const appError = toAppError(error)
-  return { code: appError.code, message: appError.message, ...(appError.details ? { details: appError.details } : {}) }
+  return {
+    code: appError.code,
+    message: appError.message,
+    ...(appError.details ? { details: appError.details } : {}),
+  }
 }

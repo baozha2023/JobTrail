@@ -1,9 +1,7 @@
 node_modules/
 out/
 dist/
-# Legacy output directory kept ignored until the old Windows file lock is released.
-release/
-Releases/
+dist-*/
 .vite/
 .vitest/
 coverage/
@@ -25,3 +23,6 @@ resumes/
 # Operating-system files
 .DS_Store
 Thumbs.db
+
+# Rust build outputs
+native/bootstrap/target/

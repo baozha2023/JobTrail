@@ -88,6 +88,4 @@ export type IpcChannel = keyof IpcChannelMap
 export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
-export type IpcResponse<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: AppErrorShape }
+export type IpcResponse<T> = { ok: true; data: T } | { ok: false; error: AppErrorShape }

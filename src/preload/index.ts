@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcArgs, IpcChannel, IpcResponse, IpcResult } from '../shared/ipc'
-import type { CalendarReminderNotification, ZhijiApi, VelopackApi, WindowControlsApi, AppErrorCode, AppErrorShape } from '../shared/types'
+import type {
+  CalendarReminderNotification,
+  ZhijiApi,
+  VelopackApi,
+  WindowControlsApi,
+  AppErrorCode,
+  AppErrorShape,
+} from '../shared/types'
 
 class IpcClientError extends Error {
   readonly code: AppErrorCode
@@ -13,8 +20,11 @@ class IpcClientError extends Error {
   }
 }
 
-const invoke = async <K extends IpcChannel>(channel: K, ...args: IpcArgs<K>): Promise<IpcResult<K>> => {
-  const response = await ipcRenderer.invoke(channel, ...args) as IpcResponse<IpcResult<K>>
+const invoke = async <K extends IpcChannel>(
+  channel: K,
+  ...args: IpcArgs<K>
+): Promise<IpcResult<K>> => {
+  const response = (await ipcRenderer.invoke(channel, ...args)) as IpcResponse<IpcResult<K>>
   if (!response.ok) throw new IpcClientError(response.error)
   return response.data
 }
@@ -74,7 +84,10 @@ const zhijiApi: ZhijiApi = {
     delete: (id) => invoke('calendar:delete', id),
     complete: (id, completed) => invoke('calendar:complete', id, completed),
     onReminderClick: (listener: (notification: CalendarReminderNotification) => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, notification: CalendarReminderNotification) => listener(notification)
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        notification: CalendarReminderNotification,
+      ) => listener(notification)
       ipcRenderer.on('calendar:reminder-click', handler)
       return () => ipcRenderer.removeListener('calendar:reminder-click', handler)
     },

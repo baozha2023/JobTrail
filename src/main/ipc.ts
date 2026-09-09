@@ -4,6 +4,7 @@ import { registerCalendarIpc } from './ipc/calendar'
 import { registerCompanyIpc } from './ipc/companies'
 import { registerConfigIpc } from './ipc/config'
 import { registerIndustryIpc } from './ipc/industries'
+import { registerMcpIpc } from './ipc/mcp'
 import { registerOpportunityIpc } from './ipc/opportunities'
 import { registerResumeIpc } from './ipc/resumes'
 import { registerStatusIpc } from './ipc/statuses'
@@ -13,6 +14,7 @@ export { registerChannel } from './ipc/register-channel'
 
 export function registerIpc(services: Services, config: ConfigService): void {
   registerConfigIpc(config)
+  registerMcpIpc()
   registerStatusIpc(services)
   registerIndustryIpc(services)
   registerCompanyIpc(services)

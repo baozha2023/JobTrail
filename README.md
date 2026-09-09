@@ -1,215 +1,253 @@
-# 职迹
+# 职迹 JobTrail
 
-职迹（`zhiji`）是一款基于 Electron 的本地优先求职管理桌面应用，用于集中管理公司、岗位、简历版本、求职状态和日程，记录从发现岗位到投递、面试以及最终结果的完整过程。
+职迹是一款面向 Windows 的本地优先求职管理桌面应用。它把公司、岗位、简历版本、求职进度和面试日程集中在一个地方，帮助你持续记录从发现岗位到投递、面试和最终结果的完整过程。
 
-## 当前版本
+当前版本：`v0.4.0` · 支持平台：Windows x64 · 界面语言：简体中文 / English
 
-- 版本：`0.3.0`
-- 首发平台：Windows x64
-- 界面语言：简体中文、English
-- 主题：浅色、深色、跟随系统
-- 数据存储：本地 SQLite 和应用内部简历文件
+## 为什么使用职迹
 
-## 功能
+- **数据保存在本地**：业务数据使用 SQLite 存储，简历复制到应用自己的文件目录，不依赖账号或云服务。
+- **求职信息集中管理**：岗位、公司、状态、简历和日程互相关联，不再依靠多个表格零散维护。
+- **覆盖完整求职流程**：从“感兴趣”“待投递”到多轮面试、Offer、淘汰或主动放弃均可追踪。
+- **原生 Windows 体验**：支持离线安装、系统托盘、开机启动、本地提醒、应用内更新和卸载。
+
+## 功能概览
 
 ### 求职记录
 
-- 以表格管理公司和岗位
-- 支持搜索、状态筛选、公司筛选和分页
-- 支持关联简历版本、岗位链接、JD、地点、截止时间和投递时间
-- 支持新增、编辑和删除求职记录
-- 默认状态包括“感兴趣”“待投递”“初筛”“笔试”“AI面试”“一面”“二面”“三面”“HR面”“Offer”“淘汰”“主动放弃”
+- 记录公司、岗位、部门、地点、来源、岗位链接、JD 和备注。
+- 记录发现日期、投递日期和截止日期。
+- 为岗位关联当前状态和实际使用的简历版本。
+- 支持关键词搜索，以及按状态、公司筛选。
+- 支持分页、新增、编辑和删除。
+- 内置“感兴趣”“待投递”“初筛”“笔试”“AI面试”“一面”“二面”“三面”“HR面”“Offer”“淘汰”“主动放弃”等状态。
 
-### 日历
+### 日历与提醒
 
-- 月视图日历
-- 支持全天日程和时间段日程
-- 日程按各自的 IANA 时区归属和显示；全天日程的结束日期不包含在日程内
-- 支持提醒、完成、编辑、删除
-- 日程可以关联求职记录，也可以独立存在
+- 使用月视图管理面试、笔试、截止日期及其他求职日程。
+- 支持独立日程，也可以关联现有求职记录。
+- 支持时间点、时间段、跨日期和全天日程。
+- 按日程自身的 IANA 时区计算日期和显示时间。
+- 支持提前提醒、完成标记、编辑和删除。
+- Windows 本地提醒由主进程定时检查；已完成或已提醒的日程不会重复通知。
 
-### 基础数据管理
+### 公司与行业
 
-- 状态管理：新增、编辑、删除和上下移动排序
-- 行业分类：新增、编辑、删除和上下移动排序
-- 简历版本：导入、编辑、打开和删除
-- 公司管理：新增、编辑、删除、收藏和招聘官网跳转
-- 公司别名只用于搜索，不在公司和求职记录界面展示
+- 内置常用公司资料和 83 个行业分类。
+- 一家公司可以关联多个行业。
+- 支持按公司名称和别名模糊搜索，并可按行业筛选。
+- 支持收藏公司、打开招聘官网并记录官网已读状态。
+- 招聘官网默认在 3 个月后重新显示为未读，有效期可在设置中调整。
+- 正式安装版中的内置公司、行业和状态受到保护，不能修改或删除；用户创建的数据可以正常维护。
 
-### 设置
+### 简历版本
 
-- 主题和语言切换
-- 关闭主窗口时最小化到托盘或直接退出
-- 开机自启
-- Velopack 更新检查
+- 导入 PDF、DOC 和 DOCX 简历。
+- 编辑版本名称与备注，并调整显示顺序。
+- 从职迹中直接打开已导入文件。
+- 文件导入后使用随机 UUID 文件名保存，同时记录大小和 SHA-256。
+- 被求职记录引用的简历版本不能删除，避免产生失效关联。
+
+### 桌面设置
+
+- 浅色、深色或跟随系统主题。
+- 简体中文与 English 界面切换。
+- 关闭窗口时直接退出，或隐藏到系统托盘。
+- 当前用户开机自动启动。
+- 检查、下载并应用 Velopack 更新。
+- 从设置页启动卸载程序；卸载会删除程序、配置、业务数据和简历。
+
+## 安装
+
+从 [GitHub Releases](https://github.com/baozha2023/JobTrail/releases/latest) 下载最新的 `JobTrail-Setup-<version>.exe`。
+
+安装器是完整的离线安装包，不会在安装过程中下载程序载荷。启动后先显示默认安装位置、实际所需空间和目标磁盘可用空间；如需更改，点击“更改安装位置”选择父目录，安装器会在其中创建 `JobTrail` 文件夹。点击安装后，同一窗口切换为安装进度，并为当前 Windows 用户注册开始菜单、卸载入口等信息。一个用户只应保留一份职迹安装。安装窗口支持 Windows 每显示器动态 DPI 缩放。
+
+安装完成后可在“设置 → 更新”中检查新版本。更新只替换程序运行时，不会覆盖配置、数据库和简历目录。
+
+> [!IMPORTANT]
+> 早期版本使用的原始 Velopack 安装目录不会自动转换为 v0.3.0 起采用的新目录布局。升级前请备份旧数据库和简历文件，再安装新版本并迁移数据。
+
+> [!NOTE]
+> 当前发布包未配置商业代码签名证书，Windows 可能显示“未知发布者”或 SmartScreen 提示。请只从本项目的 GitHub Releases 下载。
+
+## 本地数据
+
+职迹目前没有账号、云同步或遥测上传功能。业务数据和导入的简历均保存在本机。
+
+| 内容   | 开发环境                   | 安装环境                              |
+| ------ | -------------------------- | ------------------------------------- |
+| 配置   | `<项目目录>/config.json`   | `<JobTrail 安装根目录>/config.json`   |
+| 数据库 | `<项目目录>/data/zhiji.db` | `<JobTrail 安装根目录>/data/zhiji.db` |
+| 简历   | `<项目目录>/resumes/`      | `<JobTrail 安装根目录>/resumes/`      |
+
+安装环境中的程序版本位于 `<JobTrail 安装根目录>/.runtime/current/`，由 Velopack 管理。正常更新只替换程序版本，不会删除业务数据；完整卸载会清空 `<JobTrail 安装根目录>`，删除其中的程序、配置、数据库和简历。卸载前请先备份重要数据。
+
+建议定期备份以下内容：
+
+```text
+config.json
+data/zhiji.db
+resumes/
+```
+
+SQLite 开启 WAL。复制正在运行的数据库前应先退出职迹，确保主数据库及临时日志已经完整落盘。
+
+## MCP 智能体连接
+
+职迹内置本地 stdio MCP Server，可供 Claude、Cursor、VS Code、CC-Switch 等 MCP Host 使用。在“设置 → MCP配置”中启用后，选择对应 Host 并复制配置片段即可。职迹不会自动改写第三方软件的配置。
+
+- 固定提供 37 个工具，覆盖状态、行业、公司、简历、求职记录和日程的读取与维护。
+- MCP 默认关闭；启用后读取操作可直接执行，写操作默认要求预览和明确确认。
+- 确认请求有 10 分钟有效期，并绑定调用参数和当前数据状态；拒绝、取消、过期、篡改或数据已变化均不会写入。
+- 所有工具复用 Application Service 和现有业务保护，不接受任意 SQL，也不能修改或删除正式环境的内置数据。
+- 同时支持现代 MCP `2026-07-28` 协议和旧版 Host；不支持确认能力的 Host 在默认安全配置下只能读取。
+- 桌面客户端和 MCP 使用同一 SQLite 数据库的独立 WAL 连接；MCP 提交后，已打开的桌面客户端会自动刷新业务数据。
+
+正式安装版的启动配置使用安装根目录中的 `JobTrail.exe`，参数为 `--mcp`。开发环境需先执行 `pnpm build`，再使用设置页给出的 Electron 命令和参数。
+
+## 技术架构
+
+```text
+Vue Renderer
+    ↓ 类型安全 API
+Electron Preload
+    ↓ 受限 IPC
+Main IPC Handlers
+    ↓
+Application Services
+    ↓
+Unit of Work (IMMEDIATE transaction + file lifecycle hooks)
+    ↓
+Repositories / File Storage
+    ↓
+SQLite / Local Files
+```
+
+- Renderer 不直接访问 Node.js、文件系统或 SQLite。
+- Preload 只暴露经过类型约束的业务 API，不暴露完整 `ipcRenderer`。
+- 业务规则、关联校验和删除保护集中在 Service 层。
+- 所有写操作由 Service 层工作单元串行化，并通过提交/回滚钩子协调简历文件与数据库。
+- SQL 仅位于 Repository 层，并使用参数化查询。
+- 页面状态按业务域拆分到 composable，视图负责组合和展示。
+
+主窗口启用了 `contextIsolation`、Electron sandbox 和内容安全策略，关闭了 Renderer 的 Node.js 集成。应用禁止任意新窗口和站内导航，IPC 只接受受信任主窗口的 main frame 调用；外部链接仅允许 HTTP/HTTPS 协议。
 
 ## 技术栈
 
-- Electron
-- Vue 3
-- TypeScript
-- electron-vite
-- Naive UI
-- Pinia
-- vue-i18n
+- Electron 43
+- Vue 3 + TypeScript
+- electron-vite 5
+- Naive UI、Pinia、vue-i18n
 - better-sqlite3
-- Velopack
+- MCP TypeScript SDK + Zod
+- Velopack 1.2
+- Rust：Windows 启动器、离线安装器和卸载器
+- Vitest、Node.js Test Runner
+
+## 本地开发
+
+### 环境要求
+
+- Windows x64
+- Node.js 24 LTS
+- pnpm 11.3+
+
+安装依赖并启动开发环境：
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+`better-sqlite3` 是 Electron 原生模块。`pnpm install` 的 `postinstall` 会为当前 Electron 版本准备对应二进制。升级 Electron 或 `better-sqlite3` 后，请先关闭正在运行的职迹实例，再执行：
+
+```powershell
+pnpm rebuild:native
+```
+
+### 常用命令
+
+| 命令                     | 用途                                         |
+| ------------------------ | -------------------------------------------- |
+| `pnpm dev`               | 启动 Electron 开发环境                       |
+| `pnpm typecheck`         | 检查 Renderer 与 Main/Preload 类型           |
+| `pnpm test`              | 运行发布基线测试和 Electron ABI 下的业务测试 |
+| `pnpm format`            | 使用 Prettier 格式化代码                     |
+| `pnpm format:check`      | 检查代码格式                                 |
+| `pnpm build`             | 类型检查并构建生产代码                       |
+| `pnpm package:win`       | 生成 Windows 未安装目录                      |
+| `pnpm test:mcp:package`  | 验证未安装目录中的 MCP stdio 服务            |
+| `pnpm test:mcp:launcher` | 验证根启动器的 MCP 管道、等待和退出          |
+| `pnpm release:win`       | 生成离线安装器和 Velopack 更新资产           |
+
+## Windows 发布
+
+执行发布构建还需要：
+
+- Rust stable MSVC 工具链
+- Visual Studio C++ Build Tools
+- .NET 8 SDK
+- Velopack CLI `vpk` 1.2.0
+
+```powershell
+dotnet tool install --global vpk --version 1.2.0
+pnpm release:win
+```
+
+发布脚本会：
+
+1. 构建 Electron Windows 目录包。
+2. 从固定 GitHub Feed 选择并校验低于目标版本的最新 Full 包。
+3. 使用 Velopack 生成 Full/Delta 更新资产和更新 Feed。
+4. 构建 Rust 根启动器、卸载器和内嵌程序载荷的离线安装器。
+5. 校验 Feed 中每个资产的文件大小与 SHA-256。
+
+产物位于 `dist/velopack/`：
+
+```text
+JobTrail-Setup-<version>.exe
+releases.win.json
+zhiji-<version>-full.nupkg
+zhiji-<version>-delta.nupkg   # 存在可用历史基线时生成
+```
+
+项目不发布 Portable、MSI 或 Velopack 原生 Setup；`dist/win-unpacked/` 只用于开发验证。本地和 GitHub Actions 使用同一套发布脚本，CI 只接受与 `package.json` 版本一致的 `vX.Y.Z` 标签。
 
 ## 项目结构
 
 ```text
 src/
-├─ main/       Electron 主进程、数据库、文件存储、业务服务和 IPC
-├─ preload/    类型安全的渲染进程桥接 API
-├─ renderer/   Vue 页面、组件、样式和国际化
-└─ shared/     主进程与渲染进程共享的类型定义
+├─ main/                 Electron 主进程、IPC、Service、Repository 和本地存储
+├─ preload/              Renderer 的类型安全桥接层
+├─ renderer/             Vue 页面、状态、领域 composable、样式和国际化
+└─ shared/               Main、Preload 与 Renderer 共享的 DTO 和工具
 
-claude.md      项目上下文与开发规范
-database.md    SQLite 数据库唯一声明文档
-future.md      首版未落地功能规划
-scripts/       构建和 Velopack 打包脚本
-native/bootstrap/ Rust 启动器、离线安装器和卸载器
-resource/      应用图片等静态资源
+native/bootstrap/        Rust 启动器、离线安装器和卸载器
+scripts/                 测试入口、构建和 Velopack 发布脚本
+resource/                应用图标等静态资源
+docs/database.md         SQLite 结构与数据规则的唯一声明
+docs/future.md           尚未交付的功能规划
+CLAUDE.md                AI 辅助开发上下文与强制工程规范
 ```
 
-## 开发环境
+## 当前边界
 
-建议使用：
+v0.4.0 尚未提供以下能力：
 
-- Node.js 24 LTS
-- pnpm 11+
-- Windows x64
+- macOS 或 Linux 发行版
+- 账号、云同步和多设备同步
+- 数据导入导出及自动备份
+- 浏览器插件、网页岗位自动提取
+- AI 简历分析、JD 匹配或模拟面试
+- MCP Resources、Prompts、HTTP/OAuth 或远程连接
 
-安装依赖：
+## 开发文档
 
-```bash
-pnpm install
-```
-
-启动开发环境：
-
-```bash
-pnpm dev
-```
-
-`better-sqlite3` 是原生模块。依赖安装后的 `postinstall` 会准备 Electron 对应的原生模块；开发、测试和构建脚本不会重复重建，避免应用运行时占用 `.node` 文件导致 Windows `EPERM`。升级 Electron 或 `better-sqlite3` 后，请先关闭正在运行的职迹实例，再手动执行 `pnpm rebuild:native`。
-
-## 常用命令
-
-```bash
-# 类型检查
-pnpm typecheck
-
-# 运行测试
-pnpm test
-
-# 构建 Electron 文件
-pnpm build
-
-# 构建 Windows 未安装目录
-pnpm package:win
-
-# 构建 Windows 文件并执行 Velopack 打包
-pnpm release:win
-```
-
-运行 `pnpm release:win` 前安装 Rust MSVC 工具链和 Visual Studio C++ Build Tools、.NET 8 SDK，并执行 `dotnet tool install --global vpk --version 1.2.0`。构建脚本读取 package.json 版本，先核验可用的旧版 Full，再生成 Velopack 更新包，最后构建内嵌载荷的 Rust 安装器。网络或校验失败会停止构建，不会伪装成首次发布。
-
-最终产物位于 `dist/velopack/`：`JobTrail-Setup-0.3.0.exe`、更新 Feed 和 nupkg。不生成公开 Portable/MSI；`dist/win-unpacked` 仅供开发验证。GitHub Actions 与本地共用打包脚本，只允许与 package.json 匹配的版本标签发布。
-
-双击安装器后选择父目录，程序安装到其中的 `JobTrail` 文件夹。安装包自带全部程序，无需下载安装载荷。卸载入口为设置页、Windows 已安装应用或根目录 `JobTrail-Uninstall.exe`；卸载保留求职数据和简历。当前用户只安装一份，已有版本请使用应用内更新。
-
-## 数据和配置位置
-
-只有业务数据、简历文件和应用配置保存到项目目录或 JobTrail 安装根目录；Electron 自身的缓存、日志等底层数据仍使用系统默认目录。
-
-开发环境：
-
-```text
-<项目目录>/config.json
-<项目目录>/data/zhiji.db
-<项目目录>/resumes/
-```
-
-打包运行：
-
-```text
-<JobTrail 安装根目录>/config.json
-<JobTrail 安装根目录>/data/zhiji.db
-<JobTrail 安装根目录>/resumes/
-```
-
-Velopack 的版本文件位于安装根目录的 `.runtime/current/` 中，该目录由 Velopack 管理并会在更新时替换；业务数据不会写入 `current/`。
-
-默认配置示例：
-
-```json
-{
-  "configVersion": 1,
-  "themeMode": "system",
-  "locale": "zh-CN",
-  "closeBehavior": "quit",
-  "launchAtStartup": false,
-  "companyReadValidityMonths": 3,
-  "velopack": {},
-  "mcp": {
-    "enabled": false,
-    "requireWriteConfirmation": true
-  }
-}
-```
-
-配置文件支持保留未知字段，写入采用临时文件和原子替换。配置损坏时会先备份，再恢复默认配置。
-
-## 数据库约定
-
-- SQLite 结构版本使用 `PRAGMA user_version`。
-- 当前结构版本为 `8`，包含日程提醒发送记录表、简历版本排序字段、公司已读时间字段和多行业公司关联表。
-- 时间字段使用 UTC Unix 毫秒时间戳。
-- 跨表关联统一使用逻辑外键，数据库不使用物理外键约束。
-- 数据库结构以 [database.md](database.md) 为唯一声明。
-- 首发阶段不提供过程性 `ALTER TABLE` 迁移或转换层。
-- 状态正在被求职记录使用时不能删除，最后一个状态也不能删除。
-- 被求职记录引用的简历版本不能删除。
-
-## 架构约束
-
-渲染进程不能直接访问 SQLite、Node.js API 或文件系统。所有业务增删改查必须经过主进程的业务 service，再由 preload 暴露类型安全的 IPC API。
-
-主窗口启用上下文隔离、沙箱和内容安全策略；禁止创建新窗口及跳转到非应用页面。IPC 仅接受主框架调用，并拒绝业务 DTO 中的未知字段与空更新。
-
-当前业务服务位于 `src/main/services/`，SQL 仅位于 `src/main/repositories/`；渲染进程按业务域使用 `src/renderer/composables/` 组织页面状态和操作。未来 MCP 也必须复用这些服务，不能绕过 service 执行任意 SQL。
-
-## Velopack 更新
-
-Velopack 已从首版接入。GitHub Release 更新源固定为 `https://github.com/baozha2023/JobTrail`，由程序内置，不在设置页面显示，也不支持修改。`config.json` 不保存更新源或 prerelease 开关：
-
-```json
-{ "velopack": {} }
-```
-
-运行时使用 Velopack `UpdateManager`，从固定的 `releases/latest/download` HTTP Feed 检查、下载并应用更新。发布流程先从同一 Feed 选择并校验低于目标版本的最新 Full，再执行 `vpk pack`；GitHub Actions 最后通过 `gh release create` 发布安装器、Feed 和更新包，不使用 Squirrel、electron-updater 或其他更新框架。
-
-更新元数据由主进程持有，下载和应用更新不会信任渲染进程传入的更新对象。
-
-## MCP 状态
-
-首版暂不启动 MCP Server，但业务 CRUD 已按未来 MCP 复用要求设计。未来计划使用本地 stdio MCP Server，让 AI 智能体通过自然语言查询和管理求职数据；新增、编辑、删除等写入操作将采用“预览变更 → 用户确认 → 提交变更”流程。
-
-详细规划见 [future.md](future.md)。
-
-## 开发规范
-
-开始开发前请阅读：
-
-1. [claude.md](claude.md)
-2. [database.md](database.md)
-3. [future.md](future.md)
+- [AI 辅助开发上下文](CLAUDE.md)
+- [数据库声明](docs/database.md)
+- [未来功能规划](docs/future.md)
 
 ## License
 
-MIT
-
-## 审查记录
-
-详见 [Windows 打包与代码审查记录](docs/REVIEW-2026-09-07.md)。旧版原始 Velopack 安装不自动迁移到新目录布局；已有求职数据请先备份再迁移。
+本项目采用 [MIT License](LICENSE)。

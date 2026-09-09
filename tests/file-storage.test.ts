@@ -62,4 +62,15 @@ describe('installation and resume storage', () => {
     expect(log).toHaveBeenCalledOnce()
     expect(fs.existsSync(deleted.temporaryPath)).toBe(true)
   })
+  it('rejects a resume source that changes while it is copied', () => {
+    const { root, paths, service } = fixture()
+    const source = path.join(root, 'resume.pdf')
+    fs.writeFileSync(source, 'approved')
+    vi.spyOn(fs, 'copyFileSync').mockImplementationOnce((_source, destination) => {
+      fs.writeFileSync(destination, 'changed')
+    })
+
+    expect(() => service.importResume(source)).toThrow('导入失败')
+    expect(fs.readdirSync(paths.resumes)).toEqual([])
+  })
 })

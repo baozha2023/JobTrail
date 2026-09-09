@@ -1,398 +1,595 @@
-/**
- * 首版只登记 MCP 合同，不启动协议服务、不引入 MCP 运行时依赖。
- * 每个工具都映射到一个现有 Service 的领域方法，未来 stdio Server 只需接入此注册表。
- */
-type ServiceOperationMap = {
-  StatusService: 'list' | 'get' | 'create' | 'update' | 'delete' | 'reorder'
-  IndustryService: 'list' | 'get' | 'create' | 'update' | 'delete' | 'reorder'
-  CompanyService: 'search' | 'list' | 'get' | 'markRead' | 'create' | 'update' | 'delete'
-  ResumeService: 'list' | 'get' | 'importFromPath' | 'update' | 'reorder' | 'delete'
-  OpportunityService: 'list' | 'get' | 'create' | 'update' | 'delete' | 'changeStatus'
-  CalendarEventService: 'list' | 'get' | 'create' | 'update' | 'delete' | 'complete'
-}
+import { z } from 'zod'
+import type { Services } from './service-container'
+import {
+  calendarEventSchema,
+  calendarRangeSchema,
+  companySchema,
+  createCalendarInputSchema,
+  createCompanyInputSchema,
+  createIndustryInputSchema,
+  createOpportunityInputSchema,
+  createStatusInputSchema,
+  deleteOutputSchema,
+  idInputSchema,
+  industrySchema,
+  itemOutput,
+  itemsOutput,
+  opportunityQuerySchema,
+  opportunitySchema,
+  orderInputSchema,
+  positiveIdSchema,
+  resumeImportSchema,
+  resumeSchema,
+  statusSchema,
+  updateCalendarInputSchema,
+  updateCompanyInputSchema,
+  updateIndustryInputSchema,
+  updateOpportunityInputSchema,
+  updateResumeInputSchema,
+  updateStatusInputSchema,
+} from './mcp/schemas'
 
-type McpServiceName = keyof ServiceOperationMap
-
-export interface McpToolDescriptor<S extends McpServiceName = McpServiceName> {
+interface McpToolDescriptorBase {
   name: string
+  title: string
   description: string
-  readOnly: boolean
   destructive: boolean
-  service: S
-  operation: ServiceOperationMap[S]
-  inputSchema: Readonly<Record<string, string>>
-  outputDto: string
+  idempotent: boolean
+  inputSchema: z.ZodType
+  outputSchema: z.ZodType
+  execute: (services: Services, args: Record<string, unknown>) => Record<string, unknown>
 }
 
-export const RESERVED_MCP_TOOLS = [
-  {
+export type McpReadToolDescriptor = McpToolDescriptorBase & {
+  readOnly: true
+  preview?: never
+}
+
+export type McpWriteToolDescriptor = McpToolDescriptorBase & {
+  readOnly: false
+  preview: (services: Services, args: Record<string, unknown>) => McpMutationPreview
+}
+
+export type McpToolDescriptor = McpReadToolDescriptor | McpWriteToolDescriptor
+
+export interface McpMutationPreview {
+  entityType: string
+  before: unknown
+  after: unknown
+}
+
+type McpToolDefinition<I extends z.ZodType, O extends z.ZodType> = {
+  name: string
+  title: string
+  description: string
+  destructive?: boolean
+  idempotent?: boolean
+  inputSchema: I
+  outputSchema: O
+  execute: (services: Services, args: z.output<I>) => z.input<O>
+} & (
+  | { readOnly: true; preview?: never }
+  | {
+      readOnly: false
+      preview: (services: Services, args: z.output<I>) => McpMutationPreview
+    }
+)
+
+function tool<I extends z.ZodType, O extends z.ZodType>(
+  definition: McpToolDefinition<I, O>,
+): McpToolDescriptor {
+  return {
+    ...definition,
+    destructive: definition.destructive ?? false,
+    idempotent: definition.idempotent ?? false,
+    execute: definition.execute as unknown as (
+      services: Services,
+      args: Record<string, unknown>,
+    ) => Record<string, unknown>,
+  } as McpToolDescriptor
+}
+
+const emptyInput = z.strictObject({})
+const createStatusArgs = z.strictObject({ input: createStatusInputSchema })
+const updateStatusArgs = z.strictObject({ id: positiveIdSchema, input: updateStatusInputSchema })
+const createIndustryArgs = z.strictObject({ input: createIndustryInputSchema })
+const updateIndustryArgs = z.strictObject({
+  id: positiveIdSchema,
+  input: updateIndustryInputSchema,
+})
+const keywordArgs = z.strictObject({ keyword: z.string() })
+const createCompanyArgs = z.strictObject({ input: createCompanyInputSchema })
+const updateCompanyArgs = z.strictObject({ id: positiveIdSchema, input: updateCompanyInputSchema })
+const importResumeArgs = z.strictObject({
+  sourcePath: z.string().min(1),
+  name: z.string().optional(),
+  note: z.string().optional(),
+})
+const updateResumeArgs = z.strictObject({ id: positiveIdSchema, input: updateResumeInputSchema })
+const opportunitySearchArgs = z.strictObject({ query: opportunityQuerySchema })
+const createOpportunityArgs = z.strictObject({ input: createOpportunityInputSchema })
+const updateOpportunityArgs = z.strictObject({
+  id: positiveIdSchema,
+  input: updateOpportunityInputSchema,
+})
+const changeStatusArgs = z.strictObject({ id: positiveIdSchema, statusId: positiveIdSchema })
+const calendarListArgs = z.strictObject({ range: calendarRangeSchema })
+const createCalendarArgs = z.strictObject({ input: createCalendarInputSchema })
+const updateCalendarArgs = z.strictObject({
+  id: positiveIdSchema,
+  input: updateCalendarInputSchema,
+})
+const completeCalendarArgs = z.strictObject({ id: positiveIdSchema, completed: z.boolean() })
+
+export const MCP_TOOLS: readonly McpToolDescriptor[] = [
+  tool({
     name: 'list_statuses',
-    description: 'List job statuses',
+    title: 'List statuses',
+    description: 'List all job statuses in display order.',
     readOnly: true,
-    destructive: false,
-    service: 'StatusService',
-    operation: 'list',
-    inputSchema: {},
-    outputDto: 'Status[]',
-  },
-  {
+    inputSchema: emptyInput,
+    outputSchema: itemsOutput(statusSchema),
+    execute: (s) => ({ items: s.statuses.list() }),
+  }),
+  tool({
     name: 'get_status',
-    description: 'Get one job status',
+    title: 'Get status',
+    description: 'Get one job status by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'StatusService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'Status',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(statusSchema),
+    execute: (s, a) => ({ item: s.statuses.get(a.id) }),
+  }),
+  tool({
     name: 'create_status',
-    description: 'Create a job status',
+    title: 'Create status',
+    description: 'Create a custom job status.',
     readOnly: false,
-    destructive: false,
-    service: 'StatusService',
-    operation: 'create',
-    inputSchema: { input: 'CreateStatusInput' },
-    outputDto: 'Status',
-  },
-  {
+    inputSchema: createStatusArgs,
+    outputSchema: itemOutput(statusSchema),
+    preview: (_s, a) => ({ entityType: 'status', before: null, after: a.input }),
+    execute: (s, a) => ({ item: s.statuses.create(a.input) }),
+  }),
+  tool({
     name: 'update_status',
-    description: 'Update a job status',
+    title: 'Update status',
+    description: 'Update a custom job status.',
     readOnly: false,
-    destructive: false,
-    service: 'StatusService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateStatusInput' },
-    outputDto: 'Status',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateStatusArgs,
+    outputSchema: itemOutput(statusSchema),
+    preview: (s, a) => {
+      const before = s.statuses.get(a.id)
+      return { entityType: 'status', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.statuses.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'delete_status',
-    description: 'Delete a job status',
+    title: 'Delete status',
+    description: 'Delete an unused custom job status.',
     readOnly: false,
     destructive: true,
-    service: 'StatusService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({ entityType: 'status', before: s.statuses.get(a.id), after: null }),
+    execute: (s, a) => {
+      s.statuses.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+  tool({
     name: 'reorder_statuses',
-    description: 'Reorder job statuses',
+    title: 'Reorder statuses',
+    description: 'Set the complete display order of job statuses.',
     readOnly: false,
-    destructive: false,
-    service: 'StatusService',
-    operation: 'reorder',
-    inputSchema: { order: 'number[]' },
-    outputDto: 'Status[]',
-  },
-  {
+    idempotent: true,
+    inputSchema: orderInputSchema,
+    outputSchema: itemsOutput(statusSchema),
+    preview: (s, a) => ({
+      entityType: 'status_order',
+      before: s.statuses.list().map(({ id, updatedAt }) => ({ id, updatedAt })),
+      after: a.order,
+    }),
+    execute: (s, a) => ({ items: s.statuses.reorder(a.order) }),
+  }),
+
+  tool({
     name: 'list_industries',
-    description: 'List industries',
+    title: 'List industries',
+    description: 'List all industries in display order.',
     readOnly: true,
-    destructive: false,
-    service: 'IndustryService',
-    operation: 'list',
-    inputSchema: {},
-    outputDto: 'Industry[]',
-  },
-  {
+    inputSchema: emptyInput,
+    outputSchema: itemsOutput(industrySchema),
+    execute: (s) => ({ items: s.industries.list() }),
+  }),
+  tool({
     name: 'get_industry',
-    description: 'Get one industry',
+    title: 'Get industry',
+    description: 'Get one industry by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'IndustryService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'Industry',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(industrySchema),
+    execute: (s, a) => ({ item: s.industries.get(a.id) }),
+  }),
+  tool({
     name: 'create_industry',
-    description: 'Create an industry',
+    title: 'Create industry',
+    description: 'Create a custom industry.',
     readOnly: false,
-    destructive: false,
-    service: 'IndustryService',
-    operation: 'create',
-    inputSchema: { input: 'CreateIndustryInput' },
-    outputDto: 'Industry',
-  },
-  {
+    inputSchema: createIndustryArgs,
+    outputSchema: itemOutput(industrySchema),
+    preview: (_s, a) => ({ entityType: 'industry', before: null, after: a.input }),
+    execute: (s, a) => ({ item: s.industries.create(a.input) }),
+  }),
+  tool({
     name: 'update_industry',
-    description: 'Update an industry',
+    title: 'Update industry',
+    description: 'Update a custom industry.',
     readOnly: false,
-    destructive: false,
-    service: 'IndustryService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateIndustryInput' },
-    outputDto: 'Industry',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateIndustryArgs,
+    outputSchema: itemOutput(industrySchema),
+    preview: (s, a) => {
+      const before = s.industries.get(a.id)
+      return { entityType: 'industry', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.industries.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'delete_industry',
-    description: 'Delete an industry',
+    title: 'Delete industry',
+    description: 'Delete an unused custom industry.',
     readOnly: false,
     destructive: true,
-    service: 'IndustryService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({ entityType: 'industry', before: s.industries.get(a.id), after: null }),
+    execute: (s, a) => {
+      s.industries.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+  tool({
     name: 'reorder_industries',
-    description: 'Reorder industries',
+    title: 'Reorder industries',
+    description: 'Set the complete display order of industries.',
     readOnly: false,
-    destructive: false,
-    service: 'IndustryService',
-    operation: 'reorder',
-    inputSchema: { order: 'number[]' },
-    outputDto: 'Industry[]',
-  },
-  {
+    idempotent: true,
+    inputSchema: orderInputSchema,
+    outputSchema: itemsOutput(industrySchema),
+    preview: (s, a) => ({
+      entityType: 'industry_order',
+      before: s.industries.list().map(({ id, updatedAt }) => ({ id, updatedAt })),
+      after: a.order,
+    }),
+    execute: (s, a) => ({ items: s.industries.reorder(a.order) }),
+  }),
+
+  tool({
     name: 'search_companies',
-    description: 'Search companies by name, industry, or alias',
+    title: 'Search companies',
+    description: 'Search companies by name, industry, or alias.',
     readOnly: true,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'search',
-    inputSchema: { keyword: 'string' },
-    outputDto: 'Company[]',
-  },
-  {
+    inputSchema: keywordArgs,
+    outputSchema: itemsOutput(companySchema),
+    execute: (s, a) => ({ items: s.companies.search(a.keyword) }),
+  }),
+  tool({
     name: 'list_companies',
-    description: 'List companies',
+    title: 'List companies',
+    description: 'List all companies.',
     readOnly: true,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'list',
-    inputSchema: {},
-    outputDto: 'Company[]',
-  },
-  {
+    inputSchema: emptyInput,
+    outputSchema: itemsOutput(companySchema),
+    execute: (s) => ({ items: s.companies.list() }),
+  }),
+  tool({
     name: 'get_company',
-    description: 'Get one company',
+    title: 'Get company',
+    description: 'Get one company by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'Company',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(companySchema),
+    execute: (s, a) => ({ item: s.companies.get(a.id) }),
+  }),
+  tool({
     name: 'mark_company_read',
-    description: 'Mark a company career site as read',
+    title: 'Mark company read',
+    description: 'Mark a company career site as read now.',
     readOnly: false,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'markRead',
-    inputSchema: { id: 'number' },
-    outputDto: 'Company',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(companySchema),
+    preview: (s, a) => {
+      const before = s.companies.get(a.id)
+      return { entityType: 'company', before, after: { ...before, lastReadAt: 'now' } }
+    },
+    execute: (s, a) => ({ item: s.companies.markRead(a.id) }),
+  }),
+  tool({
     name: 'create_company',
-    description: 'Create a company and its aliases',
+    title: 'Create company',
+    description: 'Create a company with industries and aliases.',
     readOnly: false,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'create',
-    inputSchema: { input: 'CreateCompanyInput' },
-    outputDto: 'Company',
-  },
-  {
+    inputSchema: createCompanyArgs,
+    outputSchema: itemOutput(companySchema),
+    preview: (_s, a) => ({ entityType: 'company', before: null, after: a.input }),
+    execute: (s, a) => ({ item: s.companies.create(a.input) }),
+  }),
+  tool({
     name: 'update_company',
-    description: 'Update a company and its aliases',
+    title: 'Update company',
+    description: 'Update a company, its industries, aliases, or favorite state.',
     readOnly: false,
-    destructive: false,
-    service: 'CompanyService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateCompanyInput' },
-    outputDto: 'Company',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateCompanyArgs,
+    outputSchema: itemOutput(companySchema),
+    preview: (s, a) => {
+      const before = s.companies.get(a.id)
+      return { entityType: 'company', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.companies.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'delete_company',
-    description: 'Delete a company',
+    title: 'Delete company',
+    description: 'Delete an unused custom company.',
     readOnly: false,
     destructive: true,
-    service: 'CompanyService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({ entityType: 'company', before: s.companies.get(a.id), after: null }),
+    execute: (s, a) => {
+      s.companies.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+
+  tool({
     name: 'list_resume_versions',
-    description: 'List resume versions',
+    title: 'List resume versions',
+    description: 'List resume versions in display order.',
     readOnly: true,
-    destructive: false,
-    service: 'ResumeService',
-    operation: 'list',
-    inputSchema: {},
-    outputDto: 'ResumeVersion[]',
-  },
-  {
+    inputSchema: emptyInput,
+    outputSchema: itemsOutput(resumeSchema),
+    execute: (s) => ({ items: s.resumes.list() }),
+  }),
+  tool({
     name: 'get_resume_version',
-    description: 'Get one resume version',
+    title: 'Get resume version',
+    description: 'Get one resume version by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'ResumeService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'ResumeVersion',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(resumeSchema),
+    execute: (s, a) => ({ item: s.resumes.get(a.id) }),
+  }),
+  tool({
     name: 'import_resume_version',
-    description: 'Import a resume version',
+    title: 'Import resume version',
+    description: 'Import a local PDF, DOC, or DOCX resume file.',
     readOnly: false,
-    destructive: false,
-    service: 'ResumeService',
-    operation: 'importFromPath',
-    inputSchema: { sourcePath: 'string' },
-    outputDto: 'ResumeImportResult',
-  },
-  {
+    inputSchema: importResumeArgs,
+    outputSchema: itemOutput(resumeImportSchema),
+    preview: (s, a) => {
+      const source = s.resumes.inspectSource(a.sourcePath)
+      return {
+        entityType: 'resume_version',
+        before: null,
+        after: { ...source, name: a.name ?? source.name, note: a.note ?? null },
+      }
+    },
+    execute: (s, a) => ({ item: s.resumes.importFromPath(a.sourcePath, a.name, a.note) }),
+  }),
+  tool({
     name: 'update_resume_version',
-    description: 'Update a resume version',
+    title: 'Update resume version',
+    description: 'Update resume version name or note.',
     readOnly: false,
-    destructive: false,
-    service: 'ResumeService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateResumeVersionInput' },
-    outputDto: 'ResumeVersion',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateResumeArgs,
+    outputSchema: itemOutput(resumeSchema),
+    preview: (s, a) => {
+      const before = s.resumes.get(a.id)
+      return { entityType: 'resume_version', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.resumes.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'reorder_resume_versions',
-    description: 'Reorder resume versions',
+    title: 'Reorder resume versions',
+    description: 'Set the complete display order of resume versions.',
     readOnly: false,
-    destructive: false,
-    service: 'ResumeService',
-    operation: 'reorder',
-    inputSchema: { order: 'number[]' },
-    outputDto: 'ResumeVersion[]',
-  },
-  {
+    idempotent: true,
+    inputSchema: orderInputSchema,
+    outputSchema: itemsOutput(resumeSchema),
+    preview: (s, a) => ({
+      entityType: 'resume_order',
+      before: s.resumes.list().map(({ id, updatedAt }) => ({ id, updatedAt })),
+      after: a.order,
+    }),
+    execute: (s, a) => ({ items: s.resumes.reorder(a.order) }),
+  }),
+  tool({
     name: 'delete_resume_version',
-    description: 'Delete a resume version',
+    title: 'Delete resume version',
+    description: 'Delete an unused resume version and its managed file.',
     readOnly: false,
     destructive: true,
-    service: 'ResumeService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({
+      entityType: 'resume_version',
+      before: s.resumes.get(a.id),
+      after: null,
+    }),
+    execute: (s, a) => {
+      s.resumes.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+
+  tool({
     name: 'search_opportunities',
-    description: 'Search job opportunities',
+    title: 'Search opportunities',
+    description: 'Search and filter job opportunities.',
     readOnly: true,
-    destructive: false,
-    service: 'OpportunityService',
-    operation: 'list',
-    inputSchema: { query: 'OpportunityQuery' },
-    outputDto: 'Opportunity[]',
-  },
-  {
+    inputSchema: opportunitySearchArgs,
+    outputSchema: itemsOutput(opportunitySchema),
+    execute: (s, a) => ({ items: s.opportunities.list(a.query) }),
+  }),
+  tool({
     name: 'get_opportunity',
-    description: 'Get one job opportunity',
+    title: 'Get opportunity',
+    description: 'Get one job opportunity by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'OpportunityService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'Opportunity',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(opportunitySchema),
+    execute: (s, a) => ({ item: s.opportunities.get(a.id) }),
+  }),
+  tool({
     name: 'create_opportunity',
-    description: 'Create a job opportunity',
+    title: 'Create opportunity',
+    description: 'Create a job opportunity.',
     readOnly: false,
-    destructive: false,
-    service: 'OpportunityService',
-    operation: 'create',
-    inputSchema: { input: 'CreateOpportunityInput' },
-    outputDto: 'Opportunity',
-  },
-  {
+    inputSchema: createOpportunityArgs,
+    outputSchema: itemOutput(opportunitySchema),
+    preview: (_s, a) => ({ entityType: 'opportunity', before: null, after: a.input }),
+    execute: (s, a) => ({ item: s.opportunities.create(a.input) }),
+  }),
+  tool({
     name: 'update_opportunity',
-    description: 'Update a job opportunity',
+    title: 'Update opportunity',
+    description: 'Update a job opportunity.',
     readOnly: false,
-    destructive: false,
-    service: 'OpportunityService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateOpportunityInput' },
-    outputDto: 'Opportunity',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateOpportunityArgs,
+    outputSchema: itemOutput(opportunitySchema),
+    preview: (s, a) => {
+      const before = s.opportunities.get(a.id)
+      return { entityType: 'opportunity', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.opportunities.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'delete_opportunity',
-    description: 'Delete a job opportunity',
+    title: 'Delete opportunity',
+    description: 'Delete a job opportunity.',
     readOnly: false,
     destructive: true,
-    service: 'OpportunityService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({
+      entityType: 'opportunity',
+      before: s.opportunities.get(a.id),
+      after: null,
+    }),
+    execute: (s, a) => {
+      s.opportunities.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+  tool({
     name: 'change_opportunity_status',
-    description: 'Change a job opportunity status',
+    title: 'Change opportunity status',
+    description: 'Change the status of a job opportunity.',
     readOnly: false,
-    destructive: false,
-    service: 'OpportunityService',
-    operation: 'changeStatus',
-    inputSchema: { id: 'number', statusId: 'number' },
-    outputDto: 'Opportunity',
-  },
-  {
+    idempotent: true,
+    inputSchema: changeStatusArgs,
+    outputSchema: itemOutput(opportunitySchema),
+    preview: (s, a) => {
+      const before = s.opportunities.get(a.id)
+      const status = s.statuses.get(a.statusId)
+      return {
+        entityType: 'opportunity',
+        before,
+        after: { ...before, statusId: status.id, statusLabel: status.label },
+      }
+    },
+    execute: (s, a) => ({ item: s.opportunities.changeStatus(a.id, a.statusId) }),
+  }),
+
+  tool({
     name: 'list_calendar_events',
-    description: 'List calendar events in a range',
+    title: 'List calendar events',
+    description: 'List calendar events overlapping a time range.',
     readOnly: true,
-    destructive: false,
-    service: 'CalendarEventService',
-    operation: 'list',
-    inputSchema: { range: 'CalendarRange' },
-    outputDto: 'CalendarEvent[]',
-  },
-  {
+    inputSchema: calendarListArgs,
+    outputSchema: itemsOutput(calendarEventSchema),
+    execute: (s, a) => ({ items: s.calendar.list(a.range) }),
+  }),
+  tool({
     name: 'get_calendar_event',
-    description: 'Get one calendar event',
+    title: 'Get calendar event',
+    description: 'Get one calendar event by ID.',
     readOnly: true,
-    destructive: false,
-    service: 'CalendarEventService',
-    operation: 'get',
-    inputSchema: { id: 'number' },
-    outputDto: 'CalendarEvent',
-  },
-  {
+    inputSchema: idInputSchema,
+    outputSchema: itemOutput(calendarEventSchema),
+    execute: (s, a) => ({ item: s.calendar.get(a.id) }),
+  }),
+  tool({
     name: 'create_calendar_event',
-    description: 'Create a calendar event',
+    title: 'Create calendar event',
+    description: 'Create a calendar event.',
     readOnly: false,
-    destructive: false,
-    service: 'CalendarEventService',
-    operation: 'create',
-    inputSchema: { input: 'CreateCalendarEventInput' },
-    outputDto: 'CalendarEvent',
-  },
-  {
+    inputSchema: createCalendarArgs,
+    outputSchema: itemOutput(calendarEventSchema),
+    preview: (_s, a) => ({ entityType: 'calendar_event', before: null, after: a.input }),
+    execute: (s, a) => ({ item: s.calendar.create(a.input) }),
+  }),
+  tool({
     name: 'update_calendar_event',
-    description: 'Update a calendar event',
+    title: 'Update calendar event',
+    description: 'Update a calendar event.',
     readOnly: false,
-    destructive: false,
-    service: 'CalendarEventService',
-    operation: 'update',
-    inputSchema: { id: 'number', input: 'UpdateCalendarEventInput' },
-    outputDto: 'CalendarEvent',
-  },
-  {
+    idempotent: true,
+    inputSchema: updateCalendarArgs,
+    outputSchema: itemOutput(calendarEventSchema),
+    preview: (s, a) => {
+      const before = s.calendar.get(a.id)
+      return { entityType: 'calendar_event', before, after: { ...before, ...a.input } }
+    },
+    execute: (s, a) => ({ item: s.calendar.update(a.id, a.input) }),
+  }),
+  tool({
     name: 'delete_calendar_event',
-    description: 'Delete a calendar event',
+    title: 'Delete calendar event',
+    description: 'Delete a calendar event.',
     readOnly: false,
     destructive: true,
-    service: 'CalendarEventService',
-    operation: 'delete',
-    inputSchema: { id: 'number' },
-    outputDto: 'void',
-  },
-  {
+    idempotent: true,
+    inputSchema: idInputSchema,
+    outputSchema: deleteOutputSchema,
+    preview: (s, a) => ({
+      entityType: 'calendar_event',
+      before: s.calendar.get(a.id),
+      after: null,
+    }),
+    execute: (s, a) => {
+      s.calendar.delete(a.id)
+      return { deleted: true as const, id: a.id }
+    },
+  }),
+  tool({
     name: 'complete_calendar_event',
-    description: 'Mark a calendar event complete',
+    title: 'Complete calendar event',
+    description: 'Set the completion state of a calendar event.',
     readOnly: false,
-    destructive: false,
-    service: 'CalendarEventService',
-    operation: 'complete',
-    inputSchema: { id: 'number', completed: 'boolean' },
-    outputDto: 'CalendarEvent',
-  },
-] as const satisfies readonly McpToolDescriptor[]
+    idempotent: true,
+    inputSchema: completeCalendarArgs,
+    outputSchema: itemOutput(calendarEventSchema),
+    preview: (s, a) => {
+      const before = s.calendar.get(a.id)
+      return {
+        entityType: 'calendar_event',
+        before,
+        after: { ...before, isCompleted: a.completed },
+      }
+    },
+    execute: (s, a) => ({ item: s.calendar.complete(a.id, a.completed) }),
+  }),
+]

@@ -6,10 +6,55 @@ import { AppServiceError } from './services/errors'
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx'])
 
+export interface ResumeSourceInfo {
+  sourcePath: string
+  name: string
+  extension: string
+  sizeBytes: number
+  modifiedAt: number
+  sha256: string
+}
+
 export class FileStorageService {
   constructor(private readonly paths: AppPaths) {
     fs.mkdirSync(paths.resumes, { recursive: true })
     this.assertDirectory(paths.resumes)
+  }
+
+  inspectResumeSource(sourcePath: string): ResumeSourceInfo {
+    const extension = path.extname(sourcePath).toLowerCase()
+    if (!ALLOWED_EXTENSIONS.has(extension)) {
+      throw new AppServiceError('FILE_IMPORT_FAILED', '仅支持 PDF、DOC、DOCX 文件')
+    }
+    if (!fs.existsSync(sourcePath)) {
+      throw new AppServiceError('FILE_IMPORT_FAILED', '源文件不存在')
+    }
+    const linkMetadata = fs.lstatSync(sourcePath)
+    if (!linkMetadata.isFile() || linkMetadata.isSymbolicLink()) {
+      throw new AppServiceError('FILE_IMPORT_FAILED', '简历源路径必须是普通文件')
+    }
+    const resolved = fs.realpathSync(sourcePath)
+    const metadata = fs.statSync(resolved)
+    const hash = crypto.createHash('sha256')
+    const file = fs.openSync(resolved, 'r')
+    const buffer = Buffer.allocUnsafe(64 * 1024)
+    try {
+      let bytesRead: number
+      do {
+        bytesRead = fs.readSync(file, buffer, 0, buffer.length, null)
+        if (bytesRead > 0) hash.update(buffer.subarray(0, bytesRead))
+      } while (bytesRead > 0)
+    } finally {
+      fs.closeSync(file)
+    }
+    return {
+      sourcePath: resolved,
+      name: path.basename(resolved, extension),
+      extension,
+      sizeBytes: metadata.size,
+      modifiedAt: metadata.mtimeMs,
+      sha256: hash.digest('hex'),
+    }
   }
 
   importResume(sourcePath: string): {
@@ -18,19 +63,14 @@ export class FileStorageService {
     sha256: string
     originalExtension: string
   } {
-    const extension = path.extname(sourcePath).toLowerCase()
-    if (!ALLOWED_EXTENSIONS.has(extension)) {
-      throw new AppServiceError('FILE_IMPORT_FAILED', '仅支持 PDF、DOC、DOCX 文件')
-    }
-    if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
-      throw new AppServiceError('FILE_IMPORT_FAILED', '源文件不存在')
-    }
+    const source = this.inspectResumeSource(sourcePath)
+    const extension = source.extension
 
     const relativePath = `${crypto.randomUUID()}${extension}`
     const destination = this.resolve(relativePath)
     let copied = false
     try {
-      fs.copyFileSync(sourcePath, destination, fs.constants.COPYFILE_EXCL)
+      fs.copyFileSync(source.sourcePath, destination, fs.constants.COPYFILE_EXCL)
       copied = true
       const hash = crypto.createHash('sha256')
       const buffer = Buffer.allocUnsafe(64 * 1024)
@@ -44,10 +84,15 @@ export class FileStorageService {
       } finally {
         fs.closeSync(file)
       }
+      const destinationSize = fs.statSync(destination).size
+      const destinationHash = hash.digest('hex')
+      if (destinationSize !== source.sizeBytes || destinationHash !== source.sha256) {
+        throw new AppServiceError('FILE_IMPORT_FAILED', '复制期间源文件已变更')
+      }
       return {
         relativePath,
-        sizeBytes: fs.statSync(destination).size,
-        sha256: hash.digest('hex'),
+        sizeBytes: destinationSize,
+        sha256: destinationHash,
         originalExtension: extension,
       }
     } catch {

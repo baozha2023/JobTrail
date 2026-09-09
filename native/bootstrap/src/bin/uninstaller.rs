@@ -1,7 +1,57 @@
 #![windows_subsystem = "windows"]
 use anyhow::{bail, Context, Result};
 use jobtrail_bootstrap::*;
-use std::{fs, os::windows::process::CommandExt, path::Path, process::Command};
+use std::{
+    fs, io,
+    os::windows::{fs::MetadataExt, process::CommandExt},
+    path::Path,
+    process::Command,
+    thread,
+    time::Duration,
+};
+
+const DELETE_ATTEMPTS: usize = 40;
+const DELETE_RETRY_DELAY: Duration = Duration::from_millis(125);
+
+fn transient_delete_error(error: &io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(5 | 32 | 145))
+}
+
+fn remove_install_contents_once(root: &Path) -> io::Result<()> {
+    for entry in fs::read_dir(root)? {
+        let path = entry?.path();
+        let metadata = fs::symlink_metadata(&path)?;
+        if metadata.file_attributes() & 0x400 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("安装目录包含重解析点: {}", path.display()),
+            ));
+        }
+        if metadata.is_dir() {
+            fs::remove_dir_all(path)?;
+        } else {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
+
+fn remove_install_contents(root: &Path) -> Result<()> {
+    validate_installation(root)?;
+    validate_tree(root)?;
+    for attempt in 0..DELETE_ATTEMPTS {
+        match remove_install_contents_once(root) {
+            Ok(()) => return Ok(()),
+            Err(error) if transient_delete_error(&error) && attempt + 1 < DELETE_ATTEMPTS => {
+                thread::sleep(DELETE_RETRY_DELAY);
+            }
+            Err(error) => {
+                return Err(error).context("无法清空职迹安装目录");
+            }
+        }
+    }
+    unreachable!("删除重试循环必须返回结果")
+}
 
 fn uninstall(root: &Path, pid: u32) -> Result<()> {
     validate_installation(root)?;
@@ -21,20 +71,8 @@ fn uninstall(root: &Path, pid: u32) -> Result<()> {
             bail!("Velopack 卸载失败，请关闭职迹后重试: {status}");
         }
     }
-    if runtime.exists() {
-        validate_tree(&runtime)?;
-        fs::remove_dir_all(&runtime)?;
-    }
     unregister(root)?;
-    for name in [LAUNCHER, UNINSTALLER] {
-        let file = root.join(name);
-        if file.exists() {
-            plain_file(&file)?;
-            fs::remove_file(file)?;
-        }
-    }
-    fs::remove_file(root.join(MARKER))?;
-    let _ = fs::remove_dir(root); // Only an empty directory is removed; user data stays.
+    remove_install_contents(root)?;
     Ok(())
 }
 fn run() -> Result<()> {
@@ -58,8 +96,18 @@ fn run() -> Result<()> {
             bail!("未知卸载参数");
         }
         let result = uninstall(Path::new(&root), pid);
-        schedule_worker_cleanup(exe.parent().context("临时目录缺失")?)?;
-        return result;
+        let cleanup = schedule_worker_cleanup(exe.parent().context("临时目录缺失")?);
+        result?;
+        if let Err(error) = cleanup {
+            eprintln!("卸载临时文件清理安排失败: {error:#}");
+        }
+        rfd::MessageDialog::new()
+            .set_title("职迹")
+            .set_description("卸载完成")
+            .set_level(rfd::MessageLevel::Info)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
+        return Ok(());
     }
     let mut pid = 0;
     if let Some(arg) = first {
@@ -82,7 +130,7 @@ fn run() -> Result<()> {
     } else if rfd::MessageDialog::new()
         .set_title("卸载职迹")
         .set_description(
-            "将关闭并卸载职迹。配置、求职数据库和简历文件将保留在原安装目录。是否继续？",
+            "将关闭并卸载职迹，同时永久删除配置、求职数据库和简历文件。此操作无法撤销，请确认重要数据已备份。是否继续？",
         )
         .set_buttons(rfd::MessageButtons::YesNo)
         .show()
@@ -107,9 +155,69 @@ fn run() -> Result<()> {
     let _ = temp.keep();
     Ok(())
 }
+
 fn main() {
     if let Err(error) = run() {
         error_dialog(&error);
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{os::windows::fs::OpenOptionsExt, time::Instant};
+    use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+
+    #[test]
+    fn removes_program_and_user_data_but_keeps_empty_install_root() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("JobTrail");
+        fs::create_dir_all(root.join("data")).unwrap();
+        fs::create_dir_all(root.join("resumes")).unwrap();
+        fs::write(root.join(MARKER), b"jobtrail-root-v1\n").unwrap();
+        fs::write(root.join("config.json"), b"{}").unwrap();
+        fs::write(root.join("data/zhiji.db"), b"database").unwrap();
+        fs::write(root.join("resumes/resume.pdf"), b"resume").unwrap();
+
+        remove_install_contents(&root).unwrap();
+
+        assert!(root.is_dir());
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn retries_only_transient_windows_delete_errors() {
+        for code in [5, 32, 145] {
+            assert!(transient_delete_error(&io::Error::from_raw_os_error(code)));
+        }
+        assert!(!transient_delete_error(&io::Error::from_raw_os_error(2)));
+    }
+
+    #[test]
+    fn retries_until_a_temporarily_locked_file_is_released() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("JobTrail");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join(MARKER), b"jobtrail-root-v1\n").unwrap();
+        let locked_path = root.join("locked.dat");
+        fs::write(&locked_path, b"locked").unwrap();
+        let locked_file = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+            .open(locked_path)
+            .unwrap();
+        let release = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(300));
+            drop(locked_file);
+        });
+
+        let started = Instant::now();
+        remove_install_contents(&root).unwrap();
+        release.join().unwrap();
+
+        assert!(started.elapsed() >= DELETE_RETRY_DELAY);
+        assert!(root.is_dir());
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
     }
 }

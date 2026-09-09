@@ -15,6 +15,18 @@ export type AppErrorCode =
   | 'DATABASE_ERROR'
   | 'INTERNAL_ERROR'
 
+export type McpErrorCode =
+  | AppErrorCode
+  | 'MCP_DISABLED'
+  | 'CONFIRMATION_REQUIRED'
+  | 'CONFIRMATION_UNSUPPORTED'
+
+export interface McpConnectionInfo {
+  command: string
+  args: string[]
+  env?: Record<string, string>
+}
+
 export interface VelopackConfig {
   [key: string]: unknown
 }
@@ -208,9 +220,15 @@ export interface AppErrorShape {
 }
 
 export interface ZhijiApi {
+  data: {
+    onExternalChange(listener: () => void): () => void
+  }
   config: {
     get(): Promise<AppConfig>
     update(input: Partial<AppConfig>): Promise<AppConfig>
+  }
+  mcp: {
+    getConnectionInfo(): Promise<McpConnectionInfo>
   }
   statuses: {
     list(): Promise<Status[]>

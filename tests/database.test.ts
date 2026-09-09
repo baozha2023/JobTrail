@@ -9,6 +9,7 @@ import { DatabaseManager } from '../src/main/database'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
+import { UnitOfWork } from '../src/main/services/unit-of-work'
 
 describe('职迹最终数据库结构和业务服务', () => {
   let root: string
@@ -16,6 +17,7 @@ describe('职迹最终数据库结构和业务服务', () => {
   let database: DatabaseManager | undefined
   let services: Services
   let files: FileStorageService
+  let unitOfWork: UnitOfWork
 
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'zhiji-test-'))
@@ -28,7 +30,8 @@ describe('职迹最终数据库结构和业务服务', () => {
     }
     database = new DatabaseManager(paths)
     files = new FileStorageService(paths)
-    services = createServices(database, files, false)
+    unitOfWork = new UnitOfWork(database.db)
+    services = createServices(unitOfWork, database, files, false)
   })
 
   afterEach(() => {
@@ -245,7 +248,7 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   it('allows full built-in CRUD under the development policy while keeping reference protection', () => {
-    const developmentServices = createServices(database!, files, true)
+    const developmentServices = createServices(unitOfWork, database!, files, true)
     const status = developmentServices.statuses.list()[0]
     const industries = developmentServices.industries.list()
     const companies = developmentServices.companies.list()

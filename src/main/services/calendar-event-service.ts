@@ -14,11 +14,13 @@ import {
   assertPositiveId,
   nullableText,
 } from './errors'
+import type { UnitOfWork } from './unit-of-work'
 
 type CompleteCalendarEventInput = CreateCalendarEventInput
 
 export class CalendarEventService {
   constructor(
+    private readonly unitOfWork: UnitOfWork,
     private readonly repository: CalendarEventRepository,
     private readonly opportunities: OpportunityRepository,
   ) {}
@@ -36,39 +38,47 @@ export class CalendarEventService {
     return this.repository.map(row)
   }
   create(input: CreateCalendarEventInput): CalendarEvent {
-    const normalized = this.normalize(input)
-    this.validate(normalized)
-    return this.get(this.repository.create(normalized, normalized.timezone!, Date.now()))
+    return this.unitOfWork.run(() => {
+      const normalized = this.normalize(input)
+      this.validate(normalized)
+      return this.get(this.repository.create(normalized, normalized.timezone!, Date.now()))
+    })
   }
   update(id: number, input: UpdateCalendarEventInput): CalendarEvent {
-    assertNonEmptyUpdate(input, '日程')
-    const current = this.get(id)
-    const normalized = this.normalize({
-      opportunityId:
-        input.opportunityId === undefined ? current.opportunityId : input.opportunityId,
-      title: input.title ?? current.title,
-      eventType: input.eventType ?? current.eventType,
-      startAt: input.startAt ?? current.startAt,
-      endAt: input.endAt ?? current.endAt,
-      isAllDay: input.isAllDay ?? current.isAllDay,
-      timezone: input.timezone ?? current.timezone,
-      location: input.location === undefined ? current.location : input.location,
-      description: input.description === undefined ? current.description : input.description,
-      reminderMinutes:
-        input.reminderMinutes === undefined ? current.reminderMinutes : input.reminderMinutes,
+    return this.unitOfWork.run(() => {
+      assertNonEmptyUpdate(input, '日程')
+      const current = this.get(id)
+      const normalized = this.normalize({
+        opportunityId:
+          input.opportunityId === undefined ? current.opportunityId : input.opportunityId,
+        title: input.title ?? current.title,
+        eventType: input.eventType ?? current.eventType,
+        startAt: input.startAt ?? current.startAt,
+        endAt: input.endAt ?? current.endAt,
+        isAllDay: input.isAllDay ?? current.isAllDay,
+        timezone: input.timezone ?? current.timezone,
+        location: input.location === undefined ? current.location : input.location,
+        description: input.description === undefined ? current.description : input.description,
+        reminderMinutes:
+          input.reminderMinutes === undefined ? current.reminderMinutes : input.reminderMinutes,
+      })
+      this.validate(normalized)
+      this.repository.update(id, normalized, normalized.timezone!, Date.now())
+      return this.get(id)
     })
-    this.validate(normalized)
-    this.repository.update(id, normalized, normalized.timezone!, Date.now())
-    return this.get(id)
   }
   complete(id: number, completed: boolean): CalendarEvent {
-    this.get(id)
-    this.repository.complete(id, completed, Date.now())
-    return this.get(id)
+    return this.unitOfWork.run(() => {
+      this.get(id)
+      this.repository.complete(id, completed, Date.now())
+      return this.get(id)
+    })
   }
   delete(id: number): void {
-    this.get(id)
-    if (this.repository.delete(id) === 0) throw new AppServiceError('NOT_FOUND', '日程不存在')
+    this.unitOfWork.run(() => {
+      this.get(id)
+      if (this.repository.delete(id) === 0) throw new AppServiceError('NOT_FOUND', '日程不存在')
+    })
   }
   private normalize(input: CompleteCalendarEventInput): CompleteCalendarEventInput {
     const timezone = input.timezone?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone

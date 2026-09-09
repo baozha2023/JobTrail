@@ -1,9 +1,9 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "职迹：本地优先的求职管理工具",
-  "main": "out/main/index.js",
+  "main": "out/main/desktop.js",
   "author": "Zhiji",
   "license": "MIT",
   "scripts": {
@@ -15,9 +15,11 @@
     "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
     "package:win": "pnpm build && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
-    "release:win": "pnpm package:win && node scripts/pack-velopack.mjs",
-    "format": "prettier --write src tests scripts *.ts *.json .github/workflows/*.yml",
-    "format:check": "prettier --check src tests scripts *.ts *.json .github/workflows/*.yml"
+    "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
+    "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
+    "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && node scripts/pack-velopack.mjs",
+    "format": "prettier --write src tests scripts docs *.ts *.json *.md .github/workflows/*.yml",
+    "format:check": "prettier --check src tests scripts docs *.ts *.json *.md .github/workflows/*.yml"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
@@ -42,7 +44,7 @@
     "semver": "7.7.4",
     "typescript": "^5.8.3",
     "vite": "^7.0.6",
-    "vitest": "^3.2.4",
+    "vitest": "^4.1.11",
     "vue": "^3.5.18",
     "vue-i18n": "^11.1.11",
     "vue-tsc": "^2.2.12"

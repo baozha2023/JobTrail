@@ -40,6 +40,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const showCompanyModal = ref(false)
   const editingCompanyId = ref<number | null>(null)
   const companyManagementSearch = ref('')
+  const selectedCompanyIndustryId = ref<number | null>(null)
   const companyAliasInput = ref('')
   const companyForm = ref<CompanyForm>({ name: '', industryIds: [], careerUrl: null, aliases: [] })
   const showIndustryModal = ref(false)
@@ -48,12 +49,17 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
 
   const managedCompanies = computed(() => {
     const keyword = companyManagementSearch.value.trim().toLocaleLowerCase()
-    if (!keyword) return options.companies.value
-    return options.companies.value.filter((company) =>
-      [company.name, company.industryName, company.careerUrl, ...company.aliases].some((value) =>
-        value?.toLocaleLowerCase().includes(keyword),
-      ),
-    )
+    return options.companies.value.filter((company) => {
+      if (
+        selectedCompanyIndustryId.value !== null &&
+        !company.industryIds.includes(selectedCompanyIndustryId.value)
+      )
+        return false
+      if (!keyword) return true
+      return [company.name, ...company.aliases].some((value) =>
+        value.toLocaleLowerCase().includes(keyword),
+      )
+    })
   })
 
   async function moveStatus(id: number, offset: number): Promise<void> {
@@ -296,6 +302,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     showCompanyModal,
     editingCompanyId,
     companyManagementSearch,
+    selectedCompanyIndustryId,
     companyAliasInput,
     companyForm,
     showIndustryModal,

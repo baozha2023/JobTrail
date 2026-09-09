@@ -1,4 +1,5 @@
 import { CalendarEventRepository } from '../repositories/calendar-event-repository'
+import type { UnitOfWork } from './unit-of-work'
 
 export interface DueCalendarReminder {
   eventId: number
@@ -10,7 +11,10 @@ export interface DueCalendarReminder {
 }
 
 export class CalendarReminderService {
-  constructor(private readonly repository: CalendarEventRepository) {}
+  constructor(
+    private readonly unitOfWork: UnitOfWork,
+    private readonly repository: CalendarEventRepository,
+  ) {}
   listDue(currentAt = Date.now()): DueCalendarReminder[] {
     return this.repository.listDue(currentAt).map((row) => ({
       eventId: row.event_id,
@@ -22,6 +26,6 @@ export class CalendarReminderService {
     }))
   }
   markSent(eventId: number, reminderAt: number, sentAt = Date.now()): void {
-    this.repository.markReminderSent(eventId, reminderAt, sentAt)
+    this.unitOfWork.run(() => this.repository.markReminderSent(eventId, reminderAt, sentAt))
   }
 }

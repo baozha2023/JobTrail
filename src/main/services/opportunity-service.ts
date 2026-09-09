@@ -15,11 +15,13 @@ import {
   assertPositiveId,
   nullableText,
 } from './errors'
+import type { UnitOfWork } from './unit-of-work'
 
 type CompleteOpportunityInput = CreateOpportunityInput
 
 export class OpportunityService {
   constructor(
+    private readonly unitOfWork: UnitOfWork,
     private readonly repository: OpportunityRepository,
     private readonly companies: CompanyRepository,
     private readonly statuses: StatusRepository,
@@ -41,43 +43,51 @@ export class OpportunityService {
     return this.repository.map(row)
   }
   create(input: CreateOpportunityInput): Opportunity {
-    const normalized = this.normalize(input)
-    this.validate(normalized)
-    return this.get(this.repository.create(normalized, Date.now()))
+    return this.unitOfWork.run(() => {
+      const normalized = this.normalize(input)
+      this.validate(normalized)
+      return this.get(this.repository.create(normalized, Date.now()))
+    })
   }
   update(id: number, input: UpdateOpportunityInput): Opportunity {
-    assertNonEmptyUpdate(input, '求职记录')
-    const current = this.get(id)
-    const normalized = this.normalize({
-      companyId: input.companyId ?? current.companyId,
-      title: input.title ?? current.title,
-      department: input.department === undefined ? current.department : input.department,
-      location: input.location === undefined ? current.location : input.location,
-      source: input.source === undefined ? current.source : input.source,
-      jobUrl: input.jobUrl === undefined ? current.jobUrl : input.jobUrl,
-      description: input.description === undefined ? current.description : input.description,
-      statusId: input.statusId ?? current.statusId,
-      resumeVersionId:
-        input.resumeVersionId === undefined ? current.resumeVersionId : input.resumeVersionId,
-      discoveredAt: input.discoveredAt === undefined ? current.discoveredAt : input.discoveredAt,
-      appliedAt: input.appliedAt === undefined ? current.appliedAt : input.appliedAt,
-      deadlineAt: input.deadlineAt === undefined ? current.deadlineAt : input.deadlineAt,
-      notes: input.notes === undefined ? current.notes : input.notes,
+    return this.unitOfWork.run(() => {
+      assertNonEmptyUpdate(input, '求职记录')
+      const current = this.get(id)
+      const normalized = this.normalize({
+        companyId: input.companyId ?? current.companyId,
+        title: input.title ?? current.title,
+        department: input.department === undefined ? current.department : input.department,
+        location: input.location === undefined ? current.location : input.location,
+        source: input.source === undefined ? current.source : input.source,
+        jobUrl: input.jobUrl === undefined ? current.jobUrl : input.jobUrl,
+        description: input.description === undefined ? current.description : input.description,
+        statusId: input.statusId ?? current.statusId,
+        resumeVersionId:
+          input.resumeVersionId === undefined ? current.resumeVersionId : input.resumeVersionId,
+        discoveredAt: input.discoveredAt === undefined ? current.discoveredAt : input.discoveredAt,
+        appliedAt: input.appliedAt === undefined ? current.appliedAt : input.appliedAt,
+        deadlineAt: input.deadlineAt === undefined ? current.deadlineAt : input.deadlineAt,
+        notes: input.notes === undefined ? current.notes : input.notes,
+      })
+      this.validate(normalized)
+      this.repository.update(id, normalized, Date.now())
+      return this.get(id)
     })
-    this.validate(normalized)
-    this.repository.update(id, normalized, Date.now())
-    return this.get(id)
   }
   changeStatus(id: number, statusId: number): Opportunity {
-    this.get(id)
-    this.requireStatus(statusId)
-    this.repository.changeStatus(id, statusId, Date.now())
-    return this.get(id)
+    return this.unitOfWork.run(() => {
+      this.get(id)
+      this.requireStatus(statusId)
+      this.repository.changeStatus(id, statusId, Date.now())
+      return this.get(id)
+    })
   }
   delete(id: number): void {
-    this.get(id)
-    if (this.repository.delete(id, Date.now()) === 0)
-      throw new AppServiceError('NOT_FOUND', '求职记录不存在')
+    this.unitOfWork.run(() => {
+      this.get(id)
+      if (this.repository.delete(id, Date.now()) === 0)
+        throw new AppServiceError('NOT_FOUND', '求职记录不存在')
+    })
   }
   private normalize(input: CompleteOpportunityInput): CompleteOpportunityInput {
     return {

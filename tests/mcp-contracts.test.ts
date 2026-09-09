@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { RESERVED_MCP_TOOLS } from '../src/main/mcp-contracts'
+import { MCP_TOOLS } from '../src/main/mcp-contracts'
 
-describe('MCP reservation contracts', () => {
+describe('MCP tool contracts', () => {
   it('covers domain service methods without exposing SQL or standalone aliases', () => {
-    const names = RESERVED_MCP_TOOLS.map((tool) => tool.name)
+    const names = MCP_TOOLS.map((tool) => tool.name)
     expect(names).toEqual(
       expect.arrayContaining([
         'list_statuses',
@@ -46,11 +46,13 @@ describe('MCP reservation contracts', () => {
       ]),
     )
     expect(names.some((name) => name.includes('alias'))).toBe(false)
-    expect(RESERVED_MCP_TOOLS.some((tool) => tool.description.toLowerCase().includes('sql'))).toBe(
-      false,
-    )
-    expect(
-      RESERVED_MCP_TOOLS.filter((tool) => tool.destructive).every((tool) => !tool.readOnly),
-    ).toBe(true)
+    expect(MCP_TOOLS.some((tool) => tool.description.toLowerCase().includes('sql'))).toBe(false)
+    expect(MCP_TOOLS.filter((tool) => tool.destructive).every((tool) => !tool.readOnly)).toBe(true)
+    expect(MCP_TOOLS).toHaveLength(37)
+    expect(new Set(names)).toHaveProperty('size', 37)
+    expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(13)
+    expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(24)
+    expect(MCP_TOOLS.filter((tool) => !tool.readOnly).every((tool) => tool.preview)).toBe(true)
+    expect(MCP_TOOLS.filter((tool) => tool.readOnly).every((tool) => !tool.preview)).toBe(true)
   })
 })

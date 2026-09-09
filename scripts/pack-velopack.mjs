@@ -23,6 +23,16 @@ function run(command, args, env = {}) {
   if (result.error) throw result.error
   if (result.status !== 0) throw new Error(`${path.basename(command)} failed (${result.status})`)
 }
+function directorySize(directory) {
+  let size = 0
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name)
+    const metadata = fs.lstatSync(file)
+    if (metadata.isSymbolicLink()) throw new Error(`Release input must not contain links: ${file}`)
+    size += entry.isDirectory() ? directorySize(file) : metadata.size
+  }
+  return size
+}
 if (process.platform !== 'win32') throw new Error('Windows packaging requires Windows')
 // This generated directory is owned exclusively by this release script.
 if (path.relative(root, output) !== path.join('dist', 'velopack'))
@@ -69,16 +79,26 @@ run(vpk, [
   '--icon',
   path.join(root, 'resource', 'icon.ico'),
 ])
+const feed = JSON.parse(fs.readFileSync(path.join(output, 'releases.win.json'), 'utf8'))
+const fullPackage = feed.Assets.find(
+  (asset) => asset.Version === pkg.version && asset.Type === 'Full',
+)
+if (!fullPackage) throw new Error(`Missing Full package for ${pkg.version}`)
+const requiredSpace =
+  directorySize(path.join(root, 'dist', 'win-unpacked')) +
+  fullPackage.Size +
+  fs.statSync(path.join(binaries, 'launcher.exe')).size +
+  fs.statSync(path.join(binaries, 'uninstaller.exe')).size
 run(cargo, ['build', '--release', '--locked', '--manifest-path', manifest, '--bin', 'installer'], {
   JOBTRAIL_SETUP: path.join(output, 'zhiji-win-Setup.exe'),
   JOBTRAIL_LAUNCHER: path.join(binaries, 'launcher.exe'),
   JOBTRAIL_UNINSTALLER: path.join(binaries, 'uninstaller.exe'),
+  JOBTRAIL_REQUIRED_SPACE_BYTES: String(requiredSpace),
 })
 fs.copyFileSync(
   path.join(binaries, 'installer.exe'),
   path.join(output, `JobTrail-Setup-${pkg.version}.exe`),
 )
-const feed = JSON.parse(fs.readFileSync(path.join(output, 'releases.win.json'), 'utf8'))
 for (const asset of feed.Assets) {
   if (path.basename(asset.FileName) !== asset.FileName) throw new Error('Invalid asset filename')
   const data = fs.readFileSync(path.join(output, asset.FileName))

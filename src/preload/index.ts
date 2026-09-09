@@ -30,9 +30,19 @@ const invoke = async <K extends IpcChannel>(
 }
 
 const zhijiApi: ZhijiApi = {
+  data: {
+    onExternalChange: (listener: () => void) => {
+      const handler = () => listener()
+      ipcRenderer.on('data:external-change', handler)
+      return () => ipcRenderer.removeListener('data:external-change', handler)
+    },
+  },
   config: {
     get: () => invoke('config:get'),
     update: (input) => invoke('config:update', input),
+  },
+  mcp: {
+    getConnectionInfo: () => invoke('mcp:get-connection-info'),
   },
   statuses: {
     list: () => invoke('statuses:list'),

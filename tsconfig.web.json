@@ -7,6 +7,8 @@
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],

@@ -1,6 +1,6 @@
 [package]
 name = "jobtrail-bootstrap"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 build = "build.rs"
 
@@ -19,6 +19,6 @@ semver = "1.0"
 tempfile = "3"
 winreg = "0.55"
 base64 = "0.22"
-winapi = { version = "0.3.9", features = ["processthreadsapi", "synchapi", "handleapi", "winbase", "winnt"] }
+winapi = { version = "0.3.9", features = ["commctrl", "fileapi", "handleapi", "libloaderapi", "processthreadsapi", "synchapi", "wingdi", "winbase", "winnt", "winuser"] }
 [build-dependencies]
 winres = "0.1.12"

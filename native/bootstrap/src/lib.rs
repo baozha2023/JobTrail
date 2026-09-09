@@ -115,7 +115,7 @@ pub fn shortcuts() -> Vec<PathBuf> {
 
 pub fn ensure_not_installed() -> Result<()> {
     match RegKey::predef(HKEY_CURRENT_USER).open_subkey(UNINSTALL_KEY) {
-        Ok(_) => bail!("当前用户已安装职迹，请先卸载旧程序；求职数据将保留"),
+        Ok(_) => bail!("当前用户已安装职迹，请先备份所需数据并卸载旧程序"),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error.into()),
     }

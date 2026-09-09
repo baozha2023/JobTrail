@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { resolveStorageRoot } from './installation-paths'
 import path from 'node:path'
-import { app } from 'electron'
 import type { AppConfig, CloseBehavior, Locale, ThemeMode } from '../shared/types'
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -28,6 +27,7 @@ export interface AppPaths {
 }
 
 export function getStorageRoot(): string {
+  const { app } = require('electron') as typeof import('electron')
   if (!app.isPackaged) return path.resolve(app.getAppPath())
 
   return resolveStorageRoot(process.execPath)
@@ -139,6 +139,11 @@ export class ConfigService {
 
   get(): AppConfig {
     return structuredClone(this.config)
+  }
+
+  reload(): AppConfig {
+    this.config = this.load()
+    return this.get()
   }
 
   update(input: Partial<AppConfig>): AppConfig {

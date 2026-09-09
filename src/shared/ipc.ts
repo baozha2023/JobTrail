@@ -21,11 +21,13 @@ import type {
   UpdateResumeVersionInput,
   UpdateStatusInput,
   AppErrorShape,
+  McpConnectionInfo,
 } from './types'
 
 export interface IpcChannelMap {
   'config:get': { args: []; result: AppConfig }
   'config:update': { args: [input: Partial<AppConfig>]; result: AppConfig }
+  'mcp:get-connection-info': { args: []; result: McpConnectionInfo }
 
   'statuses:list': { args: []; result: Status[] }
   'statuses:get': { args: [id: number]; result: Status }

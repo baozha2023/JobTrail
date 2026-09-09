@@ -91,6 +91,18 @@ export const BUILTIN_COMPANIES: BuiltinCompanySeed[] = [
     aliases: ['Kuro Games'],
   },
   {
+    name: '途游游戏',
+    industryIds: [2],
+    careerUrl: 'https://www.tuyoo.com/job/campus?site=campus',
+    aliases: ['Tuyoo', '途游'],
+  },
+  {
+    name: '北京掌趣科技股份有限公司',
+    industryIds: [2],
+    careerUrl: 'https://app.mokahr.com/campus-recruitment/ourpalm/43628#/',
+    aliases: ['Ourpalm', '掌趣科技'],
+  },
+  {
     name: '科大讯飞',
     industryIds: [3],
     careerUrl: 'https://campus.iflytek.com/',
@@ -126,6 +138,12 @@ export const BUILTIN_COMPANIES: BuiltinCompanySeed[] = [
   { name: '小米', industryIds: [6], careerUrl: 'https://hr.xiaomi.com/', aliases: ['Xiaomi'] },
   { name: '华为', industryIds: [7], careerUrl: 'https://career.huawei.com/', aliases: ['Huawei'] },
   { name: '中兴通讯', industryIds: [7], careerUrl: 'https://job.zte.com.cn/', aliases: ['ZTE'] },
+  {
+    name: 'TP-LINK',
+    industryIds: [7],
+    careerUrl: 'https://hr.tp-link.com.cn/',
+    aliases: ['普联技术', '普联技术有限公司'],
+  },
   { name: '联想', industryIds: [6], careerUrl: 'https://jobs.lenovo.com/', aliases: ['Lenovo'] },
   { name: '海尔', industryIds: [21], careerUrl: 'https://maker.haier.com/', aliases: ['Haier'] },
   {
@@ -188,6 +206,12 @@ export const BUILTIN_COMPANIES: BuiltinCompanySeed[] = [
   },
   { name: '途虎养车', industryIds: [19], careerUrl: 'https://hr.tuhu.cn/', aliases: ['Tuhu'] },
   { name: 'SHEIN', industryIds: [40], careerUrl: 'https://careers.shein.com/', aliases: ['希音'] },
+  {
+    name: 'Shopee',
+    industryIds: [40],
+    careerUrl: 'https://careers.shopee.cn/',
+    aliases: ['虾皮', '虾皮购物'],
+  },
   {
     name: '货拉拉',
     industryIds: [25],
@@ -1136,6 +1160,12 @@ export const BUILTIN_COMPANIES: BuiltinCompanySeed[] = [
     careerUrl: 'https://www.neusoft.com/cn/about/job/',
     aliases: ['Neusoft'],
   },
+  {
+    name: '普联软件',
+    industryIds: [4],
+    careerUrl: 'https://www.pansoft.com/about#7',
+    aliases: [],
+  },
   { name: '深信服', industryIds: [9], careerUrl: 'https://hr.sangfor.com/', aliases: ['Sangfor'] },
   {
     name: '汇川技术',
@@ -1222,6 +1252,12 @@ export const BUILTIN_COMPANIES: BuiltinCompanySeed[] = [
     aliases: ['Ping An Bank'],
   },
   { name: '用友', industryIds: [4], careerUrl: 'https://career.yonyou.com/', aliases: ['Yonyou'] },
+  {
+    name: '北京掌上先机网络科技有限公司',
+    industryIds: [4],
+    careerUrl: 'https://huicecom.zhiye.com/Campus',
+    aliases: ['掌上先机', '慧策', '慧策集团'],
+  },
   { name: '中科曙光', industryIds: [9], careerUrl: 'https://sugon.zhiye.com/', aliases: ['Sugon'] },
   {
     name: '潍柴动力',

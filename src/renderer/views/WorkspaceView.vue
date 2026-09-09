@@ -34,6 +34,7 @@ import type {
   CloseBehavior,
   Opportunity,
   Industry,
+  McpConnectionInfo,
   ResumeVersion,
   Status,
 } from '../../shared/types'
@@ -74,6 +75,7 @@ const activeView = ref<ViewKey>('opportunities')
 const loading = ref(false)
 const checkingForUpdates = ref(false)
 const currentVersion = ref('—')
+const mcpConnectionInfo = ref<McpConnectionInfo | null>(null)
 const uninstalling = ref(false)
 const isDevelopment = ref(false)
 const currentTime = ref(Date.now())
@@ -231,6 +233,7 @@ const {
   showCompanyModal,
   editingCompanyId,
   companyManagementSearch,
+  selectedCompanyIndustryId,
   companyAliasInput,
   companyForm,
   showIndustryModal,
@@ -757,6 +760,7 @@ async function loadAll(): Promise<void> {
     companiesStore.load(),
     loadAllOpportunities(),
     window.zhijiApi.system.isDevelopment(),
+    window.zhijiApi.mcp.getConnectionInfo(),
   ])
   const [
     configResult,
@@ -767,6 +771,7 @@ async function loadAll(): Promise<void> {
     companyResult,
     allOpportunitiesResult,
     developmentResult,
+    mcpConnectionResult,
   ] = results
   if (configResult.status === 'fulfilled' && config.value) locale.value = config.value.locale
   else if (configResult.status === 'rejected') showError(configResult.reason)
@@ -782,12 +787,45 @@ async function loadAll(): Promise<void> {
   if (allOpportunitiesResult.status === 'rejected') showError(allOpportunitiesResult.reason)
   if (developmentResult.status === 'fulfilled') isDevelopment.value = developmentResult.value
   else showError(developmentResult.reason)
+  if (mcpConnectionResult.status === 'fulfilled')
+    mcpConnectionInfo.value = mcpConnectionResult.value
+  else showError(mcpConnectionResult.reason)
   await Promise.allSettled([loadOpportunities(), loadCalendar()]).then((settled) =>
     settled.forEach((result) => {
       if (result.status === 'rejected') showError(result.reason)
     }),
   )
   loading.value = false
+}
+
+let externalRefreshRunning = false
+let externalRefreshPending = false
+
+async function refreshExternalData(): Promise<void> {
+  externalRefreshPending = true
+  if (externalRefreshRunning) return
+  externalRefreshRunning = true
+  try {
+    while (externalRefreshPending) {
+      externalRefreshPending = false
+      const baseResults = await Promise.allSettled([
+        statusesStore.load(),
+        industriesStore.load(),
+        resumesStore.load(),
+        companiesStore.load(),
+        loadAllOpportunities(),
+      ])
+      baseResults.forEach((result) => {
+        if (result.status === 'rejected') showError(result.reason)
+      })
+      const viewResults = await Promise.allSettled([loadOpportunities(), loadCalendar()])
+      viewResults.forEach((result) => {
+        if (result.status === 'rejected') showError(result.reason)
+      })
+    }
+  } finally {
+    externalRefreshRunning = false
+  }
 }
 
 async function loadCompanies(): Promise<void> {
@@ -876,6 +914,7 @@ async function uninstallApp(): Promise<void> {
 }
 
 let removeReminderClickListener: (() => void) | undefined
+let removeExternalDataChangeListener: (() => void) | undefined
 let readStatusTimer: number | undefined
 let removePreferredColorSchemeListener: (() => void) | undefined
 onMounted(() => {
@@ -885,6 +924,9 @@ onMounted(() => {
   }, 60_000)
   removeReminderClickListener = window.zhijiApi.calendar.onReminderClick((notification) => {
     void openCalendarEventFromReminder(notification)
+  })
+  removeExternalDataChangeListener = window.zhijiApi.data.onExternalChange(() => {
+    void refreshExternalData()
   })
   if (window.matchMedia) {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
@@ -902,6 +944,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateViewportWidth)
   if (readStatusTimer !== undefined) window.clearInterval(readStatusTimer)
   removeReminderClickListener?.()
+  removeExternalDataChangeListener?.()
   removePreferredColorSchemeListener?.()
 })
 </script>
@@ -1035,11 +1078,15 @@ onBeforeUnmount(() => {
               :data="managedCompanies"
               :pagination="companyPagination"
               :search="companyManagementSearch"
+              :selected-industry-id="selectedCompanyIndustryId"
+              :industry-options="industryOptions"
               @update:search="companyManagementSearch = $event"
+              @update:selected-industry-id="selectedCompanyIndustryId = $event"
             />
             <SettingsView
               v-if="activeView === 'settings'"
               :config="config"
+              :mcp-connection-info="mcpConnectionInfo"
               :current-version="currentVersion"
               :checking-for-updates="checkingForUpdates"
               :uninstalling="uninstalling"

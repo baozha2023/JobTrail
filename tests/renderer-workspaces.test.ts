@@ -231,4 +231,41 @@ describe('renderer domain workspaces', () => {
     wrapper.unmount()
     await flushPromises()
   })
+
+  it('filters managed companies by name or aliases and industry', () => {
+    const { workspace, wrapper } = mountComposable(() =>
+      useManagementWorkspace({
+        statuses: ref([]),
+        industries: ref([]),
+        resumes: ref([]),
+        companies: ref([
+          company({ id: 1, name: '名称命中', aliases: ['Alpha'], industryIds: [1] }),
+          company({ id: 2, name: '别名命中', aliases: ['Target'], industryIds: [2] }),
+          company({
+            id: 3,
+            name: '不应命中',
+            industryName: 'Target 行业',
+            careerUrl: 'https://target.example.com',
+          }),
+        ]),
+        loadCompanies: vi.fn(async () => undefined),
+        loadOpportunities: vi.fn(async () => undefined),
+        loadAllOpportunities: vi.fn(async () => undefined),
+        loadCalendar: vi.fn(async () => undefined),
+        showError: vi.fn(),
+        notifySuccess: vi.fn(),
+        notifyError: vi.fn(),
+      }),
+    )
+
+    workspace.companyManagementSearch.value = '名称命中'
+    expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
+    workspace.companyManagementSearch.value = 'target'
+    expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([2])
+    workspace.selectedCompanyIndustryId.value = 1
+    expect(workspace.managedCompanies.value).toEqual([])
+    workspace.companyManagementSearch.value = ''
+    expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
+    wrapper.unmount()
+  })
 })

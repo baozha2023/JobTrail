@@ -1,35 +1,38 @@
-import { app, BrowserWindow, Menu, Tray, dialog, nativeImage, nativeTheme } from 'electron'
+import { app, BrowserWindow, Menu, Tray, dialog, nativeImage, nativeTheme, shell } from 'electron'
 import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
 import { VelopackApp } from 'velopack'
 import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { APP_ID, ROOT_LAUNCHER } from './installation-paths'
-import { getStorageRoot } from './config'
 import { trustWindow } from './ipc/register-channel'
-import { ConfigService, getAppPaths } from './config'
+import { ConfigService, getAppPaths, getStorageRoot } from './config'
 import type { DatabaseManager } from './database'
 import { registerIpc, registerWindowIpc } from './ipc'
 import { createServiceContainer } from './service-container'
 import { ReminderScheduler } from './reminder-scheduler'
 import { registerVelopackIpc } from './velopack'
+import { resolveDesktopAssets } from './runtime-assets'
+import { ExternalDataMonitor } from './external-data-monitor'
 
 // Velopack must run before Electron startup work.
 VelopackApp.build().setAutoApplyOnStartup(false).run()
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_DISPLAY_NAME = '职迹'
 const installedLauncher = path.join(getStorageRoot(), ROOT_LAUNCHER)
 const installed = app.isPackaged && fs.existsSync(path.join(getStorageRoot(), '.jobtrail-root'))
 const APP_USER_MODEL_ID = app.isPackaged ? APP_ID : `${APP_ID}.development`
 const APP_ICON_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'icon.ico')
   : path.join(app.getAppPath(), 'resource', 'icon.ico')
+const DEVELOPMENT_SHORTCUT_NAME = `${path.parse(process.execPath).name}.lnk`
 
 let database: DatabaseManager | undefined
 let mainWindow: BrowserWindow | undefined
 let tray: Tray | undefined
 let isQuitting = false
 let reminderScheduler: ReminderScheduler | undefined
+let externalDataMonitor: ExternalDataMonitor | undefined
 
 const handoff = app.isPackaged && process.argv.includes('--handoff-root')
 if (handoff) {
@@ -52,6 +55,30 @@ app.setAppUserModelId(APP_USER_MODEL_ID)
 
 if (!hasSingleInstanceLock && !handoff) app.quit()
 
+function ensureDevelopmentTaskbarIdentity(): void {
+  if (process.platform !== 'win32' || app.isPackaged) return
+
+  const programs = path.join(
+    app.getPath('appData'),
+    'Microsoft',
+    'Windows',
+    'Start Menu',
+    'Programs',
+  )
+  const details: Electron.ShortcutDetails = {
+    target: process.execPath,
+    cwd: app.getAppPath(),
+    args: `"${app.getAppPath()}"`,
+    description: `${APP_DISPLAY_NAME}开发环境`,
+    icon: APP_ICON_PATH,
+    iconIndex: 0,
+    appUserModelId: APP_USER_MODEL_ID,
+  }
+  const shortcutPath = path.join(programs, DEVELOPMENT_SHORTCUT_NAME)
+  const shortcutOperation = fs.existsSync(shortcutPath) ? 'update' : 'create'
+  shell.writeShortcutLink(shortcutPath, shortcutOperation, details)
+}
+
 app.on('second-instance', () => {
   if (!hasSingleInstanceLock || !mainWindow || mainWindow.isDestroyed()) return
   if (mainWindow.isMinimized()) mainWindow.restore()
@@ -62,7 +89,7 @@ app.on('second-instance', () => {
 function ensureTray(window: BrowserWindow): void {
   if (tray) return
   tray = new Tray(APP_ICON_PATH)
-  tray.setToolTip('职迹')
+  tray.setToolTip(APP_DISPLAY_NAME)
   tray.setContextMenu(
     Menu.buildFromTemplate([
       {
@@ -105,6 +132,7 @@ function isTrustedRendererNavigation(target: string, rendererUrl: string): boole
 }
 
 function createWindow(config: ConfigService): void {
+  const assets = resolveDesktopAssets(app.getAppPath())
   const appIcon = nativeImage.createFromPath(APP_ICON_PATH)
   if (appIcon.isEmpty()) throw new Error(`无法加载应用图标：${APP_ICON_PATH}`)
 
@@ -114,11 +142,11 @@ function createWindow(config: ConfigService): void {
     height: 720,
     minWidth: 760,
     minHeight: 480,
-    title: '职迹',
+    title: APP_DISPLAY_NAME,
     frame: false,
     icon: appIcon,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: assets.preload,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -126,9 +154,12 @@ function createWindow(config: ConfigService): void {
   })
   mainWindow = window
   trustWindow(window)
-  window.once('ready-to-show', () => window.show())
+  window.once('ready-to-show', () => {
+    ensureDevelopmentTaskbarIdentity()
+    window.show()
+  })
 
-  const rendererFile = path.join(__dirname, '../renderer/index.html')
+  const rendererFile = assets.renderer
   const rendererUrl =
     (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) || pathToFileURL(rendererFile).toString()
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
@@ -144,7 +175,7 @@ function createWindow(config: ConfigService): void {
       relaunchCommand: app.isPackaged
         ? `"${installed ? installedLauncher : process.execPath}"`
         : `"${process.execPath}" "${app.getAppPath()}"`,
-      relaunchDisplayName: '职迹',
+      relaunchDisplayName: APP_DISPLAY_NAME,
     })
   }
 
@@ -194,6 +225,10 @@ function initializeApplication(): void {
     () => config.get().locale,
   )
   reminderScheduler.start()
+  externalDataMonitor = new ExternalDataMonitor(container.database, () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('data:external-change')
+  })
+  externalDataMonitor.start()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(config)
     else mainWindow?.show()
@@ -224,6 +259,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  externalDataMonitor?.stop()
   reminderScheduler?.stop()
   database?.close()
   tray?.destroy()

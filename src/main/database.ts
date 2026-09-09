@@ -116,7 +116,7 @@ export class DatabaseManager {
     try {
       this.db.pragma('journal_mode = WAL')
       this.db.pragma('busy_timeout = 5000')
-      this.initialize()
+      this.db.transaction(() => this.initialize()).immediate()
     } catch (error) {
       this.db.close()
       throw error
@@ -125,6 +125,10 @@ export class DatabaseManager {
 
   close(): void {
     this.db.close()
+  }
+
+  dataVersion(): number {
+    return this.db.pragma('data_version', { simple: true }) as number
   }
 
   private initialize(): void {

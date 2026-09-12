@@ -20,7 +20,7 @@
 - 布尔值使用 INTEGER：`0=false`、`1=true`。
 - 使用 SQLite 内置 `PRAGMA user_version` 记录结构版本。
 - 不创建 `schema_migrations` 表。
-- 当前完整结构版本为 `8`。首发阶段直接以本文件中的最终结构初始化，不执行 `ALTER TABLE` 或过程性迁移 SQL。
+- 当前完整结构版本为 `1`。首发阶段直接以本文件中的最终结构初始化，不执行 `ALTER TABLE` 或过程性迁移 SQL。
 
 ## 业务表
 
@@ -35,7 +35,7 @@
 | created_at | INTEGER | NOT NULL           | 创建时间     |
 | updated_at | INTEGER | NOT NULL           | 更新时间     |
 
-默认状态：感兴趣、待投递、初筛、笔试、AI面试、一面、二面、三面、HR面、Offer、淘汰、主动放弃。
+默认状态：感兴趣、待投递、已投递、初筛、笔试、AI面试、一面、二面、三面、HR面、Offer、淘汰、主动放弃。
 
 状态删除规则：
 
@@ -68,9 +68,9 @@
 | ------------ | ------- | ------------------ | -------------------------------------- |
 | id           | INTEGER | PK AUTOINCREMENT   | 公司 ID                                |
 | name         | TEXT    | NOT NULL UNIQUE    | 公司名称                               |
+| builtin_key  | TEXT    | 可空 UNIQUE        | 内置公司稳定 UUID；用户公司为 NULL     |
 | career_url   | TEXT    | 可空               | 招聘官网                               |
 | last_read_at | INTEGER | 可空               | 上次点击招聘官网的 UTC Unix 毫秒时间戳 |
-| is_builtin   | INTEGER | NOT NULL DEFAULT 0 | 是否内置公司                           |
 | is_favorite  | INTEGER | NOT NULL DEFAULT 0 | 是否收藏                               |
 | created_at   | INTEGER | NOT NULL           | 创建时间                               |
 | updated_at   | INTEGER | NOT NULL           | 更新时间                               |
@@ -91,7 +91,7 @@
 
 索引：`idx_company_industries_industry_id`。
 
-生产环境内置公司的主体数据禁止编辑和删除；开发环境放开内置公司的增删改查权限，但仍遵守被求职记录引用时的删除保护。`is_favorite` 是用户偏好，在所有环境均允许修改。
+`builtin_key` 非空即为内置公司，公共 DTO 的 `isBuiltin` 由此推导，稳定 key 不向 Renderer 或 MCP 暴露。生产环境内置公司的主体数据禁止编辑和删除；开发环境放开内置公司的增删改查权限，但仍遵守被求职记录引用时的删除保护。`is_favorite` 是用户偏好，在所有环境均允许修改。
 
 公司管理页面点击招聘官网链接时，由 `CompanyService.markRead()` 写入 `last_read_at`。是否已读由界面按 `config.json` 的 `companyReadValidityMonths` 判断：为空或当前时间达到上次已读时间加配置月份数时为“未读”，否则为“已读”。该配置默认值为 3 个月。
 
@@ -114,6 +114,18 @@
 唯一约束：`UNIQUE(company_id, alias)`。
 
 生产环境内置公司的别名禁止新增、编辑和删除；开发环境允许通过公司编辑接口维护内置公司的别名，并随公司删除一起清理。
+
+### builtin_company_catalog_state
+
+该表固定只有 `id = 1` 一行，与目录公司变更在同一事务提交。
+
+| 字段            | 类型    | 约束                | 说明                  |
+| --------------- | ------- | ------------------- | --------------------- |
+| id              | INTEGER | PK，CHECK(id = 1)   | 固定值 1              |
+| format_version  | INTEGER | NOT NULL            | JSON 格式版本         |
+| catalog_version | INTEGER | NOT NULL            | 已应用目录版本        |
+| content_sha256  | TEXT    | NOT NULL，长度为 64 | 原始目录 JSON SHA-256 |
+| applied_at      | INTEGER | NOT NULL            | 最近应用时间          |
 
 ### resume_versions
 
@@ -209,9 +221,21 @@
 
 ## Seed 规则
 
-- 首次数据库初始化插入默认状态、内置行业分类和内置公司。
+- 首次数据库初始化插入默认状态、内置行业分类、内置公司及目录状态。
+- 内置公司以已校验的开发数据库为完整来源，共 559 家；目录保存名称、行业关联、招聘官网和别名，不保存开发数据库中的公司 ID。
+- 初始化公司时由 SQLite 自增生成公司 ID，写入公司后按唯一名称查询实际 ID，再以该 ID 写入行业关联和别名。
+- `is_favorite` 和 `last_read_at` 是用户偏好，不从开发数据库复制；新数据库中的内置公司分别初始化为未收藏和未读。
 - 使用 `PRAGMA user_version` 判断首次初始化。
 - seed 数据与 `PRAGMA user_version` 必须在同一事务中提交，避免初始化中断后留下无法识别的半成品数据库。
 - 内置状态、内置行业分类和内置公司的主体数据不可删除，因此 seed 只负责首次初始化。
 - 生产环境内置状态、内置行业分类和内置公司的主体数据禁止编辑，业务 service 返回 `BUILTIN_DATA`，提示“该数据为内置，无法删除/修改”；开发环境放开增删改查，但仍执行逻辑关联删除保护。显示顺序调整属于用户排序偏好，仍可通过重排接口修改；内置公司的收藏标记属于用户偏好，允许修改。
-- 已初始化数据库不得再次执行或合并 seed；新增内置数据需要显式处理当前开发数据库，不能在启动时覆盖已有数据。
+- 仓库中的 `resource/jobtrail-company-catalog.json` 是首次初始化与 Release 发布共用的唯一全量公司目录；每家公司使用稳定的小写 UUID v4 `builtinKey`。
+- 已初始化数据库不得再次执行或合并 seed；应用启动和软件升级均不自动更新公司目录。
+
+## 内置公司目录更新
+
+- 用户只能从设置页主动更新。主进程从固定 GitHub Release `latest/download` 地址获取 manifest 和全量 JSON，校验大小、原始文件 SHA-256、严格格式、目录版本、最低应用版本和数据约束后再同步。
+- 同一 key 覆盖名称、招聘官网、行业和别名，同时保留公司 ID、创建时间、收藏、已读时间及所有业务关联。
+- 新 key 与用户公司同名时，将原记录转为内置公司并保留其本地身份和业务数据；目录中缺少的旧内置公司保留。
+- 名称或 key 冲突、非法行业及任何约束错误会中止整个 `IMMEDIATE` 事务。成功后目录状态与公司数据一并提交。
+- 下载数据只保存在内存，不写入配置文件或长期落盘；目录更新能力不通过 MCP 暴露。

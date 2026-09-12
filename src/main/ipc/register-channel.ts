@@ -1,11 +1,30 @@
 import { ipcMain, type BrowserWindow, type WebContents } from 'electron'
 
-import type { IpcArgs, IpcChannel, IpcResponse, IpcResult } from '../../shared/ipc'
+import type {
+  AppEventChannel,
+  AppEventMap,
+  IpcArgs,
+  IpcChannel,
+  IpcResponse,
+  IpcResult,
+} from '../../shared/ipc'
 import { AppServiceError, errorShape } from '../services/errors'
 
 let trustedContents: WebContents | undefined
 export function trustWindow(window: BrowserWindow): void {
   trustedContents = window.webContents
+}
+
+export function sendToTrustedWindow<K extends AppEventChannel>(
+  channel: K,
+  payload: AppEventMap[K],
+): void {
+  if (!trustedContents || trustedContents.isDestroyed()) return
+  try {
+    trustedContents.send(channel, payload)
+  } catch (error) {
+    console.error('向主窗口发送事件失败', error)
+  }
 }
 
 type Handler<K extends IpcChannel> = (...args: IpcArgs<K>) => IpcResult<K> | Promise<IpcResult<K>>

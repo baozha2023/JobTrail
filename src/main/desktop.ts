@@ -33,6 +33,7 @@ let tray: Tray | undefined
 let isQuitting = false
 let reminderScheduler: ReminderScheduler | undefined
 let externalDataMonitor: ExternalDataMonitor | undefined
+let cancelCompanyCatalogUpdate: (() => void) | undefined
 
 const handoff = app.isPackaged && process.argv.includes('--handoff-root')
 if (handoff) {
@@ -209,7 +210,7 @@ function initializeApplication(): void {
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
-  registerIpc(container.services, config)
+  cancelCompanyCatalogUpdate = registerIpc(container.services, config)
   registerVelopackIpc()
   if (installed)
     app.setLoginItemSettings({
@@ -259,6 +260,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  cancelCompanyCatalogUpdate?.()
   externalDataMonitor?.stop()
   reminderScheduler?.stop()
   database?.close()

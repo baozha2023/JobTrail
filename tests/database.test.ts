@@ -4,7 +4,7 @@ import path from 'node:path'
 import Database from 'better-sqlite3'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { AppPaths } from '../src/main/config'
-import { BUILTIN_COMPANIES } from '../src/main/builtin-companies'
+import { BUNDLED_COMPANY_CATALOG, BUNDLED_COMPANY_CATALOG_HASH } from '../src/main/company-catalog'
 import { DatabaseManager } from '../src/main/database'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
@@ -12,6 +12,7 @@ import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
 
 describe('职迹最终数据库结构和业务服务', () => {
+  const builtinCompanies = BUNDLED_COMPANY_CATALOG.companies
   let root: string
   let paths: AppPaths
   let database: DatabaseManager | undefined
@@ -52,6 +53,7 @@ describe('职迹最终数据库结构和业务服务', () => {
         'companies',
         'company_industries',
         'company_aliases',
+        'builtin_company_catalog_state',
         'resume_versions',
         'opportunities',
         'calendar_events',
@@ -76,21 +78,60 @@ describe('职迹最终数据库结构和业务服务', () => {
     ).toEqual([
       { id: 1, label: '感兴趣', sortOrder: 1 },
       { id: 2, label: '待投递', sortOrder: 2 },
-      { id: 3, label: '初筛', sortOrder: 3 },
-      { id: 4, label: '笔试', sortOrder: 4 },
-      { id: 5, label: 'AI面试', sortOrder: 5 },
-      { id: 6, label: '一面', sortOrder: 6 },
-      { id: 7, label: '二面', sortOrder: 7 },
-      { id: 8, label: '三面', sortOrder: 8 },
-      { id: 9, label: 'HR面', sortOrder: 9 },
-      { id: 10, label: 'Offer', sortOrder: 10 },
-      { id: 11, label: '淘汰', sortOrder: 11 },
-      { id: 12, label: '主动放弃', sortOrder: 12 },
+      { id: 3, label: '已投递', sortOrder: 3 },
+      { id: 4, label: '初筛', sortOrder: 4 },
+      { id: 5, label: '笔试', sortOrder: 5 },
+      { id: 6, label: 'AI面试', sortOrder: 6 },
+      { id: 7, label: '一面', sortOrder: 7 },
+      { id: 8, label: '二面', sortOrder: 8 },
+      { id: 9, label: '三面', sortOrder: 9 },
+      { id: 10, label: 'HR面', sortOrder: 10 },
+      { id: 11, label: 'Offer', sortOrder: 11 },
+      { id: 12, label: '淘汰', sortOrder: 12 },
+      { id: 13, label: '主动放弃', sortOrder: 13 },
     ])
     expect(
       (database!.db.prepare('SELECT COUNT(*) AS count FROM companies').get() as { count: number })
         .count,
-    ).toBe(BUILTIN_COMPANIES.length)
+    ).toBe(builtinCompanies.length)
+    expect(
+      database!.db
+        .prepare(
+          'SELECT id, name, builtin_key AS builtinKey, career_url AS careerUrl, last_read_at AS lastReadAt, is_favorite AS isFavorite FROM companies ORDER BY id',
+        )
+        .all(),
+    ).toEqual(
+      builtinCompanies.map(({ name, builtinKey, careerUrl }, index) => ({
+        id: index + 1,
+        name,
+        builtinKey,
+        careerUrl,
+        lastReadAt: null,
+        isFavorite: 0,
+      })),
+    )
+    expect(
+      database!.db
+        .prepare(
+          'SELECT company_id AS companyId, industry_id AS industryId FROM company_industries ORDER BY company_id, industry_id',
+        )
+        .all(),
+    ).toEqual(
+      builtinCompanies.flatMap((company, index) =>
+        company.industryIds.map((industryId) => ({ companyId: index + 1, industryId })),
+      ),
+    )
+    expect(
+      database!.db
+        .prepare(
+          'SELECT company_id AS companyId, alias FROM company_aliases ORDER BY company_id, id',
+        )
+        .all(),
+    ).toEqual(
+      builtinCompanies.flatMap((company, index) =>
+        company.aliases.map((alias) => ({ companyId: index + 1, alias })),
+      ),
+    )
     expect(
       (
         database!.db
@@ -100,7 +141,16 @@ describe('职迹最终数据库结构和业务服务', () => {
           .get() as { count: number }
       ).count,
     ).toBe(0)
-    expect(database!.db.pragma('user_version', { simple: true })).toBe(8)
+    expect(database!.db.pragma('user_version', { simple: true })).toBe(1)
+    expect(
+      database!.db.prepare('SELECT * FROM builtin_company_catalog_state WHERE id = 1').get(),
+    ).toEqual({
+      id: 1,
+      format_version: BUNDLED_COMPANY_CATALOG.formatVersion,
+      catalog_version: BUNDLED_COMPANY_CATALOG.catalogVersion,
+      content_sha256: BUNDLED_COMPANY_CATALOG_HASH,
+      applied_at: expect.any(Number),
+    })
     const resumeColumns = (
       database!.db.prepare('PRAGMA table_info(resume_versions)').all() as Array<{ name: string }>
     ).map((column) => column.name)
@@ -110,6 +160,8 @@ describe('职迹最终数据库结构和业务服务', () => {
       database!.db.prepare('PRAGMA table_info(companies)').all() as Array<{ name: string }>
     ).map((column) => column.name)
     expect(companyColumns).toContain('last_read_at')
+    expect(companyColumns).toContain('builtin_key')
+    expect(companyColumns).not.toContain('is_builtin')
     expect(companyColumns).not.toContain('industry_id')
     for (const table of [
       'companies',
@@ -137,10 +189,17 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   it('keeps built-in company seed data internally consistent', () => {
-    expect(new Set(BUILTIN_COMPANIES.map((company) => company.name)).size).toBe(
-      BUILTIN_COMPANIES.length,
+    expect(builtinCompanies).toHaveLength(BUNDLED_COMPANY_CATALOG.companies.length)
+    expect(new Set(builtinCompanies.map((company) => company.name)).size).toBe(
+      builtinCompanies.length,
     )
-    for (const company of BUILTIN_COMPANIES) {
+    expect(new Set(builtinCompanies.map((company) => company.builtinKey)).size).toBe(
+      builtinCompanies.length,
+    )
+    for (const company of builtinCompanies) {
+      expect(company.builtinKey).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      )
       expect(company.name).toBe(company.name.trim())
       expect(company.name.length).toBeGreaterThan(0)
       expect(company.industryIds.length).toBeGreaterThan(0)
@@ -215,6 +274,13 @@ describe('职迹最终数据库结构和业务服务', () => {
       industryIds: [customIndustry.id],
       aliases: ['简称'],
     })
+    expect(
+      (
+        database!.db
+          .prepare('SELECT builtin_key AS builtinKey FROM companies WHERE id = ?')
+          .get(customCompany.id) as { builtinKey: string | null }
+      ).builtinKey,
+    ).toBeNull()
     expect(() => services.industries.delete(customIndustry.id)).toThrowError(AppServiceError)
     const opportunity = services.opportunities.create({
       companyId: customCompany.id,
@@ -300,8 +366,8 @@ describe('职迹最终数据库结构和业务服务', () => {
 
     expect(company.industryIds).toEqual([firstIndustry.id, secondIndustry.id])
     expect(company.industryName).toBe('多行业一, 多行业二')
-    expect(services.companies.search('多行业一').map((item) => item.id)).toContain(company.id)
-    expect(services.companies.search('多行业二').map((item) => item.id)).toContain(company.id)
+    expect(services.companies.search('多行业一')).toEqual([])
+    expect(services.companies.search('多行业二')).toEqual([])
     expect(
       (
         database!.db

@@ -22,17 +22,12 @@ export class CompanyRepository {
     return this.db
       .prepare(
         `${COMPANY_SELECT}
-      WHERE c.name LIKE ? ESCAPE '\\' OR EXISTS (
-        SELECT 1
-        FROM company_industries ci
-        JOIN industries i ON i.id = ci.industry_id
-        WHERE ci.company_id = c.id AND i.name LIKE ? ESCAPE '\\'
-      )
+      WHERE c.name LIKE ? ESCAPE '\\'
         OR EXISTS (SELECT 1 FROM company_aliases a WHERE a.company_id = c.id AND a.alias LIKE ? ESCAPE '\\')
       ORDER BY c.is_favorite DESC, c.name ASC
     `,
       )
-      .all(value, value, value) as CompanyRow[]
+      .all(value, value) as CompanyRow[]
   }
 
   list(): CompanyRow[] {
@@ -129,8 +124,8 @@ export class CompanyRepository {
       const result = this.db
         .prepare(
           `
-        INSERT INTO companies (name, career_url, last_read_at, is_builtin, is_favorite, created_at, updated_at)
-        VALUES (?, ?, NULL, 0, 0, ?, ?)
+        INSERT INTO companies (name, builtin_key, career_url, last_read_at, is_favorite, created_at, updated_at)
+        VALUES (?, NULL, ?, NULL, 0, ?, ?)
       `,
         )
         .run(input.name, input.careerUrl ?? null, timestamp, timestamp)

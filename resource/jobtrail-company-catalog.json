@@ -1,0 +1,3920 @@
+{
+  "formatVersion": 1,
+  "catalogVersion": 1,
+  "minimumAppVersion": "0.5.0",
+  "companies": [
+    {
+      "builtinKey": "5014db58-a37c-48ca-b129-f2516a5b8f8e",
+      "name": "腾讯",
+      "industryIds": [1],
+      "careerUrl": "https://join.qq.com/",
+      "aliases": ["Tencent"]
+    },
+    {
+      "builtinKey": "8f6ae39a-a19d-4c8a-a74f-d197070f7b27",
+      "name": "字节跳动",
+      "industryIds": [1],
+      "careerUrl": "https://jobs.bytedance.com/",
+      "aliases": ["ByteDance"]
+    },
+    {
+      "builtinKey": "826c9a86-6507-4add-b3dc-4f877d58bf5b",
+      "name": "阿里巴巴",
+      "industryIds": [1],
+      "careerUrl": "https://talent.alibaba.com/",
+      "aliases": ["阿里"]
+    },
+    {
+      "builtinKey": "5f179286-a92b-4214-91ce-0dc2c8b51b84",
+      "name": "蚂蚁集团",
+      "industryIds": [1],
+      "careerUrl": "https://www.antgroup.com/careers",
+      "aliases": ["Ant Group"]
+    },
+    {
+      "builtinKey": "e35c01c2-c0e3-4586-aed3-30085f5551d5",
+      "name": "美团",
+      "industryIds": [1],
+      "careerUrl": "https://zhaopin.meituan.com/",
+      "aliases": ["Meituan"]
+    },
+    {
+      "builtinKey": "2d0bb68a-d0e6-4648-b8cf-81d71aaef433",
+      "name": "京东",
+      "industryIds": [1],
+      "careerUrl": "https://zhaopin.jd.com/",
+      "aliases": ["JD"]
+    },
+    {
+      "builtinKey": "5e5cb99b-678a-43f7-9a39-b27a03d65517",
+      "name": "百度",
+      "industryIds": [1],
+      "careerUrl": "https://talent.baidu.com/",
+      "aliases": ["Baidu"]
+    },
+    {
+      "builtinKey": "48216e23-f25d-4910-a72f-8a747e222797",
+      "name": "快手",
+      "industryIds": [1],
+      "careerUrl": "https://zhaopin.kuaishou.cn/",
+      "aliases": ["Kuaishou"]
+    },
+    {
+      "builtinKey": "62ac5896-abac-4f8e-8eaa-f2ad1cf92ab5",
+      "name": "小红书",
+      "industryIds": [1],
+      "careerUrl": "https://job.xiaohongshu.com/",
+      "aliases": ["Xiaohongshu"]
+    },
+    {
+      "builtinKey": "bd6fd78e-ae63-4a67-bd55-7b63579fa2e9",
+      "name": "哔哩哔哩",
+      "industryIds": [1],
+      "careerUrl": "https://jobs.bilibili.com/",
+      "aliases": ["B站"]
+    },
+    {
+      "builtinKey": "7cf0f4f0-0da9-4993-a870-952b2c0dbd6e",
+      "name": "网易",
+      "industryIds": [1],
+      "careerUrl": "https://campus.163.com/",
+      "aliases": ["NetEase"]
+    },
+    {
+      "builtinKey": "be6fa51d-6f77-4a7a-88c9-0420368d504f",
+      "name": "拼多多",
+      "industryIds": [1],
+      "careerUrl": "https://careers.pinduoduo.com/",
+      "aliases": ["PDD"]
+    },
+    {
+      "builtinKey": "cbbed0e3-62ba-49df-8df1-4244fbc0aa1f",
+      "name": "滴滴",
+      "industryIds": [1],
+      "careerUrl": "https://talent.didiglobal.com/",
+      "aliases": ["Didi"]
+    },
+    {
+      "builtinKey": "7f696b4c-2184-430f-9ad5-145c641c0e00",
+      "name": "携程",
+      "industryIds": [1],
+      "careerUrl": "https://jobs.ctrip.com/",
+      "aliases": ["Trip.com"]
+    },
+    {
+      "builtinKey": "4b39ba5c-3cf2-45c8-8b21-203df1909469",
+      "name": "米哈游",
+      "industryIds": [2],
+      "careerUrl": "https://jobs.mihoyo.com/",
+      "aliases": ["HoYoverse"]
+    },
+    {
+      "builtinKey": "f8b2c341-e684-411c-9e16-16f6211d135d",
+      "name": "莉莉丝游戏",
+      "industryIds": [2],
+      "careerUrl": "https://lilithgames.jobs.feishu.cn/",
+      "aliases": ["Lilith Games"]
+    },
+    {
+      "builtinKey": "c4ce5816-30cf-4960-a2d8-c3818f5d830c",
+      "name": "鹰角网络",
+      "industryIds": [2],
+      "careerUrl": "https://job.hypergryph.com/",
+      "aliases": ["Hypergryph"]
+    },
+    {
+      "builtinKey": "808c9e4e-d32f-4f29-9fe2-05c2631fd7bb",
+      "name": "完美世界",
+      "industryIds": [2],
+      "careerUrl": "https://zhaopin.wanmei.com/",
+      "aliases": ["Perfect World"]
+    },
+    {
+      "builtinKey": "98e0e295-48cf-4be0-805f-7133f58ecb34",
+      "name": "库洛游戏",
+      "industryIds": [2],
+      "careerUrl": "https://kurogame.com/",
+      "aliases": ["Kuro Games"]
+    },
+    {
+      "builtinKey": "aa2ed047-dd11-4f0a-8668-e814d9f854a5",
+      "name": "科大讯飞",
+      "industryIds": [3],
+      "careerUrl": "https://campus.iflytek.com/",
+      "aliases": ["iFLYTEK"]
+    },
+    {
+      "builtinKey": "007de2ec-033b-4704-80ed-551b5a7cc712",
+      "name": "智谱AI",
+      "industryIds": [3],
+      "careerUrl": "https://www.zhipuai.cn/",
+      "aliases": ["Zhipu AI"]
+    },
+    {
+      "builtinKey": "969db103-f31e-488d-8ca1-533f7984e462",
+      "name": "MiniMax",
+      "industryIds": [3],
+      "careerUrl": "https://www.minimaxi.com/careers",
+      "aliases": ["稀宇科技"]
+    },
+    {
+      "builtinKey": "51895f6e-1402-4a6b-896a-9cd91f676d95",
+      "name": "商汤科技",
+      "industryIds": [3],
+      "careerUrl": "https://www.sensetime.com/",
+      "aliases": ["SenseTime"]
+    },
+    {
+      "builtinKey": "0880263c-275a-477d-9de6-42d19b366518",
+      "name": "比亚迪",
+      "industryIds": [19],
+      "careerUrl": "https://job.byd.com/",
+      "aliases": ["BYD"]
+    },
+    {
+      "builtinKey": "c3269b92-b9b4-4bd7-aee2-98fe99bb7955",
+      "name": "蔚来",
+      "industryIds": [19],
+      "careerUrl": "https://nio.com/careers",
+      "aliases": ["NIO"]
+    },
+    {
+      "builtinKey": "c085600d-be47-4d04-81e6-db89795f44c2",
+      "name": "理想汽车",
+      "industryIds": [19],
+      "careerUrl": "https://careers.lixiang.com/",
+      "aliases": ["Li Auto"]
+    },
+    {
+      "builtinKey": "7852e6a4-eb9d-4150-9e5a-4013990dea2a",
+      "name": "小鹏汽车",
+      "industryIds": [19],
+      "careerUrl": "https://jobs.xiaopeng.com/",
+      "aliases": ["XPeng"]
+    },
+    {
+      "builtinKey": "5b47d36b-5a74-4609-9f82-98601cda824a",
+      "name": "小米",
+      "industryIds": [6],
+      "careerUrl": "https://hr.xiaomi.com/",
+      "aliases": ["Xiaomi"]
+    },
+    {
+      "builtinKey": "83080683-d608-4f3a-8031-0e6914a91aba",
+      "name": "华为",
+      "industryIds": [7],
+      "careerUrl": "https://career.huawei.com/",
+      "aliases": ["Huawei"]
+    },
+    {
+      "builtinKey": "42ba4db0-a3ce-4839-af6a-6ad5d61b13e6",
+      "name": "中兴通讯",
+      "industryIds": [7],
+      "careerUrl": "https://job.zte.com.cn/",
+      "aliases": ["ZTE"]
+    },
+    {
+      "builtinKey": "00c9c234-60d7-4eed-a208-26d759f1b623",
+      "name": "联想",
+      "industryIds": [6],
+      "careerUrl": "https://jobs.lenovo.com/",
+      "aliases": ["Lenovo"]
+    },
+    {
+      "builtinKey": "cf8afcf7-8a5f-4172-8dad-f4017dac5cf2",
+      "name": "海尔",
+      "industryIds": [21],
+      "careerUrl": "https://maker.haier.com/",
+      "aliases": ["Haier"]
+    },
+    {
+      "builtinKey": "aec2ae5b-b6c1-49a0-b9cc-25ee1d189b30",
+      "name": "宁德时代",
+      "industryIds": [20],
+      "careerUrl": "https://www.catl.com/careers/",
+      "aliases": ["CATL"]
+    },
+    {
+      "builtinKey": "0722d712-708c-493a-bdf7-8559de9131b1",
+      "name": "寒武纪",
+      "industryIds": [5],
+      "careerUrl": "https://www.cambricon.com/",
+      "aliases": ["Cambricon"]
+    },
+    {
+      "builtinKey": "81d61e53-b8b6-4c5d-861a-fbeaf428cd11",
+      "name": "地平线",
+      "industryIds": [5],
+      "careerUrl": "https://www.horizon.cc/",
+      "aliases": ["Horizon Robotics"]
+    },
+    {
+      "builtinKey": "3297384f-5e93-4522-a7e4-b6f440086ca0",
+      "name": "得物",
+      "industryIds": [14],
+      "careerUrl": "https://hr.dewu.com/",
+      "aliases": ["POIZON"]
+    },
+    {
+      "builtinKey": "aad27afe-8424-41cf-b77a-b612cac0f1c3",
+      "name": "唯品会",
+      "industryIds": [14],
+      "careerUrl": "https://job.vip.com/",
+      "aliases": ["Vipshop"]
+    },
+    {
+      "builtinKey": "cee050d9-7f21-4b29-b526-186b185b1a44",
+      "name": "叮咚买菜",
+      "industryIds": [14],
+      "careerUrl": "https://careers.dingdong-inc.com/",
+      "aliases": ["Dingdong"]
+    },
+    {
+      "builtinKey": "35c88c53-21f7-4d3e-8aa9-d7ab54dfaab1",
+      "name": "哈啰出行",
+      "industryIds": [26],
+      "careerUrl": "https://hr.hellobike.com/",
+      "aliases": ["HelloBike"]
+    },
+    {
+      "builtinKey": "e9ddd107-73a9-4b48-a29c-58d04735d37f",
+      "name": "曹操出行",
+      "industryIds": [26],
+      "careerUrl": "https://www.caocaokeji.cn/",
+      "aliases": ["Cao Cao Mobility"]
+    },
+    {
+      "builtinKey": "a4ffb843-b013-4e46-8191-631afc8a1fe0",
+      "name": "同程旅行",
+      "industryIds": [31],
+      "careerUrl": "https://job.ly.com/",
+      "aliases": ["Tongcheng Travel"]
+    },
+    {
+      "builtinKey": "159c7f34-ebd8-4067-94eb-99a351cfdc6c",
+      "name": "途虎养车",
+      "industryIds": [19],
+      "careerUrl": "https://hr.tuhu.cn/",
+      "aliases": ["Tuhu"]
+    },
+    {
+      "builtinKey": "35faf9df-9e61-48b6-a154-ce880df27e2b",
+      "name": "SHEIN",
+      "industryIds": [40],
+      "careerUrl": "https://careers.shein.com/",
+      "aliases": ["希音"]
+    },
+    {
+      "builtinKey": "f0d223ca-8d1d-4814-b776-a1c74ddb9993",
+      "name": "货拉拉",
+      "industryIds": [25],
+      "careerUrl": "https://www.huolala.cn/",
+      "aliases": ["Lalamove"]
+    },
+    {
+      "builtinKey": "af0d1776-f481-4ebd-acb9-a1e387b6c09a",
+      "name": "菜鸟",
+      "industryIds": [25],
+      "careerUrl": "https://talent.cainiao.com/",
+      "aliases": ["Cainiao"]
+    },
+    {
+      "builtinKey": "879314aa-a477-43f1-89db-fe2ae027ae8a",
+      "name": "顺丰",
+      "industryIds": [25],
+      "careerUrl": "https://hr.sf-express.com/",
+      "aliases": ["SF Express"]
+    },
+    {
+      "builtinKey": "613fde56-1cd3-400b-b1b1-1d122077a30d",
+      "name": "牧原股份",
+      "industryIds": [38],
+      "careerUrl": "https://www.muyuanfoods.com/",
+      "aliases": ["Muyuan"]
+    },
+    {
+      "builtinKey": "f7d840e0-656a-4f67-a1ae-9ace958473d6",
+      "name": "伊利",
+      "industryIds": [16],
+      "careerUrl": "https://campus.yili.com/",
+      "aliases": ["Yili"]
+    },
+    {
+      "builtinKey": "091195cd-e80a-493b-8141-72150c3b9791",
+      "name": "海康威视",
+      "industryIds": [8],
+      "careerUrl": "https://campus.hikvision.com/",
+      "aliases": ["Hikvision"]
+    },
+    {
+      "builtinKey": "b30c61d6-4d2f-4259-a766-745362335048",
+      "name": "大疆",
+      "industryIds": [8],
+      "careerUrl": "https://www.dji.com/cn/careers",
+      "aliases": ["DJI"]
+    },
+    {
+      "builtinKey": "1d81cded-a339-4383-a756-0912812cc42f",
+      "name": "立讯精密",
+      "industryIds": [8],
+      "careerUrl": "https://www.luxshare-ict.com/",
+      "aliases": ["Luxshare"]
+    },
+    {
+      "builtinKey": "685bf303-8809-4126-857c-47d717ceb16f",
+      "name": "隆基绿能",
+      "industryIds": [20],
+      "careerUrl": "https://www.longi.com/cn/careers/",
+      "aliases": ["LONGi"]
+    },
+    {
+      "builtinKey": "190508a3-d305-493a-89c3-03d621ce266e",
+      "name": "远景能源",
+      "industryIds": [20],
+      "careerUrl": "https://www.envision-group.com/careers",
+      "aliases": ["Envision"]
+    },
+    {
+      "builtinKey": "dcc0e4d1-9598-4a87-8ca9-f2951d2346a2",
+      "name": "恒瑞医药",
+      "industryIds": [18],
+      "careerUrl": "https://www.hengrui.com/join.html",
+      "aliases": ["Hengrui"]
+    },
+    {
+      "builtinKey": "2248db06-ba2c-47c7-840d-6d66b648e650",
+      "name": "招商银行",
+      "industryIds": [11],
+      "careerUrl": "https://career.cmbchina.com/",
+      "aliases": ["CMB"]
+    },
+    {
+      "builtinKey": "3095cc4a-6098-4bce-aa78-2cff99b2b3ee",
+      "name": "360",
+      "industryIds": [1],
+      "careerUrl": "https://hr.360.cn/hr/list",
+      "aliases": ["奇虎360"]
+    },
+    {
+      "builtinKey": "4c013f05-69c9-4453-a748-a6fbeda7362a",
+      "name": "微博",
+      "industryIds": [1],
+      "careerUrl": "https://career.sina.com.cn/campus-recruitment/sina/43536",
+      "aliases": ["Weibo"]
+    },
+    {
+      "builtinKey": "2d1de512-cced-48ca-b8d3-fa420196b9db",
+      "name": "知乎",
+      "industryIds": [1],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/zhihu/68321?locale=zh-CN#/jobs",
+      "aliases": ["Zhihu"]
+    },
+    {
+      "builtinKey": "12166a23-970f-43eb-ae96-4b4c16813f8b",
+      "name": "搜狐",
+      "industryIds": [1],
+      "careerUrl": "https://app.mokahr.com/social-recruitment/sohu/43256?locale=zh-CN#/jobs?page=1&anchorName=jobsList",
+      "aliases": ["Sohu"]
+    },
+    {
+      "builtinKey": "99558c83-1ff1-45a3-8201-e150ce110894",
+      "name": "中国移动",
+      "industryIds": [7],
+      "careerUrl": "https://job.10086.cn/",
+      "aliases": ["China Mobile"]
+    },
+    {
+      "builtinKey": "21e1600c-15ea-4146-9736-587cbfbd0f56",
+      "name": "金山办公",
+      "industryIds": [4],
+      "careerUrl": "https://join.wps.cn/",
+      "aliases": ["WPS"]
+    },
+    {
+      "builtinKey": "90854c71-195d-4c4f-8734-3a2aee13c833",
+      "name": "迅雷",
+      "industryIds": [4],
+      "careerUrl": "https://career.xunlei.com/",
+      "aliases": ["Xunlei"]
+    },
+    {
+      "builtinKey": "3622fe64-83c5-4bc8-9fb5-b6b4853839d0",
+      "name": "云从科技",
+      "industryIds": [3],
+      "careerUrl": "http://jobs.cloudwalk.com/apply/cloudwalk/4871/#/",
+      "aliases": ["CloudWalk"]
+    },
+    {
+      "builtinKey": "1e9ed254-dd05-482b-9bd5-1ffeec15e97b",
+      "name": "旷视科技",
+      "industryIds": [3],
+      "careerUrl": "http://zhaopin.megvii.com/",
+      "aliases": ["Megvii"]
+    },
+    {
+      "builtinKey": "c084e8e4-8ddf-4203-a268-0c5caa02739a",
+      "name": "依图科技",
+      "industryIds": [3],
+      "careerUrl": "https://www.yitutech.com/cn/career?mode=social",
+      "aliases": ["YITU"]
+    },
+    {
+      "builtinKey": "594fa40e-0c5a-44d1-96cb-0fdeab540f57",
+      "name": "爱奇艺",
+      "industryIds": [32],
+      "careerUrl": "https://zhaopin.iqiyi.com/",
+      "aliases": ["iQIYI"]
+    },
+    {
+      "builtinKey": "e483205b-ad60-4d31-b557-d542c692d3f4",
+      "name": "中芯国际",
+      "industryIds": [5],
+      "careerUrl": "https://smics.zhiye.com/social",
+      "aliases": ["SMIC"]
+    },
+    {
+      "builtinKey": "9e323816-ce4c-4d92-8c0d-2b2da8de0db3",
+      "name": "荣耀",
+      "industryIds": [6],
+      "careerUrl": "https://www.honor.com/cn/career/",
+      "aliases": ["HONOR"]
+    },
+    {
+      "builtinKey": "be51a971-36a4-4106-8ca2-b6234c7269ab",
+      "name": "OPPO",
+      "industryIds": [6],
+      "careerUrl": "https://careers.oppo.com/university/oppo/",
+      "aliases": ["欧珀"]
+    },
+    {
+      "builtinKey": "ac272078-babf-4912-aea3-26a6e49020f3",
+      "name": "vivo",
+      "industryIds": [6],
+      "careerUrl": "https://hr.vivo.com/",
+      "aliases": ["维沃"]
+    },
+    {
+      "builtinKey": "36432f57-a589-4fe2-9726-236725fd8cce",
+      "name": "京东方",
+      "industryIds": [8],
+      "careerUrl": "https://campus.boe.com/#/jobs",
+      "aliases": ["BOE"]
+    },
+    {
+      "builtinKey": "213d29a9-6dff-4e7a-a27c-6d3d44d76545",
+      "name": "TCL",
+      "industryIds": [8],
+      "careerUrl": "https://zhaopin.tcl.com/",
+      "aliases": ["TCL科技"]
+    },
+    {
+      "builtinKey": "beb90361-fdbd-462a-bf80-fb2b5613c19c",
+      "name": "传音控股",
+      "industryIds": [6],
+      "careerUrl": "https://transsion.zhiye.com/",
+      "aliases": ["Transsion"]
+    },
+    {
+      "builtinKey": "62566efe-dd8e-4302-aae7-4da4e4c603c1",
+      "name": "安克创新",
+      "industryIds": [8],
+      "careerUrl": "https://career.anker.com.cn/",
+      "aliases": ["Anker"]
+    },
+    {
+      "builtinKey": "232ab304-6e39-4aa8-baa6-46f22116eb8a",
+      "name": "美的集团",
+      "industryIds": [21],
+      "careerUrl": "https://recruit.midea.com/recruitOut/ihr/home/index",
+      "aliases": ["Midea"]
+    },
+    {
+      "builtinKey": "a65c7c60-8e8b-4145-8f69-6d37dfc689d7",
+      "name": "格力电器",
+      "industryIds": [21],
+      "careerUrl": "https://zhaopin.greeyun.com/home",
+      "aliases": ["Gree"]
+    },
+    {
+      "builtinKey": "5e749a6a-271d-4cff-81b0-18acec63f2a0",
+      "name": "海信",
+      "industryIds": [21],
+      "careerUrl": "https://jobs.hisense.com/",
+      "aliases": ["Hisense"]
+    },
+    {
+      "builtinKey": "a39523b2-8968-4034-80be-b38147d4962e",
+      "name": "吉利汽车",
+      "industryIds": [19],
+      "careerUrl": "https://campus.geely.com/campus-recruitment/geely/78436/#/jobs",
+      "aliases": ["Geely"]
+    },
+    {
+      "builtinKey": "b6ee7270-54a4-4098-a1a2-a94d3d59e6f1",
+      "name": "长城汽车",
+      "industryIds": [19],
+      "careerUrl": "https://zhaopin.gwm.cn/",
+      "aliases": ["GWM"]
+    },
+    {
+      "builtinKey": "6eccc66d-adeb-4ce3-9814-1ae72ecb2697",
+      "name": "中国电信",
+      "industryIds": [7],
+      "careerUrl": "https://job.chinatelecom.com.cn/wt/TELE/web/index",
+      "aliases": ["China Telecom"]
+    },
+    {
+      "builtinKey": "92619cc9-7f9a-4dd3-8d0c-fda750b9f35f",
+      "name": "上汽集团",
+      "industryIds": [19],
+      "careerUrl": "https://www.saicmotor.com/chinese/rlzy/index.html",
+      "aliases": ["SAIC"]
+    },
+    {
+      "builtinKey": "91b5e6e1-2f04-4d6b-87ab-a99a4038a069",
+      "name": "赛力斯",
+      "industryIds": [19],
+      "careerUrl": "https://www.seres.cn/p/career-development.html",
+      "aliases": ["SERES"]
+    },
+    {
+      "builtinKey": "cd587c91-77ba-48d2-9e80-67fa5bfe10d3",
+      "name": "国轩高科",
+      "industryIds": [20],
+      "careerUrl": "https://gotion.zhiye.com/",
+      "aliases": ["Gotion High-tech"]
+    },
+    {
+      "builtinKey": "577e56f5-67ff-4c5c-b7c2-b52d885c7cbf",
+      "name": "阳光电源",
+      "industryIds": [20],
+      "careerUrl": "https://jobs.sungrowpower.com/",
+      "aliases": ["Sungrow"]
+    },
+    {
+      "builtinKey": "8610b062-38ef-4480-bc48-7c4054649cdf",
+      "name": "亿纬锂能",
+      "industryIds": [20],
+      "careerUrl": "https://www.evebattery.com/join-us",
+      "aliases": ["EVE Energy"]
+    },
+    {
+      "builtinKey": "cff0eda2-ea70-47eb-bad7-d0dac57a3dae",
+      "name": "天合光能",
+      "industryIds": [20],
+      "careerUrl": "https://app.mokahr.com/social-recruitment/trinasolar/98958#/",
+      "aliases": ["Trina Solar"]
+    },
+    {
+      "builtinKey": "7e0ee0fb-f34d-424b-a86d-93c9ac15f1b8",
+      "name": "新东方",
+      "industryIds": [30],
+      "careerUrl": "https://zhaopin.xdf.cn/",
+      "aliases": ["New Oriental"]
+    },
+    {
+      "builtinKey": "fd395253-5400-4488-8036-4ac37dd32419",
+      "name": "中国工商银行",
+      "industryIds": [11],
+      "careerUrl": "https://job.icbc.com.cn/pc/index.html",
+      "aliases": ["ICBC"]
+    },
+    {
+      "builtinKey": "b040bdb2-7785-4339-b7ba-4068ffe3149f",
+      "name": "中国建设银行",
+      "industryIds": [11],
+      "careerUrl": "https://job2.ccb.com/cn/job/index.html",
+      "aliases": ["CCB"]
+    },
+    {
+      "builtinKey": "452af371-42e0-4ef0-81a8-95a493802fc6",
+      "name": "中国银行",
+      "industryIds": [11],
+      "careerUrl": "https://www.boc.cn/aboutboc/bi4/",
+      "aliases": ["BOC"]
+    },
+    {
+      "builtinKey": "b117ff06-4e94-4033-8732-98a5847f6c00",
+      "name": "交通银行",
+      "industryIds": [11],
+      "careerUrl": "https://job.bankcomm.com/#/",
+      "aliases": ["Bank of Communications"]
+    },
+    {
+      "builtinKey": "706bdd9e-efb2-432f-a6ab-1b55637f2b17",
+      "name": "中国平安",
+      "industryIds": [13],
+      "careerUrl": "https://www.pingan.com/official/recruitment",
+      "aliases": ["Ping An"]
+    },
+    {
+      "builtinKey": "50bb9529-734d-40f8-a62f-e6eb6b0ea52b",
+      "name": "中信证券",
+      "industryIds": [12],
+      "careerUrl": "https://careers.citics.com/",
+      "aliases": ["CITIC Securities"]
+    },
+    {
+      "builtinKey": "611d67b0-b8b2-4540-81a6-2aca233c5cba",
+      "name": "东方财富",
+      "industryIds": [10],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/eastmoney/92400?locale=zh-CN#/",
+      "aliases": ["Eastmoney"]
+    },
+    {
+      "builtinKey": "fc57b0c9-c749-443f-8f38-755bca833c1f",
+      "name": "蒙牛",
+      "industryIds": [16],
+      "careerUrl": "https://mengniu.zhiye.com/custom/index",
+      "aliases": ["Mengniu"]
+    },
+    {
+      "builtinKey": "1671623a-a1e4-4e1e-ad2d-624b38830cfe",
+      "name": "宝洁",
+      "industryIds": [15],
+      "careerUrl": "https://careers.pg.com.cn/cn/zh/home",
+      "aliases": ["P&G"]
+    },
+    {
+      "builtinKey": "c90bd644-7f5c-4723-a326-e37ad5b11443",
+      "name": "联合利华",
+      "industryIds": [15],
+      "careerUrl": "https://careers.unilever.com/en/location/china-jobs/34155/1814991/2",
+      "aliases": ["Unilever"]
+    },
+    {
+      "builtinKey": "ef763404-c945-4a48-ad36-d4d6a4d78dab",
+      "name": "普华永道",
+      "industryIds": [35],
+      "careerUrl": "https://www.pwccn.com/zh/careers.html",
+      "aliases": ["PwC"]
+    },
+    {
+      "builtinKey": "15b014a1-12a3-45e0-b727-0086efd248d4",
+      "name": "腾讯音乐",
+      "industryIds": [1],
+      "careerUrl": "https://join.tencentmusic.com/",
+      "aliases": ["TME"]
+    },
+    {
+      "builtinKey": "f129de1d-6735-458c-964a-c05529d8b185",
+      "name": "得到",
+      "industryIds": [30],
+      "careerUrl": "https://dedao.jobs.feishu.cn/shezhao",
+      "aliases": ["Dedao"]
+    },
+    {
+      "builtinKey": "fff11168-2efe-4e98-921f-bdf860a9416b",
+      "name": "百川智能",
+      "industryIds": [3],
+      "careerUrl": "https://careers.baichuan-inc.com/",
+      "aliases": ["Baichuan AI"]
+    },
+    {
+      "builtinKey": "4075d84b-1844-4e0e-9105-a734b9837e6e",
+      "name": "月之暗面",
+      "industryIds": [3],
+      "careerUrl": "https://careers.kimi.com/",
+      "aliases": ["Moonshot AI"]
+    },
+    {
+      "builtinKey": "156926a8-4f1a-40c5-a4b5-053eb6c30d3c",
+      "name": "壁仞科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.birentech.com/join/",
+      "aliases": ["Biren Technology"]
+    },
+    {
+      "builtinKey": "95cdf0fa-73c5-433b-b2d7-c1f320b33456",
+      "name": "新华三集团",
+      "industryIds": [9],
+      "careerUrl": "https://career.h3c.com/h3c/home/index",
+      "aliases": ["H3C"]
+    },
+    {
+      "builtinKey": "c9f5f7c9-01b8-4384-b69b-56b0dff38d36",
+      "name": "浪潮集团",
+      "industryIds": [9],
+      "careerUrl": "http://career.inspur.com/campus2027/index.html",
+      "aliases": ["Inspur"]
+    },
+    {
+      "builtinKey": "c1d4556b-4acc-436f-97e1-6de9bb7070e5",
+      "name": "中科创达",
+      "industryIds": [4],
+      "careerUrl": "https://www.thundersoft.com/join-us/",
+      "aliases": ["ThunderSoft"]
+    },
+    {
+      "builtinKey": "24a7f86a-37af-4ad1-b8e2-32220e3ba330",
+      "name": "新紫光集团",
+      "industryIds": [9],
+      "careerUrl": "https://www.unigroup.com.cn/Join-Us/join.html",
+      "aliases": ["Unigroup"]
+    },
+    {
+      "builtinKey": "b7b735ca-bdbe-4b23-b549-fa6a82af2ce5",
+      "name": "长江存储",
+      "industryIds": [5],
+      "careerUrl": "https://www.ymtc.com/cn/joinus.html",
+      "aliases": ["YMTC"]
+    },
+    {
+      "builtinKey": "e3c6e416-52be-423a-81f5-a3c0f68a8cbf",
+      "name": "兆易创新",
+      "industryIds": [5],
+      "careerUrl": "https://www.gigadevice.com.cn/about/career",
+      "aliases": ["GigaDevice"]
+    },
+    {
+      "builtinKey": "1c7654ca-5de4-4594-b180-7815b63f4954",
+      "name": "中微公司",
+      "industryIds": [5],
+      "careerUrl": "https://www.amec-inc.com/index/Lists/index/catid/100.html",
+      "aliases": ["AMEC"]
+    },
+    {
+      "builtinKey": "37061761-7a3f-416b-8fe3-d072efe9b04d",
+      "name": "广汽集团",
+      "industryIds": [19],
+      "careerUrl": "https://gacrnd.zhiye.com/jobs",
+      "aliases": ["GAC"]
+    },
+    {
+      "builtinKey": "5f4a4a6d-0c8c-4d24-81e9-741d973e9d18",
+      "name": "中国一汽",
+      "industryIds": [19],
+      "careerUrl": "https://faw-zhaopin.hotjob.cn/",
+      "aliases": ["FAW"]
+    },
+    {
+      "builtinKey": "4a8a714d-4d94-4e19-9b08-740d52bcf5b4",
+      "name": "零跑汽车",
+      "industryIds": [19],
+      "careerUrl": "https://leapmotor.zhiye.com/social",
+      "aliases": ["Leapmotor"]
+    },
+    {
+      "builtinKey": "97d23fdf-9ca5-4703-988a-f838f41d32c6",
+      "name": "中国人寿",
+      "industryIds": [13],
+      "careerUrl": "https://chinalife.zhiye.com/custom/index",
+      "aliases": ["China Life"]
+    },
+    {
+      "builtinKey": "a3f699d9-f8bd-4591-9b20-234717df7ea2",
+      "name": "中国人民保险",
+      "industryIds": [13],
+      "careerUrl": "https://picc.zhiye.com/custom/index",
+      "aliases": ["PICC"]
+    },
+    {
+      "builtinKey": "13e17617-49ea-40da-b0cf-66a5d992c417",
+      "name": "中金公司",
+      "industryIds": [12],
+      "careerUrl": "https://cicc.zhiye.com/custom/campusdt?hideMenu=1",
+      "aliases": ["CICC"]
+    },
+    {
+      "builtinKey": "6622fef8-6f83-4af3-8ee7-f44023f68e2f",
+      "name": "华泰证券",
+      "industryIds": [12],
+      "careerUrl": "https://wecruit.hotjob.cn/SU6013d14e5d83dc11e4a8ae4d/pb/index",
+      "aliases": ["Huatai Securities"]
+    },
+    {
+      "builtinKey": "880f9dec-64fa-4d7e-96af-bee045789dc3",
+      "name": "广发证券",
+      "industryIds": [12],
+      "careerUrl": "https://job.gf.com.cn/",
+      "aliases": ["GF Securities"]
+    },
+    {
+      "builtinKey": "94bacb9e-c3cf-48ef-b5b9-e151f4375b97",
+      "name": "中信银行",
+      "industryIds": [11],
+      "careerUrl": "https://job.citicbank.com/",
+      "aliases": ["China CITIC Bank"]
+    },
+    {
+      "builtinKey": "33f7d5ff-f37a-4ee7-a275-133f68b94d8d",
+      "name": "民生银行",
+      "industryIds": [11],
+      "careerUrl": "https://career.cmbc.com.cn/",
+      "aliases": ["CMBC"]
+    },
+    {
+      "builtinKey": "41757d4a-d701-4db2-bf0f-a3cc9ee74d2c",
+      "name": "迈瑞医疗",
+      "industryIds": [17],
+      "careerUrl": "https://www.mindray.com/cn/career",
+      "aliases": ["Mindray"]
+    },
+    {
+      "builtinKey": "c67142e2-61dc-4a7f-9d17-397d68ce7660",
+      "name": "联影医疗",
+      "industryIds": [17],
+      "careerUrl": "https://global.united-imaging.com/zh-cn/careers",
+      "aliases": ["United Imaging"]
+    },
+    {
+      "builtinKey": "920ecc65-ee60-4a6a-a35d-2d92c0ca084e",
+      "name": "药明康德",
+      "industryIds": [18],
+      "careerUrl": "https://wuxiapptec.zhiye.com/jobs",
+      "aliases": ["WuXi AppTec"]
+    },
+    {
+      "builtinKey": "49fdab8a-9812-4c0e-8b59-33314cbb8558",
+      "name": "复星医药",
+      "industryIds": [18],
+      "careerUrl": "https://www.fosunpharma.com/careers/",
+      "aliases": ["Fosun Pharma"]
+    },
+    {
+      "builtinKey": "cfd2da1c-3e78-4322-9ee7-da5ac7638707",
+      "name": "百济神州",
+      "industryIds": [18],
+      "careerUrl": "https://www.beonemedicines.com.cn/careers/",
+      "aliases": ["BeiGene"]
+    },
+    {
+      "builtinKey": "2b31b0d9-794c-4e25-839c-a506b63cf1dc",
+      "name": "泡泡玛特",
+      "industryIds": [15],
+      "careerUrl": "https://popmart.zhiye.com/",
+      "aliases": ["POP MART"]
+    },
+    {
+      "builtinKey": "b8d9d763-8e45-4654-b7c4-0188268ab2b2",
+      "name": "名创优品",
+      "industryIds": [15],
+      "careerUrl": "https://miniso.zhiye.com/",
+      "aliases": ["MINISO"]
+    },
+    {
+      "builtinKey": "864f4d2b-018c-4c4d-8813-aa5fba57eda2",
+      "name": "喜茶",
+      "industryIds": [16],
+      "careerUrl": "https://heytea.zhiye.com/",
+      "aliases": ["HEYTEA"]
+    },
+    {
+      "builtinKey": "235323b1-8d89-4721-bb3d-9f1290a04c08",
+      "name": "元气森林",
+      "industryIds": [16],
+      "careerUrl": "https://k11pnjpvz1.jobs.feishu.cn/index",
+      "aliases": ["Genki Forest"]
+    },
+    {
+      "builtinKey": "2a7e64b8-4eca-435b-807a-760db3fbb8a7",
+      "name": "李宁",
+      "industryIds": [15],
+      "careerUrl": "https://lining.hotjob.cn/",
+      "aliases": ["Li-Ning"]
+    },
+    {
+      "builtinKey": "eb0eee08-a0b8-4353-9601-089d76fa08ee",
+      "name": "安踏",
+      "industryIds": [15],
+      "careerUrl": "https://jobs.anta.com/",
+      "aliases": ["ANTA"]
+    },
+    {
+      "builtinKey": "8e3a9e11-d67f-4b81-9bb9-185190f1f230",
+      "name": "百胜中国",
+      "industryIds": [16],
+      "careerUrl": "https://yumchina.zhiye.com/alljob?c=1",
+      "aliases": ["Yum China"]
+    },
+    {
+      "builtinKey": "4988c9b9-2da7-4956-83f3-4b987cef78e7",
+      "name": "中国石油",
+      "industryIds": [28],
+      "careerUrl": "https://www.cnpc.com.cn/cnpc/jrwm/jrwm_index.shtml",
+      "aliases": ["CNPC"]
+    },
+    {
+      "builtinKey": "6331e1e1-d314-433d-a079-742540d89d1f",
+      "name": "中国石化",
+      "industryIds": [28],
+      "careerUrl": "https://job.sinopec.com/",
+      "aliases": ["Sinopec"]
+    },
+    {
+      "builtinKey": "2ca77643-3405-440e-8d2d-aafc539d6052",
+      "name": "国家电网",
+      "industryIds": [29],
+      "careerUrl": "https://zhaopin.sgcc.com.cn/sgcchr/static/home.html",
+      "aliases": ["State Grid"]
+    },
+    {
+      "builtinKey": "fc001549-a271-4185-879e-d1df35434ead",
+      "name": "南方电网",
+      "industryIds": [29],
+      "careerUrl": "https://zhaopin.csg.cn/",
+      "aliases": ["China Southern Power Grid"]
+    },
+    {
+      "builtinKey": "0fe1e767-ad8e-43a8-8a7d-7891e4c47c07",
+      "name": "中国国航",
+      "industryIds": [27],
+      "careerUrl": "https://zhaopin.airchina.com.cn/cn/about_us/recruitment/index.shtml",
+      "aliases": ["Air China"]
+    },
+    {
+      "builtinKey": "d007cf28-e608-4a5f-9a4e-4d8ea85e1831",
+      "name": "南方航空",
+      "industryIds": [27],
+      "careerUrl": "https://job.csair.com/",
+      "aliases": ["China Southern Airlines"]
+    },
+    {
+      "builtinKey": "71d8654d-10ec-4b05-a5e9-a4997618e115",
+      "name": "东方航空",
+      "industryIds": [27],
+      "careerUrl": "https://job.ceair.com/",
+      "aliases": ["China Eastern"]
+    },
+    {
+      "builtinKey": "7f90376b-1096-4199-97d8-faa9ea8f0145",
+      "name": "华住集团",
+      "industryIds": [31],
+      "careerUrl": "https://campus.hworld.com/",
+      "aliases": ["H World"]
+    },
+    {
+      "builtinKey": "9a9efe50-79c3-4c0f-971b-fcf4fef70bea",
+      "name": "贝壳",
+      "industryIds": [23],
+      "careerUrl": "https://campus.ke.com/",
+      "aliases": ["KE Holdings"]
+    },
+    {
+      "builtinKey": "d6859b2e-2499-4ee8-81ab-dc5e35b29ad3",
+      "name": "龙湖集团",
+      "industryIds": [23],
+      "careerUrl": "https://www.longfor.com/join/job.html",
+      "aliases": ["Longfor"]
+    },
+    {
+      "builtinKey": "ea190b8c-4cd9-41fa-a9cf-d8ef4dcf6f79",
+      "name": "喜马拉雅",
+      "industryIds": [32],
+      "careerUrl": "https://jobs.ximalaya.com/",
+      "aliases": ["Ximalaya"]
+    },
+    {
+      "builtinKey": "31a020e2-0db2-454d-b037-cb9020a20327",
+      "name": "Keep",
+      "industryIds": [41],
+      "careerUrl": "https://hr.keep.com/",
+      "aliases": ["卡路里科技"]
+    },
+    {
+      "builtinKey": "8a67b3e8-0b28-4adf-946a-36ec8ca672d8",
+      "name": "Soul",
+      "industryIds": [1],
+      "careerUrl": "https://www.soulapp.cn/career",
+      "aliases": ["Soul App"]
+    },
+    {
+      "builtinKey": "03039167-b6d0-4570-9579-878bd8c98edf",
+      "name": "云天励飞",
+      "industryIds": [3],
+      "careerUrl": "https://www.intellif.com/int/join.html",
+      "aliases": ["Intellifusion"]
+    },
+    {
+      "builtinKey": "9792eecc-96d3-497b-b662-fdefbd318c68",
+      "name": "中国邮政",
+      "industryIds": [25],
+      "careerUrl": "https://chinapostshzp.zhaopin.com/",
+      "aliases": ["China Post"]
+    },
+    {
+      "builtinKey": "116ca529-a2a9-4bac-baeb-cc65a87bde16",
+      "name": "中国铁路",
+      "industryIds": [26],
+      "careerUrl": "https://rczp.china-railway.com.cn/page/recruitment/rec_info.html",
+      "aliases": ["China Railway"]
+    },
+    {
+      "builtinKey": "a6382e27-7ce8-4afe-b76d-032685d881ef",
+      "name": "中国建筑",
+      "industryIds": [23],
+      "careerUrl": "https://www.cscec.com/rlzy_new/rczp/",
+      "aliases": ["CSCEC"]
+    },
+    {
+      "builtinKey": "a661222d-a973-4c67-bade-831a5ffd7c16",
+      "name": "中国交建",
+      "industryIds": [23],
+      "careerUrl": "https://zhaopin.ccccltd.cn/",
+      "aliases": ["CCCC"]
+    },
+    {
+      "builtinKey": "586e8c0c-edcb-470b-904c-26c53a3d4b74",
+      "name": "中国铁建",
+      "industryIds": [23],
+      "careerUrl": "https://ztjs.hotjob.cn/",
+      "aliases": ["CRCC"]
+    },
+    {
+      "builtinKey": "1ffa9c4a-2cb6-4f91-a44b-e9db7c08f51e",
+      "name": "华大基因",
+      "industryIds": [18],
+      "careerUrl": "https://genomics.zhiye.com/",
+      "aliases": ["BGI"]
+    },
+    {
+      "builtinKey": "45816178-b05d-44dd-95e8-ad3d13e0c4f6",
+      "name": "德邦快递",
+      "industryIds": [25],
+      "careerUrl": "https://deppon.zhiye.com/campus",
+      "aliases": ["Deppon"]
+    },
+    {
+      "builtinKey": "ec359349-8076-428a-83b2-2ea6d053f492",
+      "name": "三一集团",
+      "industryIds": [21],
+      "careerUrl": "https://www.sanygroup.com/join/",
+      "aliases": ["SANY"]
+    },
+    {
+      "builtinKey": "938c9e56-fd6f-4d74-82f3-a0de33f3c9ea",
+      "name": "徐工集团",
+      "industryIds": [21],
+      "careerUrl": "https://www.xcmg.com/aboutus/job_center.htm",
+      "aliases": ["XCMG"]
+    },
+    {
+      "builtinKey": "1feaabca-3ed2-4cf0-a6f7-6e45e9319b4b",
+      "name": "中联重科",
+      "industryIds": [21],
+      "careerUrl": "https://wecruit.hotjob.cn/SU60a6449a2f9d2430fdc11a19/pb/news.html?pageType=0",
+      "aliases": ["Zoomlion"]
+    },
+    {
+      "builtinKey": "9f582454-37e9-45f7-9394-b7d8e41bb256",
+      "name": "微创医疗",
+      "industryIds": [17],
+      "careerUrl": "https://www.microport.com.cn/join/index.html",
+      "aliases": ["MicroPort"]
+    },
+    {
+      "builtinKey": "f0a2becc-9a96-430a-82c6-afb0a29bd2e3",
+      "name": "中国核电",
+      "industryIds": [28],
+      "careerUrl": "https://cnnc.zhiye.com/custom/index",
+      "aliases": ["CNNP"]
+    },
+    {
+      "builtinKey": "8dff9434-ab89-4412-8e07-f686f4d31859",
+      "name": "国家能源集团",
+      "industryIds": [28],
+      "careerUrl": "https://zhaopin.chnenergy.com.cn/recTypeSerch?kinds=3",
+      "aliases": ["CHN Energy"]
+    },
+    {
+      "builtinKey": "f5d58765-bb1a-49d8-8dff-a03fac2008af",
+      "name": "中国海油",
+      "industryIds": [28],
+      "careerUrl": "https://www.cnooc.com.cn/zyzx/",
+      "aliases": ["CNOOC"]
+    },
+    {
+      "builtinKey": "f35002fd-9caf-472a-ba75-b75403b664d3",
+      "name": "浦发银行",
+      "industryIds": [11],
+      "careerUrl": "https://job.spdb.com.cn/",
+      "aliases": ["SPDB"]
+    },
+    {
+      "builtinKey": "6756fdbb-98da-4eec-a51e-02a46ac3c83b",
+      "name": "兴业银行",
+      "industryIds": [11],
+      "careerUrl": "https://job.cib.com.cn/portal/",
+      "aliases": ["CIB"]
+    },
+    {
+      "builtinKey": "9f6a00d5-940d-433a-a040-abda3625da2f",
+      "name": "光大银行",
+      "industryIds": [11],
+      "careerUrl": "https://eoap.cebbank.com/uiap/wt/CEB/zpzh/home",
+      "aliases": ["China Everbright Bank"]
+    },
+    {
+      "builtinKey": "b3be761e-10e7-4f73-a1dc-d50f7c3fd19e",
+      "name": "北京银行",
+      "industryIds": [11],
+      "careerUrl": "https://bankofbeijing.zhiye.com/social",
+      "aliases": ["Bank of Beijing"]
+    },
+    {
+      "builtinKey": "70059466-f768-4303-9629-88312c9f5358",
+      "name": "宁波银行",
+      "industryIds": [11],
+      "careerUrl": "https://zhaopin.nbcb.com.cn/app/",
+      "aliases": ["Ningbo Bank"]
+    },
+    {
+      "builtinKey": "a7d5124d-9707-4f1e-9ba7-53029c0422da",
+      "name": "招商证券",
+      "industryIds": [12],
+      "careerUrl": "https://wecruit.hotjob.cn/SU629dbc0c0dcad452299bc0f7/pb/custom.html?parentKey=section_4&pageType=customize_section_4",
+      "aliases": ["CMS"]
+    },
+    {
+      "builtinKey": "29fad3f3-7d26-429f-9757-f6f16f0e9291",
+      "name": "中信建投",
+      "industryIds": [12],
+      "careerUrl": "https://csc108.zhiye.com/campus/jobs",
+      "aliases": ["CITIC Securities"]
+    },
+    {
+      "builtinKey": "b71c1d35-c620-4443-a988-33fed6f32862",
+      "name": "国信证券",
+      "industryIds": [12],
+      "careerUrl": "https://guosen.zhiye.com/Social",
+      "aliases": ["Guosen"]
+    },
+    {
+      "builtinKey": "ed0d2393-9fc2-4d47-9e6b-b482772defe9",
+      "name": "中国太平",
+      "industryIds": [13],
+      "careerUrl": "https://cntaiping.zhiye.com/",
+      "aliases": ["China Taiping"]
+    },
+    {
+      "builtinKey": "326df0cc-e2f7-4c3f-8877-5fe5ff62fd73",
+      "name": "首都机场",
+      "industryIds": [26],
+      "careerUrl": "https://www.cah.com.cn/Information/Recruit/",
+      "aliases": ["Capital Airport"]
+    },
+    {
+      "builtinKey": "044a0327-4038-4938-b933-c0fc79d1a8a2",
+      "name": "星巴克中国",
+      "industryIds": [15],
+      "careerUrl": "https://www.starbucks.com.cn/about/careers",
+      "aliases": ["Starbucks China"]
+    },
+    {
+      "builtinKey": "0e078815-1431-4ef7-a58f-f988870a28d3",
+      "name": "麦当劳中国",
+      "industryIds": [15],
+      "careerUrl": "http://officehire.mcdonalds.com.cn/apply/mcdchina/4327/#/",
+      "aliases": ["McDonald's China"]
+    },
+    {
+      "builtinKey": "0e5a076d-98ae-4626-89ed-9a5662b5d7da",
+      "name": "百事中国",
+      "industryIds": [16],
+      "careerUrl": "https://pepsico.51job.com/",
+      "aliases": ["PepsiCo China"]
+    },
+    {
+      "builtinKey": "f499b5fc-6e26-4fa7-bc85-0dcd044911b3",
+      "name": "中粮可口可乐",
+      "industryIds": [16],
+      "careerUrl": "https://cofcoko.zhiye.com/",
+      "aliases": ["COFCO Coca-Cola"]
+    },
+    {
+      "builtinKey": "3d33d8f3-5ff6-4cf6-8054-82b8ed1d4a35",
+      "name": "苏宁易购",
+      "industryIds": [14],
+      "careerUrl": "https://careers.suning.cn/rps-web/",
+      "aliases": ["Suning"]
+    },
+    {
+      "builtinKey": "5ed68a8a-63e8-495c-9247-79c13a89663c",
+      "name": "华润万家",
+      "industryIds": [14],
+      "careerUrl": "https://wecruit.hotjob.cn/SU61500b08bef57c54dcc07957/pb/social.html",
+      "aliases": ["China Resources Vanguard"]
+    },
+    {
+      "builtinKey": "cab288d9-cd2f-43bb-8308-398524ca42f9",
+      "name": "周大福",
+      "industryIds": [15],
+      "careerUrl": "https://hr.ctf.com.cn/",
+      "aliases": ["Chow Tai Fook"]
+    },
+    {
+      "builtinKey": "52fe5b81-30fe-4100-bd4f-275eef2fd89c",
+      "name": "锦江酒店",
+      "industryIds": [31],
+      "careerUrl": "https://www.ivvajob.com/base/jinjianghotels",
+      "aliases": ["Jinjiang Hotels"]
+    },
+    {
+      "builtinKey": "7704ef92-11f0-4928-a6e1-f8581ad85435",
+      "name": "首旅酒店",
+      "industryIds": [31],
+      "careerUrl": "https://www.btg.com.cn/newsList/31/1.html",
+      "aliases": ["BTG"]
+    },
+    {
+      "builtinKey": "29bb2e15-a302-443c-beac-d854601d645c",
+      "name": "万科",
+      "industryIds": [23],
+      "careerUrl": "https://www.vanke.com/join/talent",
+      "aliases": ["Vanke"]
+    },
+    {
+      "builtinKey": "f9c38803-5bb2-4ba1-9bae-c81308fbe30f",
+      "name": "保利发展",
+      "industryIds": [23],
+      "careerUrl": "https://polycareer.zhiye.com/",
+      "aliases": ["Poly Developments"]
+    },
+    {
+      "builtinKey": "81d437fc-2eed-4452-a82d-baf6a4e48c1e",
+      "name": "招商蛇口",
+      "industryIds": [23],
+      "careerUrl": "https://cmsk1979.zhiye.com/",
+      "aliases": ["China Merchants Shekou"]
+    },
+    {
+      "builtinKey": "7a979a96-f295-4bf2-9f2d-d92aeccb1e34",
+      "name": "华润置地",
+      "industryIds": [23],
+      "careerUrl": "https://crc.wintalent.cn/wt/CRC/web/index/CompCRCPageindex",
+      "aliases": ["CR Land"]
+    },
+    {
+      "builtinKey": "2b5069fc-f0f4-4d13-bfbf-c1733c0751b4",
+      "name": "中国中车",
+      "industryIds": [21],
+      "careerUrl": "https://crrc.hotjob.cn/",
+      "aliases": ["CRRC"]
+    },
+    {
+      "builtinKey": "b1961677-6e07-42f1-b41a-f0d3db2aab96",
+      "name": "中国兵器工业集团",
+      "industryIds": [21],
+      "careerUrl": "https://norincogroupzhaopin.zhiye.com/",
+      "aliases": ["NORINCO"]
+    },
+    {
+      "builtinKey": "a2dd447a-fed8-4b85-80de-1769b04b0272",
+      "name": "中国船舶集团",
+      "industryIds": [21],
+      "careerUrl": "https://cssc.zhiye.com/",
+      "aliases": ["CSSC"]
+    },
+    {
+      "builtinKey": "61a5536d-4485-4f80-9167-7ad505cee152",
+      "name": "中国航空工业集团",
+      "industryIds": [27],
+      "careerUrl": "https://www.avic.com.cn/sycd/rczp/",
+      "aliases": ["AVIC"]
+    },
+    {
+      "builtinKey": "946eecae-7f79-4ea4-baa0-fd7cf04956c1",
+      "name": "中国航天科技集团",
+      "industryIds": [27],
+      "careerUrl": "https://www.spacetalent.com.cn/",
+      "aliases": ["CASC"]
+    },
+    {
+      "builtinKey": "2103d964-6352-4bb2-99c7-747725ea71a4",
+      "name": "中国航天科工集团",
+      "industryIds": [27],
+      "careerUrl": "https://casicjob.iguopin.com/",
+      "aliases": ["CASIC"]
+    },
+    {
+      "builtinKey": "00763951-b59a-4c68-83f1-21676e958892",
+      "name": "中国电子科技集团",
+      "industryIds": [8],
+      "careerUrl": "https://cetc.iguopin.com/job",
+      "aliases": ["CETC"]
+    },
+    {
+      "builtinKey": "0ec1dd71-ca55-4f80-87bc-6952cee20b93",
+      "name": "中国黄金集团",
+      "industryIds": [28],
+      "careerUrl": "https://www.chinagoldgroup.com/zghj/rlzy/zczp/A080008001Gone1.html",
+      "aliases": ["China Gold"]
+    },
+    {
+      "builtinKey": "82267d60-ae10-4528-a7da-1fbdab5d534d",
+      "name": "中国铝业集团",
+      "industryIds": [28],
+      "careerUrl": "https://chinalco.iguopin.com/",
+      "aliases": ["CHINALCO"]
+    },
+    {
+      "builtinKey": "c8ae6dd2-eb41-44e1-a2f8-07fbe353ba0a",
+      "name": "中国五矿",
+      "industryIds": [28],
+      "careerUrl": "https://wecruit.hotjob.cn/SU62f37858bef57c29ead8adab/pb/index.html",
+      "aliases": ["Minmetals"]
+    },
+    {
+      "builtinKey": "85bc39af-c9f4-41f7-b452-b0238c7af77d",
+      "name": "中国宝武",
+      "industryIds": [21],
+      "careerUrl": "https://baowugroup-zhaopin.51job.com/index05.html",
+      "aliases": ["Baowu"]
+    },
+    {
+      "builtinKey": "99b51c04-c5eb-4d0c-ac72-03db6246207e",
+      "name": "中国农业银行",
+      "industryIds": [11],
+      "careerUrl": "https://career.abchina.com/build/index.html",
+      "aliases": ["ABC"]
+    },
+    {
+      "builtinKey": "437a4738-bd76-43cd-960c-400c5593823e",
+      "name": "中国邮政储蓄银行",
+      "industryIds": [11],
+      "careerUrl": "https://www.psbc.com/cn/gyyc/rczp/shzp/",
+      "aliases": ["PSBC"]
+    },
+    {
+      "builtinKey": "d037fd36-7a74-4c2c-9b6e-d1c05860083e",
+      "name": "浙商银行",
+      "industryIds": [11],
+      "careerUrl": "https://zp.czbank.com.cn/zpweb/",
+      "aliases": ["CZBank"]
+    },
+    {
+      "builtinKey": "d9e764a9-a736-4e6c-b2ba-17c9f05e8961",
+      "name": "广发银行",
+      "industryIds": [11],
+      "careerUrl": "https://www.cgbchina.com.cn/career/gonggao.jsp",
+      "aliases": ["CGB"]
+    },
+    {
+      "builtinKey": "7caa0b8e-e3df-4956-9d20-d22734a19556",
+      "name": "同花顺",
+      "industryIds": [10],
+      "careerUrl": "https://job.10jqka.com.cn/",
+      "aliases": ["10JQKA"]
+    },
+    {
+      "builtinKey": "c6be7657-f466-4eb9-b9af-be7fa4093c63",
+      "name": "金蝶",
+      "industryIds": [4],
+      "careerUrl": "https://campus.kingdee.com/",
+      "aliases": ["Kingdee"]
+    },
+    {
+      "builtinKey": "00fb48b7-84e9-45ab-a4d5-8208e767ca2d",
+      "name": "恒生电子",
+      "industryIds": [4],
+      "careerUrl": "https://hundsun.zhiye.com/",
+      "aliases": ["Hundsun"]
+    },
+    {
+      "builtinKey": "ed530e6b-8479-404a-b227-8b05c17f9f87",
+      "name": "东软",
+      "industryIds": [4],
+      "careerUrl": "https://www.neusoft.com/cn/about/job/",
+      "aliases": ["Neusoft"]
+    },
+    {
+      "builtinKey": "1456db62-c854-45f0-b4a9-1f37ae4ca8f6",
+      "name": "深信服",
+      "industryIds": [9],
+      "careerUrl": "https://hr.sangfor.com/",
+      "aliases": ["Sangfor"]
+    },
+    {
+      "builtinKey": "0cd8ad45-ef9f-4b34-8405-90c8096167ad",
+      "name": "汇川技术",
+      "industryIds": [21],
+      "careerUrl": "https://recruit.inovance.com/jobs",
+      "aliases": ["Inovance"]
+    },
+    {
+      "builtinKey": "0bb4808d-1c21-47a1-82e9-f5e6b943609c",
+      "name": "中航光电",
+      "industryIds": [8],
+      "careerUrl": "https://www.jonhon.cn/job/talent.htm",
+      "aliases": ["JONHON"]
+    },
+    {
+      "builtinKey": "522af62e-6d39-4cea-ab34-9f8641c4d637",
+      "name": "国药集团",
+      "industryIds": [18],
+      "careerUrl": "https://www.sinopharm.com/recruitment.html",
+      "aliases": ["Sinopharm"]
+    },
+    {
+      "builtinKey": "65ee2a21-6db5-4f75-8a64-8609fc90f320",
+      "name": "华熙生物",
+      "industryIds": [18],
+      "careerUrl": "https://www.hotjob.cn/wt/HXSW/web/index?brandCode=1",
+      "aliases": ["Bloomage"]
+    },
+    {
+      "builtinKey": "4f0608a5-0fcd-49df-89fc-537e938f3880",
+      "name": "科伦药业",
+      "industryIds": [18],
+      "careerUrl": "https://kelun.zhiye.com/",
+      "aliases": ["Kelun"]
+    },
+    {
+      "builtinKey": "3f2aca80-1845-46ac-80cc-55895a8e77cc",
+      "name": "石药集团",
+      "industryIds": [18],
+      "careerUrl": "https://www.e-cspc.com/hr/index.html",
+      "aliases": ["CSPC"]
+    },
+    {
+      "builtinKey": "845d66b5-c4ba-4cb7-a1fb-392bfa9a1841",
+      "name": "贝达药业",
+      "industryIds": [18],
+      "careerUrl": "https://bettapharma.zhiye.com/",
+      "aliases": ["Betta Pharma"]
+    },
+    {
+      "builtinKey": "d326d939-d903-4019-8257-d2e72ccb01d2",
+      "name": "片仔癀",
+      "industryIds": [18],
+      "careerUrl": "https://www.zzpzh.com/rczp/list_252.aspx",
+      "aliases": ["Pien Tze Huang"]
+    },
+    {
+      "builtinKey": "d2899569-8988-4236-aa31-2f47702e8f97",
+      "name": "康龙化成",
+      "industryIds": [18],
+      "careerUrl": "https://www.pharmaron.cn/careers",
+      "aliases": ["Pharmaron"]
+    },
+    {
+      "builtinKey": "029677ba-b144-42c9-bf3f-29739e0e9bf8",
+      "name": "永辉超市",
+      "industryIds": [14],
+      "careerUrl": "https://www.yonghui.com.cn/html/web/rencaizhongxin/gongzuojihui/index.html",
+      "aliases": ["Yonghui"]
+    },
+    {
+      "builtinKey": "416f2723-771e-44d6-96e9-bb190e09ea2b",
+      "name": "沃尔玛中国",
+      "industryIds": [14],
+      "careerUrl": "https://walmartchina.avature.cn/zh_CN/careers",
+      "aliases": ["Walmart China"]
+    },
+    {
+      "builtinKey": "49357087-f28e-48cf-b449-dd578b73b0b4",
+      "name": "宜家中国",
+      "industryIds": [14],
+      "careerUrl": "https://jobs.ikeachina.cn/",
+      "aliases": ["IKEA China"]
+    },
+    {
+      "builtinKey": "662b2f3f-abe9-4735-937e-01a69892d561",
+      "name": "华夏银行",
+      "industryIds": [11],
+      "careerUrl": "https://wecruit.hotjob.cn/SU645b0d18bef57c0907e9fbc8/pb/school.html",
+      "aliases": ["Huaxia Bank"]
+    },
+    {
+      "builtinKey": "22c84b61-969c-47dc-9a66-ad7cc81af269",
+      "name": "平安银行",
+      "industryIds": [11],
+      "careerUrl": "https://wetalent.pingan.com/cb3685e9c6163b7cb82ea4352291031e/campus/home",
+      "aliases": ["Ping An Bank"]
+    },
+    {
+      "builtinKey": "0d3d3781-3c0c-4814-9f17-419adb0b8634",
+      "name": "用友",
+      "industryIds": [4],
+      "careerUrl": "https://career.yonyou.com/",
+      "aliases": ["Yonyou"]
+    },
+    {
+      "builtinKey": "ad3d3560-2c96-40c9-8188-3a578f939ea6",
+      "name": "中科曙光",
+      "industryIds": [9],
+      "careerUrl": "https://sugon.zhiye.com/",
+      "aliases": ["Sugon"]
+    },
+    {
+      "builtinKey": "cfb3f7f8-faba-4356-9ae2-6ebb4ec3d54e",
+      "name": "潍柴动力",
+      "industryIds": [21],
+      "careerUrl": "https://weichai.zhiye.com/custom/index",
+      "aliases": ["Weichai"]
+    },
+    {
+      "builtinKey": "c997b118-05f2-4cbe-85c4-5b1521922429",
+      "name": "中国重汽",
+      "industryIds": [19],
+      "careerUrl": "https://zhaopin.sinotruk.com:8009/",
+      "aliases": ["Sinotruk"]
+    },
+    {
+      "builtinKey": "1d2e2be5-a08e-48cb-9a8c-235c60729674",
+      "name": "长安汽车",
+      "industryIds": [19],
+      "careerUrl": "https://changan.zhiye.com/Campus",
+      "aliases": ["Changan"]
+    },
+    {
+      "builtinKey": "6a621929-dba6-4d46-b1de-b9c9d784d8f3",
+      "name": "奇瑞汽车",
+      "industryIds": [19],
+      "careerUrl": "https://chery.zhiye.com/Campus",
+      "aliases": ["Chery"]
+    },
+    {
+      "builtinKey": "f3b66add-e232-4b0b-bc13-9395b48d62f8",
+      "name": "公牛集团",
+      "industryIds": [8],
+      "careerUrl": "https://gongniu.zhiye.com/",
+      "aliases": ["BULL"]
+    },
+    {
+      "builtinKey": "e2f576e1-9ada-4e64-aa55-329700cdfdfd",
+      "name": "中国华能",
+      "industryIds": [28],
+      "careerUrl": "https://zhaopin.chng.com.cn/",
+      "aliases": ["CHNG"]
+    },
+    {
+      "builtinKey": "9aec8c38-d73f-49a3-8028-5e6f592f90a6",
+      "name": "中国华电",
+      "industryIds": [28],
+      "careerUrl": "https://rencaishichang.chd.com.cn/w3/",
+      "aliases": ["CHD"]
+    },
+    {
+      "builtinKey": "df8089aa-6074-4f07-a3f3-78880a71539e",
+      "name": "中国大唐",
+      "industryIds": [28],
+      "careerUrl": "https://zhaopin.china-cdt.com/",
+      "aliases": ["China Datang"]
+    },
+    {
+      "builtinKey": "45e6a739-1be2-4fcd-bc96-462a3ed3f260",
+      "name": "国家电投",
+      "industryIds": [28],
+      "careerUrl": "https://spic2026.iguopin.com/",
+      "aliases": ["SPIC"]
+    },
+    {
+      "builtinKey": "5e21699b-629f-40c3-9b52-3a5f488e80e2",
+      "name": "中国核工业集团",
+      "industryIds": [28],
+      "careerUrl": "https://cnnc.iguopin.com/job",
+      "aliases": ["CNNC"]
+    },
+    {
+      "builtinKey": "586821f8-abe5-4515-a8fa-83a4b568e9dd",
+      "name": "瑞幸咖啡",
+      "industryIds": [16],
+      "careerUrl": "https://www.zhaopin.com/companydetail/jobs-CZ598313130/",
+      "aliases": ["Luckin Coffee"]
+    },
+    {
+      "builtinKey": "20678e0d-8223-4b21-8cea-ecba9f0b0fcb",
+      "name": "蜜雪冰城",
+      "industryIds": [16],
+      "careerUrl": "https://careers.mxbc.com/",
+      "aliases": ["Mixue"]
+    },
+    {
+      "builtinKey": "5fc1a48e-1c9f-4ec2-9aac-cc03a9920ec5",
+      "name": "大华股份",
+      "industryIds": [8],
+      "careerUrl": "https://job.dahuatech.com/",
+      "aliases": ["Dahua"]
+    },
+    {
+      "builtinKey": "e980862d-62df-46ad-86be-88671d9a34ff",
+      "name": "洽洽食品",
+      "industryIds": [16],
+      "careerUrl": "https://qiaqiafood.zhiye.com/",
+      "aliases": ["Qiaqia"]
+    },
+    {
+      "builtinKey": "5a88cbe5-17ec-4a1a-8b6b-cf90b5b2eefd",
+      "name": "春秋航空",
+      "industryIds": [26],
+      "careerUrl": "https://www.hotjob.cn/wt/springhr/mobweb/v8/index?brandCode=1&request_locale=zh_CN",
+      "aliases": ["Spring Airlines"]
+    },
+    {
+      "builtinKey": "8c5eefe8-92f2-4f6c-b61d-35c21fd03a2b",
+      "name": "吉祥航空",
+      "industryIds": [26],
+      "careerUrl": "https://wecruit.hotjob.cn/SU62ea129d0dcad4075c8525ca/pb/index.html",
+      "aliases": ["Juneyao Air"]
+    },
+    {
+      "builtinKey": "50f616ee-3e80-478a-aecf-3dff53629fed",
+      "name": "国泰海通证券",
+      "industryIds": [12],
+      "careerUrl": "https://sec-sh-offer.gtjaqh.com/",
+      "aliases": ["Guotai Haitong"]
+    },
+    {
+      "builtinKey": "2585619a-8759-43fe-88bb-4c5ce79cae52",
+      "name": "安能物流",
+      "industryIds": [25],
+      "careerUrl": "https://www.ane56.com/self-recruit.html",
+      "aliases": ["ANE"]
+    },
+    {
+      "builtinKey": "f9683cd0-d61c-43e3-b49c-2d5dfde9e37f",
+      "name": "极兔速递",
+      "industryIds": [25],
+      "careerUrl": "https://jtexpress.jobs.feishu.cn/index",
+      "aliases": ["J&T Express"]
+    },
+    {
+      "builtinKey": "2e864198-7629-4dde-a6a7-747d3fe884a1",
+      "name": "韵达速递",
+      "industryIds": [25],
+      "careerUrl": "https://yundaex.com/cn/hr_online.php",
+      "aliases": ["Yunda"]
+    },
+    {
+      "builtinKey": "40754c2a-575a-45d8-830b-98999cbfb67a",
+      "name": "三峡集团",
+      "industryIds": [28],
+      "careerUrl": "https://www.ctg.com.cn/sxjt/rlzy71/rlzydt/2026042410005892280/index.html",
+      "aliases": ["CTG"]
+    },
+    {
+      "builtinKey": "6833b0b8-7b62-4580-9d3c-2c8131e8966b",
+      "name": "中国节能环保集团",
+      "industryIds": [42],
+      "careerUrl": "https://cecep.iguopin.com/job",
+      "aliases": ["CECEP"]
+    },
+    {
+      "builtinKey": "cfcfdddb-14b1-4585-a806-5f6df5ed8416",
+      "name": "光明乳业",
+      "industryIds": [16],
+      "careerUrl": "https://www.brightdairy.com/About/Join",
+      "aliases": ["Bright Dairy"]
+    },
+    {
+      "builtinKey": "62ba68c0-40a2-434a-bee5-d357987773e9",
+      "name": "涂鸦智能",
+      "industryIds": [8],
+      "careerUrl": "https://job.tuya.com/",
+      "aliases": ["Tuya"]
+    },
+    {
+      "builtinKey": "048788b1-be27-4509-8f5a-3535343cbd53",
+      "name": "九号公司",
+      "industryIds": [8],
+      "careerUrl": "https://join.ninebot.com/campus",
+      "aliases": ["Ninebot"]
+    },
+    {
+      "builtinKey": "3d2dece5-31c8-4749-99e3-05dda86d4dbf",
+      "name": "芯原股份",
+      "industryIds": [5],
+      "careerUrl": "https://www.verisilicon.com/cn/Careers",
+      "aliases": ["VeriSilicon"]
+    },
+    {
+      "builtinKey": "4fc1abe0-5302-48e1-a1d9-35d64b20fb44",
+      "name": "中际旭创",
+      "industryIds": [8],
+      "careerUrl": "https://www.zj-innolight.com/index/index/join.html",
+      "aliases": ["InnoLight"]
+    },
+    {
+      "builtinKey": "664c8131-6d08-4480-ac32-67b33377abbb",
+      "name": "复旦微电子",
+      "industryIds": [5],
+      "careerUrl": "https://www.fmsh.com/school/",
+      "aliases": ["Fudan Microelectronics"]
+    },
+    {
+      "builtinKey": "30ff43a9-5054-494a-8d1c-b3b46ec628d7",
+      "name": "摩尔线程",
+      "industryIds": [5],
+      "careerUrl": "https://www.mthreads.com/jobs",
+      "aliases": ["Moore Threads"]
+    },
+    {
+      "builtinKey": "06d95ed6-bdd1-4586-8342-998352bdabec",
+      "name": "沐曦股份",
+      "industryIds": [5],
+      "careerUrl": "https://recruitment.metax-tech.com/",
+      "aliases": ["MetaX"]
+    },
+    {
+      "builtinKey": "6c5a13fd-ce6e-45a9-945c-2a17b4553431",
+      "name": "云知声",
+      "industryIds": [3],
+      "careerUrl": "https://unisound.com/careers",
+      "aliases": ["Unisound"]
+    },
+    {
+      "builtinKey": "f47bfead-e7c0-4d31-8bc3-a4319d73db41",
+      "name": "出门问问",
+      "industryIds": [3],
+      "careerUrl": "https://www.chumenwenwen.com/recruit/index",
+      "aliases": ["Mobvoi"]
+    },
+    {
+      "builtinKey": "00862625-7dd1-4dc7-9ff5-dea21573f0f2",
+      "name": "科大国创",
+      "industryIds": [4],
+      "careerUrl": "https://kdgcsoft.zhiye.com/campus/jobs",
+      "aliases": ["Keda Guochuang"]
+    },
+    {
+      "builtinKey": "599e8f18-9c52-4ceb-84e3-e317c547a8f3",
+      "name": "思特威",
+      "industryIds": [5],
+      "careerUrl": "https://www.smartsenstech.com/joinus",
+      "aliases": ["SmartSens"]
+    },
+    {
+      "builtinKey": "f16d3031-f88c-4c74-820e-675a7c4a4041",
+      "name": "叠纸游戏",
+      "industryIds": [2],
+      "careerUrl": "https://career.papegames.com/campus",
+      "aliases": ["PaperGames"]
+    },
+    {
+      "builtinKey": "930d0f18-8a33-4c6d-a0fd-85825eb03718",
+      "name": "巨人网络",
+      "industryIds": [2],
+      "careerUrl": "http://hr.ztgame.com/campus/",
+      "aliases": ["Giant Interactive"]
+    },
+    {
+      "builtinKey": "c136aa44-ccb2-4183-80d4-59db45c8ae45",
+      "name": "三七互娱",
+      "industryIds": [2],
+      "careerUrl": "https://37wan.zhiye.com/",
+      "aliases": ["37 Interactive"]
+    },
+    {
+      "builtinKey": "62c49f6f-34c4-4a70-bd7c-f9663a9c85e2",
+      "name": "泰格医药",
+      "industryIds": [17],
+      "careerUrl": "https://tigermed.zhiye.com/",
+      "aliases": ["Tigermed"]
+    },
+    {
+      "builtinKey": "697b2eeb-cbbd-4fe9-8b83-995d68a65611",
+      "name": "信达生物",
+      "industryIds": [18],
+      "careerUrl": "https://innoventbio.zhiye.com/Campus",
+      "aliases": ["Innovent"]
+    },
+    {
+      "builtinKey": "39eb60af-73fd-4ad4-877f-e3d0c09a1a39",
+      "name": "荣昌生物",
+      "industryIds": [18],
+      "careerUrl": "https://www.remegen.cn/index.php?v=listing&cid=45",
+      "aliases": ["RemeGen"]
+    },
+    {
+      "builtinKey": "106d8d77-57df-4163-985a-34052868e5db",
+      "name": "康希诺",
+      "industryIds": [18],
+      "careerUrl": "https://cansinotech.zhiye.com/",
+      "aliases": ["CanSino"]
+    },
+    {
+      "builtinKey": "ab545b96-7882-4704-9692-5136d55b604e",
+      "name": "金域医学",
+      "industryIds": [17],
+      "careerUrl": "https://kingmed.zhiye.com/",
+      "aliases": ["KingMed"]
+    },
+    {
+      "builtinKey": "39f26f18-fc28-482a-8ce9-9911a0363ce6",
+      "name": "扬子江药业",
+      "industryIds": [18],
+      "careerUrl": "https://www.yangzijiang.com/Career",
+      "aliases": ["Yangtze River Pharmaceutical"]
+    },
+    {
+      "builtinKey": "1eca8e3c-98ba-42d8-b5b0-163d148a79a7",
+      "name": "白云山制药总厂",
+      "industryIds": [18],
+      "careerUrl": "https://byszc.com/join-us/recruitment.html",
+      "aliases": ["BYS"]
+    },
+    {
+      "builtinKey": "9b4149f6-73f5-42cf-81ca-cffe016d4e4e",
+      "name": "海天味业",
+      "industryIds": [16],
+      "careerUrl": "https://haday.hotjob.cn/",
+      "aliases": ["Haday"]
+    },
+    {
+      "builtinKey": "6164ccd1-09bf-4ef2-8668-956f9ec6318f",
+      "name": "绝味食品",
+      "industryIds": [16],
+      "careerUrl": "https://www.juewei.cn/page/resource/recruit.html",
+      "aliases": ["Juewei"]
+    },
+    {
+      "builtinKey": "c7cbfbb4-069b-4317-8642-861a2320b473",
+      "name": "新希望",
+      "industryIds": [38],
+      "careerUrl": "https://newhope.zhiye.com/index?p=3^-1,1^7&day=-1&PageIndex=1&class=-1",
+      "aliases": ["New Hope"]
+    },
+    {
+      "builtinKey": "05e7208d-b41b-4fb4-bf20-9df3869636d8",
+      "name": "三花智控",
+      "industryIds": [21],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/zjshc/56209#/",
+      "aliases": ["Sanhua"]
+    },
+    {
+      "builtinKey": "9b0be23f-2c9f-447d-be45-a01fe5024b3b",
+      "name": "汇顶科技",
+      "industryIds": [5],
+      "careerUrl": "http://goodix.zhiye.com/",
+      "aliases": ["Goodix"]
+    },
+    {
+      "builtinKey": "a4f15155-d988-4e84-b8bb-df43837a66cb",
+      "name": "中国民航信息集团",
+      "industryIds": [26],
+      "careerUrl": "https://travelsky.hotjob.cn/",
+      "aliases": ["TravelSky"]
+    },
+    {
+      "builtinKey": "7ff8f4c9-5621-4e3d-9965-4ed508437ea3",
+      "name": "中国远洋海运",
+      "industryIds": [26],
+      "careerUrl": "https://coscoshipping.iguopin.com/job",
+      "aliases": ["COSCO SHIPPING"]
+    },
+    {
+      "builtinKey": "98c0d256-6162-4953-930b-9604b12cbcc8",
+      "name": "神州租车",
+      "industryIds": [41],
+      "careerUrl": "https://zhaopin.zuche.com/",
+      "aliases": ["CAR Inc."]
+    },
+    {
+      "builtinKey": "443bea1e-ed99-4da7-a389-b9613235a54e",
+      "name": "国金证券",
+      "industryIds": [12],
+      "careerUrl": "https://www.gjzq.com.cn/career/index.html",
+      "aliases": ["Sinolink Securities"]
+    },
+    {
+      "builtinKey": "40b472b0-5c03-40dd-b050-0c9bbf30c19c",
+      "name": "中国银河证券",
+      "industryIds": [12],
+      "careerUrl": "https://chinastock.zhiye.com/",
+      "aliases": ["China Galaxy Securities"]
+    },
+    {
+      "builtinKey": "b70d674a-470b-4a41-b8cb-4221209ab738",
+      "name": "上海银行",
+      "industryIds": [11],
+      "careerUrl": "https://bosc.zhiye.com/campus",
+      "aliases": ["Bank of Shanghai"]
+    },
+    {
+      "builtinKey": "c57ed9d8-60b7-411c-9cb3-938644174392",
+      "name": "国家开发银行",
+      "industryIds": [10],
+      "careerUrl": "https://www.cdb.com.cn/xwzx/xxgg/zpgg/",
+      "aliases": ["CDB"]
+    },
+    {
+      "builtinKey": "4a9f58ef-f7d3-42e0-8b15-a54474f7f579",
+      "name": "中国进出口银行",
+      "industryIds": [10],
+      "careerUrl": "https://zhaopin.eximbank.gov.cn/",
+      "aliases": ["China Exim Bank"]
+    },
+    {
+      "builtinKey": "76f4a604-7bc3-492f-814b-364960132754",
+      "name": "中国联通",
+      "industryIds": [7],
+      "careerUrl": "https://www.chinaunicom.com.cn/46/menu01/528/column06",
+      "aliases": ["China Unicom"]
+    },
+    {
+      "builtinKey": "e8ef1c41-1f9f-434a-b7b5-293d2f67b090",
+      "name": "中国能建",
+      "industryIds": [21],
+      "careerUrl": "https://zhaopin.ceec.net.cn/",
+      "aliases": ["China Energy Engineering"]
+    },
+    {
+      "builtinKey": "b523144e-19b6-403d-a1f3-9069c01d9285",
+      "name": "中国电建",
+      "industryIds": [21],
+      "careerUrl": "https://zhaopin.powerchina.cn/",
+      "aliases": ["PowerChina"]
+    },
+    {
+      "builtinKey": "97b5543d-0a69-406f-a213-b61a821d5467",
+      "name": "中国化学",
+      "industryIds": [21],
+      "careerUrl": "https://cncec.iguopin.com/job",
+      "aliases": ["CNCEC"]
+    },
+    {
+      "builtinKey": "2f23dad3-f585-4495-945e-8b76ee0fb2e8",
+      "name": "中国有色矿业集团",
+      "industryIds": [28],
+      "careerUrl": "https://hrcnmc.iguopin.com/jobcampus",
+      "aliases": ["CNMC"]
+    },
+    {
+      "builtinKey": "d7cd5b4f-e7b5-4e19-b463-bb3879806be4",
+      "name": "中国建材集团",
+      "industryIds": [21],
+      "careerUrl": "https://cnbmjob.iguopin.com/notice",
+      "aliases": ["CNBM"]
+    },
+    {
+      "builtinKey": "ab145e96-f869-4243-99bd-1e5635b93bdb",
+      "name": "伊利股份",
+      "industryIds": [16],
+      "careerUrl": "https://yili.hotjob.cn/",
+      "aliases": ["Yili"]
+    },
+    {
+      "builtinKey": "f3ce327f-d2d0-4ef7-b037-a220544d7fbc",
+      "name": "中国航空油料集团",
+      "industryIds": [26],
+      "careerUrl": "https://cnaf.zhiye.com/Campus",
+      "aliases": ["CNAF"]
+    },
+    {
+      "builtinKey": "e3380e09-c3fe-4d20-bf0b-ba2d978a8c85",
+      "name": "中国国新",
+      "industryIds": [35],
+      "careerUrl": "https://www.crhc.cn/rcfz/rczp/A005007002index_1.htm",
+      "aliases": ["China Reform"]
+    },
+    {
+      "builtinKey": "4f30ac3e-8c3f-4534-aa2a-921e9ca15334",
+      "name": "青岛啤酒",
+      "industryIds": [16],
+      "careerUrl": "https://tsingtao.zhiye.com/",
+      "aliases": ["Tsingtao"]
+    },
+    {
+      "builtinKey": "3d90988b-f725-4876-b0e6-888d8b3957b3",
+      "name": "国投电力",
+      "industryIds": [29],
+      "careerUrl": "https://sdicpower.iguopin.com/",
+      "aliases": ["SDIC Power"]
+    },
+    {
+      "builtinKey": "d6623911-652a-4f40-8550-e6669f77fb89",
+      "name": "华润集团",
+      "industryIds": [35],
+      "careerUrl": "https://crcjob.iguopin.com/job-campus",
+      "aliases": ["China Resources"]
+    },
+    {
+      "builtinKey": "68da4138-62ce-4bb0-9e7a-179a9f921da6",
+      "name": "新华保险",
+      "industryIds": [13],
+      "careerUrl": "https://nci.zhiye.com/",
+      "aliases": ["New China Life"]
+    },
+    {
+      "builtinKey": "59c3d085-57dc-4b31-9917-005fec381f15",
+      "name": "国元证券",
+      "industryIds": [12],
+      "careerUrl": "https://gyzq.zhiye.com/",
+      "aliases": ["Guoyuan Securities"]
+    },
+    {
+      "builtinKey": "9c0b8520-32c7-44a6-b42c-22f7ebba05c8",
+      "name": "紫金矿业",
+      "industryIds": [28],
+      "careerUrl": "https://join.zjky.cn",
+      "aliases": ["Zijin Mining"]
+    },
+    {
+      "builtinKey": "dc6268a5-7870-4e12-9bb5-411ba95caa63",
+      "name": "北京车之家信息技术有限公司",
+      "industryIds": [1],
+      "careerUrl": "https://talent.autohome.com.cn/",
+      "aliases": ["Autohome", "汽车之家"]
+    },
+    {
+      "builtinKey": "affff8fa-fc8a-4ccb-8d97-ddea161aa340",
+      "name": "新浪",
+      "industryIds": [32],
+      "careerUrl": "https://www.sina.com.cn/recruit.shtml",
+      "aliases": ["Sina"]
+    },
+    {
+      "builtinKey": "bf3855b3-5e83-488f-9dd7-e4d0c39bb391",
+      "name": "北京豆网科技有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://jobs.douban.com/",
+      "aliases": ["Douban", "豆瓣"]
+    },
+    {
+      "builtinKey": "d09097c3-b34e-4eb8-acb4-9b37ac0b1918",
+      "name": "北京多氪信息科技有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://zhaopin.36kr.com/",
+      "aliases": ["36Kr", "36氪"]
+    },
+    {
+      "builtinKey": "f5a9350c-7059-4635-bfcd-e60de258363c",
+      "name": "北京值得买科技股份有限公司",
+      "industryIds": [14],
+      "careerUrl": "https://zhidemai.jobs.feishu.cn/index",
+      "aliases": ["SMZDM", "什么值得买"]
+    },
+    {
+      "builtinKey": "f0bef4ee-345f-4062-9743-5b4dceb77375",
+      "name": "凤凰新媒体有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://career.ifeng.com/",
+      "aliases": ["iFeng", "凤凰网"]
+    },
+    {
+      "builtinKey": "be84b370-54fc-408b-8753-c7e303b55b54",
+      "name": "北京趣拿软件科技有限公司",
+      "industryIds": [31],
+      "careerUrl": "https://hf7l9aiqzx.jobs.feishu.cn/704852",
+      "aliases": ["Qunar", "去哪儿"]
+    },
+    {
+      "builtinKey": "b21419e3-3883-49d1-8990-aa33908aed26",
+      "name": "途家网网络技术（北京）有限公司",
+      "industryIds": [31],
+      "careerUrl": "http://campus.tujia.com/",
+      "aliases": ["Tujia", "途家"]
+    },
+    {
+      "builtinKey": "8500819f-7b4e-4dff-a86d-3f7759afa21f",
+      "name": "车好多集团",
+      "industryIds": [19],
+      "careerUrl": "https://wecruit.hotjob.cn/SU6474230c0dcad45af14d7963/pb/index.html",
+      "aliases": ["Guazi", "瓜子二手车"]
+    },
+    {
+      "builtinKey": "753aa993-9456-40ec-b7b3-3777c14c8563",
+      "name": "北京当当网信息技术有限公司",
+      "industryIds": [14],
+      "careerUrl": "http://t.dangdang.com/join_us",
+      "aliases": ["Dangdang", "当当网"]
+    },
+    {
+      "builtinKey": "85344b9e-a670-4c27-a70a-99d55b382e76",
+      "name": "北京物美商业集团股份有限公司",
+      "industryIds": [14],
+      "careerUrl": "https://wumart.jobs.feishu.cn/index/login",
+      "aliases": ["Wumart", "物美"]
+    },
+    {
+      "builtinKey": "d14b5929-0967-416b-a1d5-f89deec7191b",
+      "name": "多点生活（中国）网络科技有限公司",
+      "industryIds": [14],
+      "careerUrl": "https://duodian.jobs.feishu.cn/dmall",
+      "aliases": ["Dmall", "多点DMALL"]
+    },
+    {
+      "builtinKey": "d88c1dbb-36f6-44f4-bcbe-aefa3926476e",
+      "name": "高途教育科技集团有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://job.gaotu.cn/",
+      "aliases": ["Gaotu", "高途"]
+    },
+    {
+      "builtinKey": "1160a80b-628a-4de6-88a8-3fa4dae3b943",
+      "name": "作业帮教育科技（北京）有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://job.zuoyebang.com/",
+      "aliases": ["Zuoyebang", "作业帮"]
+    },
+    {
+      "builtinKey": "fc1eefe4-f5e4-474e-be79-5a27c210f22b",
+      "name": "北京猿辅导科技有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://hr.yuanfudao.com/",
+      "aliases": ["Yuanfudao", "猿辅导"]
+    },
+    {
+      "builtinKey": "e4577be8-2aec-4ad4-9f58-24ec07998a53",
+      "name": "北京世纪好未来教育科技有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://job.tal.com/",
+      "aliases": ["TAL Education", "好未来"]
+    },
+    {
+      "builtinKey": "1a17605a-3dda-417d-bf30-877bb7ac453f",
+      "name": "北京火花思维教育科技有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://h5-sparkle.huohua.cn/recruit?source=xiaozhaokonhgzhongxjhui",
+      "aliases": ["Spark Education", "火花思维"]
+    },
+    {
+      "builtinKey": "5e8eb636-3505-4cef-af83-0ce6d81c32f5",
+      "name": "北京纵情向前科技有限公司",
+      "industryIds": [13],
+      "careerUrl": "https://jobs.waterdrop-inc.com/campus",
+      "aliases": ["Waterdrop", "水滴公司"]
+    },
+    {
+      "builtinKey": "82c66ff6-904b-404d-b126-928c7013e7d1",
+      "name": "宜信",
+      "industryIds": [10],
+      "careerUrl": "https://wecruit.hotjob.cn/SU63f35dc6bef57c71d9fd08f8/pb/index.html",
+      "aliases": ["Creditease"]
+    },
+    {
+      "builtinKey": "90ad3bf7-da8b-4c48-b87f-29b0b4e826d2",
+      "name": "度小满科技（北京）有限公司",
+      "industryIds": [10],
+      "careerUrl": "https://campus.duxiaoman.com/",
+      "aliases": ["Duxiaoman", "度小满"]
+    },
+    {
+      "builtinKey": "255b1996-0fb7-4d1b-a832-2b0a7cabef3d",
+      "name": "北森控股有限公司",
+      "industryIds": [37],
+      "careerUrl": "https://beisen.zhiye.com/",
+      "aliases": ["Beisen", "北森"]
+    },
+    {
+      "builtinKey": "6b8909a1-6f88-4d7b-bc6c-68f0e2c63d85",
+      "name": "北京明略昭辉科技有限公司",
+      "industryIds": [3],
+      "careerUrl": "https://mininglamp.zhiye.com/",
+      "aliases": ["Mininglamp", "明略科技"]
+    },
+    {
+      "builtinKey": "c88de46f-4cee-4197-9bd4-30ea0651d5a2",
+      "name": "奇安信科技集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://campus.qianxin.com/",
+      "aliases": ["Qianxin", "奇安信"]
+    },
+    {
+      "builtinKey": "c87dc8fd-c790-4062-9e8b-dd5b76fd79b1",
+      "name": "北京金山云网络技术有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://jssoft.zhiye.com/campus/jobs?silence=1",
+      "aliases": ["Kingsoft Cloud", "金山云"]
+    },
+    {
+      "builtinKey": "62f04fa9-9675-43f3-8a3a-debfaee274b9",
+      "name": "金山软件有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://www.kingsoft.com/iksnet/recruit",
+      "aliases": ["Kingsoft", "金山软件"]
+    },
+    {
+      "builtinKey": "c6574752-b584-4a02-8d27-53b29616c988",
+      "name": "软通动力信息技术（集团）股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://career.isoftstone.com/",
+      "aliases": ["iSoftStone", "软通动力"]
+    },
+    {
+      "builtinKey": "ae0a96c0-0d99-4197-9d5f-ceedc2fc5989",
+      "name": "神州数码集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://digitalchina.zhiye.com/Campus",
+      "aliases": ["Digital China", "神州数码"]
+    },
+    {
+      "builtinKey": "4c089e0a-596c-44c1-9e6e-2f469cd0a305",
+      "name": "北京宇信科技集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://yusys-campus.zhiye.com/campus/",
+      "aliases": ["Yusys", "宇信科技"]
+    },
+    {
+      "builtinKey": "760a2404-359c-482a-a255-1d5c1f93acd2",
+      "name": "北京东方通科技股份有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://www.tongtech.com/recruit.html",
+      "aliases": ["TongTech", "东方通"]
+    },
+    {
+      "builtinKey": "dfa5efc8-40da-4d78-864a-b0cd4227709d",
+      "name": "北京华宇软件股份有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://thunisoft-group.zhiye.com/",
+      "aliases": ["Thunisoft", "华宇软件"]
+    },
+    {
+      "builtinKey": "b546e7ae-d6ff-4ef4-b9d2-115323c332ea",
+      "name": "北京君正集成电路股份有限公司",
+      "industryIds": [5],
+      "careerUrl": "http://www.ingenic.com.cn/join",
+      "aliases": ["Ingenic", "北京君正"]
+    },
+    {
+      "builtinKey": "c5e713c8-655f-4696-92fc-67cbc1960f31",
+      "name": "北京石头世纪科技有限公司",
+      "industryIds": [6],
+      "careerUrl": "https://roborock.zhiye.com/",
+      "aliases": ["Roborock", "石头科技"]
+    },
+    {
+      "builtinKey": "60f83cc0-d848-49a6-a94f-724cf7762b90",
+      "name": "北京万泰生物药业股份有限公司",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.yst.com.cn/campus",
+      "aliases": ["Wantai", "万泰生物"]
+    },
+    {
+      "builtinKey": "78287fc3-5e3d-4d30-b104-c677476e70a7",
+      "name": "北京诺禾致源科技股份有限公司",
+      "industryIds": [17],
+      "careerUrl": "https://novogene.zhiye.com/",
+      "aliases": ["Novogene", "诺禾致源"]
+    },
+    {
+      "builtinKey": "488338b2-4b29-4d94-a2fa-9558f336b23a",
+      "name": "乐普（北京）医疗器械股份有限公司",
+      "industryIds": [17],
+      "careerUrl": "https://hcm.lepu-crm.com/recruit",
+      "aliases": ["Lepu Medical", "乐普医疗"]
+    },
+    {
+      "builtinKey": "00292092-59b6-47b7-92c3-c72b663d4e22",
+      "name": "呷哺呷哺餐饮管理有限公司",
+      "industryIds": [16],
+      "careerUrl": "http://60.205.147.215/Jobs/list.aspx",
+      "aliases": ["Xiabu", "呷哺呷哺"]
+    },
+    {
+      "builtinKey": "6a091c61-25c6-4057-ac6b-4c398dce627e",
+      "name": "北京大北农科技集团股份有限公司",
+      "industryIds": [38],
+      "careerUrl": "https://wecruit.hotjob.cn/SU66ab37a71c240e2e76256280/pb/index.html",
+      "aliases": ["DBN", "大北农"]
+    },
+    {
+      "builtinKey": "3045e156-f4ce-4a3a-8e37-ed2cd1bac37a",
+      "name": "掌阅科技股份有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://q7w8vltyes.jobs.feishu.cn/2024",
+      "aliases": ["iReader", "掌阅科技"]
+    },
+    {
+      "builtinKey": "16482a8d-1e5e-47a7-aed7-f05fe9cb1a01",
+      "name": "挚文集团",
+      "industryIds": [32],
+      "careerUrl": "https://campus.hellogroup.com/",
+      "aliases": ["Momo", "陌陌"]
+    },
+    {
+      "builtinKey": "e57754f0-54b9-4e04-aa0e-f690c9592a5f",
+      "name": "北京幻想纵横网络技术有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://book.zongheng.com/company/job.html",
+      "aliases": ["Zongheng Literature", "纵横文学"]
+    },
+    {
+      "builtinKey": "9a2d6518-655d-4875-8f91-c5bc0aca9a94",
+      "name": "便利蜂商贸有限公司",
+      "industryIds": [14],
+      "careerUrl": "https://app-tc.mokahr.com/apply/bianlifeng/4001?edit=1",
+      "aliases": ["Bianlifeng", "便利蜂"]
+    },
+    {
+      "builtinKey": "d5ecb7b4-8ade-4fc6-bc05-fa1d6e0e9d84",
+      "name": "百望股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://web.baiwang.com/social-recruitment.html",
+      "aliases": ["Baiwang", "百望股份"]
+    },
+    {
+      "builtinKey": "f493ff3d-da63-4bd3-8eba-515d652a1acd",
+      "name": "北京中科金得助智能科技有限公司",
+      "industryIds": [3],
+      "careerUrl": "https://www.zkj.com/join-us",
+      "aliases": ["Zhongguancun Kejin", "中关村科金"]
+    },
+    {
+      "builtinKey": "c59c6a46-b6b1-4c43-86e5-44f55cca7595",
+      "name": "北京直真科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.zznode.com/job/",
+      "aliases": ["ZZNODE", "直真科技"]
+    },
+    {
+      "builtinKey": "bd3c3b56-e9c9-4ac7-b317-29a0c7cda92e",
+      "name": "北京千方科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.ctfo.com/aboutUs/joinUs",
+      "aliases": ["China TransInfo", "千方科技"]
+    },
+    {
+      "builtinKey": "2abf2e66-65b0-45f2-b5e9-54289517d393",
+      "name": "京北方信息技术股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.northking.net/jrwm.html",
+      "aliases": ["Northking", "京北方"]
+    },
+    {
+      "builtinKey": "37df7ed7-7900-44a0-9f70-9a17c4fcae2e",
+      "name": "昆仑万维科技股份有限公司",
+      "industryIds": [1],
+      "careerUrl": "https://jobs.kunlun.com/index",
+      "aliases": ["Kunlun", "昆仑万维"]
+    },
+    {
+      "builtinKey": "2c97e75e-c2d7-4758-86c3-e7089f282ac6",
+      "name": "荣联科技集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://ronglian.zhiye.com/",
+      "aliases": ["Ronglian", "荣联科技"]
+    },
+    {
+      "builtinKey": "68d5c8ae-0885-47c8-928e-0326709de370",
+      "name": "绿盟科技集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.nsfocus.com.cn/campus/3_1.html",
+      "aliases": ["NSFOCUS", "绿盟科技"]
+    },
+    {
+      "builtinKey": "04fd1c3a-a35f-4b52-b9ee-dff7f92a6aa3",
+      "name": "北京第四范式智能技术股份有限公司",
+      "industryIds": [3],
+      "careerUrl": "https://www.4paradigm.com/about/hr.html",
+      "aliases": ["4Paradigm", "第四范式"]
+    },
+    {
+      "builtinKey": "ec6ca8ff-79f8-44e0-b36b-8ddd952b34c5",
+      "name": "居然智家新零售集团股份有限公司",
+      "industryIds": [24],
+      "careerUrl": "https://recruit.juran.com.cn/",
+      "aliases": ["Easyhome", "居然之家"]
+    },
+    {
+      "builtinKey": "37a8fb3b-50ae-4b62-9fd4-3fa50625a7f2",
+      "name": "北京搜房房天下网络技术有限公司",
+      "industryIds": [23],
+      "careerUrl": "http://job.fang.com/index.html",
+      "aliases": ["Fang.com", "房天下", "搜房网"]
+    },
+    {
+      "builtinKey": "9095e43e-f26f-43dc-98bb-62a6a3103d6f",
+      "name": "北京小马智行科技有限公司",
+      "industryIds": [19],
+      "careerUrl": "https://campus.pony.ai/guideline",
+      "aliases": ["Pony.ai", "小马智行"]
+    },
+    {
+      "builtinKey": "a9176417-c334-4d97-9f75-fd46d37342b3",
+      "name": "北京极智嘉科技股份有限公司",
+      "industryIds": [8],
+      "careerUrl": "https://www.geekplus.com/zh-hant/company/career",
+      "aliases": ["Geek+", "极智嘉"]
+    },
+    {
+      "builtinKey": "dba32c6d-d33d-4c8e-916d-354f8446c89a",
+      "name": "北京牛电科技有限责任公司",
+      "industryIds": [19],
+      "careerUrl": "https://www.niu.com/about/join",
+      "aliases": ["NIU", "小牛电动"]
+    },
+    {
+      "builtinKey": "cc23f006-93e7-4317-893d-84a14227079c",
+      "name": "北京四方继保自动化股份有限公司",
+      "industryIds": [21],
+      "careerUrl": "https://www.sf-auto.com/campus",
+      "aliases": ["Sifang", "四方继保"]
+    },
+    {
+      "builtinKey": "c4731074-357d-4a22-b29b-67c992af8eec",
+      "name": "北京华峰测控技术股份有限公司",
+      "industryIds": [5],
+      "careerUrl": "https://ewo56q2mqk.jobs.feishu.cn/929066",
+      "aliases": ["AccoTest", "华峰测控"]
+    },
+    {
+      "builtinKey": "3fe92e42-8e80-4d24-ab38-c342f17ad6b8",
+      "name": "泰康保险集团股份有限公司",
+      "industryIds": [13],
+      "careerUrl": "https://jobtaikang.zhiye.com/campuslist",
+      "aliases": ["Taikang", "泰康"]
+    },
+    {
+      "builtinKey": "a33dccc1-3f7a-45ab-88f1-4b4b26b4e786",
+      "name": "阳光保险集团股份有限公司",
+      "industryIds": [13],
+      "careerUrl": "https://sunzhaopin.sinosig.com/",
+      "aliases": ["Sunshine Insurance", "阳光保险"]
+    },
+    {
+      "builtinKey": "50e46cba-5fbf-48dc-9996-0b50c1099f4a",
+      "name": "天融信科技集团股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://topsec.zhiye.com/campus/jobs",
+      "aliases": ["Topsec", "天融信"]
+    },
+    {
+      "builtinKey": "ac23c32c-a368-44fb-8d09-3d8cdcad2bf2",
+      "name": "北京恒华伟业科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "http://www.ieforever.com/class/view?id=37",
+      "aliases": ["Henghua", "恒华科技"]
+    },
+    {
+      "builtinKey": "1c956fed-8e10-435e-982e-a498975dae9b",
+      "name": "北京易动纷享科技有限责任公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.fxiaoke.com/crm/about-join/",
+      "aliases": ["Fxiaoke", "纷享销客"]
+    },
+    {
+      "builtinKey": "683306fb-4463-44fb-b5fc-3d491a43c756",
+      "name": "北京仁科互动网络技术有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://neocrm.zhiye.com/",
+      "aliases": ["Neocrm", "销售易"]
+    },
+    {
+      "builtinKey": "2fb1770b-cba0-450b-b0e8-2d3722f8d7d3",
+      "name": "北京金堤科技有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://job.tianyancha.com/",
+      "aliases": ["Tianyancha", "天眼查"]
+    },
+    {
+      "builtinKey": "2c0e3823-a184-42c8-bcce-a8a4c2afe16f",
+      "name": "北京淘友天下科技发展有限公司",
+      "industryIds": [1],
+      "careerUrl": "https://maimai.jobs.feishu.cn/index/login",
+      "aliases": ["Maimai", "脉脉"]
+    },
+    {
+      "builtinKey": "dbc3f87f-bd19-4b2d-abb9-c8d8b39acc73",
+      "name": "北京蓝色光标数据科技股份有限公司",
+      "industryIds": [33],
+      "careerUrl": "https://bluefocus.jobs.feishu.cn/index",
+      "aliases": ["BlueFocus", "蓝色光标"]
+    },
+    {
+      "builtinKey": "f4a85f2c-dbdb-406d-b036-b7ccdf8bbbac",
+      "name": "华扬联众数字技术股份有限公司",
+      "industryIds": [33],
+      "careerUrl": "http://cn.hylinkdigital.com/job.html",
+      "aliases": ["Hylink", "华扬联众"]
+    },
+    {
+      "builtinKey": "f429dc70-54bd-4884-9172-f96ec7eb2f49",
+      "name": "乐元素科技（北京）股份有限公司",
+      "industryIds": [2],
+      "careerUrl": "https://app.mokahr.com/campus_apply/leyuansu/2357",
+      "aliases": ["Happy Elements", "乐元素"]
+    },
+    {
+      "builtinKey": "af5d31d4-8ef7-4edd-a3a8-d3b962b16350",
+      "name": "北京东方国信科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://bonczp.zhiye.com/",
+      "aliases": ["BONC", "东方国信"]
+    },
+    {
+      "builtinKey": "e6380aad-2704-4d36-99ea-fe1902d505cc",
+      "name": "北京世纪互联宽带数据中心有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://vnet.jobs.feishu.cn/index/",
+      "aliases": ["VNET", "世纪互联"]
+    },
+    {
+      "builtinKey": "9e072f17-059a-4e06-afb9-f73099785b7b",
+      "name": "北京华大九天科技股份有限公司",
+      "industryIds": [5],
+      "careerUrl": "https://www.empyrean.com.cn/article/job-list-4.html",
+      "aliases": ["Empyrean", "华大九天"]
+    },
+    {
+      "builtinKey": "268814bb-b470-4a43-bb18-30a1586073c6",
+      "name": "北京亿华通科技股份有限公司",
+      "industryIds": [20],
+      "careerUrl": "http://www.sinohytec.com/recruit/shcool.html",
+      "aliases": ["SinoHytec", "亿华通"]
+    },
+    {
+      "builtinKey": "425d659d-dddd-4131-b3e9-11bdf4784f6e",
+      "name": "北京贝瑞和康生物技术有限公司",
+      "industryIds": [18],
+      "careerUrl": "https://www.berrygenomics.com/cmscontent/166.html",
+      "aliases": ["Berry Genomics", "贝瑞基因"]
+    },
+    {
+      "builtinKey": "16ded19a-9ca0-4dc8-8b8a-c4573d3eba7e",
+      "name": "北京全式金生物技术股份有限公司",
+      "industryIds": [18],
+      "careerUrl": "https://www.transgen.com/jobs.html",
+      "aliases": ["TransGen Biotech", "全式金"]
+    },
+    {
+      "builtinKey": "3c4aaeab-7abc-4bf2-b7cc-fa1999ee6c46",
+      "name": "北京神州细胞生物技术集团股份公司",
+      "industryIds": [18],
+      "careerUrl": "https://www.sinocelltech.com/Gather/job/pid/7.html",
+      "aliases": ["Sinocelltech", "神州细胞"]
+    },
+    {
+      "builtinKey": "c3c829f1-5800-4cc0-bcdc-1888371c074c",
+      "name": "首药控股（北京）股份有限公司",
+      "industryIds": [18],
+      "careerUrl": "http://www.shouyaoholding.com/resources_details.php?act=idea&id=11",
+      "aliases": ["Shouyao Holdings", "首药控股"]
+    },
+    {
+      "builtinKey": "0332a639-f748-471f-acb7-4a35dfd465a7",
+      "name": "北京百普赛斯生物科技股份有限公司",
+      "industryIds": [18],
+      "careerUrl": "https://careers.acrobiosystems.cn/",
+      "aliases": ["ACROBiosystems", "百普赛斯"]
+    },
+    {
+      "builtinKey": "d0f5b204-4298-42d8-8a9e-5ec5bc2087d3",
+      "name": "北京春雨天下软件有限公司",
+      "industryIds": [17],
+      "careerUrl": "https://www.chunyuyisheng.com/recruitment/position_list/",
+      "aliases": ["Chunyu Doctor", "春雨医生"]
+    },
+    {
+      "builtinKey": "162f0102-b6ee-474d-9405-8ebbebfe847e",
+      "name": "中公教育科技股份有限公司",
+      "industryIds": [30],
+      "careerUrl": "https://www.offcn.com/zg/zxns/",
+      "aliases": ["Offcn", "中公教育"]
+    },
+    {
+      "builtinKey": "a68f7bae-d880-43fb-9b21-de715485470c",
+      "name": "中科软科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://sinosoft.com.cn/Joinus/beijing.html",
+      "aliases": ["Sinosoft", "中科软"]
+    },
+    {
+      "builtinKey": "f0d49ceb-781a-46aa-9dc2-06f8171e42ae",
+      "name": "北京中科金财科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.sinodata.net.cn/zh-cn/jobs",
+      "aliases": ["Sinodata", "中科金财"]
+    },
+    {
+      "builtinKey": "9c63c9dd-ca9e-48d2-a744-2b7a4d1b5275",
+      "name": "北京神州泰岳软件股份有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://www.ultrapower.com.cn/joinus/",
+      "aliases": ["Ultrapower", "神州泰岳"]
+    },
+    {
+      "builtinKey": "e64ac12b-c8fc-4ecf-a56a-3027617b677f",
+      "name": "北京同有飞骥科技股份有限公司",
+      "industryIds": [8],
+      "careerUrl": "https://www.toyou.com.cn/Tongyou/ShoolJoin/",
+      "aliases": ["NetStor", "同有科技"]
+    },
+    {
+      "builtinKey": "66209f1c-ca56-4d97-a338-152f23151861",
+      "name": "诺思格（北京）医药科技股份有限公司",
+      "industryIds": [18],
+      "careerUrl": "https://www.rg-pharma.com/zhaopinpingtailianjie.html",
+      "aliases": ["R&G Pharma", "诺思格"]
+    },
+    {
+      "builtinKey": "e107ad53-2a73-46c9-8331-371490971077",
+      "name": "快看世界（北京）科技有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://www.kuaikanmanhua.com/webs/join/us",
+      "aliases": ["Kuaikan Manhua", "快看漫画"]
+    },
+    {
+      "builtinKey": "1e6eaaf4-a24e-4b1e-baf9-90ebc2b9828f",
+      "name": "北京亿心宜行汽车技术开发服务有限公司",
+      "industryIds": [26],
+      "careerUrl": "https://h5.edaijia.cn/recruit/",
+      "aliases": ["eDaijia", "e代驾"]
+    },
+    {
+      "builtinKey": "586f8b23-4785-4916-832b-984eedd3d12b",
+      "name": "中科驭数（北京）科技有限公司",
+      "industryIds": [5],
+      "careerUrl": "https://www.yusur.tech/about/joinus",
+      "aliases": ["YUSUR", "中科驭数"]
+    },
+    {
+      "builtinKey": "babca198-c596-413b-9d82-fcb735dbd9cc",
+      "name": "北京极客邦科技有限公司",
+      "industryIds": [32],
+      "careerUrl": "https://www.geekbang.org/recruit/",
+      "aliases": ["Geekbang", "极客邦科技"]
+    },
+    {
+      "builtinKey": "42cad159-0b5b-4804-852a-26ce7c55cc94",
+      "name": "北京长亭科技有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://join.chaitin.cn/plugins/career_site/sites/default",
+      "aliases": ["Chaitin", "长亭科技"]
+    },
+    {
+      "builtinKey": "63fc1260-1d90-4cba-9ae5-7cc6cdadd3c6",
+      "name": "北京明朝万达科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "http://wondersoft.cn/about/job.html",
+      "aliases": ["Wondersoft", "明朝万达"]
+    },
+    {
+      "builtinKey": "ffd6f745-18b6-4c5f-81c8-11fdd443eae3",
+      "name": "北京雪球信息科技有限公司",
+      "industryIds": [12],
+      "careerUrl": "https://xueqiu.com/about/jobs",
+      "aliases": ["Xueqiu", "雪球"]
+    },
+    {
+      "builtinKey": "16b8eb74-34d2-42be-839a-c2451727b946",
+      "name": "北京向上一心科技有限公司",
+      "industryIds": [12],
+      "careerUrl": "https://tigertech.jobs.feishu.cn/index",
+      "aliases": ["Tiger Brokers", "老虎国际"]
+    },
+    {
+      "builtinKey": "27bfc239-a2f0-40bb-a349-19fe6b9a9fff",
+      "name": "北京青云科技股份有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://www.qingcloud.com/jobs",
+      "aliases": ["QingCloud", "青云"]
+    },
+    {
+      "builtinKey": "ea0a1c98-3e79-411b-82f7-57649f4d7c89",
+      "name": "中软国际有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.chinasofti.com/pages/careers/index.html",
+      "aliases": ["Chinasoft International", "中软国际"]
+    },
+    {
+      "builtinKey": "d5f3e6c6-1894-48a8-833c-c205bcf5d5ec",
+      "name": "广联达科技股份有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://campus.glodon.com/",
+      "aliases": ["Glodon", "广联达"]
+    },
+    {
+      "builtinKey": "4687e183-f366-45e4-9362-6a9dd3264445",
+      "name": "北京东方雨虹防水技术股份有限公司",
+      "industryIds": [22],
+      "careerUrl": "https://yuhongzp.zhiye.com/",
+      "aliases": ["Oriental Yuhong", "东方雨虹"]
+    },
+    {
+      "builtinKey": "4e662fd9-0325-4e7b-9435-aec62da7db87",
+      "name": "北京北信源软件股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "http://www.vrv.com.cn/join-57.html",
+      "aliases": ["VRV", "北信源"]
+    },
+    {
+      "builtinKey": "3ea13d00-9fe8-472c-b405-a67fcf362f64",
+      "name": "北京海天瑞声科技股份有限公司",
+      "industryIds": [3],
+      "careerUrl": "https://www.haitianruisheng.com/?m=index&c=aboutus&a=saferjoin&catid=40",
+      "aliases": ["Haitian Ruisheng", "海天瑞声"]
+    },
+    {
+      "builtinKey": "7c84cb60-2ae5-4000-b8be-a46b0584ed79",
+      "name": "北京云中融信网络科技股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://a5bq662kv5.jobs.feishu.cn/index",
+      "aliases": ["RongCloud", "融云"]
+    },
+    {
+      "builtinKey": "aebb0fd8-a7c6-4db1-8bf9-0ad312742e71",
+      "name": "北京思特奇信息技术股份有限公司",
+      "industryIds": [9],
+      "careerUrl": "https://www.si-tech.com.cn/pub-page/talents.html",
+      "aliases": ["SI-TECH", "思特奇"]
+    },
+    {
+      "builtinKey": "57f0cf31-54be-490a-8403-07e1171c43dc",
+      "name": "博世",
+      "industryIds": [21],
+      "careerUrl": "https://bosch.com.cn/careers/job-offers/",
+      "aliases": ["Bosch", "博世中国"]
+    },
+    {
+      "builtinKey": "cabfb1e0-abdd-47c2-bc10-71019855ceed",
+      "name": "西门子",
+      "industryIds": [21],
+      "careerUrl": "https://jobs.siemens.com/zh_CN/externaljobs",
+      "aliases": ["Siemens", "西门子中国"]
+    },
+    {
+      "builtinKey": "71f8d2cc-6bce-4a08-963c-86b800d53a41",
+      "name": "大众汽车集团（中国）",
+      "industryIds": [19],
+      "careerUrl": "https://volkswagengroupchina.jobs2web.sapsf.cn/go/Career-Site-Home-Page-CN/5466330/",
+      "aliases": ["Volkswagen Group China", "大众中国"]
+    },
+    {
+      "builtinKey": "94449c38-344d-4f29-9b19-7938c973de7b",
+      "name": "巴斯夫",
+      "industryIds": [22],
+      "careerUrl": "https://basf.jobs/search?locale=en_US&skillsSearch=false&markerViewed=&carouselIndex=&facetFilters=%7B%22jobLocationCountry%22%3A%5B%22China%22%5D%7D&pageNumber=0",
+      "aliases": ["BASF", "巴斯夫中国"]
+    },
+    {
+      "builtinKey": "5dc219fd-e03b-4270-9306-87f208af75df",
+      "name": "德勤中国",
+      "industryIds": [35],
+      "careerUrl": "https://www.deloitte.com/cn/zh/cn-careers.html",
+      "aliases": ["Deloitte China", "德勤"]
+    },
+    {
+      "builtinKey": "4b95f548-96fe-4ecf-9e85-ac343de9f983",
+      "name": "安永中国",
+      "industryIds": [35],
+      "careerUrl": "https://www.ey.com/zh_cn/careers",
+      "aliases": ["EY China", "安永"]
+    },
+    {
+      "builtinKey": "15a6ea06-4e10-4b7a-b090-b68272ad2ab9",
+      "name": "毕马威中国",
+      "industryIds": [35],
+      "careerUrl": "https://kpmg.com/cn/zh/careers.html",
+      "aliases": ["KPMG China", "毕马威"]
+    },
+    {
+      "builtinKey": "c306fc66-a67c-491c-9403-4b8e1ac9ee00",
+      "name": "埃森哲",
+      "industryIds": [35],
+      "careerUrl": "https://www.accenture.com/cn-zh/careers",
+      "aliases": ["Accenture", "埃森哲中国"]
+    },
+    {
+      "builtinKey": "5056f1c2-411a-4717-8e04-8a49f5388330",
+      "name": "强生",
+      "industryIds": [17],
+      "careerUrl": "https://www.careers.jnj.com/en/",
+      "aliases": ["Johnson & Johnson", "J&J"]
+    },
+    {
+      "builtinKey": "dc7dda63-eef0-402e-a4ed-dee9dc721b8e",
+      "name": "默沙东",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.msd.com/cn/zh",
+      "aliases": ["MSD", "Merck", "默克"]
+    },
+    {
+      "builtinKey": "8ade990d-162e-4b5d-a07b-8cddc63a4912",
+      "name": "梅赛德斯-奔驰",
+      "industryIds": [19],
+      "careerUrl": "https://group.mercedes-benz.com/careers/",
+      "aliases": ["Mercedes-Benz", "奔驰"]
+    },
+    {
+      "builtinKey": "f2135111-8b1e-4ec2-8b24-7eb118506581",
+      "name": "陶氏公司",
+      "industryIds": [22],
+      "careerUrl": "https://corporate.dow.com/en-us/careers.html",
+      "aliases": ["Dow", "陶氏化学"]
+    },
+    {
+      "builtinKey": "1681b46e-9553-49a6-8518-e6c9f761c9ca",
+      "name": "杜邦",
+      "industryIds": [22],
+      "careerUrl": "https://careers.dupont.com/us/en",
+      "aliases": ["DuPont", "杜邦中国"]
+    },
+    {
+      "builtinKey": "45bd7397-5f48-48d2-841e-1a995b5d4775",
+      "name": "索尼",
+      "industryIds": [8],
+      "careerUrl": "https://www.sony.com/en/SonyInfo/Careers/",
+      "aliases": ["Sony", "Sony China"]
+    },
+    {
+      "builtinKey": "95eefe5e-d511-4c16-b36e-24bb88437b0f",
+      "name": "罗兰贝格",
+      "industryIds": [35],
+      "careerUrl": "https://www.rolandberger.com/en/Join/Join-Us/Overview/",
+      "aliases": ["Roland Berger", "罗兰贝格咨询"]
+    },
+    {
+      "builtinKey": "69eba779-8e48-4a51-8689-3fff24c25ad5",
+      "name": "奥纬咨询",
+      "industryIds": [35],
+      "careerUrl": "https://www.oliverwyman.com/careers.html",
+      "aliases": ["Oliver Wyman", "奥纬"]
+    },
+    {
+      "builtinKey": "3c1d4418-814b-4ef2-9683-126c4fe6b5b8",
+      "name": "罗氏",
+      "industryIds": [18],
+      "careerUrl": "https://careers.roche.com/global/en/search-results?keywords=China",
+      "aliases": ["Roche", "罗氏中国"]
+    },
+    {
+      "builtinKey": "fdd17f05-c1e1-4f29-b085-af1a36ee7b3e",
+      "name": "诺华",
+      "industryIds": [18],
+      "careerUrl": "https://www.novartis.com/careers",
+      "aliases": ["Novartis", "诺华中国"]
+    },
+    {
+      "builtinKey": "c715b73a-a857-4735-a508-53f59df8b5f7",
+      "name": "阿斯利康",
+      "industryIds": [18],
+      "careerUrl": "https://careers.astrazeneca.com/search-jobs/china/7684/1",
+      "aliases": ["AstraZeneca", "阿斯利康中国"]
+    },
+    {
+      "builtinKey": "959df9d8-6c83-4e0e-8208-943b5d05871e",
+      "name": "葛兰素史克",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.gsk.com/en-gb/search-results?keywords=China",
+      "aliases": ["GSK", "GlaxoSmithKline"]
+    },
+    {
+      "builtinKey": "15c4f8c9-6584-4f74-b542-c4918b91a542",
+      "name": "辉瑞",
+      "industryIds": [18],
+      "careerUrl": "https://www.pfizer.com/about/careers",
+      "aliases": ["Pfizer", "辉瑞中国"]
+    },
+    {
+      "builtinKey": "d21291d0-3cfc-4d65-b5dd-68211de8c249",
+      "name": "拜耳",
+      "industryIds": [18],
+      "careerUrl": "https://www.bayer.com/en/career",
+      "aliases": ["Bayer", "拜耳中国"]
+    },
+    {
+      "builtinKey": "6f5a34b3-83ab-4bb2-b7e0-2676102bdeb3",
+      "name": "礼来",
+      "industryIds": [18],
+      "careerUrl": "https://careers.lilly.com/us/en",
+      "aliases": ["Eli Lilly", "Lilly"]
+    },
+    {
+      "builtinKey": "8565ed96-b8a6-4f6c-9844-f511047d10c0",
+      "name": "阿迪达斯",
+      "industryIds": [15],
+      "careerUrl": "https://careers.adidas-group.com/",
+      "aliases": ["adidas", "Adidas China"]
+    },
+    {
+      "builtinKey": "593c0706-875c-42d1-a2ca-b6c3f7e738c7",
+      "name": "马士基",
+      "industryIds": [25],
+      "careerUrl": "https://www.maersk.com/careers/",
+      "aliases": ["Maersk", "A.P. Moller - Maersk"]
+    },
+    {
+      "builtinKey": "e2e326f4-d9d6-4936-81b9-9b3111e588f4",
+      "name": "耐克",
+      "industryIds": [15],
+      "careerUrl": "https://careers.nike.com/zh-cn/",
+      "aliases": ["Nike", "Nike China"]
+    },
+    {
+      "builtinKey": "72e5acce-c251-4f1d-a34c-94cf772d0f8e",
+      "name": "玛氏",
+      "industryIds": [16],
+      "careerUrl": "https://careers.mars.com/global/en/search-results?keywords=China",
+      "aliases": ["Mars", "Mars China"]
+    },
+    {
+      "builtinKey": "ef7c4c1a-35c7-437e-97ca-97a00b9e92e4",
+      "name": "赛诺菲",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.sanofi.com/en/",
+      "aliases": ["Sanofi", "赛诺菲中国"]
+    },
+    {
+      "builtinKey": "f7c67b4d-5102-4d8b-a46c-2fa28ec47151",
+      "name": "康宁",
+      "industryIds": [22],
+      "careerUrl": "https://www.corning.com/worldwide/en/careers.html",
+      "aliases": ["Corning", "康宁中国"]
+    },
+    {
+      "builtinKey": "c48dbea4-07ac-4137-876e-baebcc07e0a5",
+      "name": "联邦快递",
+      "industryIds": [25],
+      "careerUrl": "https://careers.fedex.com/zh-cn",
+      "aliases": ["FedEx", "FedEx China"]
+    },
+    {
+      "builtinKey": "016d1e22-7361-4a01-b630-4c8a0655de71",
+      "name": "空中客车",
+      "industryIds": [27],
+      "careerUrl": "https://www.airbus.com/en/careers",
+      "aliases": ["Airbus", "空客"]
+    },
+    {
+      "builtinKey": "277cdb59-b9b5-4429-b88c-de413584a1fc",
+      "name": "波音",
+      "industryIds": [27],
+      "careerUrl": "https://jobs.boeing.com/",
+      "aliases": ["Boeing", "波音中国"]
+    },
+    {
+      "builtinKey": "6d0f3a25-5486-4284-a620-783314e6a518",
+      "name": "壳牌",
+      "industryIds": [28],
+      "careerUrl": "https://www.shell.com/careers.html",
+      "aliases": ["Shell", "Shell China"]
+    },
+    {
+      "builtinKey": "f4f5315e-3f89-4237-93ca-4176b94a14ff",
+      "name": "英国石油",
+      "industryIds": [28],
+      "careerUrl": "https://careers.bp.com/",
+      "aliases": ["bp", "BP China"]
+    },
+    {
+      "builtinKey": "55f2bcf6-9278-4e4a-8c0d-520d69d74d19",
+      "name": "迪士尼",
+      "industryIds": [32],
+      "careerUrl": "https://www.disneycareers.com/en",
+      "aliases": ["Disney", "The Walt Disney Company"]
+    },
+    {
+      "builtinKey": "06919025-2247-4624-9e1a-d6930819c433",
+      "name": "三星电子",
+      "industryIds": [8],
+      "careerUrl": "https://dearsamsung.zhiye.com/#/",
+      "aliases": ["Samsung", "Samsung Electronics China"]
+    },
+    {
+      "builtinKey": "f1a808fc-fadf-40d6-973b-9306ecd64f25",
+      "name": "惠普",
+      "industryIds": [6],
+      "careerUrl": "https://jobs.hp.com/",
+      "aliases": ["HP", "Hewlett-Packard"]
+    },
+    {
+      "builtinKey": "5d067baf-f13f-4386-8a33-9baa3ff9dcbd",
+      "name": "亿滋国际",
+      "industryIds": [16],
+      "careerUrl": "https://www.mondelezinternational.com/careers/",
+      "aliases": ["Mondelēz International", "亿滋"]
+    },
+    {
+      "builtinKey": "0a884f03-7174-42a9-b49e-6421ae33dacf",
+      "name": "科沃斯",
+      "industryIds": [6],
+      "careerUrl": "https://hr.ecovacs.cn/",
+      "aliases": ["ECOVACS", "科沃斯机器人"]
+    },
+    {
+      "builtinKey": "ab1d6071-74e2-4b93-a7c6-6cb2f8dbcd6e",
+      "name": "微众银行",
+      "industryIds": [11],
+      "careerUrl": "https://hr.webank.com/apply/webankhr/68/#/",
+      "aliases": ["WeBank", "深圳前海微众银行"]
+    },
+    {
+      "builtinKey": "60f999ed-65cd-4915-b909-2c2c14929ba7",
+      "name": "贝壳找房",
+      "industryIds": [23],
+      "careerUrl": "https://job.ke.com/",
+      "aliases": ["KE Holdings", "Beike"]
+    },
+    {
+      "builtinKey": "cc0aec51-719b-4811-9439-7b0a54bc3ad1",
+      "name": "易车",
+      "industryIds": [19],
+      "careerUrl": null,
+      "aliases": ["Yiche", "易车网"]
+    },
+    {
+      "builtinKey": "4d980374-4a0f-48f1-a337-c050cd2e1efe",
+      "name": "转转",
+      "industryIds": [14],
+      "careerUrl": null,
+      "aliases": ["Zhuanzhuan"]
+    },
+    {
+      "builtinKey": "9232ace0-f94d-4f99-93f4-d6bbfbb890a1",
+      "name": "好大夫在线",
+      "industryIds": [17],
+      "careerUrl": null,
+      "aliases": ["Haodf", "好大夫"]
+    },
+    {
+      "builtinKey": "b42cd227-9e80-423c-b2f4-d8d80a93e537",
+      "name": "轻松集团",
+      "industryIds": [17],
+      "careerUrl": null,
+      "aliases": ["Qingsong Group", "轻松筹"]
+    },
+    {
+      "builtinKey": "61a1aa57-e763-4e63-b500-985e0bbca3fa",
+      "name": "本来生活",
+      "industryIds": [14],
+      "careerUrl": null,
+      "aliases": ["Benlai", "本来生活网"]
+    },
+    {
+      "builtinKey": "a8ce4409-719a-453c-991c-1099489682be",
+      "name": "映客",
+      "industryIds": [32],
+      "careerUrl": null,
+      "aliases": ["Inke", "映客直播"]
+    },
+    {
+      "builtinKey": "11a94347-aba8-4b5f-bccf-58a70281ec9f",
+      "name": "拉勾",
+      "industryIds": [37],
+      "careerUrl": "https://www.lagou.com/about/jobs",
+      "aliases": ["Lagou", "拉勾招聘"]
+    },
+    {
+      "builtinKey": "e481bfb2-58d0-45b1-9156-62a75d56ff2d",
+      "name": "融360",
+      "industryIds": [10],
+      "careerUrl": null,
+      "aliases": ["Rong360"]
+    },
+    {
+      "builtinKey": "254ba13d-349c-4fdb-9fc9-f90831187c1d",
+      "name": "中文在线",
+      "industryIds": [32],
+      "careerUrl": null,
+      "aliases": ["COL", "中文在线集团"]
+    },
+    {
+      "builtinKey": "a08cea3d-ab1d-4ec6-8d07-a8f2063e98ce",
+      "name": "视觉中国",
+      "industryIds": [32],
+      "careerUrl": null,
+      "aliases": ["Visual China", "VCG"]
+    },
+    {
+      "builtinKey": "b4fddfbf-4d1f-443e-81e5-6d79b8904b9c",
+      "name": "量子之歌",
+      "industryIds": [30],
+      "careerUrl": null,
+      "aliases": ["Quantasing", "量子之歌集团"]
+    },
+    {
+      "builtinKey": "d0c2016a-149e-4847-a74b-20b862d6416d",
+      "name": "优信",
+      "industryIds": [19],
+      "careerUrl": null,
+      "aliases": ["Uxin"]
+    },
+    {
+      "builtinKey": "e23ad629-4ca4-485d-a0b9-f5cf8c33568f",
+      "name": "国双科技",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Gridsum", "国双"]
+    },
+    {
+      "builtinKey": "4de1d435-71da-4bbd-967f-dbea2b018af8",
+      "name": "神州信息",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["SinoSoft", "神州信息技术"]
+    },
+    {
+      "builtinKey": "b05cbb8c-88e6-44f0-8f38-19339bfff65f",
+      "name": "汉王科技",
+      "industryIds": [8],
+      "careerUrl": null,
+      "aliases": ["Hanvon", "汉王"]
+    },
+    {
+      "builtinKey": "d4a04191-3867-4a2e-b4ab-80da321c1fea",
+      "name": "石基信息",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Shiji", "石基"]
+    },
+    {
+      "builtinKey": "21c6727c-1c68-468d-8b01-7c7c74b402d4",
+      "name": "极客时间",
+      "industryIds": [30],
+      "careerUrl": null,
+      "aliases": ["Geekbang", "极客邦"]
+    },
+    {
+      "builtinKey": "f6bb59c9-e423-4842-9401-9525b4755376",
+      "name": "果壳",
+      "industryIds": [32],
+      "careerUrl": null,
+      "aliases": ["Guokr"]
+    },
+    {
+      "builtinKey": "46a72313-c8ba-48a6-8bac-11258005852e",
+      "name": "青藤云安全",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Eversafe", "青藤"]
+    },
+    {
+      "builtinKey": "b93959ac-2752-4211-b6a3-8ed04c6cec3d",
+      "name": "美菜网",
+      "industryIds": [14],
+      "careerUrl": null,
+      "aliases": ["Meicai", "美菜"]
+    },
+    {
+      "builtinKey": "067e1892-e06b-40f3-9271-753b9cdeb265",
+      "name": "一点资讯",
+      "industryIds": [32],
+      "careerUrl": "https://www.zhipin.com/gongsi/job/7a2b06c8787b8fb30nBz2A~~.html",
+      "aliases": ["Yidian", "一点"]
+    },
+    {
+      "builtinKey": "5d0534a7-64c3-4b23-9f9e-620c024e9780",
+      "name": "58同城",
+      "industryIds": [14],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/58",
+      "aliases": ["58.com", "五八同城"]
+    },
+    {
+      "builtinKey": "1e87c1bf-7241-449c-a7a3-1a056b6ae792",
+      "name": "自如",
+      "industryIds": [23],
+      "careerUrl": null,
+      "aliases": ["Ziroom", "自如网"]
+    },
+    {
+      "builtinKey": "14025cca-33ab-44df-be5a-6b72f51e749c",
+      "name": "我爱我家",
+      "industryIds": [23],
+      "careerUrl": null,
+      "aliases": ["5i5j", "我爱我家集团"]
+    },
+    {
+      "builtinKey": "d2c984d8-2ee7-4266-aaba-f2827b921050",
+      "name": "麦田房产",
+      "industryIds": [23],
+      "careerUrl": null,
+      "aliases": ["Maitian", "麦田"]
+    },
+    {
+      "builtinKey": "39198828-da42-40b7-91d4-d7cc5bc8dda0",
+      "name": "拉卡拉",
+      "industryIds": [10],
+      "careerUrl": null,
+      "aliases": ["Lakala", "拉卡拉支付"]
+    },
+    {
+      "builtinKey": "183d2b94-8954-471d-9b8d-234165aba06a",
+      "name": "亚信科技",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["AsiaInfo", "亚信"]
+    },
+    {
+      "builtinKey": "d080a853-c769-4693-9912-25654b188bf1",
+      "name": "博彦科技",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Beyondsoft", "博彦"]
+    },
+    {
+      "builtinKey": "8c6a415c-ec0c-49d8-9a2d-9e183c535c24",
+      "name": "经纬恒润",
+      "industryIds": [19],
+      "careerUrl": null,
+      "aliases": ["Hirain", "经纬恒润科技"]
+    },
+    {
+      "builtinKey": "ab4970cb-d5dc-4db6-ad6b-0ecc8539b6f9",
+      "name": "玻色量子",
+      "industryIds": [3],
+      "careerUrl": null,
+      "aliases": ["Origin Quantum", "玻色量子科技"]
+    },
+    {
+      "builtinKey": "29950ad5-0696-4c79-a34d-45c9a9fc978f",
+      "name": "混沌学园",
+      "industryIds": [30],
+      "careerUrl": null,
+      "aliases": ["Hundun", "混沌大学"]
+    },
+    {
+      "builtinKey": "edbaec85-9daa-4d55-9ad2-a9d617b9c5b4",
+      "name": "甲子光年",
+      "industryIds": [32],
+      "careerUrl": null,
+      "aliases": ["Jazzyear", "甲子光年智库"]
+    },
+    {
+      "builtinKey": "4207077b-c873-4de8-9d00-f7fd848215a8",
+      "name": "中科江南",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Galaxy Fintech", "中科江南信息技术"]
+    },
+    {
+      "builtinKey": "d70ad1bd-847d-4d3b-9521-1bc0ae18b259",
+      "name": "迪信通",
+      "industryIds": [14],
+      "careerUrl": null,
+      "aliases": ["Dixintong", "迪信通科技"]
+    },
+    {
+      "builtinKey": "c0160b17-252f-4307-8d85-dbae2a4df5aa",
+      "name": "恒安嘉新",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Hengan Jiaxin", "恒安嘉新科技"]
+    },
+    {
+      "builtinKey": "b78bca29-bc3f-4bbf-91e4-ff6ed35a8071",
+      "name": "安博通",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Abt Network", "安博通科技"]
+    },
+    {
+      "builtinKey": "90de6e20-5b3b-45e2-befb-d806a81085fc",
+      "name": "百融云创",
+      "industryIds": [10],
+      "careerUrl": null,
+      "aliases": ["Bairong", "百融"]
+    },
+    {
+      "builtinKey": "6806f4f6-8bc3-467d-ba8e-d9b4a616424b",
+      "name": "智联招聘",
+      "industryIds": [37],
+      "careerUrl": null,
+      "aliases": ["Zhaopin", "智联"]
+    },
+    {
+      "builtinKey": "aa443b86-c61a-462d-b1c5-c6cfaf840ea8",
+      "name": "猎聘",
+      "industryIds": [37],
+      "careerUrl": null,
+      "aliases": ["Liepin", "猎聘网"]
+    },
+    {
+      "builtinKey": "9bf1f838-79ec-4ebf-8691-3ecdf342f7b0",
+      "name": "科蓝软件",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Kelan Software", "科蓝"]
+    },
+    {
+      "builtinKey": "515372c0-0e89-4928-949a-2951812ab8ea",
+      "name": "爱康国宾",
+      "industryIds": [17],
+      "careerUrl": null,
+      "aliases": ["iKang", "爱康"]
+    },
+    {
+      "builtinKey": "8b7c418d-6d83-4eba-89a2-931f14fe892d",
+      "name": "镁伽机器人",
+      "industryIds": [6],
+      "careerUrl": null,
+      "aliases": ["Megarobo", "镁伽"]
+    },
+    {
+      "builtinKey": "926cd6fa-ffa5-4180-9af6-630ce2f8d868",
+      "name": "银河航天",
+      "industryIds": [27],
+      "careerUrl": null,
+      "aliases": ["GalaxySpace", "银河航天科技"]
+    },
+    {
+      "builtinKey": "f23fd10a-462a-48ac-b9c1-622ae872df98",
+      "name": "探路者",
+      "industryIds": [15],
+      "careerUrl": null,
+      "aliases": ["Toread", "探路者集团"]
+    },
+    {
+      "builtinKey": "2b18f460-be04-42f9-8108-665befa1f7be",
+      "name": "碧生源",
+      "industryIds": [16],
+      "careerUrl": null,
+      "aliases": ["Besunyen", "碧生源控股"]
+    },
+    {
+      "builtinKey": "86a3fb7b-c68a-4c42-923a-c5ee0a3ee4e5",
+      "name": "格灵深瞳",
+      "industryIds": [3],
+      "careerUrl": null,
+      "aliases": ["Deep Glint", "格灵深瞳科技"]
+    },
+    {
+      "builtinKey": "675be085-efdc-4d9e-a31d-708de67e6fed",
+      "name": "海致科技",
+      "industryIds": [9],
+      "careerUrl": null,
+      "aliases": ["Haizhi", "海致"]
+    },
+    {
+      "builtinKey": "995101e3-3d27-488a-9709-563f4bca26a2",
+      "name": "普联软件",
+      "industryIds": [4],
+      "careerUrl": "https://www.pansoft.com/about#7",
+      "aliases": []
+    },
+    {
+      "builtinKey": "fec78c43-486b-47a2-930a-628ff3139d92",
+      "name": "途游游戏",
+      "industryIds": [2],
+      "careerUrl": "https://www.tuyoo.com/job/campus?site=campus",
+      "aliases": ["Tuyoo", "途游"]
+    },
+    {
+      "builtinKey": "29d1c01b-22e6-48ba-b6a0-f82d871bb841",
+      "name": "北京掌趣科技股份有限公司",
+      "industryIds": [2],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/ourpalm/43628#/",
+      "aliases": ["Ourpalm", "掌趣科技"]
+    },
+    {
+      "builtinKey": "da62eff6-9502-4aae-aae6-e27ec6411f38",
+      "name": "TP-LINK",
+      "industryIds": [7],
+      "careerUrl": "https://hr.tp-link.com.cn/",
+      "aliases": ["普联技术", "普联技术有限公司"]
+    },
+    {
+      "builtinKey": "ddd0187e-aa2b-402d-a7a1-50826d83ecc0",
+      "name": "Shopee",
+      "industryIds": [40],
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/shopee/2962#/",
+      "aliases": ["虾皮", "虾皮购物"]
+    },
+    {
+      "builtinKey": "fd14f514-c366-408c-a7a8-846afab050c1",
+      "name": "北京掌上先机网络科技有限公司",
+      "industryIds": [4],
+      "careerUrl": "https://huicecom.zhiye.com/Campus",
+      "aliases": ["掌上先机", "慧策", "慧策集团"]
+    },
+    {
+      "builtinKey": "f94f431d-033b-4e49-8c1a-1b0954f98199",
+      "name": "施耐德电气",
+      "industryIds": [21],
+      "careerUrl": "https://careers.se.com/jobs/locations?lang=zh-CN",
+      "aliases": ["Schneider Electric", "施耐德"]
+    },
+    {
+      "builtinKey": "9bf0c230-657b-44b3-b16c-41591b30c01d",
+      "name": "霍尼韦尔",
+      "industryIds": [21],
+      "careerUrl": "https://careers.honeywell.com/en/sites/Honeywell/jobs",
+      "aliases": ["Honeywell"]
+    },
+    {
+      "builtinKey": "bb3e17a8-a0a2-456c-8b9d-7cb13a7982fb",
+      "name": "ABB",
+      "industryIds": [21],
+      "careerUrl": "https://careers.abb/china/zh/search-results",
+      "aliases": ["ABB集团"]
+    },
+    {
+      "builtinKey": "61af45ed-172a-4a86-961a-5eeaf8429fd4",
+      "name": "艾默生",
+      "industryIds": [21],
+      "careerUrl": "https://www.emerson.com/en/corporate/careers/career-opportunities",
+      "aliases": ["Emerson"]
+    },
+    {
+      "builtinKey": "830dbfab-2fde-4047-b696-b2c4072e82bd",
+      "name": "罗克韦尔自动化",
+      "industryIds": [55],
+      "careerUrl": "https://rockwellautomation.wd1.myworkdayjobs.com/External_Rockwell_Automation",
+      "aliases": ["Rockwell Automation", "罗克韦尔"]
+    },
+    {
+      "builtinKey": "217ed947-87b4-418d-b83f-160677ccabd3",
+      "name": "丹佛斯",
+      "industryIds": [21],
+      "careerUrl": "https://jobs.danfoss.com/search/?q=&locationsearch=China",
+      "aliases": ["Danfoss"]
+    },
+    {
+      "builtinKey": "873d1691-d3be-4c78-b599-b285996d1c64",
+      "name": "阿特拉斯·科普柯",
+      "industryIds": [21],
+      "careerUrl": "https://www.atlascopcogroup.com/en/careers/jobs/job-overview",
+      "aliases": ["Atlas Copco", "阿特拉斯科普柯"]
+    },
+    {
+      "builtinKey": "7e41b236-d9ff-4651-8d33-f4c8a1feb9f7",
+      "name": "喜利得",
+      "industryIds": [21],
+      "careerUrl": "https://careers.hilti.group/en/jobs/",
+      "aliases": ["Hilti"]
+    },
+    {
+      "builtinKey": "3fe738c8-c18e-418d-a64b-5a902ed8a6c3",
+      "name": "采埃孚",
+      "industryIds": [19],
+      "careerUrl": "https://jobs.zf.com/",
+      "aliases": ["ZF", "ZF Group"]
+    },
+    {
+      "builtinKey": "33a259d7-e135-4f0e-9570-9d1dda51f460",
+      "name": "大陆集团",
+      "industryIds": [19],
+      "careerUrl": "https://jobs.continental.com/en/",
+      "aliases": ["Continental", "德国大陆集团"]
+    },
+    {
+      "builtinKey": "0bbd4cb6-f31c-42e4-a235-1af6f1517243",
+      "name": "安波福",
+      "industryIds": [19],
+      "careerUrl": "https://www.aptiv.com/en/jobs",
+      "aliases": ["Aptiv"]
+    },
+    {
+      "builtinKey": "a69772e0-d468-4a7f-ac30-eb10d557bd8b",
+      "name": "法雷奥",
+      "industryIds": [19],
+      "careerUrl": "https://valeo.wd3.myworkdayjobs.com/valeo_jobs",
+      "aliases": ["Valeo"]
+    },
+    {
+      "builtinKey": "a190fffb-65d5-4d6b-a1d9-3cc45ddffaf3",
+      "name": "佛瑞亚",
+      "industryIds": [19],
+      "careerUrl": "https://careers.faurecia.com/content/ChinaHomePage/?locale=en_GB",
+      "aliases": ["FORVIA", "Faurecia", "佛吉亚"]
+    },
+    {
+      "builtinKey": "4b1a7447-358e-40b7-96f7-9b49e902e9ce",
+      "name": "李尔",
+      "industryIds": [19],
+      "careerUrl": "https://jobs.lear.com/",
+      "aliases": ["Lear", "Lear Corporation"]
+    },
+    {
+      "builtinKey": "f396b372-b73e-40d3-93e7-b0bc80a7b39d",
+      "name": "麦格纳",
+      "industryIds": [19],
+      "careerUrl": "https://wd3.myworkdaysite.com/en-US/recruiting/magna/Magna",
+      "aliases": ["Magna", "Magna International"]
+    },
+    {
+      "builtinKey": "33162090-d23a-4e6d-8734-018aa76e4563",
+      "name": "泰科电子",
+      "industryIds": [8],
+      "careerUrl": "https://careers.te.com/",
+      "aliases": ["TE Connectivity", "TE"]
+    },
+    {
+      "builtinKey": "0e942f7b-ca0a-4bff-91a0-e635333cea12",
+      "name": "捷普",
+      "industryIds": [8],
+      "careerUrl": "https://careers.jabil.com/cn.html",
+      "aliases": ["Jabil", "捷普科技"]
+    },
+    {
+      "builtinKey": "cabbac93-605d-460a-aa04-3de705966ddd",
+      "name": "伟创力",
+      "industryIds": [8],
+      "careerUrl": "https://flextronics.wd1.myworkdayjobs.com/en-US/Careers",
+      "aliases": ["Flex", "Flextronics"]
+    },
+    {
+      "builtinKey": "ec6c65e5-d649-4ed8-aa25-1aea82ee4e68",
+      "name": "凯捷",
+      "industryIds": [35],
+      "careerUrl": "https://www.capgemini.com/careers/join-capgemini/job-search/",
+      "aliases": ["Capgemini", "凯捷咨询"]
+    },
+    {
+      "builtinKey": "20dbf480-e12f-4413-b3e0-c40a23d44bea",
+      "name": "Thoughtworks",
+      "industryIds": [9, 35],
+      "careerUrl": "https://www.thoughtworks.com/zh-cn/careers/jobs",
+      "aliases": ["思特沃克"]
+    },
+    {
+      "builtinKey": "c3dc8706-7001-46b1-8f3d-0be2e008ba47",
+      "name": "艾伯维",
+      "industryIds": [18],
+      "careerUrl": "https://careers.abbvie.com/en/jobs/?search=&country=China",
+      "aliases": ["AbbVie"]
+    },
+    {
+      "builtinKey": "f267d5fe-e848-4d53-90e2-cf8286724a7d",
+      "name": "勃林格殷格翰",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.boehringer-ingelheim.com/search/?q=&locationsearch=China",
+      "aliases": ["Boehringer Ingelheim", "勃林格"]
+    },
+    {
+      "builtinKey": "97daebc1-60c5-4106-b675-221fae61e1ba",
+      "name": "诺和诺德",
+      "industryIds": [18],
+      "careerUrl": "https://www.novonordisk.com/careers/find-a-job.html",
+      "aliases": ["Novo Nordisk"]
+    },
+    {
+      "builtinKey": "02090bae-4565-4912-ba55-aa48f011a41b",
+      "name": "武田制药",
+      "industryIds": [18],
+      "careerUrl": "https://jobs.takeda.com/search-jobs/China/1113/2/1814991/35x00007/103x00012/50/2",
+      "aliases": ["Takeda", "武田药品"]
+    },
+    {
+      "builtinKey": "704f663e-62d1-4ead-a78f-fb7cb25fe0f6",
+      "name": "美敦力",
+      "industryIds": [51],
+      "careerUrl": "https://medtronic.wd1.myworkdayjobs.com/MedtronicCareers",
+      "aliases": ["Medtronic"]
+    },
+    {
+      "builtinKey": "3b635efd-e22d-488a-95c8-16f7ef47b63a",
+      "name": "赛默飞世尔",
+      "industryIds": [51, 56],
+      "careerUrl": "https://jobs.thermofisher.com/global/en/search-results?keywords=&location=China",
+      "aliases": ["Thermo Fisher Scientific", "赛默飞"]
+    },
+    {
+      "builtinKey": "5b398d33-b861-475d-9353-b85ea656de22",
+      "name": "Momenta",
+      "industryIds": [3, 19],
+      "careerUrl": "https://www.momenta.cn/join.html",
+      "aliases": ["魔门塔", "初速度科技"]
+    },
+    {
+      "builtinKey": "9db2082c-0d75-4985-898e-ded0d48a6f22",
+      "name": "文远知行",
+      "industryIds": [3, 19],
+      "careerUrl": "https://www.weride.ai/zh/careers",
+      "aliases": ["WeRide", "景驰科技"]
+    },
+    {
+      "builtinKey": "ad7aa0d2-dd44-451c-ad48-3874d1518f0c",
+      "name": "元戎启行",
+      "industryIds": [3, 19],
+      "careerUrl": "https://campus.deeproute.cn/",
+      "aliases": ["DeepRoute.ai", "DeepRoute"]
+    },
+    {
+      "builtinKey": "49e79cc0-2730-43c3-a388-e97ac78f1606",
+      "name": "轻舟智航",
+      "industryIds": [3, 19],
+      "careerUrl": "https://www.qcraft.ai/careers",
+      "aliases": ["QCraft"]
+    },
+    {
+      "builtinKey": "5547bbcf-828b-4e50-b34d-fc1c5b2f0331",
+      "name": "禾赛科技",
+      "industryIds": [6, 19],
+      "careerUrl": "https://www.hesaitech.com/cn/careers",
+      "aliases": ["Hesai", "Hesai Technology"]
+    },
+    {
+      "builtinKey": "6c271fd7-0e36-4bc9-bfd7-de47ad23f937",
+      "name": "速腾聚创",
+      "industryIds": [6, 19],
+      "careerUrl": "https://www.robosense.cn/about/joinus",
+      "aliases": ["RoboSense"]
+    },
+    {
+      "builtinKey": "8cf56373-d614-43c4-95be-6c074110ed16",
+      "name": "黑芝麻智能",
+      "industryIds": [5, 19],
+      "careerUrl": "https://bsthr.zhiye.com/",
+      "aliases": ["Black Sesame Technologies", "BST"]
+    },
+    {
+      "builtinKey": "aa338164-b7d4-4788-9d1b-17e5cc13559c",
+      "name": "芯擎科技",
+      "industryIds": [5, 19],
+      "careerUrl": "https://www.siengine.com/rczp/index.aspx",
+      "aliases": ["SiEngine"]
+    },
+    {
+      "builtinKey": "2e54c962-e23b-4389-9166-1d3ee7b44dd8",
+      "name": "此芯科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.cixtech.com/job/",
+      "aliases": ["CIX Technology", "CIX"]
+    },
+    {
+      "builtinKey": "71ad42b3-e73a-485f-b9cf-b2163e693943",
+      "name": "长工微",
+      "industryIds": [5],
+      "careerUrl": "https://www.innovisionsemi.com/en/careers",
+      "aliases": ["Innovision Semiconductor", "长工微电子"]
+    },
+    {
+      "builtinKey": "f35c8365-79af-436a-a5f6-453f7ec91722",
+      "name": "纽瑞芯科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.newradiotech.com/?page_id=22811",
+      "aliases": ["NewRadio Technology", "纽瑞芯"]
+    },
+    {
+      "builtinKey": "e34dd332-acb8-47c3-af4a-74bf6043571d",
+      "name": "爱芯元智",
+      "industryIds": [3, 5],
+      "careerUrl": "https://www.axera-tech.com/zh-hans/join/1",
+      "aliases": ["AXERA", "爱芯科技"]
+    },
+    {
+      "builtinKey": "6164df34-bcb7-44f7-bf98-e78ab7ee46f0",
+      "name": "奕斯伟计算",
+      "industryIds": [5],
+      "careerUrl": "https://eswinchipch.zhiye.com/campus",
+      "aliases": ["ESWIN Computing"]
+    },
+    {
+      "builtinKey": "0d36b77a-a11f-4855-b566-f88bc8e5f17a",
+      "name": "澜起科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.montage-tech.com/cn/Open_Positions",
+      "aliases": ["Montage Technology"]
+    },
+    {
+      "builtinKey": "0d37df56-991a-460c-92a0-6d87a0ae2c06",
+      "name": "圣邦微电子",
+      "industryIds": [5],
+      "careerUrl": "https://www.sg-micro.com/cnrecruitment",
+      "aliases": ["SGMICRO", "圣邦股份"]
+    },
+    {
+      "builtinKey": "1a98c885-4183-4eae-9456-4cd1783d4987",
+      "name": "南芯科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.southchip.com/recruitment",
+      "aliases": ["Southchip", "南芯半导体"]
+    },
+    {
+      "builtinKey": "9b09428d-854b-4da3-b92f-5b49c2c23e4a",
+      "name": "纳芯微",
+      "industryIds": [5],
+      "careerUrl": "https://careers.novosns.com/",
+      "aliases": ["NOVOSENSE", "纳芯微电子"]
+    },
+    {
+      "builtinKey": "6046c331-3216-43cc-b29a-799d0aa3e3fe",
+      "name": "思瑞浦",
+      "industryIds": [5],
+      "careerUrl": "https://www.3peak.cn/careers",
+      "aliases": ["3PEAK", "思瑞浦微电子"]
+    },
+    {
+      "builtinKey": "d3c1fb55-10c8-4fe7-93f2-8fee246fdf1f",
+      "name": "翱捷科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.asrmicro.com/job.html?cid1=113",
+      "aliases": ["ASR Micro", "ASR"]
+    },
+    {
+      "builtinKey": "9a926c43-ef22-43da-9d5a-85365dad81de",
+      "name": "恒玄科技",
+      "industryIds": [5],
+      "careerUrl": "https://bestechnic.zhiye.com/campus/jobs",
+      "aliases": ["Bestechnic", "BES"]
+    },
+    {
+      "builtinKey": "694ff76d-1642-46c1-983a-b4c4f6c70f68",
+      "name": "乐鑫科技",
+      "industryIds": [5, 54],
+      "careerUrl": "https://www.espressif.com/zh-hans/join-us/job-search",
+      "aliases": ["Espressif"]
+    },
+    {
+      "builtinKey": "b237949e-e432-493a-93a3-b69b744e6455",
+      "name": "芯海科技",
+      "industryIds": [5],
+      "careerUrl": "https://chipsea.zhiye.com/",
+      "aliases": ["Chipsea"]
+    },
+    {
+      "builtinKey": "206ec43f-2f7c-4133-bb47-241d7f5de26c",
+      "name": "杭州国芯科技",
+      "industryIds": [5],
+      "careerUrl": "https://www.nationalchip.com/index.php/recruit",
+      "aliases": ["NationalChip", "国芯科技"]
+    },
+    {
+      "builtinKey": "fbc45e51-1693-4114-b15c-d466578f73f0",
+      "name": "全志科技",
+      "industryIds": [5],
+      "careerUrl": "https://campus.allwinnertech.com/",
+      "aliases": ["Allwinner"]
+    },
+    {
+      "builtinKey": "44bae268-54f4-4e22-8688-ab042d7b5af1",
+      "name": "瑞芯微",
+      "industryIds": [5],
+      "careerUrl": "https://www.rock-chips.com/a/cn/jobs/xiaoyuanzhaopin/index.html",
+      "aliases": ["Rockchip", "瑞芯微电子"]
+    },
+    {
+      "builtinKey": "7cdcbf71-f95b-484e-987e-65625d0b4db2",
+      "name": "拓竹科技",
+      "industryIds": [6, 21],
+      "careerUrl": "https://bambulab.cn/zh-cn/join-us",
+      "aliases": ["Bambu Lab", "拓竹"]
+    },
+    {
+      "builtinKey": "0952b649-48cd-4612-ac8d-8eff1d0ed2d9",
+      "name": "影石创新",
+      "industryIds": [6, 8],
+      "careerUrl": "https://arashivision.jobs.feishu.cn/",
+      "aliases": ["Insta360", "影石科技"]
+    },
+    {
+      "builtinKey": "ac3b2792-c3c0-48da-9b41-14f03e3d1b5c",
+      "name": "云鲸智能",
+      "industryIds": [55],
+      "careerUrl": "https://careers.narwal.com/jobs",
+      "aliases": ["Narwal"]
+    },
+    {
+      "builtinKey": "da1a34a2-d472-4634-9756-e5b066aaf590",
+      "name": "普渡机器人",
+      "industryIds": [55],
+      "careerUrl": "https://pudutech.zhiye.com/",
+      "aliases": ["Pudu Robotics", "普渡科技"]
+    },
+    {
+      "builtinKey": "dfd505db-775a-4dad-9c79-09a933e04406",
+      "name": "海柔创新",
+      "industryIds": [55],
+      "careerUrl": "https://www.hairobotics.com/join-us",
+      "aliases": ["HAI ROBOTICS", "海柔"]
+    },
+    {
+      "builtinKey": "0f85833b-e8a6-45af-9954-f6fd46d2cc9f",
+      "name": "芯驰科技",
+      "industryIds": [5, 19],
+      "careerUrl": "https://app.mokahr.com/apply/semidrive/42940#/",
+      "aliases": ["SemiDrive", "芯驰"]
+    },
+    {
+      "builtinKey": "b847d833-e347-4a13-9929-0f2623bc9080",
+      "name": "天数智芯",
+      "industryIds": [3, 5],
+      "careerUrl": "https://app.mokahr.com/social-recruitment/iluvatar/98705#/",
+      "aliases": ["Iluvatar CoreX", "天数"]
+    },
+    {
+      "builtinKey": "1a515e8b-08d8-4a49-9c14-dbb9d3bd2941",
+      "name": "芯耀辉科技",
+      "industryIds": [5, 7],
+      "careerUrl": "https://geg7eg8cyc.jobs.feishu.cn/615803/position/list",
+      "aliases": ["AkroStar", "芯耀辉"]
+    },
+    {
+      "builtinKey": "3534b6dd-5327-440b-937f-09cdcab4007f",
+      "name": "晶晨半导体",
+      "industryIds": [5],
+      "careerUrl": "https://amlogicsh.zhiye.com/campus/jobs",
+      "aliases": ["Amlogic", "晶晨股份"]
+    },
+    {
+      "builtinKey": "44144b35-bc78-4f08-8e4b-546ff12a4f50",
+      "name": "满帮集团",
+      "industryIds": [1, 25, 53],
+      "careerUrl": "https://social.fulltruckalliance.com/social-recruitment/manbang/102223/#/",
+      "aliases": ["Full Truck Alliance", "运满满"]
+    },
+    {
+      "builtinKey": "4131a381-7bdb-4c83-864f-ba64745409d2",
+      "name": "追觅科技",
+      "industryIds": [6, 15, 55],
+      "careerUrl": "https://dreame.zhiye.com/campus/jobs",
+      "aliases": ["Dreame", "追觅"]
+    },
+    {
+      "builtinKey": "f409c9e5-207c-4938-b585-c8a37647acf5",
+      "name": "联芸科技",
+      "industryIds": [5],
+      "careerUrl": "https://maxio-tech1.zhiye.com/campus/jobs",
+      "aliases": ["Maxio", "联芸"]
+    },
+    {
+      "builtinKey": "54550e37-88c3-4795-9cc9-5648b8407199",
+      "name": "裕太微电子",
+      "industryIds": [5, 7],
+      "careerUrl": "https://www.motor-comm.com/join/campus-recruitment",
+      "aliases": ["Motorcomm", "裕太微"]
+    },
+    {
+      "builtinKey": "3dab73c1-7bc7-47e4-80c2-4608ea1f48f0",
+      "name": "小熊电器",
+      "industryIds": [6, 15, 21],
+      "careerUrl": "https://app.mokahr.com/social-recruitment/bears/58294#/",
+      "aliases": ["Bear Electric", "小熊"]
+    },
+    {
+      "builtinKey": "b30e4793-8454-42e6-84b0-75904d460a88",
+      "name": "思摩尔国际",
+      "industryIds": [6, 15, 21],
+      "careerUrl": "https://careers.smooretech.com/campus-recruitment/smoore/150918/#/jobs",
+      "aliases": ["SMOORE", "思摩尔"]
+    },
+    {
+      "builtinKey": "ae09e689-ac85-4dd3-9cba-53ca77637218",
+      "name": "安科瑞电气股份有限公司",
+      "industryIds": [6, 21, 29],
+      "careerUrl": "https://www.acrel.cn/zhaopin/",
+      "aliases": ["Acrel", "安科瑞"]
+    },
+    {
+      "builtinKey": "8380aefa-1ff4-4a1e-82a0-de1b315ebaa0",
+      "name": "深圳开立生物医疗科技股份有限公司",
+      "industryIds": [17, 51],
+      "careerUrl": "https://campus.sonoscape.com/campus-recruitment/sonoscape/94392/#/",
+      "aliases": ["SonoScape", "开立医疗"]
+    },
+    {
+      "builtinKey": "f7965ff7-bc8a-4e49-abfe-a4a44ddb77ec",
+      "name": "深圳中科飞测科技股份有限公司",
+      "industryIds": [5, 21, 57],
+      "careerUrl": "https://job.skyverse.cn/req/social-index",
+      "aliases": ["Skyverse", "中科飞测"]
+    },
+    {
+      "builtinKey": "3f5dba86-c90f-4721-a1dc-0e0b5fd1d307",
+      "name": "上海安路信息科技股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://app.mokahr.com/social-recruitment/anlogic/46365#/",
+      "aliases": ["Anlogic", "安路科技"]
+    },
+    {
+      "builtinKey": "0c085c66-c101-4ddc-b495-e221080f8f41",
+      "name": "广州慧智微电子股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://smartermicro.zhiye.com/social",
+      "aliases": ["SmarterMicro", "慧智微"]
+    },
+    {
+      "builtinKey": "d1aac174-2682-457d-aeef-61b4d407c4b7",
+      "name": "炬芯科技",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://actionstech.zhiye.com/social",
+      "aliases": ["Actions Technology", "Actions Tech"]
+    },
+    {
+      "builtinKey": "ab185403-5bd3-48c9-9bb6-5d036ca62480",
+      "name": "武汉市聚芯微电子有限责任公司",
+      "industryIds": [5, 8, 56],
+      "careerUrl": "https://app135149.dingtalkoxm.com/campus-recruitment/si-in/100000256?locale=zh-CN#/",
+      "aliases": ["聚芯微电子", "聚芯微"]
+    },
+    {
+      "builtinKey": "44f94819-0098-4ef6-ada9-13177a1ebdae",
+      "name": "唯捷创芯（天津）电子技术股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://app.mokahr.com/apply/vanchip/47238#/",
+      "aliases": ["唯捷创芯", "Vanchip"]
+    }
+  ]
+}

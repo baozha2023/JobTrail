@@ -21,6 +21,9 @@ import type {
   UpdateResumeVersionInput,
   UpdateStatusInput,
   AppErrorShape,
+  CompanyCatalogStatus,
+  CompanyCatalogProgress,
+  CompanyCatalogUpdateResult,
   McpConnectionInfo,
 } from './types'
 
@@ -50,6 +53,9 @@ export interface IpcChannelMap {
   'companies:create': { args: [input: CreateCompanyInput]; result: Company }
   'companies:update': { args: [id: number, input: UpdateCompanyInput]; result: Company }
   'companies:delete': { args: [id: number]; result: void }
+
+  'company-catalog:get-status': { args: []; result: CompanyCatalogStatus }
+  'company-catalog:update': { args: []; result: CompanyCatalogUpdateResult }
 
   'resumes:list': { args: []; result: ResumeVersion[] }
   'resumes:get': { args: [id: number]; result: ResumeVersion }
@@ -89,5 +95,11 @@ export interface IpcChannelMap {
 export type IpcChannel = keyof IpcChannelMap
 export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
+
+export interface AppEventMap {
+  'company-catalog:progress': CompanyCatalogProgress
+}
+
+export type AppEventChannel = keyof AppEventMap
 
 export type IpcResponse<T> = { ok: true; data: T } | { ok: false; error: AppErrorShape }

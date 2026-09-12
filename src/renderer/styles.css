@@ -709,6 +709,26 @@ h1 {
   gap: 20px;
 }
 
+.catalog-update-modal {
+  width: min(520px, calc(100vw - 32px));
+  border-radius: 14px;
+}
+.catalog-update-content {
+  display: grid;
+  gap: 18px;
+}
+.catalog-update-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 20px;
+  color: #667085;
+}
+.catalog-update-error {
+  margin: 0;
+  color: #d03050;
+  line-height: 1.6;
+}
+
 .settings-mcp-panel {
   display: grid;
   gap: clamp(9px, 1.8vh, 18px);

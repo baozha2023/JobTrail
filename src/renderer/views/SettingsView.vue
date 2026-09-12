@@ -7,7 +7,9 @@ import {
   NFormItem,
   NInputNumber,
   NInput,
+  NModal,
   NPopconfirm,
+  NProgress,
   NRadio,
   NRadioGroup,
   NSelect,
@@ -16,7 +18,14 @@ import {
   NTabPane,
   NTabs,
 } from 'naive-ui'
-import type { AppConfig, CloseBehavior, McpConnectionInfo } from '../../shared/types'
+import type {
+  AppConfig,
+  CloseBehavior,
+  CompanyCatalogPhase,
+  CompanyCatalogStatus,
+  CompanyCatalogUpdateResult,
+  McpConnectionInfo,
+} from '../../shared/types'
 
 const props = defineProps<{
   config: AppConfig | null
@@ -26,6 +35,15 @@ const props = defineProps<{
   uninstalling: boolean
   checkForUpdates: () => void
   uninstallApp: () => void
+  catalogStatus: CompanyCatalogStatus | null
+  catalogModalVisible: boolean
+  catalogUpdating: boolean
+  catalogPhase: CompanyCatalogPhase
+  catalogProgress: number
+  catalogResult: CompanyCatalogUpdateResult | null
+  catalogError: string
+  updateCompanyCatalog: () => void
+  closeCatalogModal: () => void
 }>()
 const emit = defineEmits<{
   updateConfig: [input: Partial<AppConfig>]
@@ -239,6 +257,23 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
         <n-card
           bordered
+          class="settings-card settings-update-card"
+          :title="$t('settings.catalogTitle')"
+        >
+          <div class="settings-update-panel">
+            <n-button
+              block
+              :loading="catalogUpdating"
+              :disabled="!catalogStatus || catalogUpdating"
+              @click="updateCompanyCatalog"
+            >
+              {{ $t('settings.catalogUpdate') }}
+            </n-button>
+          </div>
+        </n-card>
+
+        <n-card
+          bordered
           class="settings-card settings-danger-card"
           :title="$t('settings.dangerZone')"
         >
@@ -263,5 +298,56 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
         </n-card>
       </aside>
     </div>
+
+    <n-modal
+      :show="catalogModalVisible"
+      :mask-closable="false"
+      :close-on-esc="false"
+      :auto-focus="false"
+    >
+      <n-card class="catalog-update-modal" :title="$t('settings.catalogDialogTitle')" bordered>
+        <div class="catalog-update-content">
+          <template v-if="catalogUpdating">
+            <strong>{{ $t(`settings.catalogPhase.${catalogPhase}`) }}</strong>
+            <n-progress
+              type="line"
+              :percentage="Math.floor(catalogProgress)"
+              :show-indicator="true"
+              processing
+            />
+          </template>
+          <template v-else-if="catalogResult">
+            <strong>{{
+              $t(
+                catalogResult.status === 'up-to-date'
+                  ? 'settings.catalogUpToDate'
+                  : 'settings.catalogSuccess',
+              )
+            }}</strong>
+            <div class="catalog-update-summary">
+              <span>{{ $t('settings.catalogAdded') }}：{{ catalogResult.added }}</span>
+              <span>{{ $t('settings.catalogUpdated') }}：{{ catalogResult.updated }}</span>
+              <span>{{ $t('settings.catalogAdopted') }}：{{ catalogResult.adopted }}</span>
+              <span>{{ $t('settings.catalogUnchanged') }}：{{ catalogResult.unchanged }}</span>
+            </div>
+            <n-progress type="line" :percentage="100" status="success" />
+          </template>
+          <template v-else>
+            <strong>{{ $t('settings.catalogFailed') }}</strong>
+            <p class="catalog-update-error">{{ catalogError }}</p>
+            <n-progress
+              type="line"
+              :percentage="Math.min(99, Math.floor(catalogProgress))"
+              status="error"
+            />
+          </template>
+        </div>
+        <template v-if="!catalogUpdating" #footer>
+          <n-space justify="end">
+            <n-button type="primary" @click="closeCatalogModal">{{ $t('common.close') }}</n-button>
+          </n-space>
+        </template>
+      </n-card>
+    </n-modal>
   </section>
 </template>

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
+import { buildCompanyCatalogAssets } from './company-catalog-assets.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
@@ -111,4 +112,5 @@ for (const asset of feed.Assets) {
 // Only publish the custom offline setup and the update feed/packages.
 for (const name of ['zhiji-win-Setup.exe', 'RELEASES', 'assets.win.json'])
   fs.rmSync(path.join(output, name), { force: true })
+buildCompanyCatalogAssets(root, output)
 console.log(`Release ready: ${output}`)

@@ -13,6 +13,14 @@ export type AppErrorCode =
   | 'FILE_IMPORT_FAILED'
   | 'FILE_OPEN_FAILED'
   | 'DATABASE_ERROR'
+  | 'CATALOG_DOWNLOAD_FAILED'
+  | 'CATALOG_TOO_LARGE'
+  | 'CATALOG_HASH_MISMATCH'
+  | 'CATALOG_INVALID'
+  | 'CATALOG_VERSION_ROLLBACK'
+  | 'CATALOG_APP_UPDATE_REQUIRED'
+  | 'CATALOG_CONFLICT'
+  | 'CATALOG_UPDATE_IN_PROGRESS'
   | 'INTERNAL_ERROR'
 
 export type McpErrorCode =
@@ -25,6 +33,29 @@ export interface McpConnectionInfo {
   command: string
   args: string[]
   env?: Record<string, string>
+}
+
+export type CompanyCatalogPhase = 'metadata' | 'download' | 'validation' | 'sync' | 'finalizing'
+
+export interface CompanyCatalogProgress {
+  phase: CompanyCatalogPhase
+  progress: number
+}
+
+export interface CompanyCatalogStatus {
+  formatVersion: number
+  catalogVersion: number
+  appliedAt: number
+}
+
+export interface CompanyCatalogUpdateResult {
+  status: 'up-to-date' | 'updated'
+  previousVersion: number
+  currentVersion: number
+  added: number
+  updated: number
+  adopted: number
+  unchanged: number
 }
 
 export interface VelopackConfig {
@@ -254,6 +285,11 @@ export interface ZhijiApi {
     create(input: CreateCompanyInput): Promise<Company>
     update(id: number, input: UpdateCompanyInput): Promise<Company>
     delete(id: number): Promise<void>
+  }
+  companyCatalog: {
+    getStatus(): Promise<CompanyCatalogStatus>
+    update(): Promise<CompanyCatalogUpdateResult>
+    onProgress(listener: (progress: CompanyCatalogProgress) => void): () => void
   }
   resumes: {
     list(): Promise<ResumeVersion[]>

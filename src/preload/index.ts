@@ -69,6 +69,18 @@ const zhijiApi: ZhijiApi = {
     update: (id, input) => invoke('companies:update', id, input),
     delete: (id) => invoke('companies:delete', id),
   },
+  companyCatalog: {
+    getStatus: () => invoke('company-catalog:get-status'),
+    update: () => invoke('company-catalog:update'),
+    onProgress: (listener) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        progress: Parameters<typeof listener>[0],
+      ) => listener(progress)
+      ipcRenderer.on('company-catalog:progress', handler)
+      return () => ipcRenderer.removeListener('company-catalog:progress', handler)
+    },
+  },
   resumes: {
     list: () => invoke('resumes:list'),
     get: (id) => invoke('resumes:get', id),

@@ -2,14 +2,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import Database from 'better-sqlite3'
 import type { AppPaths } from './config'
-import { BUILTIN_COMPANIES } from './builtin-companies'
+import { BUNDLED_COMPANY_CATALOG, BUNDLED_COMPANY_CATALOG_HASH } from './company-catalog'
 
 type SqliteDatabase = InstanceType<typeof Database>
-export const DB_SCHEMA_VERSION = 8
+export const DB_SCHEMA_VERSION = 1
 
 const DEFAULT_STATUSES = [
   '感兴趣',
   '待投递',
+  '已投递',
   '初筛',
   '笔试',
   'AI面试',
@@ -159,12 +160,20 @@ export class DatabaseManager {
       CREATE TABLE IF NOT EXISTS companies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
+        builtin_key TEXT UNIQUE,
         career_url TEXT,
         last_read_at INTEGER,
-        is_builtin INTEGER NOT NULL DEFAULT 0 CHECK (is_builtin IN (0, 1)),
         is_favorite INTEGER NOT NULL DEFAULT 0 CHECK (is_favorite IN (0, 1)),
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS builtin_company_catalog_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        format_version INTEGER NOT NULL,
+        catalog_version INTEGER NOT NULL,
+        content_sha256 TEXT NOT NULL CHECK (length(content_sha256) = 64),
+        applied_at INTEGER NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS company_industries (
@@ -254,17 +263,16 @@ export class DatabaseManager {
   private seed(): void {
     const now = Date.now()
     const insertCompany = this.db.prepare(`
-      INSERT INTO companies (name, career_url, is_builtin, is_favorite, created_at, updated_at)
-      VALUES (?, ?, 1, 0, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET name = excluded.name
-      RETURNING id
+      INSERT INTO companies (name, builtin_key, career_url, is_favorite, created_at, updated_at)
+      VALUES (?, ?, ?, 0, ?, ?)
     `)
+    const getCompanyId = this.db.prepare('SELECT id FROM companies WHERE name = ?')
     const addIndustry = this.db.prepare(`
-      INSERT OR IGNORE INTO company_industries (company_id, industry_id, created_at)
+      INSERT INTO company_industries (company_id, industry_id, created_at)
       VALUES (?, ?, ?)
     `)
     const addAlias = this.db.prepare(`
-      INSERT OR IGNORE INTO company_aliases (company_id, alias, created_at)
+      INSERT INTO company_aliases (company_id, alias, created_at)
       VALUES (?, ?, ?)
     `)
     const seedTransaction = this.db.transaction(() => {
@@ -280,15 +288,23 @@ export class DatabaseManager {
       DEFAULT_INDUSTRIES.forEach((label, index) =>
         insertIndustry.run(index + 1, label, index, now, now),
       )
-      for (const companySeed of BUILTIN_COMPANIES) {
-        const company = insertCompany.get(companySeed.name, companySeed.careerUrl, now, now) as {
-          id: number
-        }
-        const companyId = company.id
+      for (const companySeed of BUNDLED_COMPANY_CATALOG.companies) {
+        insertCompany.run(companySeed.name, companySeed.builtinKey, companySeed.careerUrl, now, now)
+        const { id: companyId } = getCompanyId.get(companySeed.name) as { id: number }
         for (const industryId of companySeed.industryIds)
           addIndustry.run(companyId, industryId, now)
         for (const alias of companySeed.aliases) addAlias.run(companyId, alias, now)
       }
+      this.db
+        .prepare(
+          'INSERT INTO builtin_company_catalog_state (id, format_version, catalog_version, content_sha256, applied_at) VALUES (1, ?, ?, ?, ?)',
+        )
+        .run(
+          BUNDLED_COMPANY_CATALOG.formatVersion,
+          BUNDLED_COMPANY_CATALOG.catalogVersion,
+          BUNDLED_COMPANY_CATALOG_HASH,
+          now,
+        )
       // Commit the seed data and its schema marker atomically. Otherwise a
       // process interruption between the two writes leaves a populated v0
       // database that cannot be initialized on the next launch.

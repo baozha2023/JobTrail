@@ -31,6 +31,10 @@ import {
 import type {
   AppConfig,
   Company,
+  CompanyCatalogPhase,
+  CompanyCatalogProgress,
+  CompanyCatalogStatus,
+  CompanyCatalogUpdateResult,
   CloseBehavior,
   Opportunity,
   Industry,
@@ -77,6 +81,13 @@ const checkingForUpdates = ref(false)
 const currentVersion = ref('—')
 const mcpConnectionInfo = ref<McpConnectionInfo | null>(null)
 const uninstalling = ref(false)
+const catalogStatus = ref<CompanyCatalogStatus | null>(null)
+const catalogModalVisible = ref(false)
+const catalogUpdating = ref(false)
+const catalogPhase = ref<CompanyCatalogPhase>('metadata')
+const catalogProgress = ref(0)
+const catalogResult = ref<CompanyCatalogUpdateResult | null>(null)
+const catalogError = ref('')
 const isDevelopment = ref(false)
 const currentTime = ref(Date.now())
 const prefersDark = ref(false)
@@ -761,6 +772,7 @@ async function loadAll(): Promise<void> {
     loadAllOpportunities(),
     window.zhijiApi.system.isDevelopment(),
     window.zhijiApi.mcp.getConnectionInfo(),
+    window.zhijiApi.companyCatalog.getStatus(),
   ])
   const [
     configResult,
@@ -772,6 +784,7 @@ async function loadAll(): Promise<void> {
     allOpportunitiesResult,
     developmentResult,
     mcpConnectionResult,
+    catalogStatusResult,
   ] = results
   if (configResult.status === 'fulfilled' && config.value) locale.value = config.value.locale
   else if (configResult.status === 'rejected') showError(configResult.reason)
@@ -790,6 +803,8 @@ async function loadAll(): Promise<void> {
   if (mcpConnectionResult.status === 'fulfilled')
     mcpConnectionInfo.value = mcpConnectionResult.value
   else showError(mcpConnectionResult.reason)
+  if (catalogStatusResult.status === 'fulfilled') catalogStatus.value = catalogStatusResult.value
+  else showError(catalogStatusResult.reason)
   await Promise.allSettled([loadOpportunities(), loadCalendar()]).then((settled) =>
     settled.forEach((result) => {
       if (result.status === 'rejected') showError(result.reason)
@@ -830,6 +845,50 @@ async function refreshExternalData(): Promise<void> {
 
 async function loadCompanies(): Promise<void> {
   await companiesStore.load()
+}
+
+function receiveCatalogProgress(progress: CompanyCatalogProgress): void {
+  if (!catalogUpdating.value) return
+  catalogPhase.value = progress.phase
+  catalogProgress.value = Math.max(catalogProgress.value, progress.progress)
+}
+
+async function updateCompanyCatalog(): Promise<void> {
+  if (catalogUpdating.value) return
+  catalogModalVisible.value = true
+  catalogUpdating.value = true
+  catalogPhase.value = 'metadata'
+  catalogProgress.value = 0
+  catalogResult.value = null
+  catalogError.value = ''
+  try {
+    const result = await window.zhijiApi.companyCatalog.update()
+    catalogPhase.value = 'finalizing'
+    catalogResult.value = result
+    catalogProgress.value = 100
+    const refreshResults = await Promise.allSettled([
+      companiesStore.load(),
+      loadAllOpportunities(),
+      loadOpportunities(),
+      loadCalendar(),
+      window.zhijiApi.companyCatalog.getStatus(),
+    ])
+    refreshResults.slice(0, 4).forEach((refreshResult) => {
+      if (refreshResult.status === 'rejected') showError(refreshResult.reason)
+    })
+    const statusResult = refreshResults[4]
+    if (statusResult?.status === 'fulfilled') catalogStatus.value = statusResult.value
+    else if (statusResult?.status === 'rejected') showError(statusResult.reason)
+  } catch (error) {
+    catalogError.value = errorMessage(error)
+  } finally {
+    catalogUpdating.value = false
+  }
+}
+
+function closeCatalogModal(): void {
+  if (catalogUpdating.value) return
+  catalogModalVisible.value = false
 }
 
 async function saveConfig(input: Partial<AppConfig>): Promise<void> {
@@ -917,6 +976,7 @@ let removeReminderClickListener: (() => void) | undefined
 let removeExternalDataChangeListener: (() => void) | undefined
 let readStatusTimer: number | undefined
 let removePreferredColorSchemeListener: (() => void) | undefined
+let removeCatalogProgressListener: (() => void) | undefined
 onMounted(() => {
   window.addEventListener('resize', updateViewportWidth)
   readStatusTimer = window.setInterval(() => {
@@ -928,6 +988,7 @@ onMounted(() => {
   removeExternalDataChangeListener = window.zhijiApi.data.onExternalChange(() => {
     void refreshExternalData()
   })
+  removeCatalogProgressListener = window.zhijiApi.companyCatalog.onProgress(receiveCatalogProgress)
   if (window.matchMedia) {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     prefersDark.value = media.matches
@@ -946,6 +1007,7 @@ onBeforeUnmount(() => {
   removeReminderClickListener?.()
   removeExternalDataChangeListener?.()
   removePreferredColorSchemeListener?.()
+  removeCatalogProgressListener?.()
 })
 </script>
 
@@ -1092,6 +1154,15 @@ onBeforeUnmount(() => {
               :uninstalling="uninstalling"
               :check-for-updates="checkForUpdates"
               :uninstall-app="uninstallApp"
+              :catalog-status="catalogStatus"
+              :catalog-modal-visible="catalogModalVisible"
+              :catalog-updating="catalogUpdating"
+              :catalog-phase="catalogPhase"
+              :catalog-progress="catalogProgress"
+              :catalog-result="catalogResult"
+              :catalog-error="catalogError"
+              :update-company-catalog="updateCompanyCatalog"
+              :close-catalog-modal="closeCatalogModal"
               @update-config="saveConfig"
               @close-behavior="setCloseBehavior"
               @launch-at-startup="setLaunchAtStartup"

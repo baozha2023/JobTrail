@@ -28,10 +28,10 @@ export interface IndustryRow {
 export interface CompanyRow {
   id: number
   name: string
+  builtin_key: string | null
   industry_name: string | null
   career_url: string | null
   last_read_at: number | null
-  is_builtin: number
   is_favorite: number
   created_at: number
   updated_at: number
@@ -129,7 +129,7 @@ export function mapCompany(row: CompanyRow, aliases: string[], industryIds: numb
     careerUrl: row.career_url,
     lastReadAt: row.last_read_at,
     aliases,
-    isBuiltin: row.is_builtin === 1,
+    isBuiltin: row.builtin_key !== null,
     isFavorite: row.is_favorite === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

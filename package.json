@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": "Zhiji",
@@ -10,7 +10,7 @@
     "dev": "electron-vite dev",
     "build": "pnpm typecheck && electron-vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "node --test scripts/resolve-velopack-baseline.test.mjs && node scripts/run-vitest-electron.mjs",
+    "test": "node --test scripts/resolve-velopack-baseline.test.mjs scripts/company-catalog-assets.test.mjs && node scripts/run-vitest-electron.mjs",
     "test:watch": "node scripts/run-vitest-electron.mjs --watch",
     "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",

@@ -54,6 +54,7 @@
 - 公司招聘官网支持收藏和已读状态；已读有效期由 `companyReadValidityMonths` 控制。
 - 正式安装版中的内置状态、行业和公司主体数据禁止修改、删除；开发环境可以放开维护，但仍必须执行关联删除保护。
 - 内置公司的收藏状态属于用户偏好，允许修改。
+- 设置页可由用户主动更新内置公司目录；应用启动、软件升级和 MCP 均不得触发目录同步。
 
 ### 3.4 简历文件
 
@@ -121,6 +122,8 @@ src/main/
 │  └─ unit-of-work.ts          写事务与文件提交/回滚钩子
 ├─ repositories/              SQL、持久化和行映射
 ├─ database.ts                SQLite 初始化与生命周期
+├─ company-catalog.ts         公司目录格式、校验及内置目录读取
+├─ company-catalog-updater.ts 固定 Release 资产下载与完整性校验
 ├─ file-storage.ts            受控简历文件存储
 ├─ config.ts                  配置读取、校验和原子写入
 ├─ update-service.ts          更新状态机
@@ -143,7 +146,7 @@ src/shared/
 
 native/bootstrap/            Windows 启动器、离线安装器、卸载器
 scripts/                     测试、构建和 Velopack 发布脚本
-resource/                    应用图标等静态资源
+resource/                    应用图标和首次 seed/Release 共用的公司目录
 docs/                        数据库声明与未来规划
 ```
 
@@ -235,13 +238,18 @@ Repository 禁止读取 Renderer 状态、弹出 UI、访问 Electron 窗口或�
 
 - 使用 `better-sqlite3`，只允许在受信任的主进程侧加载，包括桌面 Main 和独立 MCP Node；Renderer 与 Preload 不得加载。
 - 数据库结构以 `docs/database.md` 为唯一声明，任何 schema 变更必须同步更新该文件和测试。
-- 当前 schema 使用 `PRAGMA user_version = 8`；版本变化必须由明确需求驱动。
+- 当前 schema 使用 `PRAGMA user_version = 1`；版本变化必须由明确需求驱动。
 - 开启 `journal_mode = WAL` 和 `busy_timeout = 5000`。
 - 时间字段保存 UTC Unix 毫秒；布尔值保存为 INTEGER `0/1`。
 - 禁止 SQLite 物理外键、`REFERENCES` 和 `ON DELETE`；跨表关系由 Service 作为逻辑外键维护。
 - 禁止创建 `schema_migrations`、`app_settings` 或 `opportunity_status_history`。
 - 首次初始化、seed 和 `user_version` 必须在同一事务中完成。
 - Seed 只允许在 `user_version = 0` 的首次初始化事务中执行；已初始化数据库不得再次执行或合并 seed，也不得在启动时覆盖用户数据。
+- 内置公司以 `companies.builtin_key` 是否为空判定；key 为稳定小写 UUID v4，不得因改名、排序或本地 ID 变化而替换。
+- `resource/jobtrail-company-catalog.json` 是首次 seed 与 Release 共用的唯一全量公司目录；目录只允许由设置页主动更新，禁止在启动或软件升级时自动同步。
+- 公司目录状态保存在 `builtin_company_catalog_state` 单行表中，并与公司、行业关系和别名变更在同一个 `IMMEDIATE` 事务提交。
+- 目录更新只接受固定 GitHub Release 地址的 HTTPS 响应，必须限制最终主机、下载字节数，并以 manifest 的文件名、大小和原始 SHA-256 校验全量 JSON；随后校验格式版本、目录版本、最低应用版本、唯一 key/名称及行业关联。
+- 同一内置 key 的目录更新保留公司 ID、创建时间、收藏、已读时间和业务关联；同名用户公司转为内置时也保留这些数据。目录中缺少的旧内置公司不删除；冲突使整个事务回滚。
 - 数据库写操作和多步骤关系更新必须使用事务。
 - 不得为假设历史数据擅自增加 `ALTER TABLE`、双写、回退读取或转换层；发布版本迁移需要用户明确批准和独立设计。
 
@@ -383,10 +391,11 @@ MCP 属于可选协议适配层，不得成为核心业务运行的前置条件�
 3. 使用 `vpk pack` 生成更新资产。
 4. 按解压目录、Full 包和根程序计算目标磁盘所需空间，构建并内嵌 Rust 启动器、卸载器和程序载荷。
 5. 校验最终 Feed 中每个资产。
+6. 逐字节发布全量公司目录，并生成和复验文件名、大小及 SHA-256 manifest。
 
 只有 Feed 为 404、为空或没有合适历史版本时允许 Full-only。网络错误、无效 Feed、歧义基线或校验失败必须终止构建。不得伪装成成功发布。
 
-公开资产只包括自定义 `JobTrail-Setup-<version>.exe`、`releases.win.json` 和 nupkg；不发布 Portable、MSI、Velopack 原生 Setup 或 `win-unpacked`。
+公开资产只包括自定义 `JobTrail-Setup-<version>.exe`、`releases.win.json`、nupkg、`jobtrail-company-catalog.json` 和 `jobtrail-company-catalog.manifest.json`；不发布 Portable、MSI、Velopack 原生 Setup 或 `win-unpacked`。
 
 ## 19. 错误处理与日志
 

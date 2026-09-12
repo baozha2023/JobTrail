@@ -18,6 +18,14 @@ export function errorCode(error: unknown): AppErrorCode | null {
     'FILE_IMPORT_FAILED',
     'FILE_OPEN_FAILED',
     'DATABASE_ERROR',
+    'CATALOG_DOWNLOAD_FAILED',
+    'CATALOG_TOO_LARGE',
+    'CATALOG_HASH_MISMATCH',
+    'CATALOG_INVALID',
+    'CATALOG_VERSION_ROLLBACK',
+    'CATALOG_APP_UPDATE_REQUIRED',
+    'CATALOG_CONFLICT',
+    'CATALOG_UPDATE_IN_PROGRESS',
     'INTERNAL_ERROR',
   ]
   return known.includes(code as AppErrorCode) ? (code as AppErrorCode) : null

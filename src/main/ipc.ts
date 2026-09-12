@@ -2,6 +2,7 @@ import type { ConfigService } from './config'
 import type { Services } from './service-container'
 import { registerCalendarIpc } from './ipc/calendar'
 import { registerCompanyIpc } from './ipc/companies'
+import { registerCompanyCatalogIpc } from './ipc/company-catalog'
 import { registerConfigIpc } from './ipc/config'
 import { registerIndustryIpc } from './ipc/industries'
 import { registerMcpIpc } from './ipc/mcp'
@@ -12,16 +13,18 @@ import { registerSystemIpc, registerWindowIpc as registerWindowHandlers } from '
 
 export { registerChannel } from './ipc/register-channel'
 
-export function registerIpc(services: Services, config: ConfigService): void {
+export function registerIpc(services: Services, config: ConfigService): () => void {
   registerConfigIpc(config)
   registerMcpIpc()
   registerStatusIpc(services)
   registerIndustryIpc(services)
   registerCompanyIpc(services)
+  const cancelCompanyCatalogUpdate = registerCompanyCatalogIpc(services)
   registerResumeIpc(services)
   registerOpportunityIpc(services)
   registerCalendarIpc(services)
   registerSystemIpc()
+  return cancelCompanyCatalogUpdate
 }
 
 export function registerWindowIpc(window: Electron.BrowserWindow): void {

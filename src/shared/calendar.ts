@@ -11,6 +11,13 @@ export interface CalendarDateParts {
   day: number
 }
 
+export function isCalendarEventCompleted(
+  event: Pick<CalendarEvent, 'endAt'>,
+  now = Date.now(),
+): boolean {
+  return event.endAt <= now
+}
+
 const dateFormatterCache = new Map<string, Intl.DateTimeFormat>()
 const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>()
 

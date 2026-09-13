@@ -10,6 +10,7 @@ import type {
   CreateCalendarEventInput,
   CreateOpportunityInput,
   Opportunity,
+  OpportunityStatusFlow,
   Status,
 } from '../src/shared/types'
 import { useCalendarWorkspace } from '../src/renderer/composables/useCalendarWorkspace'
@@ -39,7 +40,7 @@ function calendarEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     opportunityJobUrl: null,
     companyName: null,
     title: '日程',
-    eventType: 'other',
+    eventType: '自定义类型',
     startAt: Date.UTC(2026, 8, 7),
     endAt: Date.UTC(2026, 8, 7, 1),
     isAllDay: false,
@@ -115,7 +116,6 @@ describe('renderer domain workspaces', () => {
           create,
           update: vi.fn(),
           delete: vi.fn(),
-          complete: vi.fn(),
           onReminderClick: vi.fn(),
         },
       },
@@ -131,6 +131,10 @@ describe('renderer domain workspaces', () => {
     )
 
     workspace.newEvent(new Date(2026, 8, 7))
+    expect(workspace.eventTypeOptions.value).toHaveLength(4)
+    expect(workspace.eventTypeOptions.value).not.toContainEqual({ label: '其他', value: '其他' })
+    expect(workspace.eventForm.value.eventType).toBeNull()
+    workspace.eventForm.value.eventType = '笔试'
     workspace.setEventAllDay(true)
     workspace.eventForm.value.title = '全天事项'
     workspace.eventForm.value.timezone = 'Asia/Shanghai'
@@ -143,10 +147,34 @@ describe('renderer domain workspaces', () => {
         startAt: Date.UTC(2026, 8, 6, 16),
         endAt: Date.UTC(2026, 8, 8, 16),
         isAllDay: true,
+        eventType: '笔试',
         timezone: 'Asia/Shanghai',
       }),
     )
     expect(workspace.showEventModal.value).toBe(false)
+    workspace.newEvent(new Date(2026, 8, 7))
+    workspace.eventForm.value.title = '自定义日程'
+    await workspace.saveEvent()
+    expect(create).toHaveBeenCalledTimes(1)
+    workspace.eventForm.value.eventType = '技术沟通'
+    await workspace.saveEvent()
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ eventType: '技术沟通' }))
+    const previousLocale = i18n.global.locale.value
+    try {
+      i18n.global.locale.value = 'en-US'
+      expect(workspace.eventTypeOptions.value).toContainEqual({
+        label: 'Written test',
+        value: 'Written test',
+      })
+      expect(workspace.eventTypeOptions.value).not.toContainEqual({
+        label: 'Other',
+        value: 'Other',
+      })
+      workspace.newEvent(new Date(2026, 8, 7))
+      expect(workspace.eventForm.value.eventType).toBeNull()
+    } finally {
+      i18n.global.locale.value = previousLocale
+    }
     wrapper.unmount()
   })
 
@@ -184,6 +212,51 @@ describe('renderer domain workspaces', () => {
     )
     expect(loadCalendar).toHaveBeenCalledOnce()
     expect(workspace.showOpportunityModal.value).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('opens the status flow and ignores an older request after switching records', async () => {
+    let finishFirst: ((value: OpportunityStatusFlow) => void) | undefined
+    const first = new Promise<OpportunityStatusFlow>((resolve) => {
+      finishFirst = resolve
+    })
+    const secondFlow: OpportunityStatusFlow = {
+      opportunity: opportunity({ id: 2 }),
+      events: [],
+    }
+    const statusFlow = vi.fn().mockReturnValueOnce(first).mockResolvedValueOnce(secondFlow)
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        opportunities: {
+          list: vi.fn(async () => []),
+          statusFlow,
+        },
+      },
+    })
+    const { workspace, wrapper } = mountComposable(() =>
+      useOpportunityWorkspace({
+        companies: ref([company()]),
+        statuses: ref([]),
+        loadCalendar: vi.fn(async () => undefined),
+        showError: vi.fn(),
+        notifySuccess: vi.fn(),
+        notifyError: vi.fn(),
+      }),
+    )
+
+    workspace.openStatusFlow(opportunity())
+    workspace.openStatusFlow(opportunity({ id: 2 }))
+    expect(workspace.statusFlowOpportunity.value?.id).toBe(2)
+    await flushPromises()
+    expect(workspace.statusFlow.value).toEqual(secondFlow)
+    finishFirst?.({ opportunity: opportunity(), events: [] })
+    await flushPromises()
+    expect(workspace.statusFlow.value).toEqual(secondFlow)
+    workspace.closeStatusFlow()
+    expect(workspace.showStatusFlowModal.value).toBe(false)
+    expect(workspace.statusFlowOpportunity.value).toBeNull()
+    expect(workspace.statusFlow.value).toBeNull()
     wrapper.unmount()
   })
 

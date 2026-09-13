@@ -36,15 +36,17 @@
 - 每条求职记录必须关联公司和状态，可以关联一个简历版本。
 - 支持关键词搜索，以及按状态和公司筛选。
 - 支持新增、编辑、删除和状态变更。
+- 求职记录状态变更写入不可编辑的历史节点；“状态流转”按钮以可切换主题的流转图展示实际经历。
 
 ### 3.2 日历与提醒
 
 - 支持独立日程和关联求职记录的日程。
 - 支持时间点、时间段、跨日期和全天日程。
 - 日程使用有效 IANA 时区名称。
+- 日程类型选项的 label 与 value 相同，按当前语言生成；选择框支持搜索和手动输入，数据库原样保存名称，展示时直接读取，不增加类型代码映射。
 - 全天日程采用半开区间 `[startAt, endAt)`，结束日期不包含在日程中。
 - Windows 本地提醒由 Main 进程定时调度，不实现邮件或远程通知。
-- 已完成日程不提醒；相同日程与提醒时间只能成功记录一次。
+- 日程到达结束时间后自动完成，不允许手动切换；已结束日程不提醒，相同日程与提醒时间只能成功记录一次。
 
 ### 3.3 基础数据
 
@@ -127,6 +129,7 @@ src/main/
 ├─ file-storage.ts            受控简历文件存储
 ├─ config.ts                  配置读取、校验和原子写入
 ├─ update-service.ts          更新状态机
+├─ update-rollback.ts         更新前旧版 Full 包保留及数据回滚点
 ├─ velopack.ts                Velopack IPC 适配
 └─ mcp/                        可选 MCP 适配实现，不属于核心业务层
 
@@ -144,7 +147,7 @@ src/shared/
 ├─ ipc.ts                     IPC 通道映射
 └─ calendar.ts                跨层日历纯函数
 
-native/bootstrap/            Windows 启动器、离线安装器、卸载器
+native/bootstrap/            Windows 启动器、离线安装器、卸载器及更新失败回滚
 scripts/                     测试、构建和 Velopack 发布脚本
 resource/                    应用图标和首次 seed/Release 共用的公司目录
 docs/                        数据库声明与未来规划
@@ -161,7 +164,7 @@ docs/                        数据库声明与未来规划
 - Service、Repository 类使用 `XxxService`、`XxxRepository`。
 - 普通 TypeScript 文件使用 kebab-case；类型、接口和类使用 PascalCase；变量和函数使用 camelCase。
 - 数据库字段使用 snake_case，跨进程 DTO 使用 camelCase；转换集中在 row mapper 或 Repository 边界。
-- IPC channel 使用 `<domain>:<operation>`，例如 `companies:mark-read`、`calendar:complete`。
+- IPC channel 使用 `<domain>:<operation>`，例如 `companies:mark-read`、`calendar:update`。
 - 错误码使用稳定的 `UPPER_SNAKE_CASE`，不得把本地化错误消息当作程序判断依据。
 - Rust 模块、函数和变量遵循 snake_case，类型遵循 PascalCase。
 - 优先使用明确类型、小型纯函数和早返回；禁止用 `any` 掩盖边界问题。
@@ -238,11 +241,11 @@ Repository 禁止读取 Renderer 状态、弹出 UI、访问 Electron 窗口或�
 
 - 使用 `better-sqlite3`，只允许在受信任的主进程侧加载，包括桌面 Main 和独立 MCP Node；Renderer 与 Preload 不得加载。
 - 数据库结构以 `docs/database.md` 为唯一声明，任何 schema 变更必须同步更新该文件和测试。
-- 当前 schema 使用 `PRAGMA user_version = 1`；版本变化必须由明确需求驱动。
+- 当前 schema 使用 `PRAGMA user_version = 1`，配置文件使用 `configVersion = 1`；版本变化必须由明确需求驱动。
 - 开启 `journal_mode = WAL` 和 `busy_timeout = 5000`。
 - 时间字段保存 UTC Unix 毫秒；布尔值保存为 INTEGER `0/1`。
 - 禁止 SQLite 物理外键、`REFERENCES` 和 `ON DELETE`；跨表关系由 Service 作为逻辑外键维护。
-- 禁止创建 `schema_migrations`、`app_settings` 或 `opportunity_status_history`。
+- 禁止创建 `schema_migrations` 或 `app_settings`。状态历史使用 `opportunity_status_events`。
 - 首次初始化、seed 和 `user_version` 必须在同一事务中完成。
 - Seed 只允许在 `user_version = 0` 的首次初始化事务中执行；已初始化数据库不得再次执行或合并 seed，也不得在启动时覆盖用户数据。
 - 内置公司以 `companies.builtin_key` 是否为空判定；key 为稳定小写 UUID v4，不得因改名、排序或本地 ID 变化而替换。
@@ -255,10 +258,10 @@ Repository 禁止读取 Renderer 状态、弹出 UI、访问 Electron 窗口或�
 
 关键删除规则：
 
-- 被求职记录引用的状态、公司和简历版本不能删除。
+- 被求职记录当前状态或状态历史引用的状态不能删除；被求职记录引用的公司和简历版本不能删除。
 - 被公司引用的行业不能删除。
 - 最后一个状态不能删除。
-- 删除求职记录时，将相关日程的 `opportunity_id` 清空，不删除日程。
+- 删除求职记录时，同事务删除其状态历史，并将相关日程的 `opportunity_id` 清空，不删除日程。
 - 删除日程时同步删除其提醒发送记录。
 
 ## 11. 配置与本地路径
@@ -368,6 +371,9 @@ MCP 属于可选协议适配层，不得成为核心业务运行的前置条件�
 - Renderer 和配置不得提供更新源、channel 或 prerelease 覆盖。
 - `UpdateInfo` 由 Main 在检查更新后持有；下载和应用接口不接受 Renderer 回传的更新对象。
 - 检查、下载和应用必须互斥；应用前必须确认目标版本已经下载并与待应用版本一致。
+- 下载前必须校验并保留当前版本的 Full 包；应用前通过 SQLite 在线备份创建数据库快照，并连同配置写入 `.runtime/rollback/`。待更新状态写入 `.runtime/state/pending-update.json`，不得在回滚点提交前启动应用。
+- 更新应用应使用 Velopack 已验证的待重启资产。根启动器等待 Renderer 完成挂载后报告健康；目标版本连续两次未通过 45 秒健康检查时，使用已校验的旧 Full 包回滚，并恢复配置和数据库快照。
+- Main 必须先刷新根卸载器并写入 `last-good.json`，最后写入本次启动令牌对应的健康文件；令牌文件是启动器判定成功的提交标记，前置步骤失败不得报告健康。
 - 更新重启使用 `--handoff-root` 转交根启动器，中转进程不得争用单实例锁。
 - 业务数据和用户配置必须位于安装根目录，更新只替换 `.runtime/current/`。
 
@@ -376,10 +382,12 @@ MCP 属于可选协议适配层，不得成为核心业务运行的前置条件�
 - Rust crate `native/bootstrap` 提供根启动器、离线安装器和卸载器。
 - 安装根目录包含 `JobTrail.exe`、`JobTrail-Uninstall.exe` 和 `.jobtrail-root`。
 - 目标目录必须以 `JobTrail` 结尾；禁止系统目录、UNC、路径穿越、符号链接和目录联接。
+- 安装目标必须为空；安装失败要清理本次创建的运行时，不得覆盖已有数据。
 - 安装器必须先显示目录选择页、实际所需空间和目标磁盘可用空间；安装开始后在同一窗口显示进度，并支持 Windows 每显示器动态 DPI 缩放。
 - 当前用户只安装一份，注册表、快捷方式、开机启动和任务栏入口必须指向根启动器。
 - 卸载 worker 从临时目录运行，等待应用退出，清理快捷方式和注册项后清空而非删除安装根目录。
 - 卸载必须删除 `config.json`、`data/`、`resumes/` 和安装根目录中的其他用户数据；执行前必须明确警告且要求用户确认，卸载完成后安装根目录必须存在且为空。
+- 卸载不提供保留数据的选择；发生中途失败时须保留根卸载器和有效安装标记供用户重试，根卸载器最后删除。
 - 卸载成功提示正文只显示“卸载完成”，不得附加目录或数据删除说明。
 - 安装版 AppUserModelID 为 `zhiji`，开发版为 `zhiji.development`。
 - PE 图标、窗口图标、任务栏标识和重启入口必须保持一致。

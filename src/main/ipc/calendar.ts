@@ -1,6 +1,6 @@
 import type { Services } from '../service-container'
 import { registerChannel } from './register-channel'
-import { booleanValue, numberValue, parseCalendarEvent, parseCalendarRange } from './validators'
+import { numberValue, parseCalendarEvent, parseCalendarRange } from './validators'
 
 export function registerCalendarIpc(services: Services): void {
   registerChannel('calendar:list', (range) => services.calendar.list(parseCalendarRange(range)))
@@ -12,7 +12,4 @@ export function registerCalendarIpc(services: Services): void {
     services.calendar.update(numberValue(id, '日程 ID'), parseCalendarEvent(input, true)),
   )
   registerChannel('calendar:delete', (id) => services.calendar.delete(numberValue(id, '日程 ID')))
-  registerChannel('calendar:complete', (id, completed) =>
-    services.calendar.complete(numberValue(id, '日程 ID'), booleanValue(completed, '完成状态')),
-  )
 }

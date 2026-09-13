@@ -58,7 +58,7 @@ export class StatusService {
         throw new AppServiceError('BUILTIN_DATA', builtinMessage)
       const used = this.repository.countUsage(id)
       if (used > 0)
-        throw new AppServiceError('STATUS_IN_USE', '当前状态正在被使用，不能删除', {
+        throw new AppServiceError('STATUS_IN_USE', '该状态已被求职记录或历史使用，不能删除', {
           count: used,
         })
       if (this.repository.count() <= 1)

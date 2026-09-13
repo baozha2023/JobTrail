@@ -93,6 +93,7 @@ const zhijiApi: ZhijiApi = {
   opportunities: {
     list: (query) => invoke('opportunities:list', query),
     get: (id) => invoke('opportunities:get', id),
+    statusFlow: (id) => invoke('opportunities:status-flow', id),
     create: (input) => invoke('opportunities:create', input),
     update: (id, input) => invoke('opportunities:update', id, input),
     delete: (id) => invoke('opportunities:delete', id),
@@ -104,7 +105,6 @@ const zhijiApi: ZhijiApi = {
     create: (input) => invoke('calendar:create', input),
     update: (id, input) => invoke('calendar:update', id, input),
     delete: (id) => invoke('calendar:delete', id),
-    complete: (id, completed) => invoke('calendar:complete', id, completed),
     onReminderClick: (listener: (notification: CalendarReminderNotification) => void) => {
       const handler = (
         _event: Electron.IpcRendererEvent,
@@ -122,6 +122,7 @@ const zhijiApi: ZhijiApi = {
 
 const velopackApi: VelopackApi = {
   getVersion: () => invoke('velopack:get-version'),
+  rendererHealthy: () => invoke('velopack:renderer-healthy'),
   checkForUpdates: () => invoke('velopack:check-for-update'),
   downloadUpdates: () => invoke('velopack:download-update'),
   applyUpdates: () => invoke('velopack:apply-update'),

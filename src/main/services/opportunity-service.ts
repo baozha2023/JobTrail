@@ -2,10 +2,12 @@ import type {
   CreateOpportunityInput,
   Opportunity,
   OpportunityQuery,
+  OpportunityStatusFlow,
   UpdateOpportunityInput,
 } from '../../shared/types'
 import { CompanyRepository } from '../repositories/company-repository'
 import { OpportunityRepository } from '../repositories/opportunity-repository'
+import { OpportunityStatusEventRepository } from '../repositories/opportunity-status-event-repository'
 import { ResumeRepository } from '../repositories/resume-repository'
 import { StatusRepository } from '../repositories/status-repository'
 import {
@@ -23,6 +25,7 @@ export class OpportunityService {
   constructor(
     private readonly unitOfWork: UnitOfWork,
     private readonly repository: OpportunityRepository,
+    private readonly statusEvents: OpportunityStatusEventRepository,
     private readonly companies: CompanyRepository,
     private readonly statuses: StatusRepository,
     private readonly resumes: ResumeRepository,
@@ -42,11 +45,18 @@ export class OpportunityService {
     if (!row) throw new AppServiceError('NOT_FOUND', '求职记录不存在')
     return this.repository.map(row)
   }
+  statusFlow(id: number): OpportunityStatusFlow {
+    const opportunity = this.get(id)
+    return { opportunity, events: this.statusEvents.list(id) }
+  }
   create(input: CreateOpportunityInput): Opportunity {
     return this.unitOfWork.run(() => {
       const normalized = this.normalize(input)
-      this.validate(normalized)
-      return this.get(this.repository.create(normalized, Date.now()))
+      const statusLabel = this.validate(normalized)
+      const timestamp = Date.now()
+      const id = this.repository.create(normalized, timestamp)
+      this.statusEvents.create(id, normalized.statusId, statusLabel, timestamp, 'created')
+      return this.get(id)
     })
   }
   update(id: number, input: UpdateOpportunityInput): Opportunity {
@@ -69,16 +79,22 @@ export class OpportunityService {
         deadlineAt: input.deadlineAt === undefined ? current.deadlineAt : input.deadlineAt,
         notes: input.notes === undefined ? current.notes : input.notes,
       })
-      this.validate(normalized)
-      this.repository.update(id, normalized, Date.now())
+      const statusLabel = this.validate(normalized)
+      const timestamp = Date.now()
+      this.repository.update(id, normalized, timestamp)
+      if (normalized.statusId !== current.statusId)
+        this.statusEvents.create(id, normalized.statusId, statusLabel, timestamp, 'changed')
       return this.get(id)
     })
   }
   changeStatus(id: number, statusId: number): Opportunity {
     return this.unitOfWork.run(() => {
-      this.get(id)
-      this.requireStatus(statusId)
-      this.repository.changeStatus(id, statusId, Date.now())
+      const current = this.get(id)
+      const statusLabel = this.requireStatus(statusId)
+      if (current.statusId === statusId) return current
+      const timestamp = Date.now()
+      this.repository.changeStatus(id, statusId, timestamp)
+      this.statusEvents.create(id, statusId, statusLabel, timestamp, 'changed')
       return this.get(id)
     })
   }
@@ -87,6 +103,7 @@ export class OpportunityService {
       this.get(id)
       if (this.repository.delete(id, Date.now()) === 0)
         throw new AppServiceError('NOT_FOUND', '求职记录不存在')
+      this.statusEvents.deleteForOpportunity(id)
     })
   }
   private normalize(input: CompleteOpportunityInput): CompleteOpportunityInput {
@@ -101,12 +118,12 @@ export class OpportunityService {
       notes: nullableText(input.notes),
     }
   }
-  private validate(input: CompleteOpportunityInput): void {
+  private validate(input: CompleteOpportunityInput): string {
     assertPositiveId(input.companyId, '公司 ID')
     if (!input.title) throw new AppServiceError('VALIDATION_ERROR', '岗位名称不能为空')
     if (!this.companies.get(input.companyId))
       throw new AppServiceError('VALIDATION_ERROR', '公司不存在')
-    this.requireStatus(input.statusId)
+    const statusLabel = this.requireStatus(input.statusId)
     if (input.resumeVersionId !== null && input.resumeVersionId !== undefined) {
       assertPositiveId(input.resumeVersionId, '简历版本 ID')
       if (!this.resumes.get(input.resumeVersionId))
@@ -119,9 +136,12 @@ export class OpportunityService {
     ] as const) {
       if (value !== null && value !== undefined) assertFiniteInteger(value, field)
     }
+    return statusLabel
   }
-  private requireStatus(id: number): void {
+  private requireStatus(id: number): string {
     assertPositiveId(id, '状态 ID')
-    if (!this.statuses.get(id)) throw new AppServiceError('VALIDATION_ERROR', '状态不存在')
+    const status = this.statuses.get(id)
+    if (!status) throw new AppServiceError('VALIDATION_ERROR', '状态不存在')
+    return status.label
   }
 }

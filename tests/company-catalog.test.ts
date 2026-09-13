@@ -271,6 +271,36 @@ describe('内置公司目录更新', () => {
     )
   })
 
+  it('reports missing published catalog assets without presenting a temporary network error', async () => {
+    const missingResponse = new Response('', { status: 404 })
+    Object.defineProperty(missingResponse, 'url', {
+      value: 'https://github.com/baozha2023/JobTrail/releases/latest/download/missing',
+    })
+    await expect(
+      new CompanyCatalogUpdater(
+        services.companyCatalog,
+        async () => missingResponse,
+        () => '0.5.0',
+      ).update(() => undefined),
+    ).rejects.toMatchObject({
+      code: 'CATALOG_ASSET_MISSING',
+      message: '缺少内置公司数据，无法更新',
+    })
+
+    const bytes = new TextEncoder().encode(JSON.stringify(nextCatalog()))
+    const responses = [response(manifest(bytes)), missingResponse]
+    await expect(
+      new CompanyCatalogUpdater(
+        services.companyCatalog,
+        async () => responses.shift()!,
+        () => '0.5.0',
+      ).update(() => undefined),
+    ).rejects.toMatchObject({ code: 'CATALOG_ASSET_MISSING' })
+    expect(services.companyCatalog.status().catalogVersion).toBe(
+      BUNDLED_COMPANY_CATALOG.catalogVersion,
+    )
+  })
+
   it('rejects HTTP failures, invalid redirects, oversized data, malformed JSON, and newer app requirements', async () => {
     const failedResponse = new Response('', { status: 503 })
     Object.defineProperty(failedResponse, 'url', { value: 'https://github.com/file' })

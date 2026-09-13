@@ -1,4 +1,5 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
+export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
 export type Locale = 'zh-CN' | 'en-US'
 export type CloseBehavior = 'tray' | 'quit'
 export type AppErrorCode =
@@ -14,6 +15,7 @@ export type AppErrorCode =
   | 'FILE_OPEN_FAILED'
   | 'DATABASE_ERROR'
   | 'CATALOG_DOWNLOAD_FAILED'
+  | 'CATALOG_ASSET_MISSING'
   | 'CATALOG_TOO_LARGE'
   | 'CATALOG_HASH_MISMATCH'
   | 'CATALOG_INVALID'
@@ -65,6 +67,7 @@ export interface VelopackConfig {
 export interface AppConfig {
   configVersion: number
   themeMode: ThemeMode
+  statusFlowTheme: StatusFlowTheme
   locale: Locale
   closeBehavior: CloseBehavior
   launchAtStartup: boolean
@@ -143,6 +146,22 @@ export interface Opportunity {
   updatedAt: number
 }
 
+export type OpportunityStatusEventKind = 'created' | 'changed'
+
+export interface OpportunityStatusEvent {
+  id: number
+  opportunityId: number
+  statusId: number
+  statusLabel: string
+  occurredAt: number
+  kind: OpportunityStatusEventKind
+}
+
+export interface OpportunityStatusFlow {
+  opportunity: Opportunity
+  events: OpportunityStatusEvent[]
+}
+
 export interface CalendarEvent {
   id: number
   opportunityId: number | null
@@ -158,6 +177,7 @@ export interface CalendarEvent {
   location: string | null
   description: string | null
   reminderMinutes: number | null
+  /** Read-only state derived from endAt and the current time. */
   isCompleted: boolean
   createdAt: number
   updatedAt: number
@@ -303,6 +323,7 @@ export interface ZhijiApi {
   opportunities: {
     list(query: OpportunityQuery): Promise<Opportunity[]>
     get(id: number): Promise<Opportunity>
+    statusFlow(id: number): Promise<OpportunityStatusFlow>
     create(input: CreateOpportunityInput): Promise<Opportunity>
     update(id: number, input: UpdateOpportunityInput): Promise<Opportunity>
     delete(id: number): Promise<void>
@@ -314,7 +335,6 @@ export interface ZhijiApi {
     create(input: CreateCalendarEventInput): Promise<CalendarEvent>
     update(id: number, input: UpdateCalendarEventInput): Promise<CalendarEvent>
     delete(id: number): Promise<void>
-    complete(id: number, completed: boolean): Promise<CalendarEvent>
     onReminderClick(listener: (notification: CalendarReminderNotification) => void): () => void
   }
   system: {
@@ -325,6 +345,7 @@ export interface ZhijiApi {
 
 export interface VelopackApi {
   getVersion(): Promise<string>
+  rendererHealthy(): Promise<boolean>
   checkForUpdates(): Promise<import('velopack').UpdateInfo | null>
   downloadUpdates(): Promise<boolean>
   applyUpdates(): Promise<boolean>

@@ -1,7 +1,9 @@
 #![windows_subsystem = "windows"]
 use anyhow::{bail, Context, Result};
-use jobtrail_bootstrap::*;
-use std::{ffi::OsString, os::windows::process::CommandExt, process::Command};
+use jobtrail_bootstrap::{error_dialog, plain_file, validate_installation, version};
+#[path = "../rollback.rs"]
+mod rollback;
+use std::{ffi::OsString, process::Command};
 
 fn is_mcp_mode(args: &[OsString]) -> bool {
     args == [OsString::from("--mcp")]
@@ -18,34 +20,25 @@ fn run(args: &[OsString]) -> Result<()> {
     validate_args(args)?;
     let exe = std::env::current_exe()?;
     let root = exe.parent().context("安装目录缺失")?;
-    validate_installation(root)?;
-    let client = root.join(".runtime/current/zhiji.exe");
-    plain_file(&client)?;
-    let mcp_mode = is_mcp_mode(args);
-    let current_version = version(root)?;
-    let mut command = Command::new(client);
-    if mcp_mode {
+    if is_mcp_mode(args) {
+        validate_installation(root)?;
+        let client = root.join(".runtime/current/zhiji.exe");
+        plain_file(&client)?;
         let archive = root.join(".runtime/current/resources/app.asar");
         plain_file(&archive)?;
         let entry = archive.join("out/main/mcp-node.js");
-        command
+        let status = Command::new(client)
             .arg(entry)
             .current_dir(root)
             .env("ELECTRON_RUN_AS_NODE", "1")
             .env("JOBTRAIL_MCP_ROOT", root)
-            .env("JOBTRAIL_MCP_VERSION", current_version);
+            .env("JOBTRAIL_MCP_VERSION", version(root)?)
+            .status()?;
         // MCP hosts own this launcher's stdio pipes. Keep them inherited and
         // wait so the host observes the real server lifetime and exit code.
-        let status = command.status()?;
         std::process::exit(status.code().unwrap_or(1));
     }
-    register(root, &current_version, false)?;
-    command
-        .args(args)
-        .current_dir(root)
-        .creation_flags(NO_WINDOW);
-    command.spawn()?;
-    Ok(())
+    rollback::launch(root, args)
 }
 fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();

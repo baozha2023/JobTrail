@@ -3,14 +3,11 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import {
   NButton,
   NCard,
-  NForm,
-  NFormItem,
   NInputNumber,
-  NInput,
   NModal,
   NPopconfirm,
   NProgress,
-  NRadio,
+  NRadioButton,
   NRadioGroup,
   NSelect,
   NSpace,
@@ -29,6 +26,7 @@ import type {
 
 const props = defineProps<{
   config: AppConfig | null
+  dark: boolean
   mcpConnectionInfo: McpConnectionInfo | null
   currentVersion: string
   checkingForUpdates: boolean
@@ -101,202 +99,253 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 </script>
 
 <template>
-  <section class="page-section settings-page">
+  <section class="page-section settings-page" :class="{ 'is-dark': dark }">
     <div class="settings-layout">
-      <div class="settings-main-column">
-        <n-card bordered class="settings-card" :title="$t('settings.appearance')">
-          <n-form class="settings-form" label-placement="top">
-            <div class="settings-form-grid">
-              <n-form-item :label="$t('settings.theme')">
-                <n-select
-                  :value="config?.themeMode"
-                  :options="[
-                    { label: $t('settings.light'), value: 'light' },
-                    { label: $t('settings.dark'), value: 'dark' },
-                    { label: $t('settings.system'), value: 'system' },
-                  ]"
-                  :placeholder="$t('settings.themePlaceholder')"
-                  @update:value="emit('updateConfig', { themeMode: $event })"
-                />
-              </n-form-item>
-              <n-form-item :label="$t('settings.language')">
-                <n-select
-                  :value="config?.locale"
-                  :options="[
-                    { label: '简体中文', value: 'zh-CN' },
-                    { label: 'English', value: 'en-US' },
-                  ]"
-                  :placeholder="$t('settings.languagePlaceholder')"
-                  @update:value="emit('updateConfig', { locale: $event })"
-                />
-              </n-form-item>
-              <n-form-item :label="$t('settings.companyReadValidityMonths')">
-                <n-input-number
-                  :value="config?.companyReadValidityMonths"
-                  :min="1"
-                  :precision="0"
-                  :placeholder="$t('settings.companyReadValidityMonthsPlaceholder')"
-                  @update:value="emit('updateConfig', { companyReadValidityMonths: $event ?? 3 })"
-                />
-              </n-form-item>
-              <n-form-item class="settings-form-item-wide" :label="$t('settings.closeBehavior')">
-                <n-radio-group
-                  :value="config?.closeBehavior"
-                  @update:value="emit('closeBehavior', $event as CloseBehavior)"
-                >
-                  <n-space wrap>
-                    <n-radio value="tray">{{ $t('settings.minimizeToTray') }}</n-radio>
-                    <n-radio value="quit">{{ $t('settings.quitDirectly') }}</n-radio>
-                  </n-space>
-                </n-radio-group>
-              </n-form-item>
-              <n-form-item class="settings-form-item-wide" :label="$t('settings.launchAtStartup')">
-                <n-radio-group
-                  :value="config?.launchAtStartup"
-                  @update:value="emit('launchAtStartup', $event as boolean)"
-                >
-                  <n-space wrap>
-                    <n-radio :value="true">{{ $t('settings.enable') }}</n-radio>
-                    <n-radio :value="false">{{ $t('settings.disable') }}</n-radio>
-                  </n-space>
-                </n-radio-group>
-              </n-form-item>
+      <p class="settings-lead">{{ $t('settings.intro') }}</p>
+
+      <section class="settings-section" aria-labelledby="settings-preferences-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">01</span>
+          <div>
+            <h2 id="settings-preferences-title">{{ $t('settings.preferencesTitle') }}</h2>
+            <p>{{ $t('settings.preferencesDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <div class="settings-field-grid">
+            <div class="settings-field">
+              <label class="settings-field-label">{{ $t('settings.theme') }}</label>
+              <n-select
+                :value="config?.themeMode"
+                :disabled="!config"
+                :options="[
+                  { label: $t('settings.light'), value: 'light' },
+                  { label: $t('settings.dark'), value: 'dark' },
+                  { label: $t('settings.system'), value: 'system' },
+                ]"
+                :placeholder="$t('settings.themePlaceholder')"
+                :aria-label="$t('settings.theme')"
+                @update:value="emit('updateConfig', { themeMode: $event })"
+              />
             </div>
-          </n-form>
-        </n-card>
-
-        <n-card bordered class="settings-card" :title="$t('settings.mcpTitle')">
-          <div class="settings-mcp-panel">
-            <p class="settings-mcp-description">{{ $t('settings.mcpDescription') }}</p>
-
-            <div class="settings-toggle-grid">
-              <div class="settings-toggle-row" :class="{ 'is-active': config?.mcp.enabled }">
-                <strong>{{ $t('settings.mcpEnabled') }}</strong>
-                <n-switch
-                  :disabled="!config"
-                  :value="config?.mcp.enabled"
-                  @update:value="updateMcp({ enabled: $event })"
-                />
+            <div class="settings-field">
+              <label class="settings-field-label">{{ $t('settings.language') }}</label>
+              <n-select
+                :value="config?.locale"
+                :disabled="!config"
+                :options="[
+                  { label: '简体中文', value: 'zh-CN' },
+                  { label: 'English', value: 'en-US' },
+                ]"
+                :placeholder="$t('settings.languagePlaceholder')"
+                :aria-label="$t('settings.language')"
+                @update:value="emit('updateConfig', { locale: $event })"
+              />
+            </div>
+            <div class="settings-field">
+              <label class="settings-field-label">{{
+                $t('settings.companyReadValidityMonths')
+              }}</label>
+              <n-input-number
+                :value="config?.companyReadValidityMonths"
+                :disabled="!config"
+                :min="1"
+                :precision="0"
+                :placeholder="$t('settings.companyReadValidityMonthsPlaceholder')"
+                :aria-label="$t('settings.companyReadValidityMonths')"
+                @update:value="emit('updateConfig', { companyReadValidityMonths: $event ?? 3 })"
+              />
+              <p class="settings-field-help">{{ $t('settings.companyReadValidityDescription') }}</p>
+            </div>
+          </div>
+          <div class="settings-section-divider"></div>
+          <div class="settings-behavior-grid">
+            <div class="settings-behavior-item">
+              <div>
+                <strong>{{ $t('settings.closeBehavior') }}</strong>
+                <p>{{ $t('settings.closeBehaviorDescription') }}</p>
               </div>
-              <div
-                class="settings-toggle-row"
-                :class="{ 'is-active': config?.mcp.requireWriteConfirmation }"
+              <n-radio-group
+                :value="config?.closeBehavior"
+                :disabled="!config"
+                :aria-label="$t('settings.closeBehavior')"
+                @update:value="emit('closeBehavior', $event as CloseBehavior)"
               >
+                <n-radio-button value="tray">{{ $t('settings.minimizeToTray') }}</n-radio-button>
+                <n-radio-button value="quit">{{ $t('settings.quitDirectly') }}</n-radio-button>
+              </n-radio-group>
+            </div>
+            <div class="settings-behavior-item">
+              <div>
+                <strong>{{ $t('settings.launchAtStartup') }}</strong>
+                <p>{{ $t('settings.launchAtStartupDescription') }}</p>
+              </div>
+              <n-switch
+                :value="config?.launchAtStartup"
+                :disabled="!config"
+                :aria-label="$t('settings.launchAtStartup')"
+                @update:value="emit('launchAtStartup', $event)"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-mcp-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">02</span>
+          <div>
+            <h2 id="settings-mcp-title">{{ $t('settings.mcpTitle') }}</h2>
+            <p>{{ $t('settings.mcpDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <div class="settings-switch-list">
+            <div class="settings-switch-row">
+              <div>
+                <strong>{{ $t('settings.mcpEnabled') }}</strong>
+                <p>{{ $t('settings.mcpEnabledDescription') }}</p>
+              </div>
+              <n-switch
+                :disabled="!config"
+                :value="config?.mcp.enabled"
+                :aria-label="$t('settings.mcpEnabled')"
+                @update:value="updateMcp({ enabled: $event })"
+              />
+            </div>
+            <div class="settings-switch-row">
+              <div>
                 <strong>{{ $t('settings.mcpWriteConfirmation') }}</strong>
-                <n-switch
-                  :disabled="!config"
-                  :value="config?.mcp.requireWriteConfirmation"
-                  @update:value="updateMcp({ requireWriteConfirmation: $event })"
-                />
+                <p>{{ $t('settings.mcpWriteConfirmationDescription') }}</p>
+              </div>
+              <n-switch
+                :disabled="!config || !config.mcp.enabled"
+                :value="config?.mcp.requireWriteConfirmation"
+                :aria-label="$t('settings.mcpWriteConfirmation')"
+                @update:value="updateMcp({ requireWriteConfirmation: $event })"
+              />
+            </div>
+          </div>
+          <p
+            class="settings-mcp-notice"
+            :class="{ 'is-warning': config?.mcp.enabled && !config.mcp.requireWriteConfirmation }"
+          >
+            {{
+              !config?.mcp.enabled
+                ? $t('settings.mcpDisabled')
+                : config.mcp.requireWriteConfirmation
+                  ? $t('settings.mcpConfirmationActive')
+                  : $t('settings.mcpDirectWriteWarning')
+            }}
+          </p>
+          <div class="settings-connection">
+            <div class="settings-connection-header">
+              <div>
+                <h3>{{ $t('settings.mcpConnectionTitle') }}</h3>
+                <p>{{ $t('settings.mcpConnectionDescription') }}</p>
               </div>
             </div>
+            <n-tabs class="settings-mcp-tabs" type="segment" animated>
+              <n-tab-pane
+                v-for="host in hostTabs"
+                :key="host.key"
+                :name="host.key"
+                :tab="host.label"
+              >
+                <div class="settings-snippet">
+                  <pre class="settings-code"><code>{{ snippets[host.key] }}</code></pre>
+                  <n-button
+                    type="primary"
+                    secondary
+                    :disabled="!snippets[host.key]"
+                    @click="copySnippet(host.key)"
+                  >
+                    {{
+                      copyStatus?.host === host.key
+                        ? $t(copyStatus.failed ? 'settings.mcpCopyFailed' : 'settings.mcpCopied')
+                        : $t('settings.mcpCopy')
+                    }}
+                  </n-button>
+                </div>
+              </n-tab-pane>
+            </n-tabs>
+          </div>
+        </div>
+      </section>
 
-            <p
-              v-if="!config?.mcp.enabled || !config.mcp.requireWriteConfirmation"
-              class="settings-mcp-security"
-              :class="{
-                'is-warning': config?.mcp.enabled && !config.mcp.requireWriteConfirmation,
-              }"
-            >
-              {{
-                !config?.mcp.enabled
-                  ? $t('settings.mcpDisabled')
-                  : $t('settings.mcpDirectWriteWarning')
-              }}
-            </p>
-
-            <div class="settings-connection-panel">
-              <n-tabs class="settings-mcp-tabs" type="segment" animated>
-                <n-tab-pane
-                  v-for="host in hostTabs"
-                  :key="host.key"
-                  :name="host.key"
-                  :tab="host.label"
-                >
-                  <div class="settings-mcp-snippet">
-                    <n-input
-                      class="settings-mcp-config-input"
-                      :value="snippets[host.key]"
-                      type="textarea"
-                      readonly
-                      :autosize="{ minRows: 5, maxRows: 9 }"
-                    />
-                    <n-button
-                      type="primary"
-                      secondary
-                      class="settings-mcp-copy"
-                      :disabled="!snippets[host.key]"
-                      @click="copySnippet(host.key)"
-                    >
-                      {{
-                        copyStatus?.host === host.key
-                          ? $t(copyStatus.failed ? 'settings.mcpCopyFailed' : 'settings.mcpCopied')
-                          : $t('settings.mcpCopy')
-                      }}
-                    </n-button>
-                  </div>
-                </n-tab-pane>
-              </n-tabs>
+      <section class="settings-section" aria-labelledby="settings-maintenance-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">03</span>
+          <div>
+            <h2 id="settings-maintenance-title">{{ $t('settings.maintenanceTitle') }}</h2>
+            <p>{{ $t('settings.maintenanceDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-maintenance-grid">
+          <div class="settings-maintenance-item">
+            <div>
+              <h3>{{ $t('settings.update') }}</h3>
+              <p>{{ $t('settings.appUpdateDescription') }}</p>
+            </div>
+            <div class="settings-maintenance-footer">
+              <span class="settings-version"
+                >{{ $t('settings.version') }} <strong>{{ currentVersion }}</strong></span
+              >
+              <n-button
+                type="primary"
+                secondary
+                :loading="checkingForUpdates"
+                @click="checkForUpdates"
+              >
+                {{ $t('settings.checkUpdate') }}
+              </n-button>
             </div>
           </div>
-        </n-card>
-      </div>
-
-      <aside class="settings-side-column">
-        <n-card bordered class="settings-card settings-update-card" :title="$t('settings.update')">
-          <div class="settings-update-panel">
-            <div class="settings-version-block">
-              <span class="muted-text">{{ $t('settings.version') }}</span>
-              <strong>{{ currentVersion }}</strong>
+          <div class="settings-maintenance-item">
+            <div>
+              <h3>{{ $t('settings.catalogTitle') }}</h3>
+              <p>{{ $t('settings.catalogDescription') }}</p>
             </div>
-            <n-button block :loading="checkingForUpdates" @click="checkForUpdates">
-              {{ $t('settings.checkUpdate') }}
-            </n-button>
+            <div class="settings-maintenance-footer">
+              <span class="settings-version">
+                {{ $t('settings.catalogVersion') }}
+                <strong>{{ catalogStatus?.catalogVersion ?? '—' }}</strong>
+              </span>
+              <n-button
+                type="primary"
+                secondary
+                :loading="catalogUpdating"
+                :disabled="!catalogStatus || catalogUpdating"
+                @click="updateCompanyCatalog"
+              >
+                {{ $t('settings.catalogUpdate') }}
+              </n-button>
+            </div>
           </div>
-        </n-card>
+        </div>
+      </section>
 
-        <n-card
-          bordered
-          class="settings-card settings-update-card"
-          :title="$t('settings.catalogTitle')"
+      <section class="settings-danger" aria-labelledby="settings-danger-title">
+        <div class="settings-danger-content">
+          <span class="settings-section-number">04</span>
+          <div>
+            <h2 id="settings-danger-title">{{ $t('settings.dangerZone') }}</h2>
+            <p>{{ $t('settings.uninstallDescription') }}</p>
+          </div>
+        </div>
+        <n-popconfirm
+          :positive-text="$t('settings.uninstallConfirmButton')"
+          :negative-text="$t('common.cancel')"
+          @positive-click="uninstallApp"
         >
-          <div class="settings-update-panel">
-            <n-button
-              block
-              :loading="catalogUpdating"
-              :disabled="!catalogStatus || catalogUpdating"
-              @click="updateCompanyCatalog"
-            >
-              {{ $t('settings.catalogUpdate') }}
+          <template #trigger>
+            <n-button type="error" secondary :loading="uninstalling">
+              {{ $t('settings.uninstall') }}
             </n-button>
-          </div>
-        </n-card>
-
-        <n-card
-          bordered
-          class="settings-card settings-danger-card"
-          :title="$t('settings.dangerZone')"
-        >
-          <div class="settings-danger-panel">
-            <div class="settings-danger-copy">
-              <strong>{{ $t('settings.uninstall') }}</strong>
-              <p>{{ $t('settings.uninstallDescription') }}</p>
-            </div>
-            <n-popconfirm
-              :positive-text="$t('settings.uninstallConfirmButton')"
-              :negative-text="$t('common.cancel')"
-              @positive-click="uninstallApp"
-            >
-              <template #trigger>
-                <n-button block type="error" secondary :loading="uninstalling">
-                  {{ $t('settings.uninstall') }}
-                </n-button>
-              </template>
-              {{ $t('settings.uninstallWarning') }}
-            </n-popconfirm>
-          </div>
-        </n-card>
-      </aside>
+          </template>
+          {{ $t('settings.uninstallWarning') }}
+        </n-popconfirm>
+      </section>
     </div>
 
     <n-modal

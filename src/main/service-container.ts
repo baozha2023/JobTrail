@@ -6,6 +6,7 @@ import { CompanyCatalogRepository } from './repositories/company-catalog-reposit
 import { CompanyRepository } from './repositories/company-repository'
 import { IndustryRepository } from './repositories/industry-repository'
 import { OpportunityRepository } from './repositories/opportunity-repository'
+import { OpportunityStatusEventRepository } from './repositories/opportunity-status-event-repository'
 import { ResumeRepository } from './repositories/resume-repository'
 import { StatusRepository } from './repositories/status-repository'
 import { CalendarEventService } from './services/calendar-event-service'
@@ -59,6 +60,7 @@ export function createServices(
   const companyCatalogRepository = new CompanyCatalogRepository(database.db)
   const resumeRepository = new ResumeRepository(database.db)
   const opportunityRepository = new OpportunityRepository(database.db)
+  const opportunityStatusEvents = new OpportunityStatusEventRepository(database.db)
   const calendarRepository = new CalendarEventRepository(database.db)
   return {
     statuses: new StatusService(unitOfWork, statusRepository, allowBuiltinEdit),
@@ -74,6 +76,7 @@ export function createServices(
     opportunities: new OpportunityService(
       unitOfWork,
       opportunityRepository,
+      opportunityStatusEvents,
       companyRepository,
       statusRepository,
       resumeRepository,

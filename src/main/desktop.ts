@@ -211,7 +211,7 @@ function initializeApplication(): void {
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
   cancelCompanyCatalogUpdate = registerIpc(container.services, config)
-  registerVelopackIpc()
+  registerVelopackIpc(container.database)
   if (installed)
     app.setLoginItemSettings({
       name: 'JobTrail',

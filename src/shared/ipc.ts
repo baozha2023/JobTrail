@@ -10,6 +10,7 @@ import type {
   CreateStatusInput,
   Industry,
   Opportunity,
+  OpportunityStatusFlow,
   OpportunityQuery,
   ResumeImportResult,
   ResumeVersion,
@@ -67,6 +68,7 @@ export interface IpcChannelMap {
 
   'opportunities:list': { args: [query: OpportunityQuery]; result: Opportunity[] }
   'opportunities:get': { args: [id: number]; result: Opportunity }
+  'opportunities:status-flow': { args: [id: number]; result: OpportunityStatusFlow }
   'opportunities:create': { args: [input: CreateOpportunityInput]; result: Opportunity }
   'opportunities:update': { args: [id: number, input: UpdateOpportunityInput]; result: Opportunity }
   'opportunities:delete': { args: [id: number]; result: void }
@@ -77,7 +79,6 @@ export interface IpcChannelMap {
   'calendar:create': { args: [input: CreateCalendarEventInput]; result: CalendarEvent }
   'calendar:update': { args: [id: number, input: UpdateCalendarEventInput]; result: CalendarEvent }
   'calendar:delete': { args: [id: number]; result: void }
-  'calendar:complete': { args: [id: number, completed: boolean]; result: CalendarEvent }
 
   'system:open-external': { args: [url: string]; result: void }
   'system:is-development': { args: []; result: boolean }
@@ -86,6 +87,7 @@ export interface IpcChannelMap {
   'window:close': { args: []; result: void }
 
   'velopack:get-version': { args: []; result: string }
+  'velopack:renderer-healthy': { args: []; result: boolean }
   'velopack:check-for-update': { args: []; result: import('velopack').UpdateInfo | null }
   'velopack:download-update': { args: []; result: boolean }
   'velopack:apply-update': { args: []; result: boolean }

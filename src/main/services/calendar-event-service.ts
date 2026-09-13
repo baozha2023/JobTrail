@@ -67,13 +67,6 @@ export class CalendarEventService {
       return this.get(id)
     })
   }
-  complete(id: number, completed: boolean): CalendarEvent {
-    return this.unitOfWork.run(() => {
-      this.get(id)
-      this.repository.complete(id, completed, Date.now())
-      return this.get(id)
-    })
-  }
   delete(id: number): void {
     this.unitOfWork.run(() => {
       this.get(id)

@@ -58,6 +58,12 @@ run(cargo, [
   '--bin',
   'uninstaller',
 ])
+const bootstrapResources = path.join(root, 'dist', 'win-unpacked', 'resources', 'bootstrap')
+fs.mkdirSync(bootstrapResources, { recursive: true })
+fs.copyFileSync(
+  path.join(binaries, 'uninstaller.exe'),
+  path.join(bootstrapResources, 'JobTrail-Uninstall.exe'),
+)
 run(vpk, [
   'pack',
   '--outputDir',

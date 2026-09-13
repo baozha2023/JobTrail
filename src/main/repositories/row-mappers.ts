@@ -3,9 +3,12 @@ import type {
   Company,
   Industry,
   Opportunity,
+  OpportunityStatusEvent,
+  OpportunityStatusEventKind,
   ResumeVersion,
   Status,
 } from '../../shared/types'
+import { isCalendarEventCompleted } from '../../shared/calendar'
 
 export interface StatusRow {
   id: number
@@ -78,6 +81,15 @@ export interface OpportunityRow {
   updated_at: number
 }
 
+export interface OpportunityStatusEventRow {
+  id: number
+  opportunity_id: number
+  status_id: number
+  status_label: string
+  occurred_at: number
+  kind: OpportunityStatusEventKind
+}
+
 export interface CalendarEventRow {
   id: number
   opportunity_id: number | null
@@ -93,7 +105,6 @@ export interface CalendarEventRow {
   location: string | null
   description: string | null
   reminder_minutes: number | null
-  is_completed: number
   created_at: number
   updated_at: number
 }
@@ -174,6 +185,17 @@ export function mapOpportunity(row: OpportunityRow): Opportunity {
   }
 }
 
+export function mapOpportunityStatusEvent(row: OpportunityStatusEventRow): OpportunityStatusEvent {
+  return {
+    id: row.id,
+    opportunityId: row.opportunity_id,
+    statusId: row.status_id,
+    statusLabel: row.status_label,
+    occurredAt: row.occurred_at,
+    kind: row.kind,
+  }
+}
+
 export function mapCalendarEvent(row: CalendarEventRow): CalendarEvent {
   return {
     id: row.id,
@@ -190,7 +212,7 @@ export function mapCalendarEvent(row: CalendarEventRow): CalendarEvent {
     location: row.location,
     description: row.description,
     reminderMinutes: row.reminder_minutes,
-    isCompleted: row.is_completed === 1,
+    isCompleted: isCalendarEventCompleted({ endAt: row.end_at }),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

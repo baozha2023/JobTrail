@@ -8,6 +8,7 @@ import {
   eventOverlapsRange,
   eventTouchesCalendarDate,
   eventTouchesCalendarMonth,
+  isCalendarEventCompleted,
   timestampForZonedDate,
 } from '../src/shared/calendar'
 
@@ -16,6 +17,10 @@ function event(startAt: number, endAt: number): Pick<CalendarEvent, 'startAt' | 
 }
 
 describe('calendar range helpers', () => {
+  it('completes an event when its end time arrives', () => {
+    expect(isCalendarEventCompleted({ endAt: 1000 }, 999)).toBe(false)
+    expect(isCalendarEventCompleted({ endAt: 1000 }, 1000)).toBe(true)
+  })
   it('includes events spanning into a day or month and excludes touching boundaries', () => {
     const day = calendarDayRange(new Date(2026, 8, 7, 12))
     expect(eventOverlapsRange(event(day.startAt - 60_000, day.startAt + 60_000), day)).toBe(true)

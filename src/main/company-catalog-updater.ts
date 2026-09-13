@@ -27,13 +27,19 @@ export type CompanyCatalogFetcher = (
 export type CompanyCatalogProgressReporter = (progress: CompanyCatalogProgress) => void
 
 const catalogUnavailableMessage = '暂时无法获取内置公司数据，请稍后重试'
+const catalogMissingMessage = '缺少内置公司数据，无法更新'
 const catalogInvalidMessage = '获取的内置公司数据有误，请稍后重试'
 
 function catalogDownloadError(): AppServiceError {
   return new AppServiceError('CATALOG_DOWNLOAD_FAILED', catalogUnavailableMessage)
 }
 
+function catalogMissingError(): AppServiceError {
+  return new AppServiceError('CATALOG_ASSET_MISSING', catalogMissingMessage)
+}
+
 function validateResponse(response: Response): void {
+  if (response.status === 404) throw catalogMissingError()
   if (response.status !== 200) throw catalogDownloadError()
   let url: URL
   try {

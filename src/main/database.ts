@@ -128,6 +128,11 @@ export class DatabaseManager {
     this.db.close()
   }
 
+  async snapshotForUpdate(destination: string): Promise<void> {
+    // SQLite's online backup includes committed WAL content in one consistent image.
+    await this.db.backup(destination)
+  }
+
   dataVersion(): number {
     return this.db.pragma('data_version', { simple: true }) as number
   }
@@ -222,6 +227,15 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS opportunity_status_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        opportunity_id INTEGER NOT NULL,
+        status_id INTEGER NOT NULL,
+        status_label TEXT NOT NULL,
+        occurred_at INTEGER NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('created', 'changed'))
+      );
+
       CREATE TABLE IF NOT EXISTS calendar_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         opportunity_id INTEGER,
@@ -234,7 +248,6 @@ export class DatabaseManager {
         location TEXT,
         description TEXT,
         reminder_minutes INTEGER CHECK (reminder_minutes IS NULL OR reminder_minutes >= 0),
-        is_completed INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
@@ -248,6 +261,8 @@ export class DatabaseManager {
       );
 
       CREATE INDEX IF NOT EXISTS idx_opportunities_status_id ON opportunities(status_id);
+      CREATE INDEX IF NOT EXISTS idx_opportunity_status_events_flow ON opportunity_status_events(opportunity_id, occurred_at, id);
+      CREATE INDEX IF NOT EXISTS idx_opportunity_status_events_status_id ON opportunity_status_events(status_id);
       CREATE INDEX IF NOT EXISTS idx_opportunities_company_id ON opportunities(company_id);
       CREATE INDEX IF NOT EXISTS idx_opportunities_deadline_at ON opportunities(deadline_at);
       CREATE INDEX IF NOT EXISTS idx_opportunities_updated_at ON opportunities(updated_at);

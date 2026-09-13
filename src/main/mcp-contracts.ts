@@ -119,7 +119,6 @@ const updateCalendarArgs = z.strictObject({
   id: positiveIdSchema,
   input: updateCalendarInputSchema,
 })
-const completeCalendarArgs = z.strictObject({ id: positiveIdSchema, completed: z.boolean() })
 
 export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
@@ -573,23 +572,5 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
       s.calendar.delete(a.id)
       return { deleted: true as const, id: a.id }
     },
-  }),
-  tool({
-    name: 'complete_calendar_event',
-    title: 'Complete calendar event',
-    description: 'Set the completion state of a calendar event.',
-    readOnly: false,
-    idempotent: true,
-    inputSchema: completeCalendarArgs,
-    outputSchema: itemOutput(calendarEventSchema),
-    preview: (s, a) => {
-      const before = s.calendar.get(a.id)
-      return {
-        entityType: 'calendar_event',
-        before,
-        after: { ...before, isCompleted: a.completed },
-      }
-    },
-    execute: (s, a) => ({ item: s.calendar.complete(a.id, a.completed) }),
   }),
 ]

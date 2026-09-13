@@ -151,12 +151,6 @@ pub fn register(root: &Path, version: &str, create_shortcuts: bool) -> Result<()
 
 pub fn unregister(root: &Path) -> Result<()> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(key) = hkcu.open_subkey(UNINSTALL_KEY) {
-        let location: String = key.get_value("InstallLocation").unwrap_or_default();
-        if Path::new(&location) == root || Path::new(&location) == root.join(".runtime") {
-            hkcu.delete_subkey_all(UNINSTALL_KEY)?;
-        }
-    }
     // Resolve each shortcut through Windows Shell; never delete another target.
     let quote = |p: &Path| p.to_string_lossy().replace('\'', "''");
     for shortcut in shortcuts() {
@@ -185,6 +179,14 @@ pub fn unregister(root: &Path) -> Result<()> {
             if value == format!("\"{}\"", root.join(LAUNCHER).display()) {
                 key.delete_value("JobTrail")?;
             }
+        }
+    }
+    // Keep the Add/Remove Programs retry entry until all other shell cleanup
+    // has succeeded. A later uninstall attempt can recover a partial run.
+    if let Ok(key) = hkcu.open_subkey(UNINSTALL_KEY) {
+        let location: String = key.get_value("InstallLocation").unwrap_or_default();
+        if Path::new(&location) == root || Path::new(&location) == root.join(".runtime") {
+            hkcu.delete_subkey_all(UNINSTALL_KEY)?;
         }
     }
     Ok(())

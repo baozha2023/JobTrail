@@ -36,6 +36,8 @@ describe('config service', () => {
     expect(loaded.get().customExtension).toEqual({ enabled: true })
     expect(loaded.update({ locale: 'en-US' }).locale).toBe('en-US')
     expect(loaded.update({ companyReadValidityMonths: 6 }).companyReadValidityMonths).toBe(6)
+    expect(loaded.update({ statusFlowTheme: 'ocean' }).statusFlowTheme).toBe('ocean')
+    expect(new ConfigService(paths).get().statusFlowTheme).toBe('ocean')
     expect(JSON.parse(fs.readFileSync(paths.config, 'utf8')).customExtension).toEqual({
       enabled: true,
     })
@@ -74,6 +76,14 @@ describe('config service', () => {
       JSON.stringify({ configVersion: 1, companyReadValidityMonths: 0 }),
     )
     expect(new ConfigService(paths).get().companyReadValidityMonths).toBe(3)
+    expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
+      true,
+    )
+  })
+  it('rejects an invalid status flow theme', () => {
+    const paths = createPaths()
+    fs.writeFileSync(paths.config, JSON.stringify({ ...DEFAULT_CONFIG, statusFlowTheme: 'neon' }))
+    expect(new ConfigService(paths).get().statusFlowTheme).toBe('violet')
     expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
       true,
     )

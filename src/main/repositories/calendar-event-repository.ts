@@ -31,8 +31,8 @@ export class CalendarEventRepository {
       const result = this.db
         .prepare(
           `
-        INSERT INTO calendar_events (opportunity_id, title, event_type, start_at, end_at, is_all_day, timezone, location, description, reminder_minutes, is_completed, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+        INSERT INTO calendar_events (opportunity_id, title, event_type, start_at, end_at, is_all_day, timezone, location, description, reminder_minutes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
         )
         .run(
@@ -76,13 +76,6 @@ export class CalendarEventRepository {
         )
     })()
   }
-  complete(id: number, completed: boolean, timestamp: number): void {
-    this.db.transaction(() => {
-      this.db
-        .prepare('UPDATE calendar_events SET is_completed = ?, updated_at = ? WHERE id = ?')
-        .run(completed ? 1 : 0, timestamp, id)
-    })()
-  }
   delete(id: number): number {
     return this.db.transaction(() => {
       const changes = this.db.prepare('DELETE FROM calendar_events WHERE id = ?').run(id).changes
@@ -108,13 +101,13 @@ export class CalendarEventRepository {
         ON r.calendar_event_id = e.id
        AND r.reminder_at = e.start_at - (e.reminder_minutes * 60000)
       WHERE e.reminder_minutes IS NOT NULL
-        AND e.is_completed = 0
         AND ? >= e.start_at - (e.reminder_minutes * 60000)
+        AND e.end_at > ?
         AND r.id IS NULL
       ORDER BY e.start_at, e.id
     `,
       )
-      .all(currentAt) as Array<{
+      .all(currentAt, currentAt) as Array<{
       event_id: number
       title: string
       start_at: number

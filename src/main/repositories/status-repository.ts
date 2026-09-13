@@ -48,8 +48,10 @@ export class StatusRepository {
   countUsage(id: number): number {
     return (
       this.db
-        .prepare('SELECT COUNT(*) AS count FROM opportunities WHERE status_id = ?')
-        .get(id) as { count: number }
+        .prepare(
+          'SELECT COUNT(*) AS count FROM (SELECT id FROM opportunities WHERE status_id = ? UNION SELECT opportunity_id FROM opportunity_status_events WHERE status_id = ?)',
+        )
+        .get(id, id) as { count: number }
     ).count
   }
   reorder(order: number[], timestamp: number): void {

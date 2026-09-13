@@ -22,6 +22,8 @@ interface CalendarWorkspaceOptions {
   notifyError: (text: string) => void
 }
 
+type CalendarEventForm = Omit<CreateCalendarEventInput, 'eventType'> & { eventType: string | null }
+
 export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
   const { t, locale } = useI18n()
   const calendarStore = useCalendarStore()
@@ -30,15 +32,16 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
   const editingEventId = ref<number | null>(null)
   const calendarMonth = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const selectedCalendarDay = ref(new Date())
-  const eventForm = ref<CreateCalendarEventInput>(newEventInput(selectedCalendarDay.value))
+  const eventForm = ref<CalendarEventForm>(newEventInput(selectedCalendarDay.value))
 
-  const eventTypeOptions = computed(() => [
-    { label: t('calendar.types.interview'), value: 'interview' },
-    { label: t('calendar.types.writtenTest'), value: 'written_test' },
-    { label: t('calendar.types.deadline'), value: 'deadline' },
-    { label: t('calendar.types.reminder'), value: 'reminder' },
-    { label: t('calendar.types.other'), value: 'other' },
-  ])
+  const eventTypeOptions = computed(() =>
+    [
+      t('calendar.types.interview'),
+      t('calendar.types.writtenTest'),
+      t('calendar.types.deadline'),
+      t('calendar.types.reminder'),
+    ].map((name) => ({ label: name, value: name })),
+  )
   const reminderOptions = computed(() => [
     { label: t('calendar.reminder5Minutes'), value: 5 },
     { label: t('calendar.reminder10Minutes'), value: 10 },
@@ -101,31 +104,6 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
     ) {
       calendarMonth.value = new Date(day.getFullYear(), day.getMonth(), 1)
     }
-  }
-
-  const eventTypeTranslationKeys = {
-    interview: 'interview',
-    written_test: 'writtenTest',
-    deadline: 'deadline',
-    reminder: 'reminder',
-    other: 'other',
-  } as const
-  function eventTypeLabel(eventType: string): string {
-    const type =
-      eventTypeTranslationKeys[eventType as keyof typeof eventTypeTranslationKeys] ??
-      eventTypeTranslationKeys.other
-    return t(`calendar.types.${type}`)
-  }
-
-  const eventTagTypes = {
-    interview: 'info',
-    written_test: 'warning',
-    deadline: 'error',
-    reminder: 'success',
-    other: 'default',
-  } as const
-  function eventTypeTagType(eventType: string): (typeof eventTagTypes)[keyof typeof eventTagTypes] {
-    return eventTagTypes[eventType as keyof typeof eventTagTypes] ?? eventTagTypes.other
   }
 
   async function loadCalendar(): Promise<void> {
@@ -196,13 +174,17 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
   }
 
   async function saveEvent(): Promise<void> {
-    if (!eventForm.value.title.trim()) {
+    const eventType = eventForm.value.eventType
+    if (!eventForm.value.title.trim() || eventType === null || !eventType.trim()) {
       options.notifyError(t('error.required'))
       return
     }
     try {
       const isEditing = editingEventId.value !== null
-      const input = structuredClone(toRaw(eventForm.value))
+      const input: CreateCalendarEventInput = {
+        ...structuredClone(toRaw(eventForm.value)),
+        eventType,
+      }
       if (input.isAllDay) {
         const timezone = input.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
         input.startAt = zonedDateFromPickerValue(input.startAt, timezone)
@@ -223,16 +205,6 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
       await window.zhijiApi.calendar.delete(id)
       await loadCalendar()
       options.notifySuccess(t('feedback.deleteSuccess'))
-    } catch (error) {
-      options.showError(error)
-    }
-  }
-
-  async function completeEvent(event: CalendarEvent): Promise<void> {
-    try {
-      await window.zhijiApi.calendar.complete(event.id, !event.isCompleted)
-      await loadCalendar()
-      options.notifySuccess(t('feedback.completeSuccess'))
     } catch (error) {
       options.showError(error)
     }
@@ -280,8 +252,6 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
     isSameDay,
     eventsForDay,
     selectCalendarDay,
-    eventTypeLabel,
-    eventTypeTagType,
     loadCalendar,
     newEvent,
     openEvent,
@@ -289,18 +259,17 @@ export function useCalendarWorkspace(options: CalendarWorkspaceOptions) {
     openCalendarEventFromReminder,
     saveEvent,
     deleteEvent,
-    completeEvent,
     previousMonth,
     nextMonth,
     goToday,
   }
 }
 
-function newEventInput(day: Date): CreateCalendarEventInput {
+function newEventInput(day: Date): CalendarEventForm {
   const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10, 0, 0)
   return {
     title: '',
-    eventType: 'other',
+    eventType: null,
     startAt: start.getTime(),
     endAt: start.getTime() + 60 * 60 * 1000,
     isAllDay: false,

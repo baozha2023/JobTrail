@@ -1,10 +1,13 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
-  "author": "Zhiji",
+  "author": {
+    "name": "baozha2023",
+    "email": "a17238716972022@163.com"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
@@ -31,6 +34,7 @@
     "@modelcontextprotocol/client": "2.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.15.21",
+    "@types/semver": "^7.8.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.7.0",

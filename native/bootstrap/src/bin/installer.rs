@@ -901,22 +901,11 @@ fn install(root: &Path) -> Result<()> {
     }
     validate_path(root)?;
     ensure_not_installed()?;
-    if root.exists() {
+    let created_root = !root.exists();
+    if !created_root {
         validate_tree(root)?;
-        for entry in fs::read_dir(root)? {
-            let entry = entry?;
-            let name = entry.file_name();
-            let metadata = entry.metadata()?;
-            let valid = if name == "config.json" {
-                metadata.is_file()
-            } else if name == "data" || name == "resumes" {
-                metadata.is_dir()
-            } else {
-                false
-            };
-            if !valid {
-                bail!("目标目录包含现有程序或其他文件，请先卸载原版本或选择其他位置");
-            }
+        if fs::read_dir(root)?.next().is_some() {
+            bail!("目标目录必须为空，请先备份其中的数据并选择空目录");
         }
     } else {
         fs::create_dir_all(root)?;
@@ -924,12 +913,6 @@ fn install(root: &Path) -> Result<()> {
     let temp = tempfile::Builder::new()
         .prefix("jobtrail-install-")
         .tempdir()?;
-    let marker = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(root.join(MARKER))?;
-    drop(marker);
-
     let operation = (|| -> Result<()> {
         let setup = temp.path().join("Setup.exe");
         fs::write(&setup, SETUP)?;
@@ -949,19 +932,30 @@ fn install(root: &Path) -> Result<()> {
         register(root, env!("JOBTRAIL_VERSION"), true)?;
         Ok(())
     })();
-    if operation.is_err() {
-        unregister(root)?;
-        let runtime = root.join(".runtime");
-        if runtime.exists() {
-            validate_tree(&runtime)?;
-            fs::remove_dir_all(runtime)?;
+    if let Err(error) = operation {
+        if let Err(cleanup_error) = unregister(root) {
+            return Err(error.context(format!(
+                "安装失败，系统注册信息清理失败，安装目录已保留：{cleanup_error:#}"
+            )));
         }
-        for name in [LAUNCHER, UNINSTALLER, MARKER] {
-            let _ = fs::remove_file(root.join(name));
+        if root.exists() {
+            validate_tree(root)?;
+            if created_root {
+                fs::remove_dir_all(root)?;
+            } else {
+                for entry in fs::read_dir(root)? {
+                    let entry = entry?;
+                    if entry.file_type()?.is_dir() {
+                        fs::remove_dir_all(entry.path())?;
+                    } else {
+                        fs::remove_file(entry.path())?;
+                    }
+                }
+            }
         }
-        let _ = fs::remove_dir(root);
+        return Err(error);
     }
-    operation
+    Ok(())
 }
 
 fn run() -> Result<()> {

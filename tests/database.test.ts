@@ -2,10 +2,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppPaths } from '../src/main/config'
 import { BUNDLED_COMPANY_CATALOG, BUNDLED_COMPANY_CATALOG_HASH } from '../src/main/company-catalog'
 import { DatabaseManager } from '../src/main/database'
+import { OpportunityStatusEventRepository } from '../src/main/repositories/opportunity-status-event-repository'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
@@ -36,11 +37,29 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     database?.close()
     fs.rmSync(root, { recursive: true, force: true })
   })
 
-  it('creates the final schema before seeding and has no migration or physical foreign key', () => {
+  it('backs up committed WAL data for update rollback without closing the live database', async () => {
+    database!.db.exec('CREATE TABLE snapshot_probe(value TEXT NOT NULL)')
+    database!.db.prepare('INSERT INTO snapshot_probe(value) VALUES (?)').run('before-update')
+    const snapshot = path.join(root, 'rollback.db')
+    await database!.snapshotForUpdate(snapshot)
+    const saved = new Database(snapshot, { readonly: true })
+    try {
+      expect(
+        (saved.prepare('SELECT value FROM snapshot_probe').get() as { value: string }).value,
+      ).toBe('before-update')
+      expect(saved.pragma('user_version', { simple: true })).toBe(1)
+    } finally {
+      saved.close()
+    }
+    database!.db.prepare('INSERT INTO snapshot_probe(value) VALUES (?)').run('after-update')
+  })
+
+  it('creates schema v1 before seeding and has no migration or physical foreign key', () => {
     const names = (
       database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
         name: string
@@ -56,6 +75,7 @@ describe('职迹最终数据库结构和业务服务', () => {
         'builtin_company_catalog_state',
         'resume_versions',
         'opportunities',
+        'opportunity_status_events',
         'calendar_events',
         'calendar_event_reminders',
       ]),
@@ -168,6 +188,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       'company_industries',
       'company_aliases',
       'opportunities',
+      'opportunity_status_events',
       'calendar_events',
       'calendar_event_reminders',
     ])
@@ -222,7 +243,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     const unsupportedDatabasePath = path.join(unsupportedRoot, 'data', 'zhiji.db')
     fs.mkdirSync(path.dirname(unsupportedDatabasePath), { recursive: true })
     const rawDatabase = new Database(unsupportedDatabasePath)
-    rawDatabase.pragma('user_version = 4')
+    rawDatabase.pragma('user_version = 2')
     rawDatabase.close()
     const unsupportedPaths: AppPaths = {
       root: unsupportedRoot,
@@ -242,6 +263,129 @@ describe('职迹最终数据库结构和业务服务', () => {
     } finally {
       fs.rmSync(unsupportedRoot, { recursive: true, force: true })
     }
+  })
+
+  it('does not automatically reconstruct events for an existing opportunity', () => {
+    const company = services.companies.create({ name: '无历史公司' })
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '已有岗位',
+      statusId: services.statuses.list()[0].id,
+    })
+    database!.db
+      .prepare('DELETE FROM opportunity_status_events WHERE opportunity_id = ?')
+      .run(opportunity.id)
+    database!.close()
+    database = new DatabaseManager(paths)
+    services = createServices(new UnitOfWork(database.db), database, files, false)
+
+    expect(services.opportunities.statusFlow(opportunity.id).events).toEqual([])
+  })
+
+  it('records actual status changes once and preserves historical labels', () => {
+    const company = services.companies.create({ name: '流转测试公司' })
+    const first = services.statuses.create({ label: '初始状态' })
+    const second = services.statuses.create({ label: '后续状态' })
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '测试岗位',
+      statusId: first.id,
+    })
+    const initial = services.opportunities.statusFlow(opportunity.id)
+    expect(initial.opportunity.id).toBe(opportunity.id)
+    expect(initial.events).toEqual([
+      expect.objectContaining({
+        opportunityId: opportunity.id,
+        statusId: first.id,
+        statusLabel: '初始状态',
+        occurredAt: opportunity.createdAt,
+        kind: 'created',
+      }),
+    ])
+
+    services.opportunities.update(opportunity.id, { title: '新岗位名称', statusId: second.id })
+    services.opportunities.update(opportunity.id, { title: '再次修改' })
+    const unchanged = services.opportunities.changeStatus(opportunity.id, second.id)
+    expect(unchanged.statusId).toBe(second.id)
+    expect(services.opportunities.statusFlow(opportunity.id).events).toHaveLength(2)
+
+    services.opportunities.changeStatus(opportunity.id, first.id)
+    services.statuses.update(first.id, { label: '初始状态已改名' })
+    const flow = services.opportunities.statusFlow(opportunity.id)
+    expect(flow.opportunity.statusLabel).toBe('初始状态已改名')
+    expect(flow.events.map(({ statusLabel, kind }) => [statusLabel, kind])).toEqual([
+      ['初始状态', 'created'],
+      ['后续状态', 'changed'],
+      ['初始状态', 'changed'],
+    ])
+    expect(flow.events.map(({ statusId }) => statusId)).toEqual([first.id, second.id, first.id])
+    expect(new Set(flow.events.map(({ id }) => id)).size).toBe(3)
+    expect(flow.events.map((event) => [event.occurredAt, event.id])).toEqual(
+      [...flow.events]
+        .sort((left, right) => left.occurredAt - right.occurredAt || left.id - right.id)
+        .map((event) => [event.occurredAt, event.id]),
+    )
+    expect(() => services.opportunities.statusFlow(0)).toThrowError(AppServiceError)
+    expect(() => services.opportunities.statusFlow(999999)).toThrowError(AppServiceError)
+  })
+
+  it('protects historically referenced statuses and clears events with the opportunity', () => {
+    const company = services.companies.create({ name: '历史保护公司' })
+    const first = services.statuses.create({ label: '历史专用状态' })
+    const second = services.statuses.create({ label: '当前专用状态' })
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '测试岗位',
+      statusId: first.id,
+    })
+    services.opportunities.changeStatus(opportunity.id, second.id)
+    expect(() => services.statuses.delete(first.id)).toThrowError(AppServiceError)
+    try {
+      services.statuses.delete(first.id)
+    } catch (error) {
+      expect((error as AppServiceError).code).toBe('STATUS_IN_USE')
+    }
+    services.opportunities.delete(opportunity.id)
+    expect(
+      database!.db
+        .prepare('SELECT COUNT(*) AS count FROM opportunity_status_events WHERE opportunity_id = ?')
+        .get(opportunity.id),
+    ).toEqual({ count: 0 })
+    services.statuses.delete(first.id)
+    services.statuses.delete(second.id)
+  })
+
+  it('rolls back opportunity changes when a status event cannot be written', () => {
+    const company = services.companies.create({ name: '原子写入公司' })
+    const first = services.statuses.create({ label: '事务前' })
+    const second = services.statuses.create({ label: '事务后' })
+    const write = vi.spyOn(OpportunityStatusEventRepository.prototype, 'create')
+    write.mockImplementationOnce(() => {
+      throw new Error('event write failed')
+    })
+    expect(() =>
+      services.opportunities.create({
+        companyId: company.id,
+        title: '失败创建',
+        statusId: first.id,
+      }),
+    ).toThrow('event write failed')
+    expect(services.opportunities.list({ search: '失败创建' })).toHaveLength(0)
+
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '已有岗位',
+      statusId: first.id,
+    })
+    write.mockImplementationOnce(() => {
+      throw new Error('event write failed')
+    })
+    expect(() => services.opportunities.update(opportunity.id, { statusId: second.id })).toThrow(
+      'event write failed',
+    )
+    expect(services.opportunities.get(opportunity.id).statusId).toBe(first.id)
+    expect(services.opportunities.statusFlow(opportunity.id).events).toHaveLength(1)
+    write.mockRestore()
   })
 
   it('protects built-in data and logical references', () => {
@@ -481,13 +625,14 @@ describe('职迹最终数据库结构和业务服务', () => {
     const event = services.calendar.create({
       opportunityId: opportunity.id,
       title: '面试',
-      eventType: 'interview',
+      eventType: '面试',
       startAt,
       endAt: startAt + 60 * 60 * 1000,
       timezone: 'Asia/Shanghai',
       reminderMinutes: 5,
     })
     expect(services.calendar.get(event.id).companyName).toBe('链路公司')
+    expect(services.calendar.get(event.id).eventType).toBe('面试')
     expect(
       services.calendar
         .list({ startAt: startAt - 1, endAt: startAt + 60 * 60 * 1000 + 1 })
@@ -495,7 +640,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     ).toContain(event.id)
     const pointEvent = services.calendar.create({
       title: '时间点',
-      eventType: 'reminder',
+      eventType: '提醒',
       startAt,
       endAt: startAt,
       timezone: 'Asia/Shanghai',
@@ -505,7 +650,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     ).toContain(pointEvent.id)
     const allDayEvent = services.calendar.create({
       title: '全天日程',
-      eventType: 'reminder',
+      eventType: '提醒',
       isAllDay: true,
       timezone: 'Asia/Shanghai',
       startAt: Date.UTC(2026, 8, 7, 6),
@@ -516,7 +661,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     expect(() =>
       services.calendar.create({
         title: '无效全天',
-        eventType: 'other',
+        eventType: '其他',
         isAllDay: true,
         timezone: 'Asia/Shanghai',
         startAt,
@@ -526,14 +671,14 @@ describe('职迹最终数据库结构和业务服务', () => {
     expect(() =>
       services.calendar.create({
         title: '无效时区',
-        eventType: 'other',
+        eventType: '其他',
         timezone: 'Not/A_Timezone',
         startAt,
         endAt: startAt,
       }),
     ).toThrowError(AppServiceError)
-    expect(services.calendar.complete(event.id, true).isCompleted).toBe(true)
-    services.calendar.complete(event.id, false)
+    expect(services.calendar.get(event.id).isCompleted).toBe(false)
+    expect(services.calendar.get(pointEvent.id).isCompleted).toBe(true)
     const due = services.reminders.listDue(Date.now())
     expect(due.map((item) => item.eventId)).toContain(event.id)
     services.reminders.markSent(event.id, due.find((item) => item.eventId === event.id)!.reminderAt)
@@ -546,5 +691,45 @@ describe('职迹最终数据库结构和业务服务', () => {
     services.opportunities.delete(opportunity.id)
     services.opportunities.delete(ordinaryOpportunity.id)
     services.companies.delete(company.id)
+  })
+
+  it('derives calendar completion from the end time and skips reminders for ended events', () => {
+    const now = Date.now()
+    const past = services.calendar.create({
+      title: '已结束面试',
+      eventType: '面试',
+      startAt: now - 120_000,
+      endAt: now - 60_000,
+      reminderMinutes: 5,
+    })
+    expect(past.isCompleted).toBe(true)
+    expect(services.reminders.listDue(now).map((item) => item.eventId)).not.toContain(past.id)
+
+    const upcoming = services.calendar.update(past.id, {
+      startAt: now + 60_000,
+      endAt: now + 120_000,
+      eventType: '自定义类型',
+    })
+    expect(upcoming.isCompleted).toBe(false)
+    expect(upcoming.eventType).toBe('自定义类型')
+    expect(
+      (
+        database!.db
+          .prepare('SELECT event_type FROM calendar_events WHERE id = ?')
+          .get(past.id) as {
+          event_type: string
+        }
+      ).event_type,
+    ).toBe('自定义类型')
+    expect(services.calendar.list({ startAt: now, endAt: now + 180_000 })[0].isCompleted).toBe(
+      false,
+    )
+    expect(services.reminders.listDue(now).map((item) => item.eventId)).toContain(past.id)
+
+    expect(
+      services.calendar.update(past.id, { startAt: now - 120_000, endAt: now - 60_000 })
+        .isCompleted,
+    ).toBe(true)
+    expect(services.reminders.listDue(now).map((item) => item.eventId)).not.toContain(past.id)
   })
 })

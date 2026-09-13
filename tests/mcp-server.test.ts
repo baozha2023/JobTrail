@@ -82,11 +82,11 @@ describe('JobTrail MCP server', () => {
     return result.structuredContent as Record<string, unknown>
   }
 
-  it('gates all data access while disabled and advertises exactly 37 tools', async () => {
+  it('gates all data access while disabled and advertises exactly 36 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
-    expect(listed.tools).toHaveLength(37)
-    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 37)
+    expect(listed.tools).toHaveLength(36)
+    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 36)
     const result = await client.callTool({ name: 'list_statuses', arguments: {} })
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toMatchObject({
@@ -95,7 +95,7 @@ describe('JobTrail MCP server', () => {
     })
   })
 
-  it('executes all 37 tools through application services', async () => {
+  it('executes all 36 tools through application services', async () => {
     config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
     const client = await connect(true)
 
@@ -162,7 +162,7 @@ describe('JobTrail MCP server', () => {
         input: {
           opportunityId: opportunity.id,
           title: 'MCP 面试',
-          eventType: 'interview',
+          eventType: '面试',
           startAt,
           endAt: startAt + 3_600_000,
           timezone: 'Asia/Shanghai',
@@ -174,7 +174,6 @@ describe('JobTrail MCP server', () => {
     })
     await call(client, 'get_calendar_event', { id: event.id })
     await call(client, 'update_calendar_event', { id: event.id, input: { location: '线上' } })
-    await call(client, 'complete_calendar_event', { id: event.id, completed: true })
     await call(client, 'delete_calendar_event', { id: event.id })
     await call(client, 'delete_opportunity', { id: opportunity.id })
     await call(client, 'delete_resume_version', { id: resume.id })

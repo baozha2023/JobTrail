@@ -42,16 +42,15 @@ describe('MCP tool contracts', () => {
         'create_calendar_event',
         'update_calendar_event',
         'delete_calendar_event',
-        'complete_calendar_event',
       ]),
     )
     expect(names.some((name) => name.includes('alias'))).toBe(false)
     expect(MCP_TOOLS.some((tool) => tool.description.toLowerCase().includes('sql'))).toBe(false)
     expect(MCP_TOOLS.filter((tool) => tool.destructive).every((tool) => !tool.readOnly)).toBe(true)
-    expect(MCP_TOOLS).toHaveLength(37)
-    expect(new Set(names)).toHaveProperty('size', 37)
+    expect(MCP_TOOLS).toHaveLength(36)
+    expect(new Set(names)).toHaveProperty('size', 36)
     expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(13)
-    expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(24)
+    expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(23)
     expect(MCP_TOOLS.filter((tool) => !tool.readOnly).every((tool) => tool.preview)).toBe(true)
     expect(MCP_TOOLS.filter((tool) => tool.readOnly).every((tool) => !tool.preview)).toBe(true)
   })

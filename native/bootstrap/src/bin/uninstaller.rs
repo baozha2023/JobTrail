@@ -27,6 +27,20 @@ fn remove_install_contents_once(root: &Path) -> io::Result<()> {
                 format!("安装目录包含重解析点: {}", path.display()),
             ));
         }
+        // These two files keep an interrupted uninstall recoverable. The
+        // worker removes them only after every other item and shell entry.
+        if path
+            .file_name()
+            .is_some_and(|name| name == MARKER || name == UNINSTALLER)
+        {
+            if !metadata.is_file() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "卸载入口或安装标记不是普通文件",
+                ));
+            }
+            continue;
+        }
         if metadata.is_dir() {
             fs::remove_dir_all(path)?;
         } else {
@@ -53,6 +67,22 @@ fn remove_install_contents(root: &Path) -> Result<()> {
     unreachable!("删除重试循环必须返回结果")
 }
 
+fn remove_file_with_retry(path: &Path) -> Result<()> {
+    plain_file(path)?;
+    for attempt in 0..DELETE_ATTEMPTS {
+        match fs::remove_file(path) {
+            Ok(()) => return Ok(()),
+            Err(error) if transient_delete_error(&error) && attempt + 1 < DELETE_ATTEMPTS => {
+                thread::sleep(DELETE_RETRY_DELAY);
+            }
+            Err(error) => {
+                return Err(error).with_context(|| format!("无法删除 {}", path.display()))
+            }
+        }
+    }
+    unreachable!("删除重试循环必须返回结果")
+}
+
 fn uninstall(root: &Path, pid: u32) -> Result<()> {
     validate_installation(root)?;
     wait_pid(pid)?;
@@ -71,8 +101,17 @@ fn uninstall(root: &Path, pid: u32) -> Result<()> {
             bail!("Velopack 卸载失败，请关闭职迹后重试: {status}");
         }
     }
-    unregister(root)?;
     remove_install_contents(root)?;
+    unregister(root)?;
+    let marker = root.join(MARKER);
+    remove_file_with_retry(&marker)?;
+    let uninstaller = root.join(UNINSTALLER);
+    if let Err(error) = remove_file_with_retry(&uninstaller) {
+        // The root uninstaller is the final persistent retry entry. Restore
+        // its marker when Windows temporarily refuses to remove that binary.
+        fs::write(&marker, b"jobtrail-root-v1\n").context("恢复卸载重试标记")?;
+        return Err(error);
+    }
     Ok(())
 }
 fn run() -> Result<()> {
@@ -183,7 +222,8 @@ mod tests {
         remove_install_contents(&root).unwrap();
 
         assert!(root.is_dir());
-        assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        assert!(root.join(MARKER).is_file());
     }
 
     #[test]
@@ -218,6 +258,30 @@ mod tests {
 
         assert!(started.elapsed() >= DELETE_RETRY_DELAY);
         assert!(root.is_dir());
-        assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        assert!(root.join(MARKER).is_file());
+    }
+
+    #[test]
+    fn interrupted_cleanup_retains_the_root_retry_entry() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("JobTrail");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join(MARKER), b"jobtrail-root-v1\n").unwrap();
+        fs::write(root.join(UNINSTALLER), b"retry").unwrap();
+        let locked_path = root.join("data.bin");
+        fs::write(&locked_path, b"locked").unwrap();
+        let lock = fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+            .open(&locked_path)
+            .unwrap();
+
+        assert!(remove_install_contents_once(&root).is_err());
+        assert!(root.join(MARKER).is_file());
+        assert!(root.join(UNINSTALLER).is_file());
+        drop(lock);
+        remove_install_contents(&root).unwrap();
+        assert!(!locked_path.exists());
     }
 }

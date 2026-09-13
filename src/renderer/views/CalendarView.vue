@@ -1,6 +1,23 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
 import { NButton, NCard, NSpace, NTag } from 'naive-ui'
 import type { CalendarEvent } from '../../shared/types'
+import { isCalendarEventCompleted } from '../../shared/calendar'
+
+const currentTime = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  clock = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 1000)
+})
+onUnmounted(() => {
+  if (clock) clearInterval(clock)
+})
+
+function isCompleted(event: CalendarEvent): boolean {
+  return isCalendarEventCompleted(event, currentTime.value)
+}
 
 defineProps<{
   monthLabel: string
@@ -14,8 +31,6 @@ defineProps<{
   isSameDay: (a: Date, b: Date) => boolean
   formatDate: (timestamp: number) => string
   formatEventTime: (event: CalendarEvent, timestamp: number) => string
-  eventTypeLabel: (type: string) => string
-  eventTypeTagType: (type: string) => 'default' | 'success' | 'warning' | 'error' | 'info'
   isExternalUrl: (value: string) => boolean
   normalizeExternalUrl: (value: string) => string
 }>()
@@ -27,7 +42,6 @@ const emit = defineEmits<{
   addDay: [day: Date]
   openEvent: [event: CalendarEvent]
   add: []
-  complete: [event: CalendarEvent]
   edit: [event: CalendarEvent]
   delete: [id: number]
   openLink: [value: string]
@@ -73,7 +87,7 @@ const emit = defineEmits<{
           class="calendar-day"
           :class="{
             muted: day.getMonth() !== calendarMonth.getMonth(),
-            today: isSameDay(day, new Date()),
+            today: isSameDay(day, new Date(currentTime)),
             selected: isSameDay(day, selectedCalendarDay),
           }"
           role="button"
@@ -98,7 +112,7 @@ const emit = defineEmits<{
               v-for="event in eventsForDay(day).slice(0, 3)"
               :key="event.id"
               class="calendar-event"
-              :class="[`event-${event.eventType}`, { completed: event.isCompleted }]"
+              :class="{ completed: isCompleted(event) }"
               type="button"
               @click.stop="emit('openEvent', event)"
             >
@@ -137,14 +151,15 @@ const emit = defineEmits<{
           v-for="event in selectedDayEvents"
           :key="event.id"
           class="event-detail"
-          :class="{ completed: event.isCompleted }"
+          :class="{ completed: isCompleted(event) }"
         >
-          <div class="event-detail-accent" :class="`event-${event.eventType}`"></div>
+          <div class="event-detail-accent"></div>
           <div class="event-detail-main">
             <div class="event-detail-title-row">
               <strong>{{ event.title }}</strong
-              ><n-tag :bordered="false" size="small" :type="eventTypeTagType(event.eventType)">{{
-                eventTypeLabel(event.eventType)
+              ><n-tag :bordered="false" size="small" type="info">{{ event.eventType }}</n-tag
+              ><n-tag v-if="isCompleted(event)" :bordered="false" size="small" type="default">{{
+                $t('calendar.completed')
               }}</n-tag>
             </div>
             <div class="event-detail-meta">
@@ -176,9 +191,6 @@ const emit = defineEmits<{
             </div>
           </div>
           <n-space class="event-detail-actions" :size="6" wrap
-            ><n-button size="small" @click="emit('complete', event)">{{
-              event.isCompleted ? $t('calendar.completed') : $t('common.complete')
-            }}</n-button
             ><n-button size="small" @click="emit('edit', event)">{{ $t('common.edit') }}</n-button
             ><n-button size="small" type="error" tertiary @click="emit('delete', event.id)">{{
               $t('common.delete')

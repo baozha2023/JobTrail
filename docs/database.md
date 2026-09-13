@@ -10,6 +10,8 @@
 - 开发环境：`<项目根目录>/config.json`
 - 安装环境：`<JobTrail 安装根目录>/config.json`
 
+配置文件版本 `configVersion` 为 `1`。
+
 ## SQLite 初始化规则
 
 - 使用 `better-sqlite3`。
@@ -20,7 +22,7 @@
 - 布尔值使用 INTEGER：`0=false`、`1=true`。
 - 使用 SQLite 内置 `PRAGMA user_version` 记录结构版本。
 - 不创建 `schema_migrations` 表。
-- 当前完整结构版本为 `1`。首发阶段直接以本文件中的最终结构初始化，不执行 `ALTER TABLE` 或过程性迁移 SQL。
+- 当前完整结构版本为 `1`。新数据库直接以本文件中的结构初始化，不执行 `ALTER TABLE`、过程性迁移 SQL 或旧数据自动补图。
 
 ## 业务表
 
@@ -39,8 +41,8 @@
 
 状态删除规则：
 
-1. 生产环境内置状态直接返回 `BUILTIN_DATA` 和“该数据为内置，无法删除/修改”，禁止编辑和删除；开发环境放开内置状态的增删改查权限，但仍遵守被求职记录引用时的删除保护。
-2. 查询 `opportunities.status_id` 是否引用目标状态。
+1. 生产环境内置状态直接返回 `BUILTIN_DATA` 和“该数据为内置，无法删除/修改”，禁止编辑和删除；开发环境放开内置状态的增删改查权限，但仍遵守求职记录及历史引用保护。
+2. 查询 `opportunities.status_id` 或 `opportunity_status_events.status_id` 是否引用目标状态。
 3. 有引用时返回 `STATUS_IN_USE` 和使用数量，禁止删除。
 4. 只有一个状态时返回 `LAST_STATUS`，禁止删除。
 5. 未被引用且不是最后一个状态时允许删除。
@@ -173,6 +175,21 @@
 
 索引：`company_id`、`status_id`、`deadline_at`、`updated_at`。
 
+### opportunity_status_events
+
+每行是一个求职记录的实际状态节点，不能通过 UI 手动增删改。状态名称保留写入时的快照，不受之后重命名影响。
+
+| 字段           | 类型    | 约束                                     | 说明                                    |
+| -------------- | ------- | ---------------------------------------- | --------------------------------------- |
+| id             | INTEGER | PK AUTOINCREMENT                         | 节点 ID                                 |
+| opportunity_id | INTEGER | NOT NULL 逻辑外键，指向 opportunities.id | 所属求职记录                            |
+| status_id      | INTEGER | NOT NULL 逻辑外键，指向 statuses.id      | 状态 ID                                 |
+| status_label   | TEXT    | NOT NULL                                 | 写入时的状态名称                        |
+| occurred_at    | INTEGER | NOT NULL                                 | UTC Unix 毫秒；创建或变更的实际写入时间 |
+| kind           | TEXT    | NOT NULL，`created`/`changed` 之一       | 创建或状态变更                          |
+
+索引：`(opportunity_id, occurred_at, id)` 用于按时间读取流转图，`status_id` 用于历史引用删除保护。相同时间以节点 ID 决定稳定顺序。新建求职记录写入 `created`，通过编辑或独立状态切换接口改变状态时写入 `changed`；状态未变化不增加节点。
+
 ### calendar_events
 
 | 字段             | 类型    | 约束                                | 说明                                                          |
@@ -180,7 +197,7 @@
 | id               | INTEGER | PK AUTOINCREMENT                    | 日程 ID                                                       |
 | opportunity_id   | INTEGER | 可空逻辑外键，指向 opportunities.id | 关联求职机会                                                  |
 | title            | TEXT    | NOT NULL                            | 日程标题                                                      |
-| event_type       | TEXT    | NOT NULL                            | 日程类型                                                      |
+| event_type       | TEXT    | NOT NULL                            | 日程类型名称；直接保存所选语言的选项文案并原样显示            |
 | start_at         | INTEGER | NOT NULL                            | UTC Unix 毫秒开始时间；全天日程为其时区开始日期的 00:00       |
 | end_at           | INTEGER | NOT NULL                            | UTC Unix 毫秒结束时间；全天日程为其时区不包含结束日期的 00:00 |
 | is_all_day       | INTEGER | NOT NULL DEFAULT 0                  | 是否全天                                                      |
@@ -188,11 +205,12 @@
 | location         | TEXT    | 可空                                | 地点或会议链接                                                |
 | description      | TEXT    | 可空                                | 日程说明                                                      |
 | reminder_minutes | INTEGER | 可空，非负                          | 提前提醒分钟数                                                |
-| is_completed     | INTEGER | NOT NULL DEFAULT 0                  | 是否完成                                                      |
 | created_at       | INTEGER | NOT NULL                            | 创建时间                                                      |
 | updated_at       | INTEGER | NOT NULL                            | 更新时间                                                      |
 
 约束：时间段日程允许 `end_at = start_at` 表示时间点，其他情况 `end_at >= start_at`；全天日程采用半开区间 `[start_at, end_at)`，必须满足 `end_at > start_at`；`reminder_minutes` 为空或为非负整数。
+
+完成状态由当前时间是否达到 `end_at` 自动计算，不存储完成标记，也不提供手动切换入口。已结束的日程不会触发提醒。
 
 索引：`idx_calendar_events_range(start_at, end_at)`。
 
@@ -214,9 +232,9 @@
 - 禁止使用 `REFERENCES`、`ON DELETE` 等 SQLite 物理外键语法。
 - `CompanyService` 删除公司前检查是否有求职记录引用；删除成功后同步删除行业关联和公司别名。
 - `IndustryService` 删除行业前检查是否有公司引用。
-- `StatusService` 删除状态前检查是否有求职记录引用，并禁止删除最后一个状态。
+- `StatusService` 删除状态前检查是否有求职记录当前或历史引用，并禁止删除最后一个状态。
 - `ResumeService` 删除简历前检查是否有求职记录引用，并通过工作单元的提交/回滚钩子同步处理内部文件。
-- `OpportunityService` 删除求职记录时，将关联日程的 `opportunity_id` 清空。
+- `OpportunityService` 在同一事务写入状态节点；删除求职记录时删除节点，并将关联日程的 `opportunity_id` 清空。
 - 所有新增和更新操作都必须在 Service 层校验逻辑外键目标记录存在；Renderer 和 MCP 不得绕过 Service 直接写表。
 
 ## Seed 规则

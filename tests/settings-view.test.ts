@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 
 import { mount } from '@vue/test-utils'
-import { NModal } from 'naive-ui'
+import { NModal, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
 import { describe, expect, it, vi } from 'vitest'
 import { i18n } from '../src/renderer/i18n'
+import { getErrorMessage } from '../src/renderer/utils/errors'
 import SettingsView from '../src/renderer/views/SettingsView.vue'
+import type { AppConfig } from '../src/shared/types'
 
 const baseProps = {
   config: null,
+  dark: false,
   mcpConnectionInfo: null,
   currentVersion: '0.5.0',
   checkingForUpdates: false,
@@ -79,5 +82,42 @@ describe('内置公司更新弹窗', () => {
     expect(closeButton).toBeDefined()
     closeButton!.trigger('click')
     expect(close).toHaveBeenCalledOnce()
+  })
+})
+
+describe('设置页', () => {
+  it('explains when the published company catalog is missing', () => {
+    expect(getErrorMessage({ code: 'CATALOG_ASSET_MISSING' }, (key) => i18n.global.t(key))).toBe(
+      '缺少内置公司数据，无法更新',
+    )
+  })
+
+  it('keeps preference and MCP changes connected to their original settings actions', () => {
+    const config: AppConfig = {
+      configVersion: 1,
+      themeMode: 'light',
+      statusFlowTheme: 'violet',
+      locale: 'zh-CN',
+      closeBehavior: 'quit',
+      launchAtStartup: false,
+      companyReadValidityMonths: 3,
+      velopack: {},
+      mcp: { enabled: true, requireWriteConfirmation: true },
+    }
+    const wrapper = mount(SettingsView, {
+      props: { ...baseProps, config, catalogModalVisible: false },
+      global,
+    })
+
+    wrapper.findAllComponents(NSelect)[0].vm.$emit('update:value', 'dark')
+    wrapper.findComponent(NRadioGroup).vm.$emit('update:value', 'tray')
+    wrapper.findAllComponents(NSwitch)[1].vm.$emit('update:value', false)
+
+    expect(wrapper.emitted('updateConfig')).toEqual([
+      [{ themeMode: 'dark' }],
+      [{ mcp: { enabled: false, requireWriteConfirmation: true } }],
+    ])
+    expect(wrapper.emitted('closeBehavior')).toEqual([['tray']])
+    wrapper.unmount()
   })
 })

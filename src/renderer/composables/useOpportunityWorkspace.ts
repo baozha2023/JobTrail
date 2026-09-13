@@ -1,7 +1,13 @@
 import { ref, toRaw, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import type { Company, CreateOpportunityInput, Opportunity, Status } from '../../shared/types'
+import type {
+  Company,
+  CreateOpportunityInput,
+  Opportunity,
+  OpportunityStatusFlow,
+  Status,
+} from '../../shared/types'
 import { useOpportunitiesStore } from '../stores/opportunities'
 
 interface OpportunityWorkspaceOptions {
@@ -25,6 +31,12 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
   const selectedStatusId = ref<number | null>(null)
   const selectedCompanyId = ref<number | null>(null)
   const showOpportunityModal = ref(false)
+  const showStatusFlowModal = ref(false)
+  const statusFlowOpportunity = ref<Opportunity | null>(null)
+  const statusFlow = ref<OpportunityStatusFlow | null>(null)
+  const statusFlowLoading = ref(false)
+  const statusFlowOpportunityId = ref<number | null>(null)
+  let statusFlowRequest = 0
   const editingOpportunityId = ref<number | null>(null)
   const opportunityForm = ref<CreateOpportunityInput>(emptyOpportunityInput())
 
@@ -77,6 +89,41 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
     showOpportunityModal.value = true
   }
 
+  function openStatusFlow(row: Opportunity): void {
+    statusFlowOpportunityId.value = row.id
+    statusFlowOpportunity.value = row
+    statusFlow.value = null
+    showStatusFlowModal.value = true
+    void reloadStatusFlow()
+  }
+
+  function closeStatusFlow(): void {
+    statusFlowRequest += 1
+    statusFlowOpportunityId.value = null
+    statusFlowOpportunity.value = null
+    statusFlow.value = null
+    statusFlowLoading.value = false
+    showStatusFlowModal.value = false
+  }
+
+  async function reloadStatusFlow(): Promise<void> {
+    const id = statusFlowOpportunityId.value
+    if (id === null || !showStatusFlowModal.value) return
+    const request = ++statusFlowRequest
+    statusFlowLoading.value = true
+    try {
+      const result = await window.zhijiApi.opportunities.statusFlow(id)
+      if (request === statusFlowRequest) statusFlow.value = result
+    } catch (error) {
+      if (request === statusFlowRequest) {
+        closeStatusFlow()
+        options.showError(error)
+      }
+    } finally {
+      if (request === statusFlowRequest) statusFlowLoading.value = false
+    }
+  }
+
   async function saveOpportunity(): Promise<void> {
     if (
       !opportunityForm.value.companyId ||
@@ -121,6 +168,10 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
     selectedStatusId,
     selectedCompanyId,
     showOpportunityModal,
+    showStatusFlowModal,
+    statusFlowOpportunity,
+    statusFlow,
+    statusFlowLoading,
     editingOpportunityId,
     opportunityForm,
     loadOpportunities,
@@ -128,6 +179,9 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
     refreshOpportunities,
     newOpportunity,
     openOpportunity,
+    openStatusFlow,
+    closeStatusFlow,
+    reloadStatusFlow,
     saveOpportunity,
     deleteOpportunity,
   }

@@ -2,11 +2,12 @@ import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { resolveStorageRoot } from './installation-paths'
 import path from 'node:path'
-import type { AppConfig, CloseBehavior, Locale, ThemeMode } from '../shared/types'
+import type { AppConfig, CloseBehavior, Locale, StatusFlowTheme, ThemeMode } from '../shared/types'
 
 export const DEFAULT_CONFIG: AppConfig = {
   configVersion: 1,
   themeMode: 'system',
+  statusFlowTheme: 'violet',
   locale: 'zh-CN',
   closeBehavior: 'quit',
   launchAtStartup: false,
@@ -59,6 +60,13 @@ function mergeConfig(value: unknown): AppConfig {
     source.themeMode !== 'system'
   )
     throw new Error('主题配置无效')
+  if (
+    source.statusFlowTheme !== undefined &&
+    source.statusFlowTheme !== 'violet' &&
+    source.statusFlowTheme !== 'ocean' &&
+    source.statusFlowTheme !== 'gold'
+  )
+    throw new Error('状态流转图主题配置无效')
   if (source.locale !== undefined && source.locale !== 'zh-CN' && source.locale !== 'en-US')
     throw new Error('语言配置无效')
   if (
@@ -87,6 +95,12 @@ function mergeConfig(value: unknown): AppConfig {
     source.themeMode === 'light' || source.themeMode === 'dark' || source.themeMode === 'system'
       ? source.themeMode
       : DEFAULT_CONFIG.themeMode
+  const statusFlowTheme: StatusFlowTheme =
+    source.statusFlowTheme === 'violet' ||
+    source.statusFlowTheme === 'ocean' ||
+    source.statusFlowTheme === 'gold'
+      ? source.statusFlowTheme
+      : DEFAULT_CONFIG.statusFlowTheme
   const locale: Locale =
     source.locale === 'zh-CN' || source.locale === 'en-US' ? source.locale : DEFAULT_CONFIG.locale
   const closeBehavior: CloseBehavior =
@@ -105,6 +119,7 @@ function mergeConfig(value: unknown): AppConfig {
     ...source,
     configVersion: DEFAULT_CONFIG.configVersion,
     themeMode,
+    statusFlowTheme,
     locale,
     closeBehavior,
     launchAtStartup: source.launchAtStartup === true,

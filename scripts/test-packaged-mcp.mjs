@@ -26,8 +26,8 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
   try {
     await client.connect(transport)
     const tools = await client.listTools()
-    if (tools.tools.length !== 37 || new Set(tools.tools.map((tool) => tool.name)).size !== 37) {
-      throw new Error(`${name}: expected 37 unique tools, received ${tools.tools.length}`)
+    if (tools.tools.length !== 36 || new Set(tools.tools.map((tool) => tool.name)).size !== 36) {
+      throw new Error(`${name}: expected 36 unique tools, received ${tools.tools.length}`)
     }
     const disabled = await client.callTool({ name: 'list_statuses', arguments: {} })
     if (!disabled.isError || disabled.structuredContent?.error?.code !== 'MCP_DISABLED') {

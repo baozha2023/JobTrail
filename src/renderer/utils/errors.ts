@@ -19,6 +19,7 @@ export function errorCode(error: unknown): AppErrorCode | null {
     'FILE_OPEN_FAILED',
     'DATABASE_ERROR',
     'CATALOG_DOWNLOAD_FAILED',
+    'CATALOG_ASSET_MISSING',
     'CATALOG_TOO_LARGE',
     'CATALOG_HASH_MISMATCH',
     'CATALOG_INVALID',

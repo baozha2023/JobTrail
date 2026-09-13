@@ -9,6 +9,9 @@ export function registerOpportunityIpc(services: Services): void {
   registerChannel('opportunities:get', (id) =>
     services.opportunities.get(numberValue(id, '求职记录 ID')),
   )
+  registerChannel('opportunities:status-flow', (id) =>
+    services.opportunities.statusFlow(numberValue(id, '求职记录 ID')),
+  )
   registerChannel('opportunities:create', (input) =>
     services.opportunities.create(parseOpportunity(input, false)),
   )

@@ -43,6 +43,7 @@ import type {
   Status,
 } from '../../shared/types'
 import OpportunitiesView from './OpportunitiesView.vue'
+import OpportunityStatusFlowModal from './OpportunityStatusFlowModal.vue'
 import CalendarView from './CalendarView.vue'
 import StatusesView from './StatusesView.vue'
 import IndustriesView from './IndustriesView.vue'
@@ -159,6 +160,8 @@ const theme = computed(() => {
     (config.value?.themeMode === 'system' && prefersDark.value)
   return isDark ? darkTheme : lightTheme
 })
+const isDarkTheme = computed(() => theme.value === darkTheme)
+const statusFlowThemeSaving = ref(false)
 const naiveLocale = computed(() => (locale.value === 'zh-CN' ? zhCN : enUS))
 const { message } = createDiscreteApi(['message'], {
   configProviderProps: computed(() => ({ theme: theme.value, locale: naiveLocale.value })),
@@ -181,8 +184,6 @@ const {
   isSameDay,
   eventsForDay,
   selectCalendarDay,
-  eventTypeLabel,
-  eventTypeTagType,
   loadCalendar,
   newEvent,
   openEvent,
@@ -190,7 +191,6 @@ const {
   openCalendarEventFromReminder,
   saveEvent,
   deleteEvent,
-  completeEvent,
   previousMonth,
   nextMonth,
   goToday,
@@ -213,6 +213,10 @@ const {
   selectedStatusId,
   selectedCompanyId,
   showOpportunityModal,
+  showStatusFlowModal,
+  statusFlowOpportunity,
+  statusFlow,
+  statusFlowLoading,
   editingOpportunityId,
   opportunityForm,
   loadOpportunities,
@@ -220,6 +224,9 @@ const {
   refreshOpportunities,
   newOpportunity,
   openOpportunity,
+  openStatusFlow,
+  closeStatusFlow,
+  reloadStatusFlow,
   saveOpportunity,
   deleteOpportunity,
 } = useOpportunityWorkspace({
@@ -293,14 +300,14 @@ const columns = computed<DataTableColumns<Opportunity>>(() => [
   {
     title: t('opportunity.company'),
     key: 'companyName',
-    width: '15%',
+    width: '14%',
     ellipsis: { tooltip: true },
   },
-  { title: t('opportunity.position'), key: 'title', width: '22%', ellipsis: { tooltip: true } },
+  { title: t('opportunity.position'), key: 'title', width: '20%', ellipsis: { tooltip: true } },
   {
     title: t('opportunity.status'),
     key: 'statusLabel',
-    width: '13%',
+    width: '12%',
     render: (row) =>
       h(
         NTag,
@@ -311,13 +318,13 @@ const columns = computed<DataTableColumns<Opportunity>>(() => [
   {
     title: t('opportunity.appliedAt'),
     key: 'appliedAt',
-    width: '15%',
+    width: '14%',
     render: (row) => formatDate(row.appliedAt),
   },
   {
     title: t('opportunity.url'),
     key: 'jobUrl',
-    width: '18%',
+    width: '16%',
     ellipsis: { tooltip: true },
     render: (row) =>
       row.jobUrl
@@ -337,9 +344,9 @@ const columns = computed<DataTableColumns<Opportunity>>(() => [
         : '—',
   },
   {
-    title: t('common.edit'),
+    title: t('common.actions'),
     key: 'actions',
-    width: '17%',
+    width: '24%',
     render: (row) =>
       h(
         NSpace,
@@ -350,6 +357,18 @@ const columns = computed<DataTableColumns<Opportunity>>(() => [
               NButton,
               { size: 'small', onClick: () => openOpportunity(row) },
               { default: () => t('common.edit') },
+            ),
+            h(
+              NButton,
+              {
+                size: 'small',
+                type: 'primary',
+                tertiary: true,
+                title: t('opportunity.flowOpen'),
+                'aria-label': t('opportunity.flowOpen'),
+                onClick: () => openStatusFlow(row),
+              },
+              { default: () => t('opportunity.flowButton') },
             ),
             h(
               NPopconfirm,
@@ -833,7 +852,11 @@ async function refreshExternalData(): Promise<void> {
       baseResults.forEach((result) => {
         if (result.status === 'rejected') showError(result.reason)
       })
-      const viewResults = await Promise.allSettled([loadOpportunities(), loadCalendar()])
+      const viewResults = await Promise.allSettled([
+        loadOpportunities(),
+        loadCalendar(),
+        reloadStatusFlow(),
+      ])
       viewResults.forEach((result) => {
         if (result.status === 'rejected') showError(result.reason)
       })
@@ -900,6 +923,18 @@ async function saveConfig(input: Partial<AppConfig>): Promise<void> {
     message.success(t('feedback.saveSuccess'))
   } catch (error) {
     showError(error)
+  }
+}
+
+async function setStatusFlowTheme(value: AppConfig['statusFlowTheme']): Promise<void> {
+  if (statusFlowThemeSaving.value) return
+  statusFlowThemeSaving.value = true
+  try {
+    await settingsStore.update({ statusFlowTheme: value })
+  } catch (error) {
+    showError(error)
+  } finally {
+    statusFlowThemeSaving.value = false
   }
 }
 
@@ -1100,8 +1135,6 @@ onBeforeUnmount(() => {
               :is-same-day="isSameDay"
               :format-date="formatDate"
               :format-event-time="formatEventTime"
-              :event-type-label="eventTypeLabel"
-              :event-type-tag-type="eventTypeTagType"
               :is-external-url="isExternalUrl"
               :normalize-external-url="normalizeExternalUrl"
               @previous="previousMonth"
@@ -1111,7 +1144,6 @@ onBeforeUnmount(() => {
               @add-day="newEvent"
               @open-event="openEvent"
               @add="newEvent(selectedCalendarDay)"
-              @complete="completeEvent"
               @edit="openEvent"
               @delete="deleteEvent"
               @open-link="openEventLink"
@@ -1148,6 +1180,7 @@ onBeforeUnmount(() => {
             <SettingsView
               v-if="activeView === 'settings'"
               :config="config"
+              :dark="isDarkTheme"
               :mcp-connection-info="mcpConnectionInfo"
               :current-version="currentVersion"
               :checking-for-updates="checkingForUpdates"
@@ -1277,6 +1310,19 @@ onBeforeUnmount(() => {
       </n-card>
     </n-modal>
 
+    <OpportunityStatusFlowModal
+      :show="showStatusFlowModal"
+      :opportunity="statusFlowOpportunity"
+      :flow="statusFlow"
+      :loading="statusFlowLoading"
+      :theme="config?.statusFlowTheme ?? 'violet'"
+      :theme-saving="statusFlowThemeSaving"
+      :dark="isDarkTheme"
+      :locale="locale"
+      @close="closeStatusFlow"
+      @select-theme="setStatusFlowTheme"
+    />
+
     <n-modal v-model:show="showEventModal">
       <n-card
         class="event-modal"
@@ -1291,10 +1337,12 @@ onBeforeUnmount(() => {
               :placeholder="t('calendar.eventTitlePlaceholder')"
           /></n-form-item>
           <div class="form-grid two-columns">
-            <n-form-item :label="t('calendar.eventType')"
+            <n-form-item :label="t('calendar.eventType')" required
               ><n-select
                 v-model:value="eventForm.eventType"
                 :options="eventTypeOptions"
+                filterable
+                tag
                 :placeholder="t('calendar.eventTypePlaceholder')"
             /></n-form-item>
             <n-form-item :label="t('calendar.opportunity')"

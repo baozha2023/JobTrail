@@ -23,6 +23,67 @@
 - 使用 SQLite 内置 `PRAGMA user_version` 记录结构版本。
 - 不创建 `schema_migrations` 表。
 - 当前完整结构版本为 `1`。新数据库直接以本文件中的结构初始化，不执行 `ALTER TABLE`、过程性迁移 SQL 或旧数据自动补图。
+- 内置智能体的会话索引、完整展示事件、模型用量和附件元数据按下述表直接初始化。LangGraph SQLite saver 在同一个数据库中维护自己的 checkpoint 表；图状态保存可压缩的工作记忆与摘要，展示历史由 `agent_chat_events` 独立保存。
+- 用户消息的简历、求职记录和技能引用作为结构化片段保存在归档事件及 LangGraph 消息元数据中；模型输入由这些片段生成，界面标签按当前语言显示。数据库不另存本地化标签正文。
+
+## 智能体表
+
+### agent_conversations
+
+| 字段              | 类型    | 约束                       | 说明                                    |
+| ----------------- | ------- | -------------------------- | --------------------------------------- |
+| id                | TEXT    | PRIMARY KEY                | 会话 UUID，同时作为 LangGraph thread ID |
+| title             | TEXT    | NOT NULL                   | 右侧历史列表标题                        |
+| title_finalized   | INTEGER | NOT NULL，默认 0，取值 0/1 | 首条消息自动命名或手动重命名后锁定标题  |
+| input_tokens      | INTEGER | NOT NULL，默认 0           | 已报告的模型输入 token 累计             |
+| output_tokens     | INTEGER | NOT NULL，默认 0           | 已报告的模型输出 token 累计             |
+| cache_read_tokens | INTEGER | NOT NULL，默认 0           | 已报告的缓存命中输入 token 累计         |
+| created_at        | INTEGER | NOT NULL                   | 创建时间                                |
+| updated_at        | INTEGER | NOT NULL                   | 最近对话时间                            |
+
+索引：`idx_agent_conversations_updated_at`。
+
+### agent_chat_events
+
+| 字段            | 类型    | 约束                                     | 说明                                |
+| --------------- | ------- | ---------------------------------------- | ----------------------------------- |
+| seq             | INTEGER | PRIMARY KEY AUTOINCREMENT                | 展示顺序                            |
+| id              | TEXT    | NOT NULL UNIQUE                          | 幂等事件 ID                         |
+| conversation_id | TEXT    | NOT NULL                                 | 逻辑关联会话                        |
+| kind            | TEXT    | NOT NULL，限 user/assistant/tool/compact | 展示类型                            |
+| payload         | TEXT    | NOT NULL                                 | 结构化消息、工具状态或压缩记录 JSON |
+| created_at      | INTEGER | NOT NULL                                 | 归档时间                            |
+
+索引：`idx_agent_chat_events_conversation`。图节点先归档已持久化的消息，再删除工作记忆中的旧消息；取消的部分输出标记为未完成。
+
+### agent_model_usage
+
+| 字段              | 类型    | 约束                       | 说明                     |
+| ----------------- | ------- | -------------------------- | ------------------------ |
+| id                | TEXT    | PRIMARY KEY                | 模型调用的幂等记录 ID    |
+| conversation_id   | TEXT    | NOT NULL                   | 逻辑关联会话             |
+| kind              | TEXT    | NOT NULL，限 agent/compact | 普通回复或摘要调用       |
+| input_tokens      | INTEGER | 可空                       | 端点报告的输入 token     |
+| output_tokens     | INTEGER | 可空                       | 端点报告的输出 token     |
+| cache_read_tokens | INTEGER | 可空                       | 端点报告的缓存命中 token |
+| created_at        | INTEGER | NOT NULL                   | 调用记录时间             |
+
+索引：`idx_agent_model_usage_conversation`。空值表示端点未提供数据；会话累计只加总已报告数，界面遇到缺失项显示“未提供”。
+
+### chat_attachments
+
+| 字段            | 类型    | 约束            | 说明                           |
+| --------------- | ------- | --------------- | ------------------------------ |
+| id              | TEXT    | PRIMARY KEY     | 附件 UUID                      |
+| conversation_id | TEXT    | NOT NULL        | 逻辑关联会话                   |
+| original_name   | TEXT    | NOT NULL        | 原始文件名                     |
+| relative_path   | TEXT    | NOT NULL UNIQUE | `chat-uploads/` 内 UUID 文件名 |
+| mime_type       | TEXT    | NOT NULL        | 已校验的内容类型               |
+| size_bytes      | INTEGER | NOT NULL        | 文件大小                       |
+| sha256          | TEXT    | NOT NULL        | 导入内容哈希                   |
+| created_at      | INTEGER | NOT NULL        | 上传时间                       |
+
+索引：`idx_chat_attachments_conversation_id`。删除会话时同步删除附件文件与元数据，并调用 LangGraph saver 删除 thread。
 
 ## 业务表
 
@@ -240,7 +301,7 @@
 ## Seed 规则
 
 - 首次数据库初始化插入默认状态、内置行业分类、内置公司及目录状态。
-- 内置公司以已校验的开发数据库为完整来源，共 559 家；目录保存名称、行业关联、招聘官网和别名，不保存开发数据库中的公司 ID。
+- 内置公司以已校验的开发数据库为完整来源，共 571 家；目录保存名称、行业关联、招聘官网和别名，不保存开发数据库中的公司 ID。
 - 初始化公司时由 SQLite 自增生成公司 ID，写入公司后按唯一名称查询实际 ID，再以该 ID 写入行业关联和别名。
 - `is_favorite` 和 `last_read_at` 是用户偏好，不从开发数据库复制；新数据库中的内置公司分别初始化为未收藏和未读。
 - 使用 `PRAGMA user_version` 判断首次初始化。

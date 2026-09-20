@@ -3915,6 +3915,90 @@
       "industryIds": [5, 7, 8],
       "careerUrl": "https://app.mokahr.com/apply/vanchip/47238#/",
       "aliases": ["唯捷创芯", "Vanchip"]
+    },
+    {
+      "builtinKey": "5597f9f0-67e6-49ef-9d58-a0bd50d53027",
+      "name": "深圳市中科蓝讯科技股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.bluetrum.com/job/",
+      "aliases": ["Bluetrum", "中科蓝讯"]
+    },
+    {
+      "builtinKey": "ff1f9112-9220-4a64-9a7c-9102143169f5",
+      "name": "芯朋微电子",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.chipown.com.cn/cn/jobxylist/213.html",
+      "aliases": ["Chipown", "芯朋微"]
+    },
+    {
+      "builtinKey": "ae333001-74f8-4c25-9206-55394bec1022",
+      "name": "江苏卓胜微电子股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://maxscend.zhiye.com/Campus",
+      "aliases": ["卓胜微", "Maxscend"]
+    },
+    {
+      "builtinKey": "b6655002-769e-4dc1-a36a-d4546c8f05fb",
+      "name": "普冉半导体（上海）股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.puyasemi.com/xiaoyuanzhaopin.html",
+      "aliases": ["Puyasemi", "普冉半导体"]
+    },
+    {
+      "builtinKey": "645df5c2-578c-4a08-b4e3-eaa9559e28f5",
+      "name": "上海灵动微电子股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.mindmotion.com.cn/hr/",
+      "aliases": ["MindMotion", "灵动微电子"]
+    },
+    {
+      "builtinKey": "a1b44815-e64c-4a16-b207-d9845e36de64",
+      "name": "苏州东微半导体股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.orientalsemi.com/join/",
+      "aliases": ["Oriental Semiconductor", "东微半导体"]
+    },
+    {
+      "builtinKey": "8fed3393-70e3-4e45-bec6-e64547c44998",
+      "name": "上海芯导电子科技股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.prisemi.com/join/",
+      "aliases": ["Prisemi", "芯导科技"]
+    },
+    {
+      "builtinKey": "34206f79-c7f2-4671-a121-74366259984a",
+      "name": "博通集成电路（上海）股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.bekencorp.com/index/services/talent.html",
+      "aliases": ["Beken", "博通集成"]
+    },
+    {
+      "builtinKey": "4e8c837b-8931-430b-8089-48cc90c1ba5c",
+      "name": "希荻微电子集团股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "https://www.halomicro.cn/Career.html",
+      "aliases": ["Halo Microelectronics", "希荻微"]
+    },
+    {
+      "builtinKey": "05246840-567f-4ed6-b248-908e38f39938",
+      "name": "上海柏楚电子科技股份有限公司",
+      "industryIds": [4, 8, 55],
+      "careerUrl": "https://www.bochu.com/recruit/",
+      "aliases": ["BOCHU", "柏楚电子"]
+    },
+    {
+      "builtinKey": "41836a14-c077-4312-87e9-817ccac87d4c",
+      "name": "聚辰半导体股份有限公司",
+      "industryIds": [5, 8],
+      "careerUrl": "https://www.giantec-semi.com/zpgw",
+      "aliases": ["Giantec", "聚辰半导体"]
+    },
+    {
+      "builtinKey": "0e6d0e96-9fcb-4f0c-a184-ccd69f834829",
+      "name": "杭州广立微电子股份有限公司",
+      "industryIds": [4, 5, 8, 57],
+      "careerUrl": "https://www.semitronix.com/joinus/job-list/1136.html",
+      "aliases": ["Semitronix", "广立微"]
     }
   ]
 }

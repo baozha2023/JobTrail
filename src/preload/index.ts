@@ -30,6 +30,31 @@ const invoke = async <K extends IpcChannel>(
 }
 
 const zhijiApi: ZhijiApi = {
+  agent: {
+    list: () => invoke('agent:list'),
+    create: () => invoke('agent:create'),
+    history: (id) => invoke('agent:history', id),
+    rename: (id, title) => invoke('agent:rename', id, title),
+    delete: (id) => invoke('agent:delete', id),
+    upload: (id) => invoke('agent:upload', id),
+    uploadBytes: (id, name, mimeType, bytes) =>
+      invoke('agent:upload-bytes', id, name, mimeType, bytes),
+    preview: (id, attachmentId) => invoke('agent:preview', id, attachmentId),
+    removeUpload: (id, attachmentId) => invoke('agent:remove-upload', id, attachmentId),
+    send: (id, parts, attachmentIds) => invoke('agent:send', id, parts, attachmentIds),
+    compact: (id) => invoke('agent:compact', id),
+    resume: (id, answer) => invoke('agent:resume', id, answer),
+    cancel: (id) => invoke('agent:cancel', id),
+    saveSettings: (ai) => invoke('agent:save-settings', ai),
+    onEvent: (listener) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: Parameters<typeof listener>[0],
+      ) => listener(payload)
+      ipcRenderer.on('agent:event', handler)
+      return () => ipcRenderer.removeListener('agent:event', handler)
+    },
+  },
   data: {
     onExternalChange: (listener: () => void) => {
       const handler = () => listener()

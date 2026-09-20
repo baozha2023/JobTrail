@@ -29,6 +29,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       data: path.join(root, 'data'),
       database: path.join(root, 'data', 'zhiji.db'),
       resumes: path.join(root, 'resumes'),
+      chatUploads: path.join(root, 'chat-uploads'),
     }
     database = new DatabaseManager(paths)
     files = new FileStorageService(paths)
@@ -251,6 +252,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       data: path.join(unsupportedRoot, 'data'),
       database: unsupportedDatabasePath,
       resumes: path.join(unsupportedRoot, 'resumes'),
+      chatUploads: path.join(unsupportedRoot, 'chat-uploads'),
     }
 
     try {

@@ -208,6 +208,47 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS agent_conversations (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        title_finalized INTEGER NOT NULL DEFAULT 0 CHECK (title_finalized IN (0, 1)),
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agent_chat_events (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT NOT NULL UNIQUE,
+        conversation_id TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('user', 'assistant', 'tool', 'compact')),
+        payload TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS agent_model_usage (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('agent', 'compact')),
+        input_tokens INTEGER,
+        output_tokens INTEGER,
+        cache_read_tokens INTEGER,
+        created_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS chat_attachments (
+        id TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        relative_path TEXT NOT NULL UNIQUE,
+        mime_type TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        sha256 TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS opportunities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         company_id INTEGER NOT NULL,
@@ -268,6 +309,10 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_opportunities_updated_at ON opportunities(updated_at);
       CREATE INDEX IF NOT EXISTS idx_company_industries_industry_id ON company_industries(industry_id);
       CREATE INDEX IF NOT EXISTS idx_calendar_events_range ON calendar_events(start_at, end_at);
+      CREATE INDEX IF NOT EXISTS idx_agent_conversations_updated_at ON agent_conversations(updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_agent_chat_events_conversation ON agent_chat_events(conversation_id, seq);
+      CREATE INDEX IF NOT EXISTS idx_agent_model_usage_conversation ON agent_model_usage(conversation_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_chat_attachments_conversation_id ON chat_attachments(conversation_id);
     `)
 
     if (version === 0) {

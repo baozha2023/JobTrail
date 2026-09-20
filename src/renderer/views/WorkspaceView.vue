@@ -50,6 +50,7 @@ import IndustriesView from './IndustriesView.vue'
 import ResumesView from './ResumesView.vue'
 import CompaniesView from './CompaniesView.vue'
 import SettingsView from './SettingsView.vue'
+import AgentView from './AgentView.vue'
 import Sidebar from '../layout/Sidebar.vue'
 import Titlebar from '../layout/Titlebar.vue'
 import { getErrorMessage } from '../utils/errors'
@@ -123,6 +124,7 @@ const menuOptions = computed(() => [
   { label: t('nav.industries'), key: 'industries' },
   { label: t('nav.resumes'), key: 'resumes' },
   { label: t('nav.companies'), key: 'companies' },
+  { label: t('nav.agent'), key: 'agent' },
   { label: t('nav.settings'), key: 'settings' },
 ])
 
@@ -134,6 +136,7 @@ const pageTitle = computed(() => {
     industries: t('management.industries'),
     resumes: t('management.resumes'),
     companies: t('management.companies'),
+    agent: t('nav.agent'),
     settings: t('settings.title'),
   }
   return titles[activeView.value] ?? t('opportunity.title')
@@ -926,6 +929,11 @@ async function saveConfig(input: Partial<AppConfig>): Promise<void> {
   }
 }
 
+function onAiSaved(next: AppConfig): void {
+  settingsStore.config = next
+  message.success(t('feedback.saveSuccess'))
+}
+
 async function setStatusFlowTheme(value: AppConfig['statusFlowTheme']): Promise<void> {
   if (statusFlowThemeSaving.value) return
   statusFlowThemeSaving.value = true
@@ -1069,7 +1077,7 @@ onBeforeUnmount(() => {
         </Sidebar>
 
         <n-layout>
-          <n-layout-content class="content">
+          <n-layout-content class="content" :class="{ 'agent-content': activeView === 'agent' }">
             <header class="page-header">
               <div>
                 <h1>{{ pageTitle }}</h1>
@@ -1197,8 +1205,19 @@ onBeforeUnmount(() => {
               :update-company-catalog="updateCompanyCatalog"
               :close-catalog-modal="closeCatalogModal"
               @update-config="saveConfig"
+              @ai-saved="onAiSaved"
               @close-behavior="setCloseBehavior"
               @launch-at-startup="setLaunchAtStartup"
+            />
+            <AgentView
+              v-if="activeView === 'agent'"
+              :mcp-enabled="config?.mcp.enabled ?? false"
+              :multimodal="config?.ai.multimodal ?? false"
+              :resumes="resumes"
+              :opportunities="allOpportunities"
+              :companies="companies"
+              :industries="industries"
+              :dark="isDarkTheme"
             />
           </n-layout-content>
         </n-layout>

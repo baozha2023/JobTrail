@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { NModal, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
 import { describe, expect, it, vi } from 'vitest'
 import { i18n } from '../src/renderer/i18n'
@@ -39,6 +39,14 @@ class ResizeObserverStub {
   disconnect() {}
 }
 Object.defineProperty(globalThis, 'ResizeObserver', { value: ResizeObserverStub })
+Object.defineProperty(window, 'zhijiApi', {
+  value: {
+    agent: {
+      saveSettings: async () => null,
+    },
+  },
+  configurable: true,
+})
 
 describe('内置公司更新弹窗', () => {
   it('cannot be dismissed while an update is running', () => {
@@ -86,6 +94,54 @@ describe('内置公司更新弹窗', () => {
 })
 
 describe('设置页', () => {
+  it('saves the model endpoint and API key with one action and surfaces save errors', async () => {
+    const config: AppConfig = {
+      configVersion: 1,
+      themeMode: 'light',
+      statusFlowTheme: 'violet',
+      locale: 'zh-CN',
+      closeBehavior: 'quit',
+      launchAtStartup: false,
+      companyReadValidityMonths: 3,
+      velopack: {},
+      mcp: { enabled: true, requireWriteConfirmation: true },
+      ai: {
+        baseUrl: 'https://api.example.com/v1',
+        modelId: 'test-model',
+        apiKey: 'sk-existing',
+        multimodal: false,
+        contextWindowK: 256,
+        compactThresholdPercent: 80,
+      },
+    }
+    const saveSettings = vi
+      .fn()
+      .mockResolvedValueOnce(config)
+      .mockRejectedValueOnce(new Error('模型配置无效'))
+    Object.defineProperty(window, 'zhijiApi', {
+      value: { agent: { saveSettings } },
+      configurable: true,
+    })
+    const wrapper = mount(SettingsView, {
+      props: { ...baseProps, config, catalogModalVisible: false },
+      global,
+    })
+    const keyInput = wrapper.find('input[placeholder="输入 API Key"]')
+    expect((keyInput.element as HTMLInputElement).value).toBe('sk-existing')
+    await keyInput.setValue('sk-example')
+    const saveButton = wrapper.findAll('button').find((button) => button.text() === '保存模型设置')
+    expect(saveButton).toBeDefined()
+    expect(wrapper.text()).not.toContain('保存 API Key')
+    await saveButton!.trigger('click')
+    await flushPromises()
+    expect(saveSettings).toHaveBeenCalledWith({ ...config.ai, apiKey: 'sk-example' })
+    expect(wrapper.emitted('aiSaved')?.[0]).toEqual([config])
+    await saveButton!.trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[role="alert"]').text()).toContain('模型配置无效')
+    wrapper.unmount()
+  })
+
   it('explains when the published company catalog is missing', () => {
     expect(getErrorMessage({ code: 'CATALOG_ASSET_MISSING' }, (key) => i18n.global.t(key))).toBe(
       '缺少内置公司数据，无法更新',
@@ -103,6 +159,14 @@ describe('设置页', () => {
       companyReadValidityMonths: 3,
       velopack: {},
       mcp: { enabled: true, requireWriteConfirmation: true },
+      ai: {
+        baseUrl: 'https://api.openai.com/v1',
+        modelId: '',
+        apiKey: '',
+        multimodal: false,
+        contextWindowK: 256,
+        compactThresholdPercent: 80,
+      },
     }
     const wrapper = mount(SettingsView, {
       props: { ...baseProps, config, catalogModalVisible: false },

@@ -15,6 +15,7 @@ describe('external data monitor', () => {
       data: path.join(root, 'data'),
       database: path.join(root, 'data', 'zhiji.db'),
       resumes: path.join(root, 'resumes'),
+      chatUploads: path.join(root, 'chat-uploads'),
     }
     const desktop = createServiceContainer(paths, false)
     const mcp = createServiceContainer(paths, false)

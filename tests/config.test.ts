@@ -20,6 +20,7 @@ describe('config service', () => {
       data: path.join(root, 'data'),
       database: path.join(root, 'data', 'zhiji.db'),
       resumes: path.join(root, 'resumes'),
+      chatUploads: path.join(root, 'chat-uploads'),
     }
   }
 
@@ -28,6 +29,8 @@ describe('config service', () => {
     const config = new ConfigService(paths)
     expect(config.get()).toMatchObject(DEFAULT_CONFIG)
     expect(config.get().companyReadValidityMonths).toBe(3)
+    expect(config.get().ai.contextWindowK).toBe(256)
+    expect(config.get().ai.compactThresholdPercent).toBe(80)
     fs.writeFileSync(
       paths.config,
       JSON.stringify({ ...config.get(), customExtension: { enabled: true } }),
@@ -87,6 +90,53 @@ describe('config service', () => {
     expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
       true,
     )
+  })
+  it('accepts only HTTPS or loopback AI endpoints and stores the API key in config', () => {
+    const paths = createPaths()
+    const config = new ConfigService(paths)
+    expect(() => config.update({ ai: { ...config.get().ai, contextWindowK: 4 } })).toThrow(
+      '上下文窗口',
+    )
+    expect(() =>
+      config.update({ ai: { ...config.get().ai, compactThresholdPercent: 95 } }),
+    ).toThrow('压缩阈值')
+    expect(() =>
+      config.update({
+        ai: {
+          baseUrl: 'http://example.com/v1',
+          modelId: 'm',
+          apiKey: '',
+          multimodal: false,
+          contextWindowK: 256,
+          compactThresholdPercent: 80,
+        },
+      }),
+    ).toThrow()
+    expect(() =>
+      config.update({
+        ai: {
+          baseUrl: 'https://user:pass@example.com/v1',
+          modelId: 'm',
+          apiKey: '',
+          multimodal: false,
+          contextWindowK: 256,
+          compactThresholdPercent: 80,
+        },
+      }),
+    ).toThrow()
+    const local = config.update({
+      ai: {
+        baseUrl: 'http://127.0.0.1:1234/v1',
+        modelId: 'm',
+        apiKey: 'sk-local',
+        multimodal: true,
+        contextWindowK: 256,
+        compactThresholdPercent: 80,
+      },
+    })
+    expect(local.ai.multimodal).toBe(true)
+    expect(local.ai.apiKey).toBe('sk-local')
+    expect(JSON.parse(fs.readFileSync(paths.config, 'utf8')).ai.apiKey).toBe('sk-local')
   })
   it('preserves configuration on filesystem read failure', () => {
     const paths = createPaths()

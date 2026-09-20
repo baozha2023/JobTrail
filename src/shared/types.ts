@@ -77,7 +77,116 @@ export interface AppConfig {
     enabled: boolean
     requireWriteConfirmation: boolean
   }
+  ai: {
+    baseUrl: string
+    modelId: string
+    apiKey: string
+    multimodal: boolean
+    contextWindowK: number
+    compactThresholdPercent: number
+  }
   [key: string]: unknown
+}
+
+export interface AgentConversation {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AgentAttachment {
+  id: string
+  conversationId: string
+  name: string
+  mimeType: string
+  sizeBytes: number
+}
+
+export type AgentReference =
+  | { kind: 'resume'; id: number; name: string }
+  | { kind: 'opportunity'; id: number; name: string }
+  | { kind: 'company'; id: number; name: string }
+  | { kind: 'industry'; id: number; name: string }
+  | { kind: 'skill'; name: 'resume-match' }
+  | { kind: 'command'; name: 'compact' }
+
+export type AgentDraftPart = { kind: 'text'; text: string } | AgentReference
+
+export type AgentMessage =
+  | { id: string; role: 'user'; parts: AgentDraftPart[]; attachments: AgentAttachment[] }
+  | {
+      id: string
+      role: 'assistant'
+      text: string
+      incomplete?: boolean
+      attachments: AgentAttachment[]
+    }
+  | {
+      id: string
+      role: 'tool'
+      toolCallId: string
+      name: string
+      args: string
+      result: string | null
+      status: 'running' | 'waiting' | 'completed' | 'error'
+      attachments: []
+    }
+  | {
+      id: string
+      role: 'compact'
+      beforeTokens: number
+      afterTokens: number
+      status: 'completed' | 'skipped'
+      attachments: []
+    }
+
+export interface AgentUsage {
+  inputTokens: number | null
+  outputTokens: number | null
+  cacheReadTokens: number | null
+  contextTokens: number | null
+  contextEstimated: boolean
+  contextWindowTokens: number
+}
+
+export interface AgentHistory {
+  messages: AgentMessage[]
+  pending: AgentPending | null
+  usage: AgentUsage
+  running: boolean
+}
+
+export interface AgentQuestion {
+  question: string
+  options?: { label: string; description: string; recommended?: boolean }[]
+}
+
+export type AgentPending =
+  | { kind: 'question'; questions: AgentQuestion[] }
+  | { kind: 'confirmation'; message: string; fingerprint: string }
+
+export interface AgentEvent {
+  conversationId: string
+  kind:
+    | 'title'
+    | 'token'
+    | 'tool-start'
+    | 'tool-end'
+    | 'done'
+    | 'error'
+    | 'pending'
+    | 'usage'
+    | 'compact'
+  text?: string
+  toolCallId?: string
+  toolName?: string
+  toolArgs?: string
+  toolResult?: string
+  toolStatus?: 'completed' | 'error'
+  pending?: AgentPending
+  usage?: AgentUsage
+  compact?: Extract<AgentMessage, { role: 'compact' }>
 }
 
 export interface Status {
@@ -271,6 +380,28 @@ export interface AppErrorShape {
 }
 
 export interface ZhijiApi {
+  agent: {
+    list(): Promise<AgentConversation[]>
+    create(): Promise<AgentConversation>
+    history(id: string): Promise<AgentHistory>
+    rename(id: string, title: string): Promise<AgentConversation>
+    delete(id: string): Promise<void>
+    upload(id: string): Promise<AgentAttachment | null>
+    uploadBytes(
+      id: string,
+      name: string,
+      mimeType: string,
+      bytes: Uint8Array,
+    ): Promise<AgentAttachment>
+    preview(id: string, attachmentId: string): Promise<string | null>
+    removeUpload(id: string, attachmentId: string): Promise<void>
+    send(id: string, parts: AgentDraftPart[], attachmentIds: string[]): Promise<void>
+    compact(id: string): Promise<void>
+    resume(id: string, answer: string[] | boolean): Promise<void>
+    cancel(id: string): Promise<void>
+    saveSettings(ai: AppConfig['ai']): Promise<AppConfig>
+    onEvent(listener: (event: AgentEvent) => void): () => void
+  }
   data: {
     onExternalChange(listener: () => void): () => void
   }

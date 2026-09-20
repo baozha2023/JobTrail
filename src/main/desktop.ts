@@ -14,6 +14,9 @@ import { ReminderScheduler } from './reminder-scheduler'
 import { registerVelopackIpc } from './velopack'
 import { resolveDesktopAssets } from './runtime-assets'
 import { ExternalDataMonitor } from './external-data-monitor'
+import { AgentService } from './agent/service'
+import { getMcpConnectionInfo } from './ipc/mcp'
+import { sendToTrustedWindow } from './ipc/register-channel'
 
 // Velopack must run before Electron startup work.
 VelopackApp.build().setAutoApplyOnStartup(false).run()
@@ -28,9 +31,12 @@ const APP_ICON_PATH = app.isPackaged
 const DEVELOPMENT_SHORTCUT_NAME = `${path.parse(process.execPath).name}.lnk`
 
 let database: DatabaseManager | undefined
+let agent: AgentService | undefined
 let mainWindow: BrowserWindow | undefined
 let tray: Tray | undefined
 let isQuitting = false
+let shutdownStarted = false
+let shutdownComplete = false
 let reminderScheduler: ReminderScheduler | undefined
 let externalDataMonitor: ExternalDataMonitor | undefined
 let cancelCompanyCatalogUpdate: (() => void) | undefined
@@ -210,7 +216,15 @@ function initializeApplication(): void {
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
-  cancelCompanyCatalogUpdate = registerIpc(container.services, config)
+  agent = new AgentService(
+    paths,
+    container.database.db,
+    config,
+    container.services,
+    getMcpConnectionInfo,
+    (event) => sendToTrustedWindow('agent:event', event),
+  )
+  cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
   registerVelopackIpc(container.database)
   if (installed)
     app.setLoginItemSettings({
@@ -258,12 +272,29 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (shutdownComplete) return
+  event.preventDefault()
+  if (shutdownStarted) return
+  shutdownStarted = true
   isQuitting = true
   cancelCompanyCatalogUpdate?.()
   externalDataMonitor?.stop()
   reminderScheduler?.stop()
-  database?.close()
-  tray?.destroy()
-  tray = undefined
+  void (async () => {
+    try {
+      await agent?.close()
+    } catch (error) {
+      console.error('关闭智能体失败', error)
+    } finally {
+      try {
+        database?.close()
+        tray?.destroy()
+        tray = undefined
+      } finally {
+        shutdownComplete = true
+        app.quit()
+      }
+    }
+  })()
 })

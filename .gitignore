@@ -19,6 +19,7 @@ data/
 .idea
 config.json
 resumes/
+chat-uploads/
 
 # Operating-system files
 .DS_Store

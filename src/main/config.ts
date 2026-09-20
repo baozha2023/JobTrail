@@ -17,6 +17,14 @@ export const DEFAULT_CONFIG: AppConfig = {
     enabled: false,
     requireWriteConfirmation: true,
   },
+  ai: {
+    baseUrl: 'https://api.openai.com/v1',
+    modelId: '',
+    apiKey: '',
+    multimodal: false,
+    contextWindowK: 256,
+    compactThresholdPercent: 80,
+  },
 }
 
 export interface AppPaths {
@@ -25,6 +33,7 @@ export interface AppPaths {
   data: string
   database: string
   resumes: string
+  chatUploads: string
 }
 
 export function getStorageRoot(): string {
@@ -42,6 +51,7 @@ export function getAppPaths(): AppPaths {
     data: path.join(root, 'data'),
     database: path.join(root, 'data', 'zhiji.db'),
     resumes: path.join(root, 'resumes'),
+    chatUploads: path.join(root, 'chat-uploads'),
   }
 }
 
@@ -52,6 +62,21 @@ function mergeConfig(value: unknown): AppConfig {
   if (source.configVersion !== DEFAULT_CONFIG.configVersion) throw new Error('不支持的配置版本')
   const velopack = source.velopack === undefined ? {} : asObject(source.velopack, 'velopack')
   const mcp = source.mcp === undefined ? {} : asObject(source.mcp, 'mcp')
+  const ai = source.ai === undefined ? {} : asObject(source.ai, 'ai')
+  if (
+    Object.keys(ai).some(
+      (key) =>
+        ![
+          'baseUrl',
+          'modelId',
+          'apiKey',
+          'multimodal',
+          'contextWindowK',
+          'compactThresholdPercent',
+        ].includes(key),
+    )
+  )
+    throw new Error('AI 配置包含未知字段')
 
   if (
     source.themeMode !== undefined &&
@@ -85,6 +110,37 @@ function mergeConfig(value: unknown): AppConfig {
   )
     throw new Error('公司链接已读有效期配置无效')
   if (mcp.enabled !== undefined && typeof mcp.enabled !== 'boolean') throw new Error('MCP 配置无效')
+  if (ai.baseUrl !== undefined && typeof ai.baseUrl !== 'string')
+    throw new Error('AI Base URL 无效')
+  if (ai.modelId !== undefined && typeof ai.modelId !== 'string') throw new Error('AI 模型 ID 无效')
+  if (ai.apiKey !== undefined && (typeof ai.apiKey !== 'string' || ai.apiKey.length > 8192))
+    throw new Error('AI API Key 无效')
+  if (ai.multimodal !== undefined && typeof ai.multimodal !== 'boolean')
+    throw new Error('AI 多模态配置无效')
+  if (
+    ai.contextWindowK !== undefined &&
+    (!Number.isSafeInteger(ai.contextWindowK) ||
+      (ai.contextWindowK as number) < 8 ||
+      (ai.contextWindowK as number) > 2048)
+  )
+    throw new Error('AI 上下文窗口须为 8–2048k')
+  if (
+    ai.compactThresholdPercent !== undefined &&
+    (!Number.isSafeInteger(ai.compactThresholdPercent) ||
+      (ai.compactThresholdPercent as number) < 50 ||
+      (ai.compactThresholdPercent as number) > 90)
+  )
+    throw new Error('AI 自动压缩阈值须为 50%–90%')
+  if (ai.baseUrl !== undefined) {
+    const endpoint = new URL(ai.baseUrl)
+    const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname)
+    if (
+      (endpoint.protocol !== 'https:' && !(endpoint.protocol === 'http:' && loopback)) ||
+      endpoint.username ||
+      endpoint.password
+    )
+      throw new Error('AI Base URL 必须是 HTTPS 或本机回环 HTTP 地址')
+  }
   if (
     mcp.requireWriteConfirmation !== undefined &&
     typeof mcp.requireWriteConfirmation !== 'boolean'
@@ -134,6 +190,20 @@ function mergeConfig(value: unknown): AppConfig {
       enabled: mcp.enabled === true,
       requireWriteConfirmation: mcp.requireWriteConfirmation !== false,
     },
+    ai: {
+      baseUrl: typeof ai.baseUrl === 'string' ? ai.baseUrl.trim() : DEFAULT_CONFIG.ai.baseUrl,
+      modelId: typeof ai.modelId === 'string' ? ai.modelId.trim() : DEFAULT_CONFIG.ai.modelId,
+      apiKey: typeof ai.apiKey === 'string' ? ai.apiKey.trim() : DEFAULT_CONFIG.ai.apiKey,
+      multimodal: ai.multimodal === true,
+      contextWindowK:
+        typeof ai.contextWindowK === 'number'
+          ? ai.contextWindowK
+          : DEFAULT_CONFIG.ai.contextWindowK,
+      compactThresholdPercent:
+        typeof ai.compactThresholdPercent === 'number'
+          ? ai.compactThresholdPercent
+          : DEFAULT_CONFIG.ai.compactThresholdPercent,
+    },
   }
 }
 
@@ -164,6 +234,7 @@ export class ConfigService {
   update(input: Partial<AppConfig>): AppConfig {
     const velopackInput = input.velopack === undefined ? {} : asObject(input.velopack, 'velopack')
     const mcpInput = input.mcp === undefined ? {} : asObject(input.mcp, 'mcp')
+    const aiInput = input.ai === undefined ? {} : asObject(input.ai, 'ai')
     const next = mergeConfig({
       ...this.config,
       ...input,
@@ -174,6 +245,10 @@ export class ConfigService {
       mcp: {
         ...this.config.mcp,
         ...mcpInput,
+      },
+      ai: {
+        ...this.config.ai,
+        ...aiInput,
       },
     })
     this.write(next)

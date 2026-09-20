@@ -26,9 +26,37 @@ import type {
   CompanyCatalogProgress,
   CompanyCatalogUpdateResult,
   McpConnectionInfo,
+  AgentConversation,
+  AgentHistory,
+  AgentAttachment,
+  AgentEvent,
+  AgentDraftPart,
 } from './types'
 
 export interface IpcChannelMap {
+  'agent:list': { args: []; result: AgentConversation[] }
+  'agent:create': { args: []; result: AgentConversation }
+  'agent:history': { args: [id: string]; result: AgentHistory }
+  'agent:rename': { args: [id: string, title: string]; result: AgentConversation }
+  'agent:delete': { args: [id: string]; result: void }
+  'agent:upload': { args: [id: string]; result: AgentAttachment | null }
+  'agent:upload-bytes': {
+    args: [id: string, name: string, mimeType: string, bytes: Uint8Array]
+    result: AgentAttachment
+  }
+  'agent:preview': { args: [id: string, attachmentId: string]; result: string | null }
+  'agent:remove-upload': { args: [id: string, attachmentId: string]; result: void }
+  'agent:send': {
+    args: [id: string, parts: AgentDraftPart[], attachmentIds: string[]]
+    result: void
+  }
+  'agent:compact': { args: [id: string]; result: void }
+  'agent:resume': { args: [id: string, answer: string[] | boolean]; result: void }
+  'agent:cancel': { args: [id: string]; result: void }
+  'agent:save-settings': {
+    args: [ai: AppConfig['ai']]
+    result: AppConfig
+  }
   'config:get': { args: []; result: AppConfig }
   'config:update': { args: [input: Partial<AppConfig>]; result: AppConfig }
   'mcp:get-connection-info': { args: []; result: McpConnectionInfo }
@@ -100,6 +128,7 @@ export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
 export interface AppEventMap {
   'company-catalog:progress': CompanyCatalogProgress
+  'agent:event': AgentEvent
 }
 
 export type AppEventChannel = keyof AppEventMap

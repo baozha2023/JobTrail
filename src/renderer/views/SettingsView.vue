@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
+  NInput,
   NInputNumber,
   NModal,
   NPopconfirm,
@@ -45,6 +46,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   updateConfig: [input: Partial<AppConfig>]
+  aiSaved: [config: AppConfig]
   closeBehavior: [value: CloseBehavior]
   launchAtStartup: [value: boolean]
 }>()
@@ -58,6 +60,47 @@ const hostTabs = [
 type McpHost = (typeof hostTabs)[number]['key']
 
 const copyStatus = ref<{ host: McpHost; failed: boolean } | null>(null)
+const aiBaseUrl = ref('')
+const aiModelId = ref('')
+const aiMultimodal = ref(false)
+const aiContextWindowK = ref<number | null>(256)
+const aiCompactThresholdPercent = ref<number | null>(80)
+const keyDraft = ref('')
+const keyError = ref('')
+const aiSaving = ref(false)
+watch(
+  () => props.config?.ai,
+  (ai) => {
+    if (!ai) return
+    aiBaseUrl.value = ai.baseUrl
+    aiModelId.value = ai.modelId
+    aiMultimodal.value = ai.multimodal
+    aiContextWindowK.value = ai.contextWindowK
+    aiCompactThresholdPercent.value = ai.compactThresholdPercent
+    keyDraft.value = ai.apiKey
+  },
+  { immediate: true },
+)
+async function saveAi(): Promise<void> {
+  if (aiSaving.value) return
+  aiSaving.value = true
+  keyError.value = ''
+  try {
+    const next = await window.zhijiApi.agent.saveSettings({
+      baseUrl: aiBaseUrl.value.trim(),
+      modelId: aiModelId.value.trim(),
+      apiKey: keyDraft.value.trim(),
+      multimodal: aiMultimodal.value,
+      contextWindowK: aiContextWindowK.value ?? 0,
+      compactThresholdPercent: aiCompactThresholdPercent.value ?? 0,
+    })
+    emit('aiSaved', next)
+  } catch (error) {
+    keyError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    aiSaving.value = false
+  }
+}
 let copyStatusTimer: number | undefined
 const snippets = computed(() => {
   const connection = props.mcpConnectionInfo
@@ -273,9 +316,74 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
         </div>
       </section>
 
-      <section class="settings-section" aria-labelledby="settings-maintenance-title">
+      <section class="settings-section" aria-labelledby="settings-ai-title">
         <header class="settings-section-header">
           <span class="settings-section-number">03</span>
+          <div>
+            <h2 id="settings-ai-title">{{ $t('settings.aiTitle') }}</h2>
+            <p>{{ $t('settings.aiDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <div class="settings-field-grid">
+            <div class="settings-field">
+              <label class="settings-field-label">Base URL</label
+              ><n-input v-model:value="aiBaseUrl" placeholder="https://api.openai.com/v1" />
+            </div>
+            <div class="settings-field">
+              <label class="settings-field-label">Model ID</label
+              ><n-input
+                v-model:value="aiModelId"
+                :placeholder="$t('settings.aiModelPlaceholder')"
+              />
+            </div>
+            <div class="settings-field">
+              <label class="settings-field-label">API Key</label
+              ><n-input
+                v-model:value="keyDraft"
+                type="password"
+                show-password-on="click"
+                :placeholder="$t('settings.aiKeyPlaceholder')"
+              />
+            </div>
+          </div>
+          <div class="settings-field-grid">
+            <div class="settings-field">
+              <label class="settings-field-label">{{ $t('settings.aiContextWindow') }}</label>
+              <n-input-number
+                v-model:value="aiContextWindowK"
+                :min="8"
+                :max="2048"
+                :precision="0"
+              />
+            </div>
+            <div class="settings-field">
+              <label class="settings-field-label">{{ $t('settings.aiCompactThreshold') }}</label>
+              <n-input-number
+                v-model:value="aiCompactThresholdPercent"
+                :min="50"
+                :max="90"
+                :precision="0"
+              />
+            </div>
+          </div>
+          <div class="settings-switch-row">
+            <div>
+              <strong>{{ $t('settings.aiMultimodal') }}</strong>
+              <p>{{ $t('settings.aiMultimodalDescription') }}</p>
+            </div>
+            <n-switch v-model:value="aiMultimodal" />
+          </div>
+          <n-button type="primary" :loading="aiSaving" @click="saveAi">{{
+            $t('settings.aiSave')
+          }}</n-button>
+          <p v-if="keyError" role="alert">{{ keyError }}</p>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-maintenance-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">04</span>
           <div>
             <h2 id="settings-maintenance-title">{{ $t('settings.maintenanceTitle') }}</h2>
             <p>{{ $t('settings.maintenanceDescription') }}</p>
@@ -327,7 +435,7 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-danger" aria-labelledby="settings-danger-title">
         <div class="settings-danger-content">
-          <span class="settings-section-number">04</span>
+          <span class="settings-section-number">05</span>
           <div>
             <h2 id="settings-danger-title">{{ $t('settings.dangerZone') }}</h2>
             <p>{{ $t('settings.uninstallDescription') }}</p>

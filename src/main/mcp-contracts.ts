@@ -288,7 +288,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'get_company',
     title: 'Get company',
-    description: 'Get one company by ID.',
+    description: 'Get one locally stored JobTrail company record by ID.',
     readOnly: true,
     inputSchema: idInputSchema,
     outputSchema: itemOutput(companySchema),

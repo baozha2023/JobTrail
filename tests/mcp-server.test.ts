@@ -3,6 +3,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import { Command, END, MemorySaver, START, StateGraph, StateSchema } from '@langchain/langgraph'
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
+import { z } from 'zod'
+import { callMcpWithConfirmation, serializeMcpResult } from '../src/main/agent/mcp-client'
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 import type { AppPaths } from '../src/main/config'
 import { ConfigService } from '../src/main/config'
@@ -18,6 +22,18 @@ describe('JobTrail MCP server', () => {
   const clients: Client[] = []
   const handles: StdioServerHandle[] = []
 
+  it('keeps oversized tool results valid JSON and marks them as truncated', () => {
+    const serialized = serializeMcpResult({ value: 'x'.repeat(60_000) })
+    const parsed = JSON.parse(serialized) as {
+      truncated: boolean
+      notice: string
+      preview: string
+    }
+    expect(parsed.truncated).toBe(true)
+    expect(parsed.notice).toContain('工具结果过大')
+    expect(parsed.preview.length).toBe(48_000)
+  })
+
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(os.tmpdir(), 'jobtrail-mcp-'))
     paths = {
@@ -26,6 +42,7 @@ describe('JobTrail MCP server', () => {
       data: path.join(root, 'data'),
       database: path.join(root, 'data', 'zhiji.db'),
       resumes: path.join(root, 'resumes'),
+      chatUploads: path.join(root, 'chat-uploads'),
     }
     config = new ConfigService(paths)
     container = createServiceContainer(paths, false)
@@ -196,6 +213,182 @@ describe('JobTrail MCP server', () => {
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toMatchObject({ cancelled: true })
     expect(container!.services.statuses.list().some((item) => item.label === '已拒绝')).toBe(false)
+  })
+
+  it('keeps built-in agent writes pending until LangGraph resumes the exact MCP preview', async () => {
+    config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    handles.push(
+      serveStdio(
+        () =>
+          createJobTrailMcpServer({
+            version: '0.7.0-test',
+            unitOfWork: container!.unitOfWork,
+            services: container!.services,
+            config,
+          }),
+        { transport: serverTransport },
+      ),
+    )
+    const client = new Client(
+      { name: 'agent-test', version: '0.7.0' },
+      {
+        capabilities: { elicitation: {} },
+        inputRequired: { autoFulfill: false },
+        versionNegotiation: { mode: { pin: '2026-07-28' } },
+      },
+    )
+    await client.connect(clientTransport)
+    clients.push(client)
+    const graph = new StateGraph(new StateSchema({ result: z.string().optional() }))
+      .addNode('write', async () => ({
+        result: await callMcpWithConfirmation(
+          client,
+          'create_status',
+          { input: { label: '图确认状态' } },
+          () => config.reload().mcp.requireWriteConfirmation,
+        ),
+      }))
+      .addEdge(START, 'write')
+      .addEdge('write', END)
+      .compile({ checkpointer: new MemorySaver() })
+    const thread = { configurable: { thread_id: 'agent-write' } }
+    await graph.invoke({}, thread)
+    expect(container!.services.statuses.list().some((item) => item.label === '图确认状态')).toBe(
+      false,
+    )
+    const snapshot = await graph.getState(thread)
+    const preview = snapshot.tasks[0].interrupts[0].value as {
+      fingerprint: string
+      message: string
+    }
+    expect(preview.message).toContain('图确认状态')
+    await graph.invoke(
+      new Command({ resume: { approved: true, fingerprint: preview.fingerprint } }),
+      thread,
+    )
+    expect(
+      container!.services.statuses.list().filter((item) => item.label === '图确认状态'),
+    ).toHaveLength(1)
+  })
+
+  it('asks again when the MCP preview changes before the built-in agent resumes', async () => {
+    config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
+    const target = container!.services.statuses.create({ label: '原状态' })
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    handles.push(
+      serveStdio(
+        () =>
+          createJobTrailMcpServer({
+            version: '0.7.0-test',
+            unitOfWork: container!.unitOfWork,
+            services: container!.services,
+            config,
+          }),
+        { transport: serverTransport },
+      ),
+    )
+    const client = new Client(
+      { name: 'agent-test', version: '0.7.0' },
+      {
+        capabilities: { elicitation: {} },
+        inputRequired: { autoFulfill: false },
+        versionNegotiation: { mode: { pin: '2026-07-28' } },
+      },
+    )
+    await client.connect(clientTransport)
+    clients.push(client)
+    const graph = new StateGraph(new StateSchema({ result: z.string().optional() }))
+      .addNode('write', async () => ({
+        result: await callMcpWithConfirmation(
+          client,
+          'update_status',
+          { id: target.id, input: { label: '最终状态' } },
+          () => config.reload().mcp.requireWriteConfirmation,
+        ),
+      }))
+      .addEdge(START, 'write')
+      .addEdge('write', END)
+      .compile({ checkpointer: new MemorySaver() })
+    const thread = { configurable: { thread_id: 'agent-stale' } }
+    await graph.invoke({}, thread)
+    const first = (await graph.getState(thread)).tasks[0].interrupts[0].value as {
+      fingerprint: string
+    }
+    container!.services.statuses.update(target.id, { label: '并发更新' })
+    await graph.invoke(
+      new Command({ resume: { approved: true, fingerprint: first.fingerprint } }),
+      thread,
+    )
+    const second = (await graph.getState(thread)).tasks[0].interrupts[0].value as {
+      fingerprint: string
+      message: string
+    }
+    expect(second.fingerprint).not.toBe(first.fingerprint)
+    expect(second.message).toContain('并发更新')
+    expect(container!.services.statuses.get(target.id).label).toBe('并发更新')
+    await graph.invoke(
+      new Command({ resume: { approved: true, fingerprint: second.fingerprint } }),
+      thread,
+    )
+    expect(container!.services.statuses.get(target.id).label).toBe('最终状态')
+  })
+
+  it('revalidates a pending approval with a fresh MCP server after restart', async () => {
+    config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
+    async function freshClient(): Promise<Client> {
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+      handles.push(
+        serveStdio(
+          () =>
+            createJobTrailMcpServer({
+              version: '0.7.0-test',
+              unitOfWork: container!.unitOfWork,
+              services: container!.services,
+              config,
+            }),
+          { transport: serverTransport },
+        ),
+      )
+      const client = new Client(
+        { name: 'agent-test', version: '0.7.0' },
+        {
+          capabilities: { elicitation: {} },
+          inputRequired: { autoFulfill: false },
+          versionNegotiation: { mode: { pin: '2026-07-28' } },
+        },
+      )
+      await client.connect(clientTransport)
+      clients.push(client)
+      return client
+    }
+    const compile = (client: Client) =>
+      new StateGraph(new StateSchema({ result: z.string().optional() }))
+        .addNode('write', async () => ({
+          result: await callMcpWithConfirmation(
+            client,
+            'create_status',
+            { input: { label: '重启后确认' } },
+            () => config.reload().mcp.requireWriteConfirmation,
+          ),
+        }))
+        .addEdge(START, 'write')
+        .addEdge('write', END)
+        .compile({ checkpointer: new SqliteSaver(container!.database.db) })
+    const thread = { configurable: { thread_id: 'restart-approval' } }
+    const beforeRestart = compile(await freshClient())
+    await beforeRestart.invoke({}, thread)
+    const preview = (await beforeRestart.getState(thread)).tasks[0].interrupts[0].value as {
+      fingerprint: string
+    }
+    const afterRestart = compile(await freshClient())
+    await afterRestart.invoke(
+      new Command({ resume: { approved: true, fingerprint: preview.fingerprint } }),
+      thread,
+    )
+    expect(
+      container!.services.statuses.list().filter((item) => item.label === '重启后确认'),
+    ).toHaveLength(1)
   })
 
   it('supports legacy confirmation and requests confirmation again for a stale preview', async () => {

@@ -5,4 +5,5 @@ export type ViewKey =
   | 'industries'
   | 'resumes'
   | 'companies'
+  | 'agent'
   | 'settings'

@@ -1,6 +1,8 @@
 import type { ConfigService } from './config'
 import type { Services } from './service-container'
 import { registerCalendarIpc } from './ipc/calendar'
+import { registerAgentIpc } from './ipc/agent'
+import type { AgentService } from './agent/service'
 import { registerCompanyIpc } from './ipc/companies'
 import { registerCompanyCatalogIpc } from './ipc/company-catalog'
 import { registerConfigIpc } from './ipc/config'
@@ -13,7 +15,12 @@ import { registerSystemIpc, registerWindowIpc as registerWindowHandlers } from '
 
 export { registerChannel } from './ipc/register-channel'
 
-export function registerIpc(services: Services, config: ConfigService): () => void {
+export function registerIpc(
+  services: Services,
+  config: ConfigService,
+  agent: AgentService,
+): () => void {
+  registerAgentIpc(agent)
   registerConfigIpc(config)
   registerMcpIpc()
   registerStatusIpc(services)

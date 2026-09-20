@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -25,9 +25,18 @@
     "format:check": "prettier --check src tests scripts docs *.ts *.json *.md .github/workflows/*.yml"
   },
   "dependencies": {
+    "@langchain/core": "1.2.11",
+    "@langchain/langgraph": "1.4.15",
+    "@langchain/langgraph-checkpoint-sqlite": "1.0.4",
+    "@langchain/openai": "1.5.13",
     "@modelcontextprotocol/server": "2.0.0",
     "better-sqlite3": "^12.4.1",
+    "dompurify": "^3.4.15",
+    "marked": "^18.0.13",
+    "pdf-parse": "2.4.5",
     "velopack": "1.2.0",
+    "word-extractor": "1.0.4",
+    "yauzl": "3.4.0",
     "zod": "4.5.4"
   },
   "devDependencies": {
@@ -35,6 +44,8 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.15.21",
     "@types/semver": "^7.8.0",
+    "@types/word-extractor": "^1.0.6",
+    "@types/yauzl": "2.10.3",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.7.0",
@@ -70,6 +81,10 @@
       {
         "from": "resource/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "src/main/agent/skills/resume-match/SKILL.md",
+        "to": "skills/resume-match/SKILL.md"
       }
     ],
     "directories": {

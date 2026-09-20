@@ -17,6 +17,7 @@ function appPaths(root: string): AppPaths {
     data: path.join(root, 'data'),
     database: path.join(root, 'data', 'zhiji.db'),
     resumes: path.join(root, 'resumes'),
+    chatUploads: path.join(root, 'chat-uploads'),
   }
 }
 

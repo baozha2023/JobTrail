@@ -3999,6 +3999,48 @@
       "industryIds": [4, 5, 8, 57],
       "careerUrl": "https://www.semitronix.com/joinus/job-list/1136.html",
       "aliases": ["Semitronix", "广立微"]
+    },
+    {
+      "builtinKey": "be54af41-381a-449d-9483-2d1175bb4e63",
+      "name": "安集微电子科技（上海）股份有限公司",
+      "industryIds": [5, 8, 22],
+      "careerUrl": "https://www.anjimicro.com/shehuizixun/133.html",
+      "aliases": ["Anji Microelectronics", "安集科技"]
+    },
+    {
+      "builtinKey": "85ff3f20-ecd9-4199-b244-efd4a514bfe4",
+      "name": "上海东方算芯科技股份有限公司",
+      "industryIds": [3, 5, 7],
+      "careerUrl": "https://www.dfsx.com/about/careers",
+      "aliases": ["东方算芯", "DFSX"]
+    },
+    {
+      "builtinKey": "28887cce-56cb-46f5-bc21-cdc74aa6da37",
+      "name": "北京顶象技术有限公司",
+      "industryIds": [3, 4, 9, 52],
+      "careerUrl": "https://www.dingxiang-inc.com/job",
+      "aliases": ["Dingxiang", "顶象"]
+    },
+    {
+      "builtinKey": "ab791e5c-df92-42d6-a18c-66c64801445e",
+      "name": "杭州迪普科技股份有限公司",
+      "industryIds": [4, 9, 52],
+      "careerUrl": "https://www.dptech.com/index.php?a=lists&c=index&catid=105&m=content",
+      "aliases": ["DPTech", "迪普科技"]
+    },
+    {
+      "builtinKey": "f020ac1f-9ee1-470e-983d-1b03f7538479",
+      "name": "深圳英集芯科技股份有限公司",
+      "industryIds": [5, 7, 8],
+      "careerUrl": "http://job.injoinic.com/search.html?type_id=1",
+      "aliases": ["Injoinic", "英集芯"]
+    },
+    {
+      "builtinKey": "d10aab66-5455-4bb2-a12d-d08284ecc1b5",
+      "name": "深圳成谷科技有限公司",
+      "industryIds": [6, 7, 21],
+      "careerUrl": "https://www.cgutech.com/shzp",
+      "aliases": ["CGU Tech", "成谷科技"]
     }
   ]
 }

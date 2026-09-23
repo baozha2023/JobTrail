@@ -13,6 +13,7 @@ import type { Company } from '../../shared/types'
 defineProps<{
   columns: DataTableColumns<Company>
   data: Company[]
+  loading: boolean
   pagination: PaginationProps
   search: string
   selectedIndustryId: number | null
@@ -49,9 +50,11 @@ const emit = defineEmits<{
       ><n-data-table
         class="responsive-table"
         table-layout="fixed"
+        remote
         paginate-single-page
         :columns="columns"
         :data="data"
+        :loading="loading"
         :pagination="pagination"
         ><template #empty>{{ $t('management.companyEmpty') }}</template>
       </n-data-table></n-card

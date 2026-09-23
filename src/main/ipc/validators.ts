@@ -1,6 +1,7 @@
 import type {
   AppConfig,
   CalendarRange,
+  CompanyQuery,
   CreateCalendarEventInput,
   CreateCompanyInput,
   CreateIndustryInput,
@@ -275,14 +276,31 @@ export function parseCalendarEvent(
 
 export function parseOpportunityQuery(value: unknown): OpportunityQuery {
   const source = record(value, '求职查询')
-  assertOnlyKeys(source, ['search', 'statusId', 'companyId'], '求职查询')
-  const query: OpportunityQuery = {}
+  assertOnlyKeys(source, ['page', 'pageSize', 'search', 'statusId', 'companyId'], '求职查询')
+  const query: OpportunityQuery = {
+    page: numberValue(source.page, '页码'),
+    pageSize: numberValue(source.pageSize, '每页数量'),
+  }
   const search = stringValue(source.search, '搜索关键词', false)
   const statusId = nullableInteger(source.statusId, '状态 ID')
   const companyId = nullableInteger(source.companyId, '公司 ID')
   if (search !== undefined) query.search = search
   if (statusId !== undefined) query.statusId = statusId
   if (companyId !== undefined) query.companyId = companyId
+  return query
+}
+
+export function parseCompanyQuery(value: unknown): CompanyQuery {
+  const source = record(value, '公司查询')
+  assertOnlyKeys(source, ['page', 'pageSize', 'keyword', 'industryId'], '公司查询')
+  const query: CompanyQuery = {
+    page: numberValue(source.page, '页码'),
+    pageSize: numberValue(source.pageSize, '每页数量'),
+  }
+  const keyword = stringValue(source.keyword, '搜索关键词', false)
+  const industryId = nullableInteger(source.industryId, '行业分类 ID')
+  if (keyword !== undefined) query.keyword = keyword
+  if (industryId !== undefined) query.industryId = industryId
   return query
 }
 

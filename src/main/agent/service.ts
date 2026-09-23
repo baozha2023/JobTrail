@@ -192,6 +192,11 @@ export class AgentService {
     return this.files.preview(attachmentId, id)
   }
 
+  getAttachmentPath(id: string, attachmentId: string): string {
+    this.ensure(id)
+    return this.files.getPath(attachmentId, id)
+  }
+
   removeUpload(id: string, attachmentId: string): Promise<void> {
     return this.track(() => this.removePendingUpload(id, attachmentId))
   }

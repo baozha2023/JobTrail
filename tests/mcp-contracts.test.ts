@@ -21,6 +21,7 @@ describe('MCP tool contracts', () => {
         'search_companies',
         'list_companies',
         'get_company',
+        'read_web_page',
         'mark_company_read',
         'create_company',
         'update_company',
@@ -45,11 +46,12 @@ describe('MCP tool contracts', () => {
       ]),
     )
     expect(names.some((name) => name.includes('alias'))).toBe(false)
+    expect(names).not.toContain('discover_web_jobs')
     expect(MCP_TOOLS.some((tool) => tool.description.toLowerCase().includes('sql'))).toBe(false)
     expect(MCP_TOOLS.filter((tool) => tool.destructive).every((tool) => !tool.readOnly)).toBe(true)
-    expect(MCP_TOOLS).toHaveLength(36)
-    expect(new Set(names)).toHaveProperty('size', 36)
-    expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(13)
+    expect(MCP_TOOLS).toHaveLength(37)
+    expect(new Set(names)).toHaveProperty('size', 37)
+    expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(14)
     expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(23)
     expect(MCP_TOOLS.filter((tool) => !tool.readOnly).every((tool) => tool.preview)).toBe(true)
     expect(MCP_TOOLS.filter((tool) => tool.readOnly).every((tool) => !tool.preview)).toBe(true)

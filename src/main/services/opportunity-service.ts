@@ -2,6 +2,7 @@ import type {
   CreateOpportunityInput,
   Opportunity,
   OpportunityQuery,
+  PageResult,
   OpportunityStatusFlow,
   UpdateOpportunityInput,
 } from '../../shared/types'
@@ -14,6 +15,7 @@ import {
   AppServiceError,
   assertFiniteInteger,
   assertNonEmptyUpdate,
+  assertPageQuery,
   assertPositiveId,
   nullableText,
 } from './errors'
@@ -30,14 +32,23 @@ export class OpportunityService {
     private readonly statuses: StatusRepository,
     private readonly resumes: ResumeRepository,
   ) {}
-  list(query: OpportunityQuery): Opportunity[] {
+  search(query: OpportunityQuery): PageResult<Opportunity> {
+    assertPageQuery(query)
     if (query.statusId !== null && query.statusId !== undefined)
       assertPositiveId(query.statusId, '状态 ID')
     if (query.companyId !== null && query.companyId !== undefined)
       assertPositiveId(query.companyId, '公司 ID')
-    return this.repository
-      .list({ ...query, search: query.search?.trim() })
-      .map((row) => this.repository.map(row))
+    const normalized = { ...query, search: query.search?.trim() }
+    const result = this.repository.search(normalized)
+    return {
+      items: result.rows.map((row) => this.repository.map(row)),
+      total: result.total,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
+  }
+  list(): Opportunity[] {
+    return this.repository.list().map((row) => this.repository.map(row))
   }
   get(id: number): Opportunity {
     assertPositiveId(id, '求职记录 ID')

@@ -40,6 +40,7 @@ const zhijiApi: ZhijiApi = {
     uploadBytes: (id, name, mimeType, bytes) =>
       invoke('agent:upload-bytes', id, name, mimeType, bytes),
     preview: (id, attachmentId) => invoke('agent:preview', id, attachmentId),
+    openAttachment: (id, attachmentId) => invoke('agent:open-attachment', id, attachmentId),
     removeUpload: (id, attachmentId) => invoke('agent:remove-upload', id, attachmentId),
     send: (id, parts, attachmentIds) => invoke('agent:send', id, parts, attachmentIds),
     compact: (id) => invoke('agent:compact', id),
@@ -86,7 +87,7 @@ const zhijiApi: ZhijiApi = {
     reorder: (order) => invoke('industries:reorder', order),
   },
   companies: {
-    search: (keyword) => invoke('companies:search', keyword),
+    search: (query) => invoke('companies:search', query),
     list: () => invoke('companies:list'),
     get: (id) => invoke('companies:get', id),
     markRead: (id) => invoke('companies:mark-read', id),
@@ -116,7 +117,8 @@ const zhijiApi: ZhijiApi = {
     delete: (id) => invoke('resumes:delete', id),
   },
   opportunities: {
-    list: (query) => invoke('opportunities:list', query),
+    search: (query) => invoke('opportunities:search', query),
+    list: () => invoke('opportunities:list'),
     get: (id) => invoke('opportunities:get', id),
     statusFlow: (id) => invoke('opportunities:status-flow', id),
     create: (input) => invoke('opportunities:create', input),

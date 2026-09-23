@@ -1,4 +1,4 @@
-import type { AppErrorCode, AppErrorShape } from '../../shared/types'
+import type { AppErrorCode, AppErrorShape, PageQuery } from '../../shared/types'
 
 export class AppServiceError extends Error {
   readonly name = 'AppServiceError'
@@ -18,6 +18,14 @@ export function assertPositiveId(value: number, field: string): void {
 
 export function assertFiniteInteger(value: number, field: string): void {
   if (!Number.isSafeInteger(value)) throw new AppServiceError('VALIDATION_ERROR', `${field}无效`)
+}
+
+export function assertPageQuery(query: PageQuery): void {
+  assertPositiveId(query.page, '页码')
+  assertPositiveId(query.pageSize, '每页数量')
+  if (query.pageSize > 100) throw new AppServiceError('VALIDATION_ERROR', '每页数量不能超过 100')
+  if (!Number.isSafeInteger((query.page - 1) * query.pageSize))
+    throw new AppServiceError('VALIDATION_ERROR', '分页偏移量无效')
 }
 
 export function assertNonEmptyUpdate(input: object, field: string): void {

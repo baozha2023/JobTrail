@@ -25,7 +25,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
     { name: 'jobtrail', version: dependencies.version },
     {
       instructions:
-        'Use read tools freely. Write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
+        'Use read tools freely. Web reads retry transient network failures once and report errors or incompleteReason; do not repeat exhausted requests or treat extraction failure as no jobs. Tell the user when public web content cannot be verified. Write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
       inputRequired: { legacyShim: true, maxRounds: 8, roundTimeoutMs: 600_000 },
       requestState: { verify: coordinator.verifyRequestState },
     },
@@ -46,7 +46,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
           readOnlyHint: descriptor.readOnly,
           destructiveHint: descriptor.destructive,
           idempotentHint: descriptor.idempotent,
-          openWorldHint: false,
+          openWorldHint: descriptor.openWorld,
         },
       },
       async (args, ctx) => {
@@ -56,7 +56,9 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
             return errorResult('MCP_DISABLED', 'JobTrail MCP is disabled in application settings.')
           }
           if (descriptor.readOnly)
-            return successResult(descriptor.execute(dependencies.services, args))
+            return successResult(
+              await descriptor.execute(dependencies.services, args, ctx.mcpReq.signal),
+            )
 
           if (config.mcp.requireWriteConfirmation) {
             const version = server.server.getNegotiatedProtocolVersion()

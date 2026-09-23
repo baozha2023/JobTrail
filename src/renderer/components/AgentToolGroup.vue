@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AgentMessage } from '../../shared/types'
 
-defineProps<{
+const props = defineProps<{
   tools: Extract<AgentMessage, { role: 'tool' }>[]
+  autoCollapse: boolean
 }>()
 const { t } = useI18n()
 const expanded = ref(true)
+watch(
+  () => props.autoCollapse,
+  (collapse) => {
+    if (collapse) expanded.value = false
+  },
+  { immediate: true },
+)
 const statusKey = {
   running: 'agent.toolRunning',
   waiting: 'agent.toolWaiting',

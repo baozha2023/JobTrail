@@ -18,6 +18,7 @@ import { OpportunityService } from './services/opportunity-service'
 import { ResumeService } from './services/resume-service'
 import { StatusService } from './services/status-service'
 import { UnitOfWork } from './services/unit-of-work'
+import { WebRetrievalService } from './services/web-retrieval-service'
 
 export interface Services {
   statuses: StatusService
@@ -28,6 +29,7 @@ export interface Services {
   opportunities: OpportunityService
   calendar: CalendarEventService
   reminders: CalendarReminderService
+  web: WebRetrievalService
 }
 
 export function createServiceContainer(
@@ -83,5 +85,6 @@ export function createServices(
     ),
     calendar: new CalendarEventService(unitOfWork, calendarRepository, opportunityRepository),
     reminders: new CalendarReminderService(unitOfWork, calendarRepository),
+    web: new WebRetrievalService(),
   }
 }

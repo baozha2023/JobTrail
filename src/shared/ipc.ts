@@ -3,6 +3,7 @@ import type {
   CalendarEvent,
   CalendarRange,
   Company,
+  CompanyQuery,
   CreateCalendarEventInput,
   CreateCompanyInput,
   CreateIndustryInput,
@@ -12,6 +13,7 @@ import type {
   Opportunity,
   OpportunityStatusFlow,
   OpportunityQuery,
+  PageResult,
   ResumeImportResult,
   ResumeVersion,
   Status,
@@ -45,6 +47,7 @@ export interface IpcChannelMap {
     result: AgentAttachment
   }
   'agent:preview': { args: [id: string, attachmentId: string]; result: string | null }
+  'agent:open-attachment': { args: [id: string, attachmentId: string]; result: void }
   'agent:remove-upload': { args: [id: string, attachmentId: string]; result: void }
   'agent:send': {
     args: [id: string, parts: AgentDraftPart[], attachmentIds: string[]]
@@ -75,7 +78,7 @@ export interface IpcChannelMap {
   'industries:delete': { args: [id: number]; result: void }
   'industries:reorder': { args: [order: number[]]; result: Industry[] }
 
-  'companies:search': { args: [keyword: string]; result: Company[] }
+  'companies:search': { args: [query: CompanyQuery]; result: PageResult<Company> }
   'companies:list': { args: []; result: Company[] }
   'companies:get': { args: [id: number]; result: Company }
   'companies:mark-read': { args: [id: number]; result: Company }
@@ -94,7 +97,11 @@ export interface IpcChannelMap {
   'resumes:reorder': { args: [order: number[]]; result: ResumeVersion[] }
   'resumes:delete': { args: [id: number]; result: void }
 
-  'opportunities:list': { args: [query: OpportunityQuery]; result: Opportunity[] }
+  'opportunities:search': {
+    args: [query: OpportunityQuery]
+    result: PageResult<Opportunity>
+  }
+  'opportunities:list': { args: []; result: Opportunity[] }
   'opportunities:get': { args: [id: number]; result: Opportunity }
   'opportunities:status-flow': { args: [id: number]; result: OpportunityStatusFlow }
   'opportunities:create': { args: [input: CreateOpportunityInput]; result: Opportunity }

@@ -1,10 +1,10 @@
 import type { Services } from '../service-container'
 import { registerChannel } from './register-channel'
-import { numberValue, parseCompany, stringValue } from './validators'
+import { numberValue, parseCompany, parseCompanyQuery } from './validators'
 
 export function registerCompanyIpc(services: Services): void {
-  registerChannel('companies:search', (keyword) =>
-    services.companies.search(stringValue(keyword, '搜索关键词', false) ?? ''),
+  registerChannel('companies:search', (query) =>
+    services.companies.search(parseCompanyQuery(query)),
   )
   registerChannel('companies:list', () => services.companies.list())
   registerChannel('companies:get', (id) => services.companies.get(numberValue(id, '公司 ID')))

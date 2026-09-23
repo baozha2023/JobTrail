@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -13,11 +13,11 @@
     "dev": "electron-vite dev",
     "build": "pnpm typecheck && electron-vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "node --test scripts/resolve-velopack-baseline.test.mjs scripts/company-catalog-assets.test.mjs && node scripts/run-vitest-electron.mjs",
+    "test": "node --test scripts/resolve-velopack-baseline.test.mjs scripts/company-catalog-assets.test.mjs && node scripts/run-vitest-electron.mjs --maxWorkers=1 --testTimeout=30000",
     "test:watch": "node scripts/run-vitest-electron.mjs --watch",
     "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
-    "package:win": "pnpm build && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
+    "package:win": "pnpm build && pnpm exec playwright install --only-shell chromium && node scripts/stage-browser.mjs && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
     "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
     "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
     "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && node scripts/pack-velopack.mjs",
@@ -31,9 +31,11 @@
     "@langchain/openai": "1.5.13",
     "@modelcontextprotocol/server": "2.0.0",
     "better-sqlite3": "^12.4.1",
+    "cheerio": "1.2.0",
     "dompurify": "^3.4.15",
     "marked": "^18.0.13",
     "pdf-parse": "2.4.5",
+    "playwright": "1.58.2",
     "velopack": "1.2.0",
     "word-extractor": "1.0.4",
     "yauzl": "3.4.0",
@@ -81,6 +83,10 @@
       {
         "from": "resource/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "dist/browser-stage",
+        "to": "browser"
       },
       {
         "from": "src/main/agent/skills/resume-match/SKILL.md",

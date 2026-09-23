@@ -1,4 +1,4 @@
-import { computed, ref, toRaw, type Ref } from 'vue'
+import { ref, toRaw, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type {
   Company,
@@ -41,26 +41,51 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const editingCompanyId = ref<number | null>(null)
   const companyManagementSearch = ref('')
   const selectedCompanyIndustryId = ref<number | null>(null)
+  const managedCompanies = ref<Company[]>([])
+  const managedCompaniesLoading = ref(false)
+  const managedCompanyTotal = ref(0)
+  const managedCompanyPage = ref(1)
+  const managedCompanyPageSize = ref(10)
+  let managedCompanyRequest = 0
   const companyAliasInput = ref('')
   const companyForm = ref<CompanyForm>({ name: '', industryIds: [], careerUrl: null, aliases: [] })
   const showIndustryModal = ref(false)
   const editingIndustryId = ref<number | null>(null)
   const industryForm = ref<CreateIndustryInput>({ name: '' })
 
-  const managedCompanies = computed(() => {
-    const keyword = companyManagementSearch.value.trim().toLocaleLowerCase()
-    return options.companies.value.filter((company) => {
-      if (
-        selectedCompanyIndustryId.value !== null &&
-        !company.industryIds.includes(selectedCompanyIndustryId.value)
-      )
-        return false
-      if (!keyword) return true
-      return [company.name, ...company.aliases].some((value) =>
-        value.toLocaleLowerCase().includes(keyword),
-      )
-    })
-  })
+  async function loadManagedCompanies(): Promise<void> {
+    const request = ++managedCompanyRequest
+    managedCompaniesLoading.value = true
+    try {
+      const result = await window.zhijiApi.companies.search({
+        page: managedCompanyPage.value,
+        pageSize: managedCompanyPageSize.value,
+        keyword: companyManagementSearch.value,
+        industryId: selectedCompanyIndustryId.value,
+      })
+      if (request !== managedCompanyRequest) return
+      managedCompanies.value = result.items
+      managedCompanyTotal.value = result.total
+      const lastPage = Math.max(1, Math.ceil(result.total / managedCompanyPageSize.value))
+      if (managedCompanyPage.value > lastPage) {
+        managedCompanyPage.value = lastPage
+        await loadManagedCompanies()
+      }
+    } finally {
+      if (request === managedCompanyRequest) managedCompaniesLoading.value = false
+    }
+  }
+
+  function setManagedCompanyPage(page: number): void {
+    managedCompanyPage.value = page
+    void loadManagedCompanies().catch(options.showError)
+  }
+
+  function setManagedCompanyPageSize(pageSize: number): void {
+    managedCompanyPageSize.value = pageSize
+    managedCompanyPage.value = 1
+    void loadManagedCompanies().catch(options.showError)
+  }
 
   async function moveStatus(id: number, offset: number): Promise<void> {
     const reordered = reorderedIds(options.statuses.value, id, offset)
@@ -199,7 +224,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
       if (isEditing) await window.zhijiApi.industries.update(editingIndustryId.value!, input)
       else await window.zhijiApi.industries.create(input)
       options.industries.value = await window.zhijiApi.industries.list()
-      await options.loadCompanies()
+      await Promise.all([options.loadCompanies(), loadManagedCompanies()])
       showIndustryModal.value = false
       options.notifySuccess(t(isEditing ? 'feedback.editSuccess' : 'feedback.addSuccess'))
     } catch (error) {
@@ -211,7 +236,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     try {
       await window.zhijiApi.industries.delete(industry.id)
       options.industries.value = options.industries.value.filter((item) => item.id !== industry.id)
-      await options.loadCompanies()
+      await Promise.all([options.loadCompanies(), loadManagedCompanies()])
       options.notifySuccess(t('feedback.deleteSuccess'))
     } catch (error) {
       options.showError(error)
@@ -259,6 +284,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
       else await window.zhijiApi.companies.create(input)
       await Promise.all([
         options.loadCompanies(),
+        loadManagedCompanies(),
         options.loadOpportunities(),
         options.loadAllOpportunities(),
         options.loadCalendar(),
@@ -274,6 +300,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     try {
       await window.zhijiApi.companies.update(company.id, { isFavorite: !company.isFavorite })
       await options.loadCompanies()
+      await loadManagedCompanies()
       options.notifySuccess(
         t(company.isFavorite ? 'feedback.unfavoriteSuccess' : 'feedback.favoriteSuccess'),
       )
@@ -285,12 +312,21 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   async function deleteCompany(company: Company): Promise<void> {
     try {
       await window.zhijiApi.companies.delete(company.id)
-      await Promise.all([options.loadCompanies(), options.loadOpportunities()])
+      await Promise.all([
+        options.loadCompanies(),
+        loadManagedCompanies(),
+        options.loadOpportunities(),
+      ])
       options.notifySuccess(t('feedback.deleteSuccess'))
     } catch (error) {
       options.showError(error)
     }
   }
+
+  watch([companyManagementSearch, selectedCompanyIndustryId], () => {
+    managedCompanyPage.value = 1
+    void loadManagedCompanies().catch(options.showError)
+  })
 
   return {
     showStatusModal,
@@ -309,6 +345,13 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     editingIndustryId,
     industryForm,
     managedCompanies,
+    managedCompaniesLoading,
+    managedCompanyTotal,
+    managedCompanyPage,
+    managedCompanyPageSize,
+    loadManagedCompanies,
+    setManagedCompanyPage,
+    setManagedCompanyPageSize,
     moveStatus,
     moveIndustry,
     moveResume,

@@ -69,6 +69,7 @@ const emit = defineEmits<{
       <n-data-table
         class="responsive-table"
         table-layout="fixed"
+        remote
         paginate-single-page
         :columns="columns"
         :data="data"

@@ -1,5 +1,6 @@
-import { dialog } from 'electron'
+import { dialog, shell } from 'electron'
 import type { AgentService } from '../agent/service'
+import { AppServiceError } from '../services/errors'
 import { registerChannel } from './register-channel'
 
 export function registerAgentIpc(agent: AgentService): void {
@@ -26,6 +27,10 @@ export function registerAgentIpc(agent: AgentService): void {
     agent.uploadBytes(id, name, mimeType, bytes),
   )
   registerChannel('agent:preview', (id, attachmentId) => agent.preview(id, attachmentId))
+  registerChannel('agent:open-attachment', async (id, attachmentId) => {
+    const result = await shell.openPath(agent.getAttachmentPath(id, attachmentId))
+    if (result) throw new AppServiceError('FILE_OPEN_FAILED', '聊天附件打开失败')
+  })
   registerChannel('agent:remove-upload', (id, attachmentId) => agent.removeUpload(id, attachmentId))
   registerChannel('agent:send', (id, parts, attachmentIds) => agent.send(id, parts, attachmentIds))
   registerChannel('agent:compact', (id) => agent.compact(id))

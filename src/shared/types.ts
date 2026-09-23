@@ -23,6 +23,16 @@ export type AppErrorCode =
   | 'CATALOG_APP_UPDATE_REQUIRED'
   | 'CATALOG_CONFLICT'
   | 'CATALOG_UPDATE_IN_PROGRESS'
+  | 'WEB_INVALID_URL'
+  | 'WEB_BLOCKED'
+  | 'WEB_CANCELLED'
+  | 'WEB_TIMEOUT'
+  | 'WEB_TOO_LARGE'
+  | 'WEB_UNAVAILABLE'
+  | 'WEB_UNSUPPORTED'
+  | 'WEB_PARSE_FAILED'
+  | 'WEB_INVALID_CURSOR'
+  | 'WEB_CURSOR_EXPIRED'
   | 'INTERNAL_ERROR'
 
 export type McpErrorCode =
@@ -343,7 +353,22 @@ export interface CreateOpportunityInput {
 
 export type UpdateOpportunityInput = Partial<CreateOpportunityInput>
 
-export interface OpportunityQuery {
+export interface PageQuery {
+  page: number
+  pageSize: number
+}
+
+export interface PageResult<T> extends PageQuery {
+  items: T[]
+  total: number
+}
+
+export interface CompanyQuery extends PageQuery {
+  keyword?: string
+  industryId?: number | null
+}
+
+export interface OpportunityQuery extends PageQuery {
   search?: string
   statusId?: number | null
   companyId?: number | null
@@ -394,6 +419,7 @@ export interface ZhijiApi {
       bytes: Uint8Array,
     ): Promise<AgentAttachment>
     preview(id: string, attachmentId: string): Promise<string | null>
+    openAttachment(id: string, attachmentId: string): Promise<void>
     removeUpload(id: string, attachmentId: string): Promise<void>
     send(id: string, parts: AgentDraftPart[], attachmentIds: string[]): Promise<void>
     compact(id: string): Promise<void>
@@ -429,7 +455,7 @@ export interface ZhijiApi {
     reorder(order: number[]): Promise<Industry[]>
   }
   companies: {
-    search(keyword: string): Promise<Company[]>
+    search(query: CompanyQuery): Promise<PageResult<Company>>
     list(): Promise<Company[]>
     get(id: number): Promise<Company>
     markRead(id: number): Promise<Company>
@@ -452,7 +478,8 @@ export interface ZhijiApi {
     delete(id: number): Promise<void>
   }
   opportunities: {
-    list(query: OpportunityQuery): Promise<Opportunity[]>
+    search(query: OpportunityQuery): Promise<PageResult<Opportunity>>
+    list(): Promise<Opportunity[]>
     get(id: number): Promise<Opportunity>
     statusFlow(id: number): Promise<OpportunityStatusFlow>
     create(input: CreateOpportunityInput): Promise<Opportunity>

@@ -265,7 +265,12 @@ describe('renderer domain workspaces', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
-        companies: { create, update: vi.fn(), delete: vi.fn() },
+        companies: {
+          create,
+          update: vi.fn(),
+          delete: vi.fn(),
+          search: vi.fn(async (query) => ({ ...query, items: [], total: 0 })),
+        },
       },
     })
     const loadCompanies = vi.fn(async () => undefined)
@@ -305,22 +310,39 @@ describe('renderer domain workspaces', () => {
     await flushPromises()
   })
 
-  it('filters managed companies by name or aliases and industry', () => {
+  it('queries managed companies by name or aliases and industry', async () => {
+    const companies = [
+      company({ id: 1, name: '名称命中', aliases: ['Alpha'], industryIds: [1] }),
+      company({ id: 2, name: '别名命中', aliases: ['Target'], industryIds: [2] }),
+      company({
+        id: 3,
+        name: '不应命中',
+        industryName: 'Target 行业',
+        careerUrl: 'https://target.example.com',
+      }),
+    ]
+    const search = vi.fn(async (query: { keyword?: string; industryId?: number | null }) => {
+      const keyword = query.keyword?.trim().toLocaleLowerCase() ?? ''
+      const items = companies.filter(
+        (item) =>
+          (query.industryId == null || item.industryIds.includes(query.industryId)) &&
+          (!keyword ||
+            [item.name, ...item.aliases].some((value) =>
+              value.toLocaleLowerCase().includes(keyword),
+            )),
+      )
+      return { page: 1, pageSize: 10, items, total: items.length }
+    })
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: { companies: { search } },
+    })
     const { workspace, wrapper } = mountComposable(() =>
       useManagementWorkspace({
         statuses: ref([]),
         industries: ref([]),
         resumes: ref([]),
-        companies: ref([
-          company({ id: 1, name: '名称命中', aliases: ['Alpha'], industryIds: [1] }),
-          company({ id: 2, name: '别名命中', aliases: ['Target'], industryIds: [2] }),
-          company({
-            id: 3,
-            name: '不应命中',
-            industryName: 'Target 行业',
-            careerUrl: 'https://target.example.com',
-          }),
-        ]),
+        companies: ref(companies),
         loadCompanies: vi.fn(async () => undefined),
         loadOpportunities: vi.fn(async () => undefined),
         loadAllOpportunities: vi.fn(async () => undefined),
@@ -332,13 +354,23 @@ describe('renderer domain workspaces', () => {
     )
 
     workspace.companyManagementSearch.value = '名称命中'
+    await flushPromises()
     expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
     workspace.companyManagementSearch.value = 'target'
+    await flushPromises()
     expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([2])
     workspace.selectedCompanyIndustryId.value = 1
+    await flushPromises()
     expect(workspace.managedCompanies.value).toEqual([])
     workspace.companyManagementSearch.value = ''
+    await flushPromises()
     expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
+    expect(search).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      keyword: '',
+      industryId: 1,
+    })
     wrapper.unmount()
   })
 })

@@ -372,7 +372,9 @@ describe('职迹最终数据库结构和业务服务', () => {
         statusId: first.id,
       }),
     ).toThrow('event write failed')
-    expect(services.opportunities.list({ search: '失败创建' })).toHaveLength(0)
+    expect(
+      services.opportunities.search({ page: 1, pageSize: 10, search: '失败创建' }).items,
+    ).toHaveLength(0)
 
     const opportunity = services.opportunities.create({
       companyId: company.id,
@@ -393,7 +395,7 @@ describe('职迹最终数据库结构和业务服务', () => {
   it('protects built-in data and logical references', () => {
     const status = services.statuses.list()[0]
     const industry = services.industries.list()[0]
-    const company = services.companies.search('')[0]
+    const company = services.companies.list()[0]
     for (const action of [
       () => services.statuses.update(status.id, { label: '禁止' }),
       () => services.statuses.delete(status.id),
@@ -490,16 +492,93 @@ describe('职迹最终数据库结构和业务服务', () => {
     const company = services.companies.create({ name: '别名公司', aliases: ['Alias One', '简称'] })
     const wildcardCompany = services.companies.create({ name: '百分%公司', aliases: ['下划_别名'] })
     expect(services.companies.list().map((item) => item.id)).toContain(company.id)
-    expect(services.companies.search('简称').map((item) => item.id)).toContain(company.id)
-    expect(services.companies.search('Alias One').map((item) => item.id)).toContain(company.id)
+    expect(
+      services.companies
+        .search({ page: 1, pageSize: 10, keyword: '简称' })
+        .items.map((item) => item.id),
+    ).toContain(company.id)
+    expect(
+      services.companies
+        .search({ page: 1, pageSize: 10, keyword: 'Alias One' })
+        .items.map((item) => item.id),
+    ).toContain(company.id)
     expect(services.companies.update(company.id, { aliases: ['新简称'] }).aliases).toEqual([
       '新简称',
     ])
-    expect(services.companies.search('Alias One').map((item) => item.id)).not.toContain(company.id)
-    expect(services.companies.search('%').map((item) => item.id)).toEqual([wildcardCompany.id])
-    expect(services.companies.search('_').map((item) => item.id)).toEqual([wildcardCompany.id])
+    expect(
+      services.companies
+        .search({ page: 1, pageSize: 10, keyword: 'Alias One' })
+        .items.map((item) => item.id),
+    ).not.toContain(company.id)
+    expect(
+      services.companies
+        .search({ page: 1, pageSize: 10, keyword: '%' })
+        .items.map((item) => item.id),
+    ).toEqual([wildcardCompany.id])
+    expect(
+      services.companies
+        .search({ page: 1, pageSize: 10, keyword: '_' })
+        .items.map((item) => item.id),
+    ).toEqual([wildcardCompany.id])
     services.companies.delete(company.id)
     services.companies.delete(wildcardCompany.id)
+  })
+
+  it('paginates company and opportunity searches in SQLite with unchanged filters', () => {
+    const industry = services.industries.create({ name: '分页行业' })
+    const companies = ['甲', '乙', '丙'].map((suffix) =>
+      services.companies.create({
+        name: `分页公司${suffix}`,
+        aliases: [`分页别名${suffix}`],
+        industryIds: suffix === '丙' ? [] : [industry.id],
+      }),
+    )
+    const firstCompanyPage = services.companies.search({
+      page: 1,
+      pageSize: 2,
+      keyword: '分页公司',
+    })
+    const secondCompanyPage = services.companies.search({
+      page: 2,
+      pageSize: 2,
+      keyword: '分页公司',
+    })
+    expect(firstCompanyPage).toMatchObject({ page: 1, pageSize: 2, total: 3 })
+    expect(firstCompanyPage.items).toHaveLength(2)
+    expect(secondCompanyPage).toMatchObject({ page: 2, pageSize: 2, total: 3 })
+    expect(secondCompanyPage.items).toHaveLength(1)
+    expect(
+      services.companies.search({ page: 1, pageSize: 10, industryId: industry.id }).items,
+    ).toEqual(expect.arrayContaining(companies.slice(0, 2)))
+
+    const status = services.statuses.list()[0]
+    for (const title of ['分页岗位一', '分页岗位二', '分页岗位三']) {
+      services.opportunities.create({ companyId: companies[0].id, title, statusId: status.id })
+    }
+    const firstOpportunityPage = services.opportunities.search({
+      page: 1,
+      pageSize: 2,
+      search: '分页岗位',
+      statusId: status.id,
+      companyId: companies[0].id,
+    })
+    const secondOpportunityPage = services.opportunities.search({
+      page: 2,
+      pageSize: 2,
+      search: '分页岗位',
+      statusId: status.id,
+      companyId: companies[0].id,
+    })
+    expect(firstOpportunityPage).toMatchObject({ page: 1, pageSize: 2, total: 3 })
+    expect(firstOpportunityPage.items).toHaveLength(2)
+    expect(secondOpportunityPage).toMatchObject({ page: 2, pageSize: 2, total: 3 })
+    expect(secondOpportunityPage.items).toHaveLength(1)
+    expect(() => services.opportunities.search({ page: 1, pageSize: 101 })).toThrowError(
+      AppServiceError,
+    )
+    expect(() =>
+      services.companies.search({ page: Number.MAX_SAFE_INTEGER, pageSize: 100 }),
+    ).toThrowError(AppServiceError)
   })
 
   it('manages company industries through a many-to-many relation', () => {
@@ -512,8 +591,12 @@ describe('职迹最终数据库结构和业务服务', () => {
 
     expect(company.industryIds).toEqual([firstIndustry.id, secondIndustry.id])
     expect(company.industryName).toBe('多行业一, 多行业二')
-    expect(services.companies.search('多行业一')).toEqual([])
-    expect(services.companies.search('多行业二')).toEqual([])
+    expect(services.companies.search({ page: 1, pageSize: 10, keyword: '多行业一' }).items).toEqual(
+      [],
+    )
+    expect(services.companies.search({ page: 1, pageSize: 10, keyword: '多行业二' }).items).toEqual(
+      [],
+    )
     expect(
       (
         database!.db
@@ -609,9 +692,11 @@ describe('职迹最终数据库结构和业务服务', () => {
       statusId: status.id,
       location: '上海',
     })
-    expect(services.opportunities.list({ search: '链路' }).map((item) => item.id)).toContain(
-      opportunity.id,
-    )
+    expect(
+      services.opportunities
+        .search({ page: 1, pageSize: 10, search: '链路' })
+        .items.map((item) => item.id),
+    ).toContain(opportunity.id)
     expect(services.opportunities.update(opportunity.id, { title: '前端%工程师' }).title).toBe(
       '前端%工程师',
     )
@@ -620,9 +705,11 @@ describe('职迹最终数据库结构和业务服务', () => {
       title: '普通岗位',
       statusId: status.id,
     })
-    expect(services.opportunities.list({ search: '%' }).map((item) => item.id)).toEqual([
-      opportunity.id,
-    ])
+    expect(
+      services.opportunities
+        .search({ page: 1, pageSize: 10, search: '%' })
+        .items.map((item) => item.id),
+    ).toEqual([opportunity.id])
     const startAt = Date.now() - 10 * 60 * 1000
     const event = services.calendar.create({
       opportunityId: opportunity.id,

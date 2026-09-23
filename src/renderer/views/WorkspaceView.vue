@@ -111,11 +111,9 @@ function createTablePagination(initialPageSize = 10) {
     },
   }))
 }
-const opportunityPagination = createTablePagination()
 const statusPagination = createTablePagination()
 const industryPagination = createTablePagination()
 const resumePagination = createTablePagination()
-const companyPagination = createTablePagination()
 
 const menuOptions = computed(() => [
   { label: t('nav.opportunities'), key: 'opportunities' },
@@ -212,6 +210,9 @@ const {
   opportunities,
   allOpportunities,
   opportunitiesLoading,
+  opportunityTotal,
+  opportunityPage,
+  opportunityPageSize,
   search,
   selectedStatusId,
   selectedCompanyId,
@@ -225,6 +226,8 @@ const {
   loadOpportunities,
   loadAllOpportunities,
   refreshOpportunities,
+  setOpportunityPage,
+  setOpportunityPageSize,
   newOpportunity,
   openOpportunity,
   openStatusFlow,
@@ -261,6 +264,13 @@ const {
   editingIndustryId,
   industryForm,
   managedCompanies,
+  managedCompaniesLoading,
+  managedCompanyTotal,
+  managedCompanyPage,
+  managedCompanyPageSize,
+  loadManagedCompanies,
+  setManagedCompanyPage,
+  setManagedCompanyPageSize,
   moveStatus,
   moveIndustry,
   moveResume,
@@ -298,6 +308,25 @@ const {
     message.error(text)
   },
 })
+
+const opportunityPagination = computed(() => ({
+  page: opportunityPage.value,
+  pageSize: opportunityPageSize.value,
+  itemCount: opportunityTotal.value,
+  showSizePicker: true,
+  pageSizes: tablePageSizes,
+  onUpdatePage: setOpportunityPage,
+  onUpdatePageSize: setOpportunityPageSize,
+}))
+const companyPagination = computed(() => ({
+  page: managedCompanyPage.value,
+  pageSize: managedCompanyPageSize.value,
+  itemCount: managedCompanyTotal.value,
+  showSizePicker: true,
+  pageSizes: tablePageSizes,
+  onUpdatePage: setManagedCompanyPage,
+  onUpdatePageSize: setManagedCompanyPageSize,
+}))
 
 const columns = computed<DataTableColumns<Opportunity>>(() => [
   {
@@ -759,6 +788,9 @@ async function openCompanyCareerLink(company: Company): Promise<void> {
     await window.zhijiApi.system.openExternal(normalizeExternalUrl(company.careerUrl))
     const updated = await window.zhijiApi.companies.markRead(company.id)
     companies.value = companies.value.map((item) => (item.id === updated.id ? updated : item))
+    managedCompanies.value = managedCompanies.value.map((item) =>
+      item.id === updated.id ? updated : item,
+    )
   } catch (error) {
     showError(error)
   }
@@ -791,6 +823,7 @@ async function loadAll(): Promise<void> {
     industriesStore.load(),
     resumesStore.load(),
     companiesStore.load(),
+    loadManagedCompanies(),
     loadAllOpportunities(),
     window.zhijiApi.system.isDevelopment(),
     window.zhijiApi.mcp.getConnectionInfo(),
@@ -803,6 +836,7 @@ async function loadAll(): Promise<void> {
     industryResult,
     resumeResult,
     companyResult,
+    managedCompanyResult,
     allOpportunitiesResult,
     developmentResult,
     mcpConnectionResult,
@@ -819,6 +853,7 @@ async function loadAll(): Promise<void> {
   if (industryResult.status === 'rejected') showError(industryResult.reason)
   if (resumeResult.status === 'rejected') showError(resumeResult.reason)
   if (companyResult.status === 'rejected') showError(companyResult.reason)
+  if (managedCompanyResult.status === 'rejected') showError(managedCompanyResult.reason)
   if (allOpportunitiesResult.status === 'rejected') showError(allOpportunitiesResult.reason)
   if (developmentResult.status === 'fulfilled') isDevelopment.value = developmentResult.value
   else showError(developmentResult.reason)
@@ -850,6 +885,7 @@ async function refreshExternalData(): Promise<void> {
         industriesStore.load(),
         resumesStore.load(),
         companiesStore.load(),
+        loadManagedCompanies(),
         loadAllOpportunities(),
       ])
       baseResults.forEach((result) => {
@@ -894,15 +930,16 @@ async function updateCompanyCatalog(): Promise<void> {
     catalogProgress.value = 100
     const refreshResults = await Promise.allSettled([
       companiesStore.load(),
+      loadManagedCompanies(),
       loadAllOpportunities(),
       loadOpportunities(),
       loadCalendar(),
       window.zhijiApi.companyCatalog.getStatus(),
     ])
-    refreshResults.slice(0, 4).forEach((refreshResult) => {
+    refreshResults.slice(0, 5).forEach((refreshResult) => {
       if (refreshResult.status === 'rejected') showError(refreshResult.reason)
     })
-    const statusResult = refreshResults[4]
+    const statusResult = refreshResults[5]
     if (statusResult?.status === 'fulfilled') catalogStatus.value = statusResult.value
     else if (statusResult?.status === 'rejected') showError(statusResult.reason)
   } catch (error) {
@@ -1178,6 +1215,7 @@ onBeforeUnmount(() => {
               v-if="activeView === 'companies'"
               :columns="companyColumns"
               :data="managedCompanies"
+              :loading="managedCompaniesLoading"
               :pagination="companyPagination"
               :search="companyManagementSearch"
               :selected-industry-id="selectedCompanyIndustryId"

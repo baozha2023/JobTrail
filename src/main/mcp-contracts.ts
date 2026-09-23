@@ -17,7 +17,13 @@ import {
   opportunityQuerySchema,
   opportunitySchema,
   orderInputSchema,
+  pageInputSchema,
+  pageOutput,
+  pageSchema,
+  pageSizeSchema,
   positiveIdSchema,
+  readWebPageInputSchema,
+  readWebPageOutputSchema,
   resumeImportSchema,
   resumeSchema,
   statusSchema,
@@ -35,19 +41,25 @@ interface McpToolDescriptorBase {
   description: string
   destructive: boolean
   idempotent: boolean
+  openWorld: boolean
   inputSchema: z.ZodType
   outputSchema: z.ZodType
-  execute: (services: Services, args: Record<string, unknown>) => Record<string, unknown>
 }
 
 export type McpReadToolDescriptor = McpToolDescriptorBase & {
   readOnly: true
   preview?: never
+  execute: (
+    services: Services,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+  ) => Record<string, unknown> | Promise<Record<string, unknown>>
 }
 
 export type McpWriteToolDescriptor = McpToolDescriptorBase & {
   readOnly: false
   preview: (services: Services, args: Record<string, unknown>) => McpMutationPreview
+  execute: (services: Services, args: Record<string, unknown>) => Record<string, unknown>
 }
 
 export type McpToolDescriptor = McpReadToolDescriptor | McpWriteToolDescriptor
@@ -64,14 +76,23 @@ type McpToolDefinition<I extends z.ZodType, O extends z.ZodType> = {
   description: string
   destructive?: boolean
   idempotent?: boolean
+  openWorld?: boolean
   inputSchema: I
   outputSchema: O
-  execute: (services: Services, args: z.output<I>) => z.input<O>
 } & (
-  | { readOnly: true; preview?: never }
+  | {
+      readOnly: true
+      preview?: never
+      execute: (
+        services: Services,
+        args: z.output<I>,
+        signal: AbortSignal,
+      ) => z.input<O> | Promise<z.input<O>>
+    }
   | {
       readOnly: false
       preview: (services: Services, args: z.output<I>) => McpMutationPreview
+      execute: (services: Services, args: z.output<I>) => z.input<O>
     }
 )
 
@@ -82,11 +103,8 @@ function tool<I extends z.ZodType, O extends z.ZodType>(
     ...definition,
     destructive: definition.destructive ?? false,
     idempotent: definition.idempotent ?? false,
-    execute: definition.execute as unknown as (
-      services: Services,
-      args: Record<string, unknown>,
-    ) => Record<string, unknown>,
-  } as McpToolDescriptor
+    openWorld: definition.openWorld ?? false,
+  } as unknown as McpToolDescriptor
 }
 
 const emptyInput = z.strictObject({})
@@ -97,7 +115,12 @@ const updateIndustryArgs = z.strictObject({
   id: positiveIdSchema,
   input: updateIndustryInputSchema,
 })
-const keywordArgs = z.strictObject({ keyword: z.string() })
+const companySearchArgs = z.strictObject({
+  keyword: z.string().optional(),
+  industryId: positiveIdSchema.nullable().optional(),
+  page: pageSchema,
+  pageSize: pageSizeSchema,
+})
 const createCompanyArgs = z.strictObject({ input: createCompanyInputSchema })
 const updateCompanyArgs = z.strictObject({ id: positiveIdSchema, input: updateCompanyInputSchema })
 const importResumeArgs = z.strictObject({
@@ -272,18 +295,18 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     title: 'Search companies',
     description: 'Search companies by name, industry, or alias.',
     readOnly: true,
-    inputSchema: keywordArgs,
-    outputSchema: itemsOutput(companySchema),
-    execute: (s, a) => ({ items: s.companies.search(a.keyword) }),
+    inputSchema: companySearchArgs,
+    outputSchema: pageOutput(companySchema),
+    execute: (s, a) => s.companies.search(a),
   }),
   tool({
     name: 'list_companies',
     title: 'List companies',
-    description: 'List all companies.',
+    description: 'List companies one page at a time.',
     readOnly: true,
-    inputSchema: emptyInput,
-    outputSchema: itemsOutput(companySchema),
-    execute: (s) => ({ items: s.companies.list() }),
+    inputSchema: pageInputSchema,
+    outputSchema: pageOutput(companySchema),
+    execute: (s, a) => s.companies.search(a),
   }),
   tool({
     name: 'get_company',
@@ -293,6 +316,17 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     inputSchema: idInputSchema,
     outputSchema: itemOutput(companySchema),
     execute: (s, a) => ({ item: s.companies.get(a.id) }),
+  }),
+  tool({
+    name: 'read_web_page',
+    title: 'Read public web page',
+    description:
+      'Read one public HTML page, including JavaScript-rendered content. Omit cursor or pass 0 to fetch a fresh snapshot and receive up to 20,000 UTF-16 units of text; if nextCursor is non-null, pass it back with the same URL and render mode to read the next chunk without another network request. An expired cursor requires restarting at 0. Continue only when more text is needed. This tool does not extract jobs or navigate website pages automatically. Only verified read-only query POST requests are allowed; inspect incompleteReason and errors.',
+    readOnly: true,
+    openWorld: true,
+    inputSchema: readWebPageInputSchema,
+    outputSchema: readWebPageOutputSchema,
+    execute: (s, a, signal) => s.web.read(a, signal),
   }),
   tool({
     name: 'mark_company_read',
@@ -437,8 +471,8 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     description: 'Search and filter job opportunities.',
     readOnly: true,
     inputSchema: opportunitySearchArgs,
-    outputSchema: itemsOutput(opportunitySchema),
-    execute: (s, a) => ({ items: s.opportunities.list(a.query) }),
+    outputSchema: pageOutput(opportunitySchema),
+    execute: (s, a) => s.opportunities.search(a.query),
   }),
   tool({
     name: 'get_opportunity',

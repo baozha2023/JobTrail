@@ -56,6 +56,340 @@ describe('agent markdown', () => {
   })
 })
 
+describe('agent attachments', () => {
+  it('opens documents with the system and previews images in the chat', async () => {
+    const conversation = { id: 'attachment-chat', title: '附件', createdAt: 1, updatedAt: 1 }
+    const documentAttachment: AgentAttachment = {
+      id: 'document-1',
+      conversationId: conversation.id,
+      name: '说明.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      sizeBytes: 10,
+    }
+    const imageAttachment: AgentAttachment = {
+      id: 'image-1',
+      conversationId: conversation.id,
+      name: '截图.png',
+      mimeType: 'image/png',
+      sizeBytes: 10,
+    }
+    const openAttachment = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: {
+          list: async () => [conversation],
+          history: async () => ({
+            messages: [
+              {
+                id: 'message-1',
+                role: 'user',
+                parts: [{ kind: 'text', text: '附件' }],
+                attachments: [documentAttachment, imageAttachment],
+              },
+            ],
+            pending: null,
+            running: false,
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cacheReadTokens: null,
+              contextTokens: null,
+              contextEstimated: true,
+              contextWindowTokens: 256000,
+            },
+          }),
+          preview: async () => 'data:image/png;base64,iVBORw0KGgo=',
+          openAttachment,
+          onEvent: () => () => {},
+        },
+      },
+    })
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(AgentView, {
+      attachTo: host,
+      props: {
+        mcpEnabled: false,
+        multimodal: true,
+        dark: false,
+        resumes: [],
+        opportunities: [],
+        companies: [],
+        industries: [],
+      },
+      global,
+    })
+    try {
+      await flushPromises()
+      const cards = wrapper.findAll('.agent-attachment-open')
+      expect(cards).toHaveLength(2)
+      await cards[0].trigger('click')
+      expect(openAttachment).toHaveBeenCalledWith(conversation.id, documentAttachment.id)
+      await cards[1].trigger('click')
+      await flushPromises()
+      expect(document.querySelector<HTMLImageElement>('.agent-image-preview')?.src).toMatch(
+        /^data:image\/png/,
+      )
+    } finally {
+      wrapper.unmount()
+      host.remove()
+    }
+  })
+
+  it('clears the composer and attachment tray as soon as sending starts', async () => {
+    const conversation = { id: 'send-chat', title: '发送', createdAt: 1, updatedAt: 1 }
+    const attachment: AgentAttachment = {
+      id: 'send-image',
+      conversationId: conversation.id,
+      name: '待发送.png',
+      mimeType: 'image/png',
+      sizeBytes: 10,
+    }
+    let resolveSend!: () => void
+    const send = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSend = resolve
+        }),
+    )
+    let sendResolved = false
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: {
+          list: async () => [conversation],
+          history: async () => ({
+            messages: [],
+            pending: null,
+            running: false,
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cacheReadTokens: null,
+              contextTokens: null,
+              contextEstimated: true,
+              contextWindowTokens: 256000,
+            },
+          }),
+          upload: async () => attachment,
+          preview: async () => 'data:image/png;base64,iVBORw0KGgo=',
+          send,
+          onEvent: () => () => {},
+        },
+      },
+    })
+    const wrapper = mount(AgentView, {
+      props: {
+        mcpEnabled: false,
+        multimodal: true,
+        dark: false,
+        resumes: [],
+        opportunities: [],
+        companies: [],
+        industries: [],
+      },
+      global,
+    })
+    try {
+      await flushPromises()
+      const uploadButton = wrapper
+        .findAll('.agent-actions button')
+        .find((button) => button.text().includes('上传'))
+      await uploadButton?.trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(true)
+      const editor = wrapper.find('[role="textbox"]').element as HTMLElement
+      typeAtCaret(editor, '立即清空')
+      editor.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      )
+      await flushPromises()
+      expect(send).toHaveBeenCalledOnce()
+      expect(editor.textContent).toBe('')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(false)
+      resolveSend()
+      sendResolved = true
+      await flushPromises()
+    } finally {
+      if (!sendResolved) resolveSend?.()
+      wrapper.unmount()
+    }
+  })
+})
+
+describe('agent send recovery', () => {
+  const conversation = { id: 'send-recovery', title: '发送核对', createdAt: 1, updatedAt: 1 }
+  const attachment: AgentAttachment = {
+    id: 'pending-image',
+    conversationId: conversation.id,
+    name: '待发送.png',
+    mimeType: 'image/png',
+    sizeBytes: 10,
+  }
+  const emptyHistory = () => ({
+    messages: [] as AgentMessage[],
+    pending: null,
+    running: false,
+    usage: {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: null,
+      contextTokens: null,
+      contextEstimated: true,
+      contextWindowTokens: 256000,
+    },
+  })
+  function mountChat() {
+    return mount(AgentView, {
+      props: {
+        mcpEnabled: false,
+        multimodal: true,
+        dark: false,
+        resumes: [],
+        opportunities: [],
+        companies: [],
+        industries: [],
+      },
+      global,
+    })
+  }
+  function enterMessage(wrapper: ReturnType<typeof mountChat>, text: string): void {
+    const editor = wrapper.find('[role="textbox"]').element as HTMLElement
+    typeAtCaret(editor, text)
+    editor.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    )
+  }
+
+  it('locks resending until history confirms the message was not saved', async () => {
+    const history = vi
+      .fn()
+      .mockResolvedValueOnce(emptyHistory())
+      .mockRejectedValueOnce(new Error('history unavailable'))
+      .mockResolvedValueOnce({ ...emptyHistory(), running: true })
+      .mockRejectedValueOnce(new Error('history still unavailable'))
+      .mockResolvedValueOnce(emptyHistory())
+    const send = vi.fn().mockRejectedValue(new Error('send failed'))
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: {
+          list: async () => [conversation],
+          history,
+          upload: async () => attachment,
+          preview: async () => 'data:image/png;base64,iVBORw0KGgo=',
+          send,
+          onEvent: () => () => {},
+        },
+      },
+    })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const wrapper = mountChat()
+    try {
+      await flushPromises()
+      await wrapper.find('.agent-actions button').trigger('click')
+      await flushPromises()
+      enterMessage(wrapper, '请查看附件')
+      await flushPromises()
+      expect(send).toHaveBeenCalledOnce()
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(false)
+      expect(wrapper.find('.agent-send-unverified').text()).toContain('核对当前对话')
+      expect(wrapper.find('.agent-actions').text()).toContain('发送')
+      expect(wrapper.find('.agent-actions button:last-child').attributes('disabled')).toBeDefined()
+
+      await wrapper.find('.agent-send-unverified button').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.agent-send-unverified').exists()).toBe(true)
+      expect(send).toHaveBeenCalledOnce()
+
+      await wrapper.find('.agent-send-unverified button').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.agent-send-unverified').exists()).toBe(true)
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
+
+      await wrapper.find('.agent-send-unverified button').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.agent-send-unverified').exists()).toBe(false)
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('请查看附件')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(true)
+    } finally {
+      wrapper.unmount()
+      log.mockRestore()
+    }
+  })
+
+  it('keeps the draft cleared when history confirms the message was saved', async () => {
+    const saved = {
+      ...emptyHistory(),
+      messages: [
+        {
+          id: 'saved-user',
+          role: 'user' as const,
+          parts: [{ kind: 'text' as const, text: '只发送一次' }],
+          attachments: [],
+        },
+      ],
+    }
+    const history = vi
+      .fn()
+      .mockResolvedValueOnce(emptyHistory())
+      .mockRejectedValueOnce(new Error('history unavailable'))
+      .mockResolvedValueOnce(saved)
+    const send = vi.fn().mockRejectedValue(new Error('send failed'))
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
+      },
+    })
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const wrapper = mountChat()
+    try {
+      await flushPromises()
+      enterMessage(wrapper, '只发送一次')
+      await flushPromises()
+      await wrapper.find('.agent-send-unverified button').trigger('click')
+      await flushPromises()
+      expect(wrapper.find('.agent-send-unverified').exists()).toBe(false)
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
+      expect(wrapper.findAll('.agent-message.user')).toHaveLength(1)
+      expect(send).toHaveBeenCalledOnce()
+    } finally {
+      wrapper.unmount()
+      log.mockRestore()
+    }
+  })
+
+  it('does not restore a draft when sending succeeded but refreshing history failed', async () => {
+    const history = vi
+      .fn()
+      .mockResolvedValueOnce(emptyHistory())
+      .mockRejectedValueOnce(new Error('history unavailable'))
+    const send = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
+      },
+    })
+    const wrapper = mountChat()
+    try {
+      await flushPromises()
+      enterMessage(wrapper, '已经发送')
+      await flushPromises()
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
+      expect(wrapper.find('.agent-send-unverified').exists()).toBe(false)
+      expect(wrapper.find('.agent-error').text()).toContain('消息已发送')
+      expect(history).toHaveBeenCalledTimes(2)
+      expect(send).toHaveBeenCalledOnce()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+})
+
 function typeAtCaret(editor: HTMLElement, text: string): void {
   let node = editor.firstChild
   if (!node || node.nodeType !== Node.TEXT_NODE) {
@@ -301,6 +635,73 @@ describe('agent composer', () => {
         'true',
       )
     } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('clears /compact immediately and shows a tool-style running state', async () => {
+    const conversation = { id: 'compact-chat', title: '压缩测试', createdAt: 1, updatedAt: 1 }
+    let resolveCompact!: () => void
+    const compact = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveCompact = resolve
+        }),
+    )
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: {
+          list: async () => [conversation],
+          history: async () => ({
+            messages: [],
+            pending: null,
+            running: false,
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+              cacheReadTokens: null,
+              contextTokens: null,
+              contextEstimated: true,
+              contextWindowTokens: 256000,
+            },
+          }),
+          compact,
+          onEvent: () => () => {},
+        },
+      },
+    })
+    const wrapper = mount(AgentView, {
+      props: {
+        mcpEnabled: false,
+        multimodal: false,
+        dark: false,
+        resumes: [],
+        opportunities: [],
+        companies: [],
+        industries: [],
+      },
+      global,
+    })
+    try {
+      await flushPromises()
+      const editor = wrapper.find<HTMLElement>('.agent-composer [role="textbox"]').element
+      typeAtCaret(editor, '/compact')
+      editor.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+      )
+      await wrapper.vm.$nextTick()
+
+      expect(compact).toHaveBeenCalledWith(conversation.id)
+      expect(editor.textContent).toBe('')
+      expect(wrapper.find('.agent-compact-running').text()).toContain('compact')
+      expect(wrapper.find('.agent-compact-running').text()).toContain('正在压缩')
+
+      resolveCompact()
+      await flushPromises()
+      expect(wrapper.find('.agent-compact-running').exists()).toBe(false)
+    } finally {
+      resolveCompact?.()
       wrapper.unmount()
     }
   })
@@ -565,7 +966,7 @@ describe('agent composer', () => {
         .map((item) => item.classes()[0]),
     ).toEqual(['agent-message', 'agent-tool-group', 'agent-message'])
     expect(wrapper.find('.agent-tool-group-toggle').exists()).toBe(true)
-    await wrapper.find('.agent-tool-group-toggle').trigger('click')
+    expect(wrapper.find('.agent-tool-group-toggle').attributes('aria-expanded')).toBe('false')
     expect(wrapper.findAll('.agent-tool-row')).toHaveLength(0)
     await wrapper.find('.agent-tool-group-toggle').trigger('click')
     expect(wrapper.findAll('.agent-tool-row')).toHaveLength(2)

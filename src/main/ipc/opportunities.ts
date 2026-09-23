@@ -3,9 +3,10 @@ import { registerChannel } from './register-channel'
 import { numberValue, parseOpportunity, parseOpportunityQuery } from './validators'
 
 export function registerOpportunityIpc(services: Services): void {
-  registerChannel('opportunities:list', (query) =>
-    services.opportunities.list(parseOpportunityQuery(query)),
+  registerChannel('opportunities:search', (query) =>
+    services.opportunities.search(parseOpportunityQuery(query)),
   )
+  registerChannel('opportunities:list', () => services.opportunities.list())
   registerChannel('opportunities:get', (id) =>
     services.opportunities.get(numberValue(id, '求职记录 ID')),
   )

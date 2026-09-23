@@ -15,7 +15,7 @@ const SELECT = `
 
 export class OpportunityRepository {
   constructor(private readonly db: SqliteDatabase) {}
-  list(query: OpportunityQuery): OpportunityRow[] {
+  search(query: OpportunityQuery): { rows: OpportunityRow[]; total: number } {
     const clauses: string[] = []
     const params: Array<string | number> = []
     if (query.search) {
@@ -34,11 +34,33 @@ export class OpportunityRepository {
       params.push(query.companyId)
     }
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : ''
+    return this.db.transaction(() => {
+      const total = (
+        this.db
+          .prepare(
+            `SELECT COUNT(*) AS count
+             FROM opportunities o
+             JOIN companies c ON c.id = o.company_id${where}`,
+          )
+          .get(...params) as { count: number }
+      ).count
+      const rows = this.db
+        .prepare(
+          `${SELECT}${where}
+           ORDER BY COALESCE(o.deadline_at, 9223372036854775807), o.updated_at DESC, o.id DESC
+           LIMIT ? OFFSET ?`,
+        )
+        .all(...params, query.pageSize, (query.page - 1) * query.pageSize) as OpportunityRow[]
+      return { rows, total }
+    })()
+  }
+  list(): OpportunityRow[] {
     return this.db
       .prepare(
-        `${SELECT}${where} ORDER BY COALESCE(o.deadline_at, 9223372036854775807), o.updated_at DESC`,
+        `${SELECT}
+         ORDER BY COALESCE(o.deadline_at, 9223372036854775807), o.updated_at DESC, o.id DESC`,
       )
-      .all(...params) as OpportunityRow[]
+      .all() as OpportunityRow[]
   }
   get(id: number): OpportunityRow | undefined {
     return this.db.prepare(`${SELECT} WHERE o.id = ?`).get(id) as OpportunityRow | undefined

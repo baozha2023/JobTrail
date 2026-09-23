@@ -1,7 +1,29 @@
 import { z } from 'zod'
 
 export const positiveIdSchema = z.number().int().positive()
+export const pageSchema = z.number().int().positive()
+export const pageSizeSchema = z.number().int().positive().max(100)
 export const timestampSchema = z.number().int().nonnegative()
+const webUrlSchema = z.url()
+export const readWebPageInputSchema = z.strictObject({
+  url: webUrlSchema,
+  render: z.enum(['auto', 'static', 'dynamic']).optional(),
+  cursor: z.union([z.literal(0), z.string().min(1).max(100)]).optional(),
+})
+export const readWebPageOutputSchema = z.strictObject({
+  sourceUrl: webUrlSchema,
+  finalUrl: webUrlSchema,
+  fetchedAt: timestampSchema,
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  text: z.string(),
+  nextCursor: z.string().nullable(),
+  headings: z.array(z.strictObject({ level: z.number().int().min(1).max(6), text: z.string() })),
+  links: z.array(z.strictObject({ text: z.string(), url: webUrlSchema })),
+  truncated: z.boolean(),
+  incompleteReason: z.string().nullable(),
+  warnings: z.array(z.string()),
+})
 const requiredText = z.string().refine((value) => value.trim().length > 0, 'Must not be blank')
 const nullableText = z.string().nullable()
 const idList = z.array(positiveIdSchema)
@@ -170,6 +192,8 @@ export const updateCalendarInputSchema = nonEmptyUpdate(
 )
 
 export const opportunityQuerySchema = z.strictObject({
+  page: pageSchema,
+  pageSize: pageSizeSchema,
   search: z.string().optional(),
   statusId: positiveIdSchema.nullable().optional(),
   companyId: positiveIdSchema.nullable().optional(),
@@ -189,4 +213,12 @@ export const orderInputSchema = z.strictObject({
 export const itemOutput = <T extends z.ZodType>(schema: T) => z.strictObject({ item: schema })
 export const itemsOutput = <T extends z.ZodType>(schema: T) =>
   z.strictObject({ items: z.array(schema) })
+export const pageInputSchema = z.strictObject({ page: pageSchema, pageSize: pageSizeSchema })
+export const pageOutput = <T extends z.ZodType>(schema: T) =>
+  z.strictObject({
+    items: z.array(schema),
+    total: z.number().int().nonnegative(),
+    page: pageSchema,
+    pageSize: pageSizeSchema,
+  })
 export const deleteOutputSchema = z.strictObject({ deleted: z.literal(true), id: positiveIdSchema })

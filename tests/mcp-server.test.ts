@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import { Command, END, MemorySaver, START, StateGraph, StateSchema } from '@langchain/langgraph'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
@@ -12,6 +12,7 @@ import type { AppPaths } from '../src/main/config'
 import { ConfigService } from '../src/main/config'
 import { createJobTrailMcpServer } from '../src/main/mcp/server'
 import { createServiceContainer } from '../src/main/service-container'
+import { AppServiceError } from '../src/main/services/errors'
 
 describe('JobTrail MCP server', () => {
   let root: string
@@ -99,11 +100,14 @@ describe('JobTrail MCP server', () => {
     return result.structuredContent as Record<string, unknown>
   }
 
-  it('gates all data access while disabled and advertises exactly 36 tools', async () => {
+  it('gates all data access while disabled and advertises exactly 37 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
-    expect(listed.tools).toHaveLength(36)
-    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 36)
+    expect(listed.tools).toHaveLength(37)
+    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 37)
+    expect(
+      listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.openWorldHint,
+    ).toBe(true)
     const result = await client.callTool({ name: 'list_statuses', arguments: {} })
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toMatchObject({
@@ -112,7 +116,79 @@ describe('JobTrail MCP server', () => {
     })
   })
 
-  it('executes all 36 tools through application services', async () => {
+  it.each([false, true])(
+    'calls the asynchronous web reader over %s MCP protocol',
+    async (modern) => {
+      config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
+      const web = container!.services.web
+      const fetchedAt = Date.now()
+      const read = vi.spyOn(web, 'read').mockImplementation(async (input, signal) => {
+        expect(signal).toBeInstanceOf(AbortSignal)
+        expect(input.url).toBe('https://jobs.example.com/1')
+        return {
+          sourceUrl: 'https://jobs.example.com/1',
+          finalUrl: 'https://jobs.example.com/1',
+          fetchedAt,
+          title: '岗位详情',
+          description: null,
+          text: input.cursor ? '任职要求' : '职责',
+          nextCursor: input.cursor ? null : 'snapshot-cursor',
+          headings: [{ level: 1, text: '岗位详情' }],
+          links: [],
+          truncated: !input.cursor,
+          incompleteReason: null,
+          warnings: [],
+        }
+      })
+      const client = await connect(modern)
+      const first = await call(client, 'read_web_page', { url: 'https://jobs.example.com/1' })
+      expect(first).toMatchObject({
+        title: '岗位详情',
+        text: '职责',
+        nextCursor: 'snapshot-cursor',
+      })
+      expect(
+        await call(client, 'read_web_page', {
+          url: 'https://jobs.example.com/1',
+          cursor: first.nextCursor,
+        }),
+      ).toMatchObject({ text: '任职要求', nextCursor: null, fetchedAt })
+      expect(read).toHaveBeenCalledTimes(2)
+    },
+  )
+
+  it.each([false, true])(
+    'passes web failure details to the agent over %s MCP protocol',
+    async (modern) => {
+      config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
+      vi.spyOn(container!.services.web, 'read').mockRejectedValue(
+        new AppServiceError('WEB_UNAVAILABLE', '网页连接失败', {
+          stage: 'fetch',
+          attempts: 2,
+          retryExhausted: true,
+          retryable: false,
+        }),
+      )
+      const client = await connect(modern)
+      const result = await client.callTool({
+        name: 'read_web_page',
+        arguments: { url: 'https://jobs.example.com/' },
+      })
+      expect(result.isError).toBe(true)
+      expect(result.structuredContent).toMatchObject({
+        ok: false,
+        error: {
+          code: 'WEB_UNAVAILABLE',
+          details: { stage: 'fetch', attempts: 2, retryExhausted: true },
+        },
+      })
+      expect(JSON.parse(serializeMcpResult(result.structuredContent))).toMatchObject({
+        error: { code: 'WEB_UNAVAILABLE', details: { retryExhausted: true } },
+      })
+    },
+  )
+
+  it('executes local business tools through application services', async () => {
     config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })
     const client = await connect(true)
 
@@ -139,8 +215,13 @@ describe('JobTrail MCP server', () => {
         input: { name: 'MCP 公司', industryIds: [industry.id], aliases: ['MCP'] },
       })
     ).item as { id: number }
-    await call(client, 'search_companies', { keyword: 'MCP' })
-    await call(client, 'list_companies')
+    const companyPage = await call(client, 'search_companies', {
+      keyword: 'MCP',
+      page: 1,
+      pageSize: 10,
+    })
+    expect(companyPage).toMatchObject({ page: 1, pageSize: 10, total: 1 })
+    await call(client, 'list_companies', { page: 1, pageSize: 10 })
     await call(client, 'get_company', { id: company.id })
     await call(client, 'mark_company_read', { id: company.id })
     await call(client, 'update_company', { id: company.id, input: { isFavorite: true } })
@@ -165,7 +246,10 @@ describe('JobTrail MCP server', () => {
         },
       })
     ).item as { id: number }
-    await call(client, 'search_opportunities', { query: { search: 'MCP' } })
+    const opportunityPage = await call(client, 'search_opportunities', {
+      query: { search: 'MCP', page: 1, pageSize: 10 },
+    })
+    expect(opportunityPage).toMatchObject({ page: 1, pageSize: 10, total: 1 })
     await call(client, 'get_opportunity', { id: opportunity.id })
     await call(client, 'update_opportunity', { id: opportunity.id, input: { location: '上海' } })
     await call(client, 'change_opportunity_status', {

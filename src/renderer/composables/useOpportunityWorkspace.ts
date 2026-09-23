@@ -25,8 +25,11 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
   const {
     items: opportunities,
     allItems: allOpportunities,
+    total: opportunityTotal,
     loading: opportunitiesLoading,
   } = storeToRefs(store)
+  const opportunityPage = ref(1)
+  const opportunityPageSize = ref(10)
   const search = ref('')
   const selectedStatusId = ref<number | null>(null)
   const selectedCompanyId = ref<number | null>(null)
@@ -42,10 +45,17 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
 
   async function loadOpportunities(): Promise<void> {
     await store.load({
+      page: opportunityPage.value,
+      pageSize: opportunityPageSize.value,
       search: search.value,
       statusId: selectedStatusId.value,
       companyId: selectedCompanyId.value,
     })
+    const lastPage = Math.max(1, Math.ceil(opportunityTotal.value / opportunityPageSize.value))
+    if (opportunityPage.value > lastPage) {
+      opportunityPage.value = lastPage
+      await loadOpportunities()
+    }
   }
 
   async function loadAllOpportunities(): Promise<void> {
@@ -54,6 +64,17 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
 
   function refreshOpportunities(): void {
     void loadOpportunities().catch(options.showError)
+  }
+
+  function setOpportunityPage(page: number): void {
+    opportunityPage.value = page
+    refreshOpportunities()
+  }
+
+  function setOpportunityPageSize(pageSize: number): void {
+    opportunityPageSize.value = pageSize
+    opportunityPage.value = 1
+    refreshOpportunities()
   }
 
   function newOpportunity(): void {
@@ -157,6 +178,7 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
   }
 
   watch([search, selectedStatusId, selectedCompanyId], () => {
+    opportunityPage.value = 1
     void loadOpportunities().catch(options.showError)
   })
 
@@ -164,6 +186,9 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
     opportunities,
     allOpportunities,
     opportunitiesLoading,
+    opportunityTotal,
+    opportunityPage,
+    opportunityPageSize,
     search,
     selectedStatusId,
     selectedCompanyId,
@@ -177,6 +202,8 @@ export function useOpportunityWorkspace(options: OpportunityWorkspaceOptions) {
     loadOpportunities,
     loadAllOpportunities,
     refreshOpportunities,
+    setOpportunityPage,
+    setOpportunityPageSize,
     newOpportunity,
     openOpportunity,
     openStatusFlow,

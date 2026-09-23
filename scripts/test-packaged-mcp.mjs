@@ -4,6 +4,7 @@ import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
+import { chromium } from 'playwright'
 
 const packageVersion = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')).version
 const inheritedEnvironment = Object.fromEntries(
@@ -26,18 +27,57 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
   try {
     await client.connect(transport)
     const tools = await client.listTools()
-    if (tools.tools.length !== 36 || new Set(tools.tools.map((tool) => tool.name)).size !== 36) {
-      throw new Error(`${name}: expected 36 unique tools, received ${tools.tools.length}`)
+    if (tools.tools.length !== 37 || new Set(tools.tools.map((tool) => tool.name)).size !== 37) {
+      throw new Error(`${name}: expected 37 unique tools, received ${tools.tools.length}`)
     }
     const disabled = await client.callTool({ name: 'list_statuses', arguments: {} })
     if (!disabled.isError || disabled.structuredContent?.error?.code !== 'MCP_DISABLED') {
       throw new Error(`${name}: default-disabled guard did not return MCP_DISABLED`)
+    }
+    const configRoot = transportOptions.env?.JOBTRAIL_MCP_ROOT ?? transportOptions.cwd
+    const configPath = path.join(configRoot, 'config.json')
+    const originalConfig = fs.readFileSync(configPath, 'utf8')
+    try {
+      const config = JSON.parse(originalConfig)
+      config.mcp.enabled = true
+      fs.writeFileSync(configPath, JSON.stringify(config))
+      const expired = await client.callTool({
+        name: 'read_web_page',
+        arguments: {
+          url: 'https://example.com/',
+          cursor: 'wp_00000000-0000-0000-0000-000000000000',
+        },
+      })
+      if (!expired.isError || expired.structuredContent?.error?.code !== 'WEB_CURSOR_EXPIRED') {
+        throw new Error(`${name}: packaged web cursor call did not return WEB_CURSOR_EXPIRED`)
+      }
+    } finally {
+      fs.writeFileSync(configPath, originalConfig)
     }
   } catch (error) {
     if (diagnostics.trim()) process.stderr.write(diagnostics)
     throw error
   } finally {
     await client.close()
+  }
+}
+
+export async function smokeBrowser(executable) {
+  const browserPath = path.join(
+    path.dirname(executable),
+    'resources',
+    'browser',
+    'chrome-headless-shell.exe',
+  )
+  if (!fs.existsSync(browserPath)) throw new Error(`Packaged browser not found: ${browserPath}`)
+  const browser = await chromium.launch({ executablePath: browserPath, headless: true })
+  try {
+    const page = await browser.newPage()
+    await page.setContent('<h1>JobTrail browser smoke</h1>')
+    if ((await page.locator('h1').textContent()) !== 'JobTrail browser smoke')
+      throw new Error('Packaged browser did not render HTML')
+  } finally {
+    await browser.close()
   }
 }
 
@@ -54,6 +94,7 @@ function linkTree(source, destination) {
 export async function smokeLauncher(executable, launcherSource) {
   if (!fs.existsSync(executable)) throw new Error(`Packaged executable not found: ${executable}`)
   if (!fs.existsSync(launcherSource)) throw new Error(`Root launcher not found: ${launcherSource}`)
+  await smokeBrowser(executable)
   const staging = fs.mkdtempSync(path.resolve('dist/.mcp-launcher-smoke-'))
   const root = path.join(staging, 'JobTrail')
   const runtime = path.join(root, '.runtime/current')
@@ -83,6 +124,7 @@ export async function smokeLauncher(executable, launcherSource) {
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const executable = path.resolve(process.argv[2] ?? 'dist/win-unpacked/zhiji.exe')
   if (!fs.existsSync(executable)) throw new Error(`Packaged executable not found: ${executable}`)
+  await smokeBrowser(executable)
   const root = fs.mkdtempSync(path.resolve('dist/.mcp-node-smoke-'))
   const transportOptions = {
     command: executable,

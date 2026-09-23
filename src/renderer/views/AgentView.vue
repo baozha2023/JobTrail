@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import type {
   AgentAttachment,
   AgentConversation,
+  AgentDraftPart,
+  AgentHistory,
   AgentMessage,
   AgentPending,
   AgentUsage,
@@ -20,9 +22,16 @@ import AgentMessageBody from '../components/AgentMessageBody.vue'
 import AgentToolGroup from '../components/AgentToolGroup.vue'
 
 type ToolMessage = Extract<AgentMessage, { role: 'tool' }>
+interface SubmittedMessage {
+  id: string
+  previousUserIds: string[]
+  optimisticId: string
+  parts: AgentDraftPart[]
+  attachments: AgentAttachment[]
+}
 type TimelineEntry =
   | Exclude<AgentMessage, { role: 'tool' }>
-  | { id: string; role: 'tool-group'; tools: ToolMessage[] }
+  | { id: string; role: 'tool-group'; tools: ToolMessage[]; autoCollapse: boolean }
 
 const props = defineProps<{
   mcpEnabled: boolean
@@ -47,9 +56,13 @@ const answerText = ref<string[]>([])
 const questionStep = ref(0)
 const uploads = ref<AgentAttachment[]>([])
 const busy = ref(false)
+const compacting = ref(false)
 const uploading = ref(false)
 const error = ref('')
 const previews = ref<Record<string, string>>({})
+const imagePreview = ref<{ name: string; url: string } | null>(null)
+const unverifiedSubmission = ref<SubmittedMessage | null>(null)
+const verifyingSubmission = ref(false)
 const historyMenu = ref<{ id: string; x: number; y: number } | null>(null)
 let optimisticSequence = 0
 const deleteTargetId = ref<string | null>(null)
@@ -67,12 +80,26 @@ const timeline = computed<TimelineEntry[]>(() => {
   const entries: TimelineEntry[] = []
   for (const message of messages.value) {
     if (message.role !== 'tool') {
+      const previous = entries.at(-1)
+      if (
+        message.role === 'assistant' &&
+        message.text.trim() &&
+        previous?.role === 'tool-group' &&
+        previous.tools.length > 1
+      )
+        previous.autoCollapse = true
       entries.push(message)
       continue
     }
     const previous = entries.at(-1)
     if (previous?.role === 'tool-group') previous.tools.push(message)
-    else entries.push({ id: `group:${message.id}`, role: 'tool-group', tools: [message] })
+    else
+      entries.push({
+        id: `group:${message.id}`,
+        role: 'tool-group',
+        tools: [message],
+        autoCollapse: false,
+      })
   }
   return entries
 })
@@ -141,7 +168,7 @@ function lastTool(predicate: (message: ToolMessage) => boolean): ToolMessage | u
   return undefined
 }
 const thinking = computed(() => {
-  if (!busy.value || pending.value) return false
+  if (!busy.value || compacting.value || pending.value) return false
   const last = messages.value.at(-1)
   if (!last || last.role === 'user') return true
   if (last.role !== 'tool') return false
@@ -155,7 +182,7 @@ const thinking = computed(() => {
 watch(
   () => {
     const last = messages.value.at(-1)
-    return [messages.value.length, last?.role === 'assistant' ? last.text : '']
+    return [messages.value.length, last?.role === 'assistant' ? last.text : '', compacting.value]
   },
   async () => {
     await nextTick()
@@ -163,7 +190,7 @@ watch(
   },
 )
 function showHistoryMenu(event: MouseEvent, id: string): void {
-  if (busy.value || uploading.value) return
+  if (busy.value || uploading.value || unverifiedSubmission.value) return
   historyMenu.value = { id, x: event.clientX, y: event.clientY }
 }
 function chooseHistoryMenu(key: string): void {
@@ -196,13 +223,30 @@ async function confirmDelete(): Promise<void> {
   if (id) await removeConversation(id)
 }
 
-async function loadPreview(attachment: AgentAttachment, id: string): Promise<void> {
-  if (!attachment.mimeType.startsWith('image/')) return
+async function loadPreview(attachment: AgentAttachment, id: string): Promise<string | null> {
+  if (!attachment.mimeType.startsWith('image/')) return null
   try {
     const url = await window.zhijiApi.agent.preview(id, attachment.id)
     if (url && currentId.value === id) previews.value[attachment.id] = url
+    return url
   } catch (cause) {
     console.error('加载聊天附件预览失败', cause)
+    return null
+  }
+}
+
+async function openAttachment(attachment: AgentAttachment): Promise<void> {
+  const id = currentId.value
+  if (!id) return
+  if (attachment.mimeType.startsWith('image/')) {
+    const url = previews.value[attachment.id] ?? (await loadPreview(attachment, id))
+    if (url && currentId.value === id) imagePreview.value = { name: attachment.name, url }
+    return
+  }
+  try {
+    await window.zhijiApi.agent.openAttachment(id, attachment.id)
+  } catch (cause) {
+    error.value = getErrorMessage(cause, t)
   }
 }
 
@@ -262,13 +306,7 @@ async function discardUploads(id: string, attachments: AgentAttachment[]): Promi
 async function refreshList(): Promise<void> {
   conversations.value = await window.zhijiApi.agent.list()
 }
-async function selectConversation(id: string): Promise<void> {
-  if (currentId.value && currentId.value !== id && uploads.value.length)
-    await discardUploads(currentId.value, uploads.value)
-  currentId.value = id
-  uploads.value = []
-  previews.value = {}
-  const history = await window.zhijiApi.agent.history(id)
+function applyHistory(id: string, history: AgentHistory): void {
   if (currentId.value !== id) return
   messages.value = history.messages
   showPending(history.pending)
@@ -276,6 +314,20 @@ async function selectConversation(id: string): Promise<void> {
   busy.value = history.running
   for (const attachment of history.messages.flatMap((message) => message.attachments))
     void loadPreview(attachment, id)
+}
+async function selectConversation(id: string): Promise<void> {
+  if (unverifiedSubmission.value) {
+    if (unverifiedSubmission.value.id === id) await verifySubmission()
+    return
+  }
+  if (currentId.value && currentId.value !== id && uploads.value.length)
+    await discardUploads(currentId.value, uploads.value)
+  currentId.value = id
+  uploads.value = []
+  previews.value = {}
+  imagePreview.value = null
+  const history = await window.zhijiApi.agent.history(id)
+  applyHistory(id, history)
 }
 async function createConversation(): Promise<string> {
   const conversation = await window.zhijiApi.agent.create()
@@ -290,6 +342,7 @@ async function removeConversation(id: string): Promise<void> {
     if (currentId.value === id) {
       currentId.value = null
       messages.value = []
+      imagePreview.value = null
       showPending(null)
       usage.value = null
     }
@@ -327,13 +380,59 @@ async function removeAttachment(attachment: AgentAttachment): Promise<void> {
     error.value = getErrorMessage(cause, t)
   }
 }
+function restoreSubmission(request: SubmittedMessage): void {
+  messages.value = messages.value.filter((item) => item.id !== request.optimisticId)
+  uploads.value = request.attachments
+  composer.value?.restoreParts(request.parts)
+}
+function submissionWasSaved(request: SubmittedMessage, history: AgentHistory): boolean {
+  return history.messages.some(
+    (item) => item.role === 'user' && !request.previousUserIds.includes(item.id),
+  )
+}
+async function verifySubmission(): Promise<void> {
+  const request = unverifiedSubmission.value
+  if (!request || verifyingSubmission.value) return
+  verifyingSubmission.value = true
+  try {
+    const history = await window.zhijiApi.agent.history(request.id)
+    busy.value = history.running
+    if (submissionWasSaved(request, history)) {
+      unverifiedSubmission.value = null
+      applyHistory(request.id, history)
+      error.value = ''
+      void refreshList().catch((cause) => {
+        error.value = getErrorMessage(cause, t)
+      })
+    } else if (!history.running) {
+      unverifiedSubmission.value = null
+      restoreSubmission(request)
+      error.value = t('agent.sendNotSaved')
+    }
+  } catch (cause) {
+    error.value = t('agent.sendUnverified')
+    console.error('核对已发送消息失败', cause)
+  } finally {
+    verifyingSubmission.value = false
+  }
+}
 async function send(): Promise<void> {
-  if (busy.value || uploading.value || pending.value) return
+  if (
+    busy.value ||
+    uploading.value ||
+    pending.value ||
+    unverifiedSubmission.value ||
+    verifyingSubmission.value
+  )
+    return
   if (draft.value.length > 30_000) {
     error.value = t('agent.messageTooLong')
     return
   }
-  let submitted: { id: string; previousCount: number; optimisticId: string } | null = null
+  let submitted: SubmittedMessage | null = null
+  let sendCompleted = false
+  let runningAfterFailure = false
+  let compactSubmission: { parts: AgentDraftPart[]; completed: boolean } | null = null
   try {
     const id = currentId.value ?? (await createConversation())
     const parts = composer.value?.readParts() ?? []
@@ -349,9 +448,15 @@ async function send(): Promise<void> {
         return
       }
       busy.value = true
+      compacting.value = true
       error.value = ''
-      await window.zhijiApi.agent.compact(id)
+      compactSubmission = { parts, completed: false }
+      composer.value?.clear()
       draft.value = ''
+      await nextTick()
+      await window.zhijiApi.agent.compact(id)
+      compactSubmission.completed = true
+      compacting.value = false
       await selectConversation(id)
       return
     }
@@ -359,39 +464,62 @@ async function send(): Promise<void> {
     busy.value = true
     error.value = ''
     const attachmentIds = uploads.value.map((item) => item.id)
+    const submittedAttachments = [...uploads.value]
     const optimisticId = `optimistic-${++optimisticSequence}`
-    submitted = { id, previousCount: messages.value.length, optimisticId }
+    submitted = {
+      id,
+      previousUserIds: messages.value.filter((item) => item.role === 'user').map((item) => item.id),
+      optimisticId,
+      parts,
+      attachments: submittedAttachments,
+    }
     messages.value = [
       ...messages.value,
-      { id: optimisticId, role: 'user', parts, attachments: [...uploads.value] },
+      { id: optimisticId, role: 'user', parts, attachments: submittedAttachments },
     ]
-    await nextTick()
-    await window.zhijiApi.agent.send(id, parts, attachmentIds)
+    composer.value?.clear()
     draft.value = ''
     uploads.value = []
+    await nextTick()
+    await window.zhijiApi.agent.send(id, parts, attachmentIds)
+    sendCompleted = true
     await selectConversation(id)
     await refreshList()
   } catch (cause) {
     error.value = getErrorMessage(cause, t)
+    if (compactSubmission && !compactSubmission.completed) {
+      composer.value?.restoreParts(compactSubmission.parts)
+    }
     const request = submitted
     if (request) {
+      if (sendCompleted) {
+        error.value = t('agent.sendSavedRefreshFailed')
+        return
+      }
       try {
         const history = await window.zhijiApi.agent.history(request.id)
-        if (history.messages.slice(request.previousCount).some((item) => item.role === 'user')) {
-          draft.value = ''
-          uploads.value = []
-          await selectConversation(request.id)
-          await refreshList()
+        runningAfterFailure = history.running
+        if (submissionWasSaved(request, history)) {
+          applyHistory(request.id, history)
+          error.value = ''
+          void refreshList().catch((refreshError) => {
+            error.value = getErrorMessage(refreshError, t)
+          })
+        } else if (history.running) {
+          unverifiedSubmission.value = request
+          error.value = t('agent.sendUnverified')
         } else {
-          messages.value = messages.value.filter((item) => item.id !== request.optimisticId)
+          restoreSubmission(request)
         }
       } catch (historyError) {
-        messages.value = messages.value.filter((item) => item.id !== request.optimisticId)
+        unverifiedSubmission.value = request
+        error.value = t('agent.sendUnverified')
         console.error('检查已发送消息失败', historyError)
       }
     }
   } finally {
-    busy.value = false
+    compacting.value = false
+    busy.value = runningAfterFailure
   }
 }
 async function respond(value: string[] | boolean): Promise<void> {
@@ -460,13 +588,16 @@ onMounted(async () => {
       )
       if (waiting?.role === 'tool') waiting.status = 'waiting'
     } else if (event.kind === 'compact' && event.compact) {
+      compacting.value = false
       messages.value.push(event.compact)
     } else if (event.kind === 'usage' && event.usage) {
       usage.value = event.usage
     } else if (event.kind === 'done') {
       busy.value = false
+      compacting.value = false
     } else if (event.kind === 'error') {
       busy.value = false
+      compacting.value = false
       error.value = event.text ?? ''
     }
   })
@@ -490,9 +621,13 @@ onBeforeUnmount(() => {
         <strong>{{ activeConversation?.title ?? t('agent.newChat') }}</strong>
       </div>
       <div ref="messagePane" class="agent-messages" aria-live="polite">
-        <div v-if="!timeline.length" class="agent-empty">{{ t('agent.empty') }}</div>
+        <div v-if="!timeline.length && !compacting" class="agent-empty">{{ t('agent.empty') }}</div>
         <template v-for="entry in timeline" :key="entry.id">
-          <AgentToolGroup v-if="entry.role === 'tool-group'" :tools="entry.tools" />
+          <AgentToolGroup
+            v-if="entry.role === 'tool-group'"
+            :tools="entry.tools"
+            :auto-collapse="entry.autoCollapse"
+          />
           <details v-else-if="entry.role === 'compact'" class="agent-compact-row">
             <summary>
               {{ t(entry.status === 'completed' ? 'agent.compactDone' : 'agent.compactSkipped') }}
@@ -518,22 +653,42 @@ onBeforeUnmount(() => {
                 class="agent-attachment-card"
                 :title="attachment.name"
               >
-                <img
-                  v-if="previews[attachment.id]"
-                  :src="previews[attachment.id]"
-                  :alt="attachment.name"
-                />
-                <span v-else class="agent-file-icon">{{
-                  attachment.name.split('.').at(-1)?.toUpperCase()
-                }}</span>
-                <small>{{ attachment.name }}</small>
+                <button
+                  type="button"
+                  class="agent-attachment-open"
+                  :aria-label="attachment.name"
+                  @click="openAttachment(attachment)"
+                >
+                  <img
+                    v-if="previews[attachment.id]"
+                    :src="previews[attachment.id]"
+                    :alt="attachment.name"
+                  />
+                  <span v-else class="agent-file-icon">{{
+                    attachment.name.split('.').at(-1)?.toUpperCase()
+                  }}</span>
+                  <small>{{ attachment.name }}</small>
+                </button>
               </div>
             </div>
           </article>
         </template>
+        <div v-if="compacting" class="agent-compact-running" role="status">
+          <span class="agent-compact-running-icon" aria-hidden="true">⌘</span>
+          <span class="agent-compact-running-name">compact</span>
+          <span class="agent-compact-running-state">{{ t('agent.compactRunning') }}</span>
+        </div>
         <p v-if="thinking" class="agent-thinking">{{ t('agent.thinking') }}</p>
       </div>
-      <div v-if="error" class="agent-error" role="alert">{{ error }}</div>
+      <div v-if="error && !unverifiedSubmission" class="agent-error" role="alert">
+        {{ error }}
+      </div>
+      <div v-if="unverifiedSubmission" class="agent-error agent-send-unverified" role="alert">
+        <span>{{ t('agent.sendUnverified') }}</span>
+        <n-button :loading="verifyingSubmission" @click="verifySubmission">{{
+          t('agent.verifySend')
+        }}</n-button>
+      </div>
       <div v-if="pending" class="agent-pending">
         <div class="agent-pending-heading">
           <strong>{{
@@ -639,15 +794,22 @@ onBeforeUnmount(() => {
             class="agent-attachment-card"
             :title="attachment.name"
           >
-            <img
-              v-if="previews[attachment.id]"
-              :src="previews[attachment.id]"
-              :alt="attachment.name"
-            />
-            <span v-else class="agent-file-icon">{{
-              attachment.name.split('.').at(-1)?.toUpperCase()
-            }}</span>
-            <small>{{ attachment.name }}</small>
+            <button
+              type="button"
+              class="agent-attachment-open"
+              :aria-label="attachment.name"
+              @click="openAttachment(attachment)"
+            >
+              <img
+                v-if="previews[attachment.id]"
+                :src="previews[attachment.id]"
+                :alt="attachment.name"
+              />
+              <span v-else class="agent-file-icon">{{
+                attachment.name.split('.').at(-1)?.toUpperCase()
+              }}</span>
+              <small>{{ attachment.name }}</small>
+            </button>
             <button
               type="button"
               class="agent-attachment-remove"
@@ -662,7 +824,7 @@ onBeforeUnmount(() => {
           ref="composer"
           v-model="draft"
           :placeholder="t('agent.messagePlaceholder')"
-          :disabled="busy"
+          :disabled="busy || !!unverifiedSubmission || verifyingSubmission"
           :mcp-enabled="mcpEnabled"
           :resumes="resumes"
           :opportunities="opportunities"
@@ -693,14 +855,22 @@ onBeforeUnmount(() => {
             <span>{{ t('agent.usageCached') }} {{ formatK(usage.cacheReadTokens) }}</span>
           </div>
           <n-space>
-            <n-button :disabled="busy || uploading" @click="upload">{{
-              t('agent.upload')
-            }}</n-button>
+            <n-button
+              :disabled="busy || uploading || !!unverifiedSubmission || verifyingSubmission"
+              @click="upload"
+              >{{ t('agent.upload') }}</n-button
+            >
             <n-button v-if="busy" @click="cancel">{{ t('agent.stop') }}</n-button>
             <n-button
               v-else
               type="primary"
-              :disabled="uploading || draft.length > 30000 || (!draft.trim() && !uploads.length)"
+              :disabled="
+                uploading ||
+                !!unverifiedSubmission ||
+                verifyingSubmission ||
+                draft.length > 30000 ||
+                (!draft.trim() && !uploads.length)
+              "
               @click="send"
               >{{ t('agent.send') }}</n-button
             >
@@ -714,7 +884,7 @@ onBeforeUnmount(() => {
         ><n-button
           size="small"
           type="primary"
-          :disabled="busy || uploading"
+          :disabled="busy || uploading || !!unverifiedSubmission || verifyingSubmission"
           @click="createConversation"
           >{{ t('agent.newChat') }}</n-button
         >
@@ -729,7 +899,12 @@ onBeforeUnmount(() => {
       >
         <button
           type="button"
-          :disabled="busy || uploading"
+          :disabled="
+            busy ||
+            uploading ||
+            verifyingSubmission ||
+            (!!unverifiedSubmission && conversation.id !== unverifiedSubmission.id)
+          "
           @click="selectConversation(conversation.id)"
         >
           {{ conversation.title }}
@@ -793,6 +968,21 @@ onBeforeUnmount(() => {
           <n-button @click="deleteTargetId = null">{{ t('agent.cancel') }}</n-button>
           <n-button type="error" @click="confirmDelete">{{ t('agent.delete') }}</n-button>
         </n-space>
+      </n-card>
+    </n-modal>
+    <n-modal :show="!!imagePreview" @update:show="imagePreview = $event ? imagePreview : null">
+      <n-card
+        :title="imagePreview?.name"
+        class="agent-image-preview-card"
+        closable
+        @close="imagePreview = null"
+      >
+        <img
+          v-if="imagePreview"
+          class="agent-image-preview"
+          :src="imagePreview.url"
+          :alt="imagePreview.name"
+        />
       </n-card>
     </n-modal>
   </div>
@@ -872,7 +1062,23 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   background: var(--n-color, #fff);
 }
-.agent-attachment-card img,
+.agent-attachment-open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-attachment-open:focus-visible {
+  outline: 2px solid #7865d6;
+  outline-offset: -2px;
+}
+.agent-attachment-open img,
 .agent-file-icon {
   width: 100%;
   height: 88px;
@@ -886,12 +1092,23 @@ onBeforeUnmount(() => {
   font-weight: 700;
   background: #7865d612;
 }
-.agent-attachment-card small {
+.agent-attachment-open small {
   overflow: hidden;
   padding: 5px 8px;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 11px;
+}
+.agent-image-preview-card {
+  width: min(900px, 92vw);
+  max-height: 90vh;
+}
+.agent-image-preview {
+  display: block;
+  max-width: 100%;
+  max-height: calc(90vh - 120px);
+  margin: 0 auto;
+  object-fit: contain;
 }
 .agent-attachment-remove {
   position: absolute;
@@ -912,6 +1129,11 @@ onBeforeUnmount(() => {
 .agent-error {
   margin: 0 16px 8px;
   color: #d03050;
+}
+.agent-send-unverified {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .agent-pending {
   flex: 0 0 auto;
@@ -1043,6 +1265,30 @@ onBeforeUnmount(() => {
 .agent-compact-row span {
   display: block;
   padding: 4px 0 0 16px;
+}
+.agent-compact-running {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  color: #737983;
+}
+.agent-compact-running-icon {
+  width: 22px;
+  text-align: center;
+}
+.agent-compact-running-name {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.agent-compact-running-state {
+  font-size: 12px;
+  animation: agent-compact-pulse 1.2s ease-in-out infinite;
+}
+@keyframes agent-compact-pulse {
+  50% {
+    opacity: 0.45;
+  }
 }
 @media (max-width: 760px) {
   .agent-usage {

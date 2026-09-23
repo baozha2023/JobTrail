@@ -99,6 +99,9 @@ describe('built-in LangGraph agent', () => {
     fs.writeFileSync(source, '岗位要求：TypeScript。')
     const attachment = agent.upload(conversation.id, source)
     expect(fs.existsSync(path.join(paths.chatUploads, `${attachment.id}.txt`))).toBe(true)
+    expect(agent.getAttachmentPath(conversation.id, attachment.id)).toBe(
+      path.join(paths.chatUploads, `${attachment.id}.txt`),
+    )
     const imagePath = path.join(root, 'screenshot.png')
     fs.writeFileSync(
       imagePath,

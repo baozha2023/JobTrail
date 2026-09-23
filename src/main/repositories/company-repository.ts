@@ -1,5 +1,10 @@
 import type Database from 'better-sqlite3'
-import type { Company, CreateCompanyInput, UpdateCompanyInput } from '../../shared/types'
+import type {
+  Company,
+  CompanyQuery,
+  CreateCompanyInput,
+  UpdateCompanyInput,
+} from '../../shared/types'
 import { mapCompany, type CompanyAliasRow, type CompanyRow } from './row-mappers'
 import { containsLikePattern } from './sql'
 
@@ -16,25 +21,45 @@ interface CompanyIndustryRow {
 export class CompanyRepository {
   constructor(private readonly db: SqliteDatabase) {}
 
-  search(keyword: string): CompanyRow[] {
-    if (!keyword) return this.list()
-    const value = containsLikePattern(keyword)
-    return this.db
-      .prepare(
-        `${COMPANY_SELECT}
-      WHERE c.name LIKE ? ESCAPE '\\'
-        OR EXISTS (SELECT 1 FROM company_aliases a WHERE a.company_id = c.id AND a.alias LIKE ? ESCAPE '\\')
-      ORDER BY c.is_favorite DESC, c.name ASC
-    `,
+  search(query: CompanyQuery): { items: Company[]; total: number } {
+    const clauses: string[] = []
+    const params: Array<string | number> = []
+    if (query.keyword) {
+      const value = containsLikePattern(query.keyword)
+      clauses.push(
+        "(c.name LIKE ? ESCAPE '\\' OR EXISTS (SELECT 1 FROM company_aliases a WHERE a.company_id = c.id AND a.alias LIKE ? ESCAPE '\\'))",
       )
-      .all(value, value) as CompanyRow[]
+      params.push(value, value)
+    }
+    if (query.industryId !== null && query.industryId !== undefined) {
+      clauses.push(
+        'EXISTS (SELECT 1 FROM company_industries ci WHERE ci.company_id = c.id AND ci.industry_id = ?)',
+      )
+      params.push(query.industryId)
+    }
+    const where = clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : ''
+    return this.db.transaction(() => {
+      const total = (
+        this.db.prepare(`SELECT COUNT(*) AS count FROM companies c${where}`).get(...params) as {
+          count: number
+        }
+      ).count
+      const rows = this.db
+        .prepare(
+          `${COMPANY_SELECT}${where}
+           ORDER BY c.is_favorite DESC, c.name ASC, c.id ASC
+           LIMIT ? OFFSET ?`,
+        )
+        .all(...params, query.pageSize, (query.page - 1) * query.pageSize) as CompanyRow[]
+      return { items: this.mapMany(rows), total }
+    })()
   }
 
   list(): CompanyRow[] {
     return this.db
       .prepare(
         `${COMPANY_SELECT}
-      ORDER BY c.is_favorite DESC, c.name ASC
+      ORDER BY c.is_favorite DESC, c.name ASC, c.id ASC
     `,
       )
       .all() as CompanyRow[]

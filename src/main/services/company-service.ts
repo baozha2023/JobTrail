@@ -1,9 +1,16 @@
-import type { Company, CreateCompanyInput, UpdateCompanyInput } from '../../shared/types'
+import type {
+  Company,
+  CompanyQuery,
+  CreateCompanyInput,
+  PageResult,
+  UpdateCompanyInput,
+} from '../../shared/types'
 import { CompanyRepository } from '../repositories/company-repository'
 import { IndustryRepository } from '../repositories/industry-repository'
 import {
   AppServiceError,
   assertNonEmptyUpdate,
+  assertPageQuery,
   assertPositiveId,
   nullableText,
   uniqueError,
@@ -32,8 +39,17 @@ export class CompanyService {
     private readonly allowBuiltinEdit: boolean,
   ) {}
 
-  search(keyword: string): Company[] {
-    return this.repository.mapMany(this.repository.search(keyword.trim()))
+  search(query: CompanyQuery): PageResult<Company> {
+    assertPageQuery(query)
+    if (query.industryId !== null && query.industryId !== undefined)
+      assertPositiveId(query.industryId, '行业分类 ID')
+    const result = this.repository.search({ ...query, keyword: query.keyword?.trim() })
+    return {
+      items: result.items,
+      total: result.total,
+      page: query.page,
+      pageSize: query.pageSize,
+    }
   }
   list(): Company[] {
     return this.repository.mapMany(this.repository.list())

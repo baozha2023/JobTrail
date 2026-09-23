@@ -180,6 +180,10 @@ export class AgentFileStore {
     return `data:${attachment.mimeType};base64,${fs.readFileSync(filePath).toString('base64')}`
   }
 
+  getPath(id: string, conversationId: string): string {
+    return this.resolve(this.get(id, conversationId).relativePath)
+  }
+
   remove(id: string, conversationId: string): void {
     const attachment = this.get(id, conversationId)
     const filePath = this.resolve(attachment.relativePath)

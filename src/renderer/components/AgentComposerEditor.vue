@@ -182,7 +182,39 @@ function readValue(): string {
     .join('')
 }
 
-defineExpose({ readParts })
+function referenceNode(reference: AgentReference): HTMLSpanElement {
+  const label = agentReferenceLabel(reference, t)
+  const span = document.createElement('span')
+  span.className = 'agent-reference'
+  span.contentEditable = 'false'
+  span.dataset.agentReference = JSON.stringify(reference)
+  span.textContent = label
+  span.title = label
+  span.setAttribute('aria-label', label)
+  return span
+}
+
+function restoreParts(parts: AgentDraftPart[]): void {
+  const root = editor.value
+  if (!root) return
+  root.replaceChildren(
+    ...parts.map((part) =>
+      part.kind === 'text' ? document.createTextNode(part.text) : referenceNode(part),
+    ),
+  )
+  internalValue = readValue()
+  emit('update:modelValue', internalValue)
+  closePopup()
+}
+
+function clear(): void {
+  editor.value?.replaceChildren()
+  internalValue = ''
+  emit('update:modelValue', '')
+  closePopup()
+}
+
+defineExpose({ clear, readParts, restoreParts })
 
 function sync(): void {
   internalValue = readValue()
@@ -286,18 +318,11 @@ function choose(option: Option): void {
   const active = trigger.value
   if (!active || !active.node.isConnected) return
   const reference = optionReference(option)
-  const label = agentReferenceLabel(reference, t)
   const range = document.createRange()
   range.setStart(active.node, active.start)
   range.setEnd(active.node, active.end)
   range.deleteContents()
-  const span = document.createElement('span')
-  span.className = 'agent-reference'
-  span.contentEditable = 'false'
-  span.dataset.agentReference = JSON.stringify(reference)
-  span.textContent = label
-  span.title = label
-  span.setAttribute('aria-label', label)
+  const span = referenceNode(reference)
   range.insertNode(span)
   const previous = span.previousSibling
   if (

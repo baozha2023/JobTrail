@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import semver from 'semver'
 
 const FEED_NAME = 'releases.win.json'
+const FIRST_FORMAL_VERSION = '1.0.0'
 const SAFE_PACKAGE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*\.nupkg$/
 const MAX_FEED_BYTES = 1024 * 1024
 
@@ -50,6 +51,7 @@ async function readFeed(response) {
 // delegate a second "latest" selection to vpk after choosing a lower baseline.
 export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, outputDir }) {
   if (!stableVersion(targetVersion)) throw new Error('invalid_baseline_target_version')
+  if (semver.lte(targetVersion, FIRST_FORMAL_VERSION)) return null
   let baseUrl
   try {
     baseUrl = new URL(feedUrl)
@@ -91,7 +93,10 @@ export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, out
   )
     throw new Error('invalid_baseline_feed')
   const candidates = fulls
-    .filter((asset) => semver.lt(asset.Version, targetVersion))
+    .filter(
+      (asset) =>
+        semver.gte(asset.Version, FIRST_FORMAL_VERSION) && semver.lt(asset.Version, targetVersion),
+    )
     .sort((a, b) => semver.rcompare(a.Version, b.Version))
   const selected = candidates[0]
   if (!selected) return null
@@ -101,7 +106,10 @@ export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, out
   const head = await sourceRequest(packageUrl, {
     method: 'HEAD',
   })
-  if (head.status === 404) return null
+  if (head.status === 404) {
+    await head.body?.cancel()
+    throw new Error('baseline_full_request_failed')
+  }
   if (!head.ok) throw new Error('baseline_full_request_failed')
   const download = await sourceRequest(packageUrl, {
     timeout: 30 * 60 * 1000,

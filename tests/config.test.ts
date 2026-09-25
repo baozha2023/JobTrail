@@ -3,7 +3,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AppPaths } from '../src/main/config'
-import { ConfigService, DEFAULT_CONFIG } from '../src/main/config'
+import { ConfigLoadError, ConfigService, DEFAULT_CONFIG } from '../src/main/config'
+import { updateFreezePath } from '../src/main/update-freeze'
 
 describe('config service', () => {
   const roots: string[] = []
@@ -46,30 +47,38 @@ describe('config service', () => {
     })
   })
 
-  it('backs up malformed and unsupported-version config files', () => {
+  it('preserves config while an update snapshot is being prepared', () => {
     const paths = createPaths()
-    fs.writeFileSync(paths.config, '{ broken')
-    const recovered = new ConfigService(paths)
-    expect(recovered.get()).toMatchObject(DEFAULT_CONFIG)
-    expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
-      true,
-    )
-
-    fs.writeFileSync(paths.config, JSON.stringify({ configVersion: 2 }))
-    const reset = new ConfigService(paths)
-    expect(reset.get().configVersion).toBe(1)
-    expect(
-      fs.readdirSync(paths.root).filter((name) => name.startsWith('config.json.broken-')).length,
-    ).toBe(2)
+    const config = new ConfigService(paths)
+    const original = fs.readFileSync(paths.config)
+    const freeze = updateFreezePath(paths.root)
+    fs.mkdirSync(path.dirname(freeze), { recursive: true })
+    fs.writeFileSync(freeze, '')
+    expect(() => config.update({ locale: 'en-US' })).toThrow('应用正在更新')
+    expect(fs.readFileSync(paths.config)).toEqual(original)
   })
 
-  it('backs up configuration with an invalid known field', () => {
+  it('preserves malformed and unsupported-version config files without resetting settings', () => {
     const paths = createPaths()
-    fs.writeFileSync(paths.config, JSON.stringify({ configVersion: 1, locale: 'fr-FR' }))
-    expect(new ConfigService(paths).get()).toMatchObject(DEFAULT_CONFIG)
-    expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
-      true,
-    )
+    const malformed = '{ broken'
+    fs.writeFileSync(paths.config, malformed)
+    expect(() => new ConfigService(paths)).toThrow(ConfigLoadError)
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(malformed)
+    expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
+
+    const future = JSON.stringify({ configVersion: 2, ai: { apiKey: 'preserve-me' } })
+    fs.writeFileSync(paths.config, future)
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_VERSION_UNSUPPORTED')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(future)
+    expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
+  })
+
+  it('preserves configuration with an invalid known field', () => {
+    const paths = createPaths()
+    const invalid = JSON.stringify({ configVersion: 1, locale: 'fr-FR' })
+    fs.writeFileSync(paths.config, invalid)
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(invalid)
   })
 
   it('rejects an invalid company read validity period', () => {
@@ -78,18 +87,16 @@ describe('config service', () => {
       paths.config,
       JSON.stringify({ configVersion: 1, companyReadValidityMonths: 0 }),
     )
-    expect(new ConfigService(paths).get().companyReadValidityMonths).toBe(3)
-    expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
-      true,
-    )
+    const original = fs.readFileSync(paths.config, 'utf8')
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(original)
   })
   it('rejects an invalid status flow theme', () => {
     const paths = createPaths()
     fs.writeFileSync(paths.config, JSON.stringify({ ...DEFAULT_CONFIG, statusFlowTheme: 'neon' }))
-    expect(new ConfigService(paths).get().statusFlowTheme).toBe('violet')
-    expect(fs.readdirSync(paths.root).some((name) => name.startsWith('config.json.broken-'))).toBe(
-      true,
-    )
+    const original = fs.readFileSync(paths.config, 'utf8')
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(original)
   })
   it('accepts only HTTPS or loopback AI endpoints and stores the API key in config', () => {
     const paths = createPaths()

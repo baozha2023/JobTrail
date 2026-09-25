@@ -108,6 +108,9 @@ describe('JobTrail MCP server', () => {
     expect(
       listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.openWorldHint,
     ).toBe(true)
+    expect(
+      listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.readOnlyHint,
+    ).toBe(false)
     const result = await client.callTool({ name: 'list_statuses', arguments: {} })
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toMatchObject({
@@ -135,7 +138,6 @@ describe('JobTrail MCP server', () => {
           nextCursor: input.cursor ? null : 'snapshot-cursor',
           headings: [{ level: 1, text: '岗位详情' }],
           links: [],
-          truncated: !input.cursor,
           incompleteReason: null,
           warnings: [],
         }

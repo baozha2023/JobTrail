@@ -3,7 +3,6 @@ import {
   COMPANY_CATALOG_ASSET_URL,
   COMPANY_CATALOG_MANIFEST_URL,
   MAX_COMPANY_CATALOG_BYTES,
-  compareReleaseVersions,
   parseCompanyCatalogManifest,
   parseCompanyCatalogText,
   rawSha256,
@@ -138,12 +137,10 @@ export class CompanyCatalogUpdater {
       report({ phase: 'validation', progress: 58 })
       if (rawSha256(catalogBytes) !== manifest.sha256)
         throw new AppServiceError('CATALOG_HASH_MISMATCH', catalogInvalidMessage)
-      const catalog = parseCompanyCatalogText(new TextDecoder().decode(catalogBytes))
-      if (compareReleaseVersions(catalog.minimumAppVersion, this.appVersion()) > 0)
-        throw new AppServiceError(
-          'CATALOG_APP_UPDATE_REQUIRED',
-          `请先将职迹更新至 ${catalog.minimumAppVersion} 或更高版本`,
-        )
+      const catalog = parseCompanyCatalogText(
+        new TextDecoder().decode(catalogBytes),
+        this.appVersion(),
+      )
       report({ phase: 'sync', progress: 72 })
       const result = this.catalogService.synchronize(catalog, manifest.sha256)
       report({ phase: 'finalizing', progress: 96 })

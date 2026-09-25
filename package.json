@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -21,8 +21,8 @@
     "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
     "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
     "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && node scripts/pack-velopack.mjs",
-    "format": "prettier --write src tests scripts docs *.ts *.json *.md .github/workflows/*.yml",
-    "format:check": "prettier --check src tests scripts docs *.ts *.json *.md .github/workflows/*.yml"
+    "format": "prettier --write src tests scripts docs *.ts *.json *.md",
+    "format:check": "prettier --check src tests scripts docs *.ts *.json *.md"
   },
   "dependencies": {
     "@langchain/core": "1.2.11",

@@ -12,8 +12,44 @@ import { AppServiceError } from './services/errors'
 import { DesktopUpdateService } from './update-service'
 import type { DatabaseManager } from './database'
 import { createRollbackPoint, preserveRollbackPackage } from './update-rollback'
+import { mcpSessionDirectory, updateFreezePath } from './update-freeze'
 
 export const UPDATE_FEED_URL = 'https://github.com/baozha2023/JobTrail/releases/latest/download'
+
+async function waitForMcpSessions(root: string): Promise<void> {
+  const directory = mcpSessionDirectory(root)
+  const deadline = Date.now() + 15_000
+  for (;;) {
+    const entries = await fsp.readdir(directory).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return []
+      throw error
+    })
+    let active = false
+    for (const entry of entries) {
+      const match = /^(\d+)-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.exec(entry)
+      if (!match) throw new Error('mcp_session_lease_invalid')
+      const pid = Number(match[1])
+      if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('mcp_session_lease_invalid')
+      const file = path.join(directory, entry)
+      const stat = await fsp.lstat(file).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return null
+        throw error
+      })
+      if (!stat) continue
+      if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('mcp_session_lease_invalid')
+      try {
+        process.kill(pid, 0)
+        active = true
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ESRCH') await fsp.rm(file, { force: true })
+        else active = true
+      }
+    }
+    if (!active) return
+    if (Date.now() >= deadline) throw new Error('mcp_sessions_did_not_close')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+}
 
 async function writeJsonAtomic(target: string, value: unknown): Promise<void> {
   const temporary = `${target}.tmp-${randomUUID()}`
@@ -104,20 +140,40 @@ export function registerVelopackIpc(database: DatabaseManager): void {
         const dataRoot = getStorageRoot()
         const stateRoot = path.join(dataRoot, '.runtime', 'state')
         await fsp.mkdir(stateRoot, { recursive: true })
-        await createRollbackPoint({
-          dataRoot,
-          sourceVersion: app.getVersion(),
-          targetVersion,
-          snapshotDatabase: (destination) => database.snapshotForUpdate(destination),
-        })
         const pendingPath = path.join(stateRoot, 'pending-update.json')
-        await writeJsonAtomic(pendingPath, {
-          format: 'jobtrail-pending-update',
-          sourceVersion: app.getVersion(),
-          targetVersion,
-          failureCount: 0,
-          createdAt: new Date().toISOString(),
+        if (fs.existsSync(pendingPath)) throw new Error('pending_update_already_exists')
+        const freezePath = updateFreezePath(dataRoot)
+        await fsp.writeFile(freezePath, '', { flag: 'wx' })
+        try {
+          await waitForMcpSessions(dataRoot)
+          // Wait for writes that began before the freeze. New UnitOfWork writes
+          // check the marker inside their IMMEDIATE transaction.
+          database.db.transaction(() => undefined).immediate()
+          await createRollbackPoint({
+            dataRoot,
+            sourceVersion: app.getVersion(),
+            targetVersion,
+            snapshotDatabase: (destination) => database.snapshotForUpdate(destination),
+          })
+          await writeJsonAtomic(pendingPath, {
+            format: 'jobtrail-pending-update',
+            sourceVersion: app.getVersion(),
+            targetVersion,
+            failureCount: 0,
+            createdAt: new Date().toISOString(),
+          })
+        } catch (error) {
+          await fsp.rm(pendingPath, { force: true })
+          await fsp.rm(freezePath, { force: true })
+          throw error
+        }
+      },
+      cancelPrepare: async () => {
+        const dataRoot = getStorageRoot()
+        await fsp.rm(path.join(dataRoot, '.runtime', 'state', 'pending-update.json'), {
+          force: true,
         })
+        await fsp.rm(updateFreezePath(dataRoot), { force: true })
       },
     }))
   }

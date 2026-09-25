@@ -6,6 +6,14 @@ import { BUNDLED_COMPANY_CATALOG, BUNDLED_COMPANY_CATALOG_HASH } from './company
 
 type SqliteDatabase = InstanceType<typeof Database>
 export const DB_SCHEMA_VERSION = 1
+export const INCOMPATIBLE_DATA_EXIT_CODE = 78
+
+export class DatabaseVersionError extends Error {
+  constructor(version: number) {
+    super(`不支持的数据库结构版本：${version}，需要版本 ${DB_SCHEMA_VERSION}`)
+    this.name = 'DatabaseVersionError'
+  }
+}
 
 const DEFAULT_STATUSES = [
   '感兴趣',
@@ -115,6 +123,8 @@ export class DatabaseManager {
     fs.mkdirSync(path.dirname(paths.database), { recursive: true })
     this.db = new Database(paths.database)
     try {
+      const version = this.db.pragma('user_version', { simple: true }) as number
+      if (version !== 0 && version !== DB_SCHEMA_VERSION) throw new DatabaseVersionError(version)
       this.db.pragma('journal_mode = WAL')
       this.db.pragma('busy_timeout = 5000')
       this.db.transaction(() => this.initialize()).immediate()
@@ -139,12 +149,11 @@ export class DatabaseManager {
 
   private initialize(): void {
     const version = this.db.pragma('user_version', { simple: true }) as number
-    if (version !== 0 && version !== DB_SCHEMA_VERSION) {
-      throw new Error(`不支持的数据库结构版本：${version}，需要版本 ${DB_SCHEMA_VERSION}`)
-    }
+    if (version === DB_SCHEMA_VERSION) return
+    if (version !== 0) throw new DatabaseVersionError(version)
 
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS statuses (
+      CREATE TABLE statuses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         label TEXT NOT NULL UNIQUE,
         sort_order INTEGER NOT NULL,
@@ -153,7 +162,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS industries (
+      CREATE TABLE industries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         sort_order INTEGER NOT NULL,
@@ -162,7 +171,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS companies (
+      CREATE TABLE companies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         builtin_key TEXT UNIQUE,
@@ -173,7 +182,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS builtin_company_catalog_state (
+      CREATE TABLE builtin_company_catalog_state (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         format_version INTEGER NOT NULL,
         catalog_version INTEGER NOT NULL,
@@ -181,14 +190,14 @@ export class DatabaseManager {
         applied_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS company_industries (
+      CREATE TABLE company_industries (
         company_id INTEGER NOT NULL,
         industry_id INTEGER NOT NULL,
         created_at INTEGER NOT NULL,
         PRIMARY KEY (company_id, industry_id)
       );
 
-      CREATE TABLE IF NOT EXISTS company_aliases (
+      CREATE TABLE company_aliases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         company_id INTEGER NOT NULL,
         alias TEXT NOT NULL,
@@ -196,7 +205,7 @@ export class DatabaseManager {
         UNIQUE(company_id, alias)
       );
 
-      CREATE TABLE IF NOT EXISTS resume_versions (
+      CREATE TABLE resume_versions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         relative_path TEXT NOT NULL UNIQUE,
@@ -208,7 +217,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS agent_conversations (
+      CREATE TABLE agent_conversations (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         title_finalized INTEGER NOT NULL DEFAULT 0 CHECK (title_finalized IN (0, 1)),
@@ -219,7 +228,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS agent_chat_events (
+      CREATE TABLE agent_chat_events (
         seq INTEGER PRIMARY KEY AUTOINCREMENT,
         id TEXT NOT NULL UNIQUE,
         conversation_id TEXT NOT NULL,
@@ -228,7 +237,7 @@ export class DatabaseManager {
         created_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS agent_model_usage (
+      CREATE TABLE agent_model_usage (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
         kind TEXT NOT NULL CHECK (kind IN ('agent', 'compact')),
@@ -238,7 +247,7 @@ export class DatabaseManager {
         created_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS chat_attachments (
+      CREATE TABLE chat_attachments (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
         original_name TEXT NOT NULL,
@@ -249,7 +258,7 @@ export class DatabaseManager {
         created_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS opportunities (
+      CREATE TABLE opportunities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         company_id INTEGER NOT NULL,
         title TEXT NOT NULL,
@@ -268,7 +277,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS opportunity_status_events (
+      CREATE TABLE opportunity_status_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         opportunity_id INTEGER NOT NULL,
         status_id INTEGER NOT NULL,
@@ -277,7 +286,7 @@ export class DatabaseManager {
         kind TEXT NOT NULL CHECK (kind IN ('created', 'changed'))
       );
 
-      CREATE TABLE IF NOT EXISTS calendar_events (
+      CREATE TABLE calendar_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         opportunity_id INTEGER,
         title TEXT NOT NULL,
@@ -293,7 +302,7 @@ export class DatabaseManager {
         updated_at INTEGER NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS calendar_event_reminders (
+      CREATE TABLE calendar_event_reminders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         calendar_event_id INTEGER NOT NULL,
         reminder_at INTEGER NOT NULL,
@@ -301,23 +310,21 @@ export class DatabaseManager {
         UNIQUE(calendar_event_id, reminder_at)
       );
 
-      CREATE INDEX IF NOT EXISTS idx_opportunities_status_id ON opportunities(status_id);
-      CREATE INDEX IF NOT EXISTS idx_opportunity_status_events_flow ON opportunity_status_events(opportunity_id, occurred_at, id);
-      CREATE INDEX IF NOT EXISTS idx_opportunity_status_events_status_id ON opportunity_status_events(status_id);
-      CREATE INDEX IF NOT EXISTS idx_opportunities_company_id ON opportunities(company_id);
-      CREATE INDEX IF NOT EXISTS idx_opportunities_deadline_at ON opportunities(deadline_at);
-      CREATE INDEX IF NOT EXISTS idx_opportunities_updated_at ON opportunities(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_company_industries_industry_id ON company_industries(industry_id);
-      CREATE INDEX IF NOT EXISTS idx_calendar_events_range ON calendar_events(start_at, end_at);
-      CREATE INDEX IF NOT EXISTS idx_agent_conversations_updated_at ON agent_conversations(updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_agent_chat_events_conversation ON agent_chat_events(conversation_id, seq);
-      CREATE INDEX IF NOT EXISTS idx_agent_model_usage_conversation ON agent_model_usage(conversation_id, created_at);
-      CREATE INDEX IF NOT EXISTS idx_chat_attachments_conversation_id ON chat_attachments(conversation_id);
+      CREATE INDEX idx_opportunities_status_id ON opportunities(status_id);
+      CREATE INDEX idx_opportunity_status_events_flow ON opportunity_status_events(opportunity_id, occurred_at, id);
+      CREATE INDEX idx_opportunity_status_events_status_id ON opportunity_status_events(status_id);
+      CREATE INDEX idx_opportunities_company_id ON opportunities(company_id);
+      CREATE INDEX idx_opportunities_deadline_at ON opportunities(deadline_at);
+      CREATE INDEX idx_opportunities_updated_at ON opportunities(updated_at);
+      CREATE INDEX idx_company_industries_industry_id ON company_industries(industry_id);
+      CREATE INDEX idx_calendar_events_range ON calendar_events(start_at, end_at);
+      CREATE INDEX idx_agent_conversations_updated_at ON agent_conversations(updated_at DESC);
+      CREATE INDEX idx_agent_chat_events_conversation ON agent_chat_events(conversation_id, seq);
+      CREATE INDEX idx_agent_model_usage_conversation ON agent_model_usage(conversation_id, created_at);
+      CREATE INDEX idx_chat_attachments_conversation_id ON chat_attachments(conversation_id);
     `)
 
-    if (version === 0) {
-      this.seed()
-    }
+    this.seed()
   }
 
   private seed(): void {

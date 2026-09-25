@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import { assertUpdateWritable } from '../update-freeze'
 
 type SqliteDatabase = InstanceType<typeof Database>
 type LifecycleCallback = () => void
@@ -17,7 +18,10 @@ interface ActiveTransaction {
 export class UnitOfWork {
   private active: ActiveTransaction | undefined
 
-  constructor(private readonly database: SqliteDatabase) {}
+  constructor(
+    private readonly database: SqliteDatabase,
+    private readonly dataRoot: string,
+  ) {}
 
   run<T>(operation: (lifecycle: TransactionLifecycle) => T): T {
     if (this.active) return this.runNested(this.active, operation)
@@ -34,7 +38,10 @@ export class UnitOfWork {
 
     try {
       const result = this.database
-        .transaction(() => this.execute(operation, transaction.lifecycle))
+        .transaction(() => {
+          assertUpdateWritable(this.dataRoot)
+          return this.execute(operation, transaction.lifecycle)
+        })
         .immediate()
       this.active = undefined
       for (const callback of transaction.afterCommit) {

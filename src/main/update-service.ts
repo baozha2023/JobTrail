@@ -16,6 +16,7 @@ export interface UpdateBackend {
 export interface UpdateRollback {
   preserve(targetVersion: string): Promise<void>
   prepare(targetVersion: string): Promise<void>
+  cancelPrepare(): Promise<void>
 }
 
 export class DesktopUpdateService {
@@ -66,7 +67,12 @@ export class DesktopUpdateService {
         throw new AppServiceError('VALIDATION_ERROR', '请先完成更新下载')
       }
       await this.rollback.prepare(asset.Version)
-      this.backend.waitExitThenApplyUpdate(asset, false, true, ['--handoff-root'])
+      try {
+        this.backend.waitExitThenApplyUpdate(asset, false, true, ['--handoff-root'])
+      } catch (error) {
+        await this.rollback.cancelPrepare()
+        throw error
+      }
       this.closing = true
       return true
     })

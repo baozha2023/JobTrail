@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 import Database from 'better-sqlite3'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppPaths } from '../src/main/config'
@@ -11,6 +12,7 @@ import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
+import { updateFreezePath } from '../src/main/update-freeze'
 
 describe('职迹最终数据库结构和业务服务', () => {
   const builtinCompanies = BUNDLED_COMPANY_CATALOG.companies
@@ -33,7 +35,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     }
     database = new DatabaseManager(paths)
     files = new FileStorageService(paths)
-    unitOfWork = new UnitOfWork(database.db)
+    unitOfWork = new UnitOfWork(database.db, paths.root)
     services = createServices(unitOfWork, database, files, false)
   })
 
@@ -41,6 +43,18 @@ describe('职迹最终数据库结构和业务服务', () => {
     vi.restoreAllMocks()
     database?.close()
     fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  it('blocks business writes while an update snapshot is being prepared', () => {
+    const freeze = updateFreezePath(paths.root)
+    fs.mkdirSync(path.dirname(freeze), { recursive: true })
+    fs.writeFileSync(freeze, '')
+    expect(() => services.companies.create({ name: '冻结期间' })).toThrow('应用正在更新')
+    expect(services.companies.list()).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: '冻结期间' })]),
+    )
+    fs.rmSync(freeze)
+    expect(services.companies.create({ name: '冻结解除' }).name).toBe('冻结解除')
   })
 
   it('backs up committed WAL data for update rollback without closing the live database', async () => {
@@ -246,6 +260,9 @@ describe('职迹最终数据库结构和业务服务', () => {
     const rawDatabase = new Database(unsupportedDatabasePath)
     rawDatabase.pragma('user_version = 2')
     rawDatabase.close()
+    const originalHash = createHash('sha256')
+      .update(fs.readFileSync(unsupportedDatabasePath))
+      .digest('hex')
     const unsupportedPaths: AppPaths = {
       root: unsupportedRoot,
       config: path.join(unsupportedRoot, 'config.json'),
@@ -257,6 +274,10 @@ describe('职迹最终数据库结构和业务服务', () => {
 
     try {
       expect(() => new DatabaseManager(unsupportedPaths)).toThrow('不支持的数据库结构版本')
+      expect(
+        createHash('sha256').update(fs.readFileSync(unsupportedDatabasePath)).digest('hex'),
+      ).toBe(originalHash)
+      expect(fs.readdirSync(path.dirname(unsupportedDatabasePath))).toEqual(['zhiji.db'])
       const inspection = new Database(unsupportedDatabasePath, { readonly: true })
       expect(
         inspection.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all(),
@@ -279,7 +300,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       .run(opportunity.id)
     database!.close()
     database = new DatabaseManager(paths)
-    services = createServices(new UnitOfWork(database.db), database, files, false)
+    services = createServices(new UnitOfWork(database.db, paths.root), database, files, false)
 
     expect(services.opportunities.statusFlow(opportunity.id).events).toEqual([])
   })

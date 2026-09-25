@@ -5,11 +5,16 @@ export const pageSchema = z.number().int().positive()
 export const pageSizeSchema = z.number().int().positive().max(100)
 export const timestampSchema = z.number().int().nonnegative()
 const webUrlSchema = z.url()
-export const readWebPageInputSchema = z.strictObject({
-  url: webUrlSchema,
-  render: z.enum(['auto', 'static', 'dynamic']).optional(),
-  cursor: z.union([z.literal(0), z.string().min(1).max(100)]).optional(),
-})
+export const readWebPageInputSchema = z
+  .strictObject({
+    url: webUrlSchema,
+    render: z.enum(['auto', 'static', 'dynamic']).optional(),
+    scroll: z.boolean().optional(),
+    cursor: z.union([z.literal(0), z.string().min(1).max(100)]).optional(),
+  })
+  .refine((value) => !value.scroll || value.render !== 'static', {
+    message: 'scroll requires dynamic rendering',
+  })
 export const readWebPageOutputSchema = z.strictObject({
   sourceUrl: webUrlSchema,
   finalUrl: webUrlSchema,
@@ -20,7 +25,6 @@ export const readWebPageOutputSchema = z.strictObject({
   nextCursor: z.string().nullable(),
   headings: z.array(z.strictObject({ level: z.number().int().min(1).max(6), text: z.string() })),
   links: z.array(z.strictObject({ text: z.string(), url: webUrlSchema })),
-  truncated: z.boolean(),
   incompleteReason: z.string().nullable(),
   warnings: z.array(z.string()),
 })

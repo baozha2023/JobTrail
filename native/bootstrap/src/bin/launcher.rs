@@ -1,6 +1,6 @@
 #![windows_subsystem = "windows"]
 use anyhow::{bail, Context, Result};
-use jobtrail_bootstrap::{error_dialog, plain_file, validate_installation, version};
+use jobtrail_bootstrap::{error_dialog, plain_file, version};
 #[path = "../rollback.rs"]
 mod rollback;
 use std::{ffi::OsString, process::Command};
@@ -16,12 +16,12 @@ fn validate_args(args: &[OsString]) -> Result<()> {
     Ok(())
 }
 
-fn run(args: &[OsString]) -> Result<()> {
+fn run(args: &[OsString]) -> Result<rollback::LaunchOutcome> {
     validate_args(args)?;
     let exe = std::env::current_exe()?;
     let root = exe.parent().context("安装目录缺失")?;
     if is_mcp_mode(args) {
-        validate_installation(root)?;
+        rollback::prepare_mcp(root)?;
         let client = root.join(".runtime/current/zhiji.exe");
         plain_file(&client)?;
         let archive = root.join(".runtime/current/resources/app.asar");
@@ -42,13 +42,19 @@ fn run(args: &[OsString]) -> Result<()> {
 }
 fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
-    if let Err(error) = run(&args) {
-        if args.iter().any(|arg| arg == "--mcp") {
-            eprintln!("JobTrail MCP launcher failed");
-        } else {
-            error_dialog(&error);
+    match run(&args) {
+        Ok(rollback::LaunchOutcome::Healthy) => {}
+        Ok(rollback::LaunchOutcome::IncompatibleData) => {
+            std::process::exit(rollback::INCOMPATIBLE_DATA_EXIT_CODE);
         }
-        std::process::exit(1);
+        Err(error) => {
+            if args.iter().any(|arg| arg == "--mcp") {
+                eprintln!("JobTrail MCP launcher failed");
+            } else {
+                error_dialog(&error);
+            }
+            std::process::exit(1);
+        }
     }
 }
 

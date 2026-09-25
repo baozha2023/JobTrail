@@ -1,8 +1,12 @@
 import path from 'node:path'
+import fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio'
-import { ConfigService, type AppPaths } from './config'
+import { ConfigLoadError, ConfigService, type AppPaths } from './config'
 import { createJobTrailMcpServer } from './mcp/server'
 import { createServiceContainer } from './service-container'
+import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE } from './database'
+import { mcpSessionDirectory, updateFreezePath } from './update-freeze'
 
 function requiredEnvironment(name: 'JOBTRAIL_MCP_ROOT' | 'JOBTRAIL_MCP_VERSION'): string {
   const value = process.env[name]?.trim()
@@ -23,21 +27,46 @@ function appPaths(root: string): AppPaths {
 
 const version = requiredEnvironment('JOBTRAIL_MCP_VERSION')
 const paths = appPaths(path.resolve(requiredEnvironment('JOBTRAIL_MCP_ROOT')))
-const config = new ConfigService(paths)
-const container = createServiceContainer(paths, false)
+const freezePath = updateFreezePath(paths.root)
+if (fs.existsSync(freezePath)) process.exit(75)
+const leaseDirectory = mcpSessionDirectory(paths.root)
+fs.mkdirSync(leaseDirectory, { recursive: true })
+const leasePath = path.join(leaseDirectory, `${process.pid}-${randomUUID()}`)
+fs.writeFileSync(leasePath, '', { flag: 'wx' })
+process.once('exit', () => fs.rmSync(leasePath, { force: true }))
+if (fs.existsSync(freezePath)) process.exit(75)
+let config: ConfigService
+let container: ReturnType<typeof createServiceContainer>
+try {
+  config = new ConfigService(paths)
+  container = createServiceContainer(paths, false)
+} catch (error) {
+  if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError)
+    process.exit(INCOMPATIBLE_DATA_EXIT_CODE)
+  throw error
+}
 let handle: StdioServerHandle | undefined
 let closing = false
+let freezeTimer: ReturnType<typeof setInterval> | undefined
 
 async function close(exitCode = 0): Promise<void> {
   if (closing) return
   closing = true
+  if (freezeTimer) clearInterval(freezeTimer)
   try {
     await handle?.close()
   } catch (error) {
     console.error('JobTrail MCP transport close failed', error)
     exitCode = 1
   }
+  try {
+    await container.services.web.dispose()
+  } catch (error) {
+    console.error('JobTrail web session close failed', error)
+    exitCode = 1
+  }
   container.database.close()
+  fs.rmSync(leasePath, { force: true })
   process.exitCode = exitCode
 }
 
@@ -71,4 +100,8 @@ process.once('unhandledRejection', (error) => {
   console.error('JobTrail MCP unhandled rejection', error)
   void close(1)
 })
+freezeTimer = setInterval(() => {
+  if (fs.existsSync(freezePath)) void close(75)
+}, 500)
+freezeTimer.unref?.()
 console.error(`JobTrail MCP ${version} running on stdio`)

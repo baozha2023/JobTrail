@@ -74,12 +74,26 @@ export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
   return parsed.data
 }
 
-export function parseCompanyCatalogText(value: string): CompanyCatalogDocument {
+export function parseCompanyCatalogText(
+  value: string,
+  appVersion?: string,
+): CompanyCatalogDocument {
   let parsed: unknown
   try {
     parsed = JSON.parse(value)
   } catch {
     throw invalidCatalog()
+  }
+  if (appVersion !== undefined && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const minimumAppVersion = (parsed as Record<string, unknown>).minimumAppVersion
+    if (
+      typeof minimumAppVersion === 'string' &&
+      compareReleaseVersions(minimumAppVersion, appVersion) > 0
+    )
+      throw new AppServiceError(
+        'CATALOG_APP_UPDATE_REQUIRED',
+        `请先将职迹更新至 ${minimumAppVersion} 或更高版本`,
+      )
   }
   return parseCompanyCatalog(parsed)
 }
@@ -108,7 +122,9 @@ export function compareReleaseVersions(first: string, second: string): number {
   const parse = (value: string): [number, number, number] => {
     const match = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(value)
     if (!match) throw invalidCatalog()
-    return [Number(match[1]), Number(match[2]), Number(match[3])]
+    const parts = [Number(match[1]), Number(match[2]), Number(match[3])]
+    if (parts.some((part) => !Number.isSafeInteger(part))) throw invalidCatalog()
+    return parts as [number, number, number]
   }
   const left = parse(first)
   const right = parse(second)

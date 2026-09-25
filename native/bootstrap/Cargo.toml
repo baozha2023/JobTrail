@@ -1,6 +1,5 @@
 [package]
 name = "jobtrail-bootstrap"
-version = "0.8.0"
 edition = "2021"
 build = "build.rs"
 
@@ -26,3 +25,4 @@ uuid = { version = "1.11", features = ["v4"] }
 winapi = { version = "0.3.9", features = ["commctrl", "errhandlingapi", "fileapi", "handleapi", "libloaderapi", "processthreadsapi", "synchapi", "winerror", "wingdi", "winbase", "winnt", "winuser"] }
 [build-dependencies]
 winres = "0.1.12"
+serde_json = "1.0"

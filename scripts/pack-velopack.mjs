@@ -18,7 +18,7 @@ function run(command, args, env = {}) {
   const result = spawnSync(command, args, {
     cwd: root,
     stdio: 'inherit',
-    env: { ...process.env, JOBTRAIL_VERSION: pkg.version, ...env },
+    env: { ...process.env, ...env },
     shell: false,
   })
   if (result.error) throw result.error

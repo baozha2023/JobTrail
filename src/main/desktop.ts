@@ -6,8 +6,8 @@ import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { APP_ID, ROOT_LAUNCHER } from './installation-paths'
 import { trustWindow } from './ipc/register-channel'
-import { ConfigService, getAppPaths, getStorageRoot } from './config'
-import type { DatabaseManager } from './database'
+import { ConfigLoadError, ConfigService, getAppPaths, getStorageRoot } from './config'
+import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE, type DatabaseManager } from './database'
 import { registerIpc, registerWindowIpc } from './ipc'
 import { createServiceContainer } from './service-container'
 import { ReminderScheduler } from './reminder-scheduler'
@@ -257,6 +257,10 @@ app
     try {
       initializeApplication()
     } catch (error) {
+      if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
+        setImmediate(() => app.exit(INCOMPATIBLE_DATA_EXIT_CODE))
+        return
+      }
       const message = error instanceof Error ? error.message : String(error)
       dialog.showErrorBox('职迹启动失败', message)
       app.quit()

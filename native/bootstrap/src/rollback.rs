@@ -267,7 +267,21 @@ fn start_runtime(root: &Path, args: &[OsString], token: Uuid) -> Result<Child> {
         .context("启动职迹程序")
 }
 
-fn wait_health(child: &mut Child, path: &Path, installed_version: &str) -> Result<bool> {
+pub const INCOMPATIBLE_DATA_EXIT_CODE: i32 = 78;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LaunchCheck {
+    Healthy,
+    Failed,
+    IncompatibleData,
+}
+
+pub enum LaunchOutcome {
+    Healthy,
+    IncompatibleData,
+}
+
+fn wait_health(child: &mut Child, path: &Path, installed_version: &str) -> Result<LaunchCheck> {
     let deadline = Instant::now() + HEALTH_TIMEOUT;
     while Instant::now() < deadline {
         if path.exists() {
@@ -281,24 +295,28 @@ fn wait_health(child: &mut Child, path: &Path, installed_version: &str) -> Resul
                 bail!("程序启动健康记录无效");
             }
             fs::remove_file(path)?;
-            return Ok(true);
+            return Ok(LaunchCheck::Healthy);
         }
-        if child.try_wait()?.is_some() {
-            return Ok(false);
+        if let Some(status) = child.try_wait()? {
+            return Ok(if status.code() == Some(INCOMPATIBLE_DATA_EXIT_CODE) {
+                LaunchCheck::IncompatibleData
+            } else {
+                LaunchCheck::Failed
+            });
         }
         thread::sleep(Duration::from_millis(250));
     }
-    Ok(false)
+    Ok(LaunchCheck::Failed)
 }
 
-fn launch_checked(root: &Path, state_root: &Path, args: &[OsString]) -> Result<bool> {
+fn launch_checked(root: &Path, state_root: &Path, args: &[OsString]) -> Result<LaunchCheck> {
     let installed_version = version(root)?;
     let token = Uuid::new_v4();
     let health_path = state_root.join(format!("healthy-{token}.json"));
     let mut child = start_runtime(root, args, token)?;
     let result = wait_health(&mut child, &health_path, &installed_version);
     match result {
-        Ok(true) => Ok(true),
+        Ok(LaunchCheck::Healthy) => Ok(LaunchCheck::Healthy),
         other => {
             let _ = child.kill();
             let _ = child.wait();
@@ -435,16 +453,57 @@ fn clean_rollback(root: &Path) {
     }
 }
 
-pub fn launch(root: &Path, args: &[OsString]) -> Result<()> {
+fn clear_update_freeze(state_root: &Path) -> Result<()> {
+    let freeze = state_root.join("update-freeze");
+    if freeze.exists() {
+        plain_file(&freeze)?;
+        fs::remove_file(freeze)?;
+    }
+    Ok(())
+}
+
+pub fn prepare_mcp(root: &Path) -> Result<()> {
+    validate_installation(root)?;
+    let state_root = root.join(".runtime/state");
+    let pending_path = state_root.join("pending-update.json");
+    let freeze_path = state_root.join("update-freeze");
+    let client = root.join(".runtime/current/zhiji.exe");
+    let deadline = Instant::now() + GUARD_TIMEOUT;
+    loop {
+        let pending = read_pending(&pending_path)?;
+        if pending.is_none() && !freeze_path.exists() {
+            return Ok(());
+        }
+        if freeze_path.exists() {
+            plain_file(&freeze_path)?;
+        }
+        if let Some(update) = pending {
+            if version(root)? == update.target_version && !live_application(&state_root, &client) {
+                match launch(root, &[])? {
+                    LaunchOutcome::Healthy => continue,
+                    LaunchOutcome::IncompatibleData => bail!("更新回滚后数据版本不受支持"),
+                }
+            }
+        }
+        if Instant::now() >= deadline {
+            bail!("更新尚未完成，暂不能启动 MCP");
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+}
+
+pub fn launch(root: &Path, args: &[OsString]) -> Result<LaunchOutcome> {
     validate_installation(root)?;
     let state_root = root.join(".runtime/state");
     let client = root.join(".runtime/current/zhiji.exe");
     if live_application(&state_root, &client) {
-        return forward_arguments(root, args);
+        forward_arguments(root, args)?;
+        return Ok(LaunchOutcome::Healthy);
     }
     let _guard = wait_for_guard(root)?;
     if live_application(&state_root, &client) {
-        return forward_arguments(root, args);
+        forward_arguments(root, args)?;
+        return Ok(LaunchOutcome::Healthy);
     }
     fs::create_dir_all(&state_root)?;
     validate_tree(&state_root)?;
@@ -456,32 +515,59 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<()> {
         {
             bail!("更新后的程序版本与预期不一致");
         }
+        if installed_version == update.source_version {
+            bail!("更新程序尚未替换旧版本，请等待更新完成");
+        }
     }
-    if launch_checked(root, &state_root, args)? {
+    let first = launch_checked(root, &state_root, args)?;
+    if first == LaunchCheck::Healthy {
         register(root, &installed_version, false)?;
         if pending.is_some() {
             fs::remove_file(pending_path)?;
         }
+        clear_update_freeze(&state_root)?;
         // Once startup is healthy, rollback data is disposable. Failure to
         // prune it cannot turn a running application into a failed launch;
         // the next root launch retries this cleanup.
         clean_rollback(root);
-        return Ok(());
+        return Ok(LaunchOutcome::Healthy);
     }
     if let Some(update) = pending.as_mut() {
         if installed_version == update.target_version {
-            update.failure_count = update.failure_count.saturating_add(1).min(2);
+            // An incompatible data format is deterministic. Confirm once more
+            // within this launch, then use the existing rollback point.
+            let failed_checks = if first == LaunchCheck::IncompatibleData {
+                let second = launch_checked(root, &state_root, args)?;
+                if second == LaunchCheck::Healthy {
+                    register(root, &installed_version, false)?;
+                    fs::remove_file(pending_path)?;
+                    clean_rollback(root);
+                    return Ok(LaunchOutcome::Healthy);
+                }
+                2
+            } else {
+                1
+            };
+            update.failure_count = update.failure_count.saturating_add(failed_checks).min(2);
             write_json_atomic(&pending_path, update)?;
             if update.failure_count >= 2 {
                 apply_rollback(root, &state_root, update)?;
-                if launch_checked(root, &state_root, &[])? {
-                    register(root, &update.source_version, false)?;
-                    clean_rollback(root);
-                    return Ok(());
+                match launch_checked(root, &state_root, &[])? {
+                    LaunchCheck::Healthy => {
+                        register(root, &update.source_version, false)?;
+                        clear_update_freeze(&state_root)?;
+                        clean_rollback(root);
+                        return Ok(LaunchOutcome::Healthy);
+                    }
+                    LaunchCheck::IncompatibleData => return Ok(LaunchOutcome::IncompatibleData),
+                    LaunchCheck::Failed => {}
                 }
                 bail!("恢复旧版本后仍未通过启动健康检查");
             }
         }
+    }
+    if first == LaunchCheck::IncompatibleData {
+        return Ok(LaunchOutcome::IncompatibleData);
     }
     bail!("职迹未在 45 秒内完成启动，请重试")
 }
@@ -489,6 +575,20 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recognizes_silent_incompatible_data_exit() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut child = Command::new("cmd")
+            .args(["/C", "exit 78"])
+            .creation_flags(NO_WINDOW)
+            .spawn()
+            .unwrap();
+        assert_eq!(
+            wait_health(&mut child, &temp.path().join("no-health.json"), "1.0.0").unwrap(),
+            LaunchCheck::IncompatibleData
+        );
+    }
 
     #[test]
     fn rejects_unsafe_package_names() {

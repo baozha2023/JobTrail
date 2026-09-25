@@ -25,7 +25,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
     { name: 'jobtrail', version: dependencies.version },
     {
       instructions:
-        'Use read tools freely. Web reads retry transient network failures once and report errors or incompleteReason; do not repeat exhausted requests or treat extraction failure as no jobs. Tell the user when public web content cannot be verified. Write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
+        'Use local read tools freely. Web reads may execute bounded same-origin JSON search, query or list POST requests whose server-side effects cannot be proven absent. They retry transient network failures once and report errors or incompleteReason; do not repeat exhausted requests or treat extraction failure as no jobs. Tell the user when public web content cannot be verified. Local write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
       inputRequired: { legacyShim: true, maxRounds: 8, roundTimeoutMs: 600_000 },
       requestState: { verify: coordinator.verifyRequestState },
     },
@@ -43,7 +43,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
         outputSchema,
         annotations: {
           title: descriptor.title,
-          readOnlyHint: descriptor.readOnly,
+          readOnlyHint: descriptor.readOnlyHint ?? descriptor.readOnly,
           destructiveHint: descriptor.destructive,
           idempotentHint: descriptor.idempotent,
           openWorldHint: descriptor.openWorld,

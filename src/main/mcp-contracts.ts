@@ -42,6 +42,7 @@ interface McpToolDescriptorBase {
   destructive: boolean
   idempotent: boolean
   openWorld: boolean
+  readOnlyHint?: boolean
   inputSchema: z.ZodType
   outputSchema: z.ZodType
 }
@@ -77,6 +78,7 @@ type McpToolDefinition<I extends z.ZodType, O extends z.ZodType> = {
   destructive?: boolean
   idempotent?: boolean
   openWorld?: boolean
+  readOnlyHint?: boolean
   inputSchema: I
   outputSchema: O
 } & (
@@ -321,8 +323,9 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'read_web_page',
     title: 'Read public web page',
     description:
-      'Read one public HTML page, including JavaScript-rendered content. Omit cursor or pass 0 to fetch a fresh snapshot and receive up to 20,000 UTF-16 units of text; if nextCursor is non-null, pass it back with the same URL and render mode to read the next chunk without another network request. An expired cursor requires restarting at 0. Continue only when more text is needed. This tool does not extract jobs or navigate website pages automatically. Only verified read-only query POST requests are allowed; inspect incompleteReason and errors.',
+      'Read any public HTML page. Set scroll: true for infinite-scroll content; omit cursor or pass 0 to start, then pass each nextCursor back with the same URL, render mode and scroll value until null. One opaque cursor continues long text and links before loading the next scroll batch. Each response contains up to 20,000 UTF-16 text units and 50 links, independent of the number of page items. The browser may execute bounded same-origin JSON POST requests to search, query, list, filter, lookup or find endpoints; their server-side effects cannot be proven absent. It does not click buttons or submit forms. Check incompleteReason and warnings before claiming all content was read.',
     readOnly: true,
+    readOnlyHint: false,
     openWorld: true,
     inputSchema: readWebPageInputSchema,
     outputSchema: readWebPageOutputSchema,

@@ -31,7 +31,6 @@ export function parseWebPage(html: string, base: string): ParsedWebPage {
   const description = clean($('meta[name="description"]').attr('content'), 1_000)
   const headings = $('h1,h2,h3')
     .toArray()
-    .slice(0, 30)
     .flatMap((element) => {
       const text = clean($(element).text(), 200)
       return text ? [{ level: Number(element.tagName[1]), text }] : []
@@ -46,7 +45,6 @@ export function parseWebPage(html: string, base: string): ParsedWebPage {
     if (!url || !text || seenLinks.has(url)) continue
     seenLinks.add(url)
     links.push({ text, url })
-    if (links.length === 250) break
   }
   $('script,style,template,noscript,svg,nav,footer,header,iframe,form').remove()
   content.find('p,div,li,br,section,article,h1,h2,h3').after(' ')

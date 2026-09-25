@@ -977,17 +977,10 @@ fn run() -> Result<()> {
     let Some(root) = select_install_root(root)? else {
         return Ok(());
     };
-    if rfd::MessageDialog::new()
-        .set_title("职迹安装完成")
-        .set_description("是否立即启动职迹？")
-        .set_buttons(rfd::MessageButtons::YesNo)
-        .show()
-        == rfd::MessageDialogResult::Yes
-    {
-        Command::new(root.join(LAUNCHER))
-            .creation_flags(NO_WINDOW)
-            .spawn()?;
-    }
+    Command::new(root.join(LAUNCHER))
+        .creation_flags(NO_WINDOW)
+        .spawn()
+        .context("安装已完成，但无法自动打开职迹")?;
     Ok(())
 }
 fn main() {

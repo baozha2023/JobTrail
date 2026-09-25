@@ -85,7 +85,7 @@ export class CompanyCatalogService {
               )
             if (matchesCatalog(keyed, entry)) unchanged += 1
             else {
-              this.repository.replaceCatalogData(keyed.id, entry, timestamp)
+              this.repository.updateCatalogData(keyed, entry, timestamp)
               updated += 1
             }
             continue
@@ -98,7 +98,7 @@ export class CompanyCatalogService {
                 'CATALOG_CONFLICT',
                 '本地公司与新数据存在冲突，请检查公司名称后重试',
               )
-            this.repository.replaceCatalogData(sameName.id, entry, timestamp)
+            this.repository.updateCatalogData(sameName, entry, timestamp)
             adopted += 1
           } else {
             this.repository.insert(entry, timestamp)

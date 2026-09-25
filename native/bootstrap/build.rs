@@ -1,8 +1,15 @@
 use std::{env, fs, path::PathBuf};
 fn main() {
-    println!("cargo:rerun-if-env-changed=JOBTRAIL_VERSION");
     println!("cargo:rerun-if-env-changed=JOBTRAIL_REQUIRED_SPACE_BYTES");
-    let version = env::var("JOBTRAIL_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").into());
+    let package_json =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("../../package.json");
+    println!("cargo:rerun-if-changed={}", package_json.display());
+    let package: serde_json::Value =
+        serde_json::from_slice(&fs::read(&package_json).expect("read package.json"))
+            .expect("parse package.json");
+    let version = package["version"]
+        .as_str()
+        .expect("package.json version must be a string");
     let required_space = env::var("JOBTRAIL_REQUIRED_SPACE_BYTES").unwrap_or_else(|_| "0".into());
     required_space
         .parse::<u64>()
@@ -24,10 +31,10 @@ fn main() {
             (u64::from(parts[0]) << 48) | (u64::from(parts[1]) << 32) | (u64::from(parts[2]) << 16);
         res.set_version_info(winres::VersionInfo::FILEVERSION, numeric)
             .set_version_info(winres::VersionInfo::PRODUCTVERSION, numeric);
-        res.set("FileVersion", &version);
+        res.set("FileVersion", version);
         res.set("ProductName", "职迹")
             .set("FileDescription", "职迹安装与启动程序")
-            .set("ProductVersion", &version);
+            .set("ProductVersion", version);
         res.set_manifest(r#"<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"><trustInfo xmlns="urn:schemas-microsoft-com:asm.v3"><security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false"/></requestedPrivileges></security></trustInfo><dependency><dependentAssembly><assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/></dependentAssembly></dependency><application xmlns="urn:schemas-microsoft-com:asm.v3"><windowsSettings><dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware><dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness></windowsSettings></application></assembly>"#);
         res.compile().expect("compile application icon");
     }

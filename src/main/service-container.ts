@@ -42,7 +42,7 @@ export function createServiceContainer(
 } {
   const database = new DatabaseManager(paths)
   const files = new FileStorageService(paths)
-  const unitOfWork = new UnitOfWork(database.db)
+  const unitOfWork = new UnitOfWork(database.db, paths.root)
   return {
     database,
     unitOfWork,

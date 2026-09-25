@@ -1,320 +1,292 @@
-# 职迹数据库声明
-
-## 数据库位置
-
-- 开发环境：`<项目根目录>/data/zhiji.db`
-- 安装环境：`<JobTrail 安装根目录>/data/zhiji.db`
-
-应用配置不存储在数据库中，而是存储在：
-
-- 开发环境：`<项目根目录>/config.json`
-- 安装环境：`<JobTrail 安装根目录>/config.json`
-
-配置文件版本 `configVersion` 为 `1`。
-
-## SQLite 初始化规则
+# 职迹 SQLite 数据库（v1）
 
-- 使用 `better-sqlite3`。
-- `PRAGMA journal_mode = WAL`。
-- `PRAGMA busy_timeout = 5000`。
-- 禁止创建 SQLite 物理外键；所有跨表关联均为逻辑外键，由业务 service 校验和维护。
-- 时间统一使用 UTC Unix 毫秒时间戳。
-- 布尔值使用 INTEGER：`0=false`、`1=true`。
-- 使用 SQLite 内置 `PRAGMA user_version` 记录结构版本。
-- 不创建 `schema_migrations` 表。
-- 当前完整结构版本为 `1`。新数据库直接以本文件中的结构初始化，不执行 `ALTER TABLE`、过程性迁移 SQL 或旧数据自动补图。
-- 内置智能体的会话索引、完整展示事件、模型用量和附件元数据按下述表直接初始化。LangGraph SQLite saver 在同一个数据库中维护自己的 checkpoint 表；图状态保存可压缩的工作记忆与摘要，展示历史由 `agent_chat_events` 独立保存。
-- 用户消息的简历、求职记录和技能引用作为结构化片段保存在归档事件及 LangGraph 消息元数据中；模型输入由这些片段生成，界面标签按当前语言显示。数据库不另存本地化标签正文。
+本文记录当前代码定义的数据库结构与持久化规则。应用表的建表实现位于 `src/main/database.ts`；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v1 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
 
-## 智能体表
+## 文件与版本
 
-### agent_conversations
+| 内容     | 开发环境                     | 安装环境                              |
+| -------- | ---------------------------- | ------------------------------------- |
+| 数据库   | `<项目根目录>/data/zhiji.db` | `<JobTrail 安装根目录>/data/zhiji.db` |
+| 配置     | `<项目根目录>/config.json`   | `<JobTrail 安装根目录>/config.json`   |
+| 简历文件 | `<项目根目录>/resumes/`      | `<JobTrail 安装根目录>/resumes/`      |
+| 聊天附件 | `<项目根目录>/chat-uploads/` | `<JobTrail 安装根目录>/chat-uploads/` |
 
-| 字段              | 类型    | 约束                       | 说明                                    |
-| ----------------- | ------- | -------------------------- | --------------------------------------- |
-| id                | TEXT    | PRIMARY KEY                | 会话 UUID，同时作为 LangGraph thread ID |
-| title             | TEXT    | NOT NULL                   | 右侧历史列表标题                        |
-| title_finalized   | INTEGER | NOT NULL，默认 0，取值 0/1 | 首条消息自动命名或手动重命名后锁定标题  |
-| input_tokens      | INTEGER | NOT NULL，默认 0           | 已报告的模型输入 token 累计             |
-| output_tokens     | INTEGER | NOT NULL，默认 0           | 已报告的模型输出 token 累计             |
-| cache_read_tokens | INTEGER | NOT NULL，默认 0           | 已报告的缓存命中输入 token 累计         |
-| created_at        | INTEGER | NOT NULL                   | 创建时间                                |
-| updated_at        | INTEGER | NOT NULL                   | 最近对话时间                            |
-
-索引：`idx_agent_conversations_updated_at`。
+数据库使用 `better-sqlite3`。连接设置为 `journal_mode=WAL`、`busy_timeout=5000`；运行时可能出现 `zhiji.db-wal` 和 `zhiji.db-shm`。更新前的数据库快照通过 SQLite 在线备份取得，包含已提交的 WAL 内容。`PRAGMA data_version` 仅用于检测其他连接的改动，不是结构版本。
 
-### agent_chat_events
+结构版本使用 SQLite 内置 `PRAGMA user_version`，当前为 **1**；应用不创建 `schema_migrations` 表：
 
-| 字段            | 类型    | 约束                                     | 说明                                |
-| --------------- | ------- | ---------------------------------------- | ----------------------------------- |
-| seq             | INTEGER | PRIMARY KEY AUTOINCREMENT                | 展示顺序                            |
-| id              | TEXT    | NOT NULL UNIQUE                          | 幂等事件 ID                         |
-| conversation_id | TEXT    | NOT NULL                                 | 逻辑关联会话                        |
-| kind            | TEXT    | NOT NULL，限 user/assistant/tool/compact | 展示类型                            |
-| payload         | TEXT    | NOT NULL                                 | 结构化消息、工具状态或压缩记录 JSON |
-| created_at      | INTEGER | NOT NULL                                 | 归档时间                            |
+1. `user_version=0`：在一个 `IMMEDIATE` 事务内创建下述 15 张表和 12 个显式索引，写入种子数据，最后将 `user_version` 设为 1；失败时整笔事务回滚。
+2. `user_version=1`：正常打开，不再次建表或写入种子数据。
+3. 其他版本：抛出 `DatabaseVersionError` 并关闭连接；不尝试修改或降级原数据库。
 
-索引：`idx_agent_chat_events_conversation`。图节点先归档已持久化的消息，再删除工作记忆中的旧消息；取消的部分输出标记为未完成。
+当前代码只处理新库与结构版本 1，没有数据库迁移流程。`config.json` 的 `configVersion=1` 独立于 `user_version`；内置公司目录的 `catalog_version` 也独立于两者。
 
-### agent_model_usage
+## 数据约定
 
-| 字段              | 类型    | 约束                       | 说明                     |
-| ----------------- | ------- | -------------------------- | ------------------------ |
-| id                | TEXT    | PRIMARY KEY                | 模型调用的幂等记录 ID    |
-| conversation_id   | TEXT    | NOT NULL                   | 逻辑关联会话             |
-| kind              | TEXT    | NOT NULL，限 agent/compact | 普通回复或摘要调用       |
-| input_tokens      | INTEGER | 可空                       | 端点报告的输入 token     |
-| output_tokens     | INTEGER | 可空                       | 端点报告的输出 token     |
-| cache_read_tokens | INTEGER | 可空                       | 端点报告的缓存命中 token |
-| created_at        | INTEGER | NOT NULL                   | 调用记录时间             |
+- 时间字段（`*_at`）按 UTC Unix 毫秒存储；`reminder_minutes` 是分钟数。
+- 布尔字段按 `INTEGER` 的 0/1 存储，并由数据库约束限制取值。
+- 表之间没有 SQLite 物理外键或级联删除定义。下文所说的关联都是逻辑关联，由 Service 层校验、清理或阻止删除。
+- 下表的“约束”列描述数据库实际声明的主键、非空、唯一、默认值和检查条件；名称非空、时区有效、ID 存在等更严格的规则由 Service 层验证。
+- 原始简历与聊天附件文件保存在文件系统；`resume_versions` 和 `chat_attachments` 表只保存相对路径、大小、哈希等元数据。配置和 API 密钥不存入这些应用表。
 
-索引：`idx_agent_model_usage_conversation`。空值表示端点未提供数据；会话累计只加总已报告数，界面遇到缺失项显示“未提供”。
+## 应用表结构
 
-### chat_attachments
+### 状态与行业
 
-| 字段            | 类型    | 约束            | 说明                           |
-| --------------- | ------- | --------------- | ------------------------------ |
-| id              | TEXT    | PRIMARY KEY     | 附件 UUID                      |
-| conversation_id | TEXT    | NOT NULL        | 逻辑关联会话                   |
-| original_name   | TEXT    | NOT NULL        | 原始文件名                     |
-| relative_path   | TEXT    | NOT NULL UNIQUE | `chat-uploads/` 内 UUID 文件名 |
-| mime_type       | TEXT    | NOT NULL        | 已校验的内容类型               |
-| size_bytes      | INTEGER | NOT NULL        | 文件大小                       |
-| sha256          | TEXT    | NOT NULL        | 导入内容哈希                   |
-| created_at      | INTEGER | NOT NULL        | 上传时间                       |
+`statuses` 保存求职状态；`industries` 保存行业分类。`sort_order` 是显示顺序，`is_builtin` 标记内置数据。
 
-索引：`idx_chat_attachments_conversation_id`。删除会话时同步删除附件文件与元数据，并调用 LangGraph saver 删除 thread。
-
-## 业务表
-
-### statuses
-
-| 字段       | 类型    | 约束               | 说明         |
-| ---------- | ------- | ------------------ | ------------ |
-| id         | INTEGER | PK AUTOINCREMENT   | 状态 ID      |
-| label      | TEXT    | NOT NULL UNIQUE    | 状态名称     |
-| sort_order | INTEGER | NOT NULL           | 显示顺序     |
-| is_builtin | INTEGER | NOT NULL DEFAULT 0 | 是否内置状态 |
-| created_at | INTEGER | NOT NULL           | 创建时间     |
-| updated_at | INTEGER | NOT NULL           | 更新时间     |
-
-默认状态：感兴趣、待投递、已投递、初筛、笔试、AI面试、一面、二面、三面、HR面、Offer、淘汰、主动放弃。
-
-状态删除规则：
-
-1. 生产环境内置状态直接返回 `BUILTIN_DATA` 和“该数据为内置，无法删除/修改”，禁止编辑和删除；开发环境放开内置状态的增删改查权限，但仍遵守求职记录及历史引用保护。
-2. 查询 `opportunities.status_id` 或 `opportunity_status_events.status_id` 是否引用目标状态。
-3. 有引用时返回 `STATUS_IN_USE` 和使用数量，禁止删除。
-4. 只有一个状态时返回 `LAST_STATUS`，禁止删除。
-5. 未被引用且不是最后一个状态时允许删除。
-
-状态显示顺序通过状态业务服务整体重排 `sort_order`，管理表格不直接展示该内部字段。
-
-### industries
-
-| 字段       | 类型    | 约束               | 说明             |
-| ---------- | ------- | ------------------ | ---------------- |
-| id         | INTEGER | PK AUTOINCREMENT   | 行业分类 ID      |
-| name       | TEXT    | NOT NULL UNIQUE    | 行业名称         |
-| sort_order | INTEGER | NOT NULL           | 显示顺序         |
-| is_builtin | INTEGER | NOT NULL DEFAULT 0 | 是否内置行业分类 |
-| created_at | INTEGER | NOT NULL           | 创建时间         |
-| updated_at | INTEGER | NOT NULL           | 更新时间         |
-
-内置行业分类（固定字典，共 83 项）：互联网、游戏、人工智能、软件、芯片、硬件、通信与硬件、电子与硬件、计算机与IT服务、金融、银行、证券与投资、保险、电商与零售、消费品、食品饮料、医疗健康、生物医药、汽车、新能源、制造业、化工与材料、建筑与房地产、家居与物业、物流与供应链、交通运输、航空航天、能源与矿业、电力与公用事业、教育、旅游与酒店、媒体与内容、广告与营销、文化娱乐、专业服务与咨询、法律服务、人力资源、农业与农牧、政府与公共服务、跨境贸易、生活服务、环保与循环经济、其他服务、林业与木材、渔业与水产、烟草、纺织与服装、化妆品与美容、珠宝与奢侈品、批发贸易、医疗器械、互联网安全、云计算与数据服务、物联网、机器人与智能制造、科研与技术服务、检验检测与认证、会计审计与税务、设计与创意、知识产权服务、安保服务、国防军工、轨道交通、港口航运与海洋、邮政与快递、航空服务与机场、核工业、石油与天然气、水务与水处理、餐饮、体育与健身、养老与社会工作、出版与印刷、影视与演艺、宠物与兽医、租赁服务、维修与保养、国际组织、非营利与社会组织、殡葬与生命服务、地质勘查与测绘、气象与海洋观测、招标采购与工程服务。
-
-生产环境内置行业分类禁止编辑和删除；开发环境放开内置行业分类的增删改查权限，但仍遵守被公司使用时的删除保护。自定义行业分类被公司使用时禁止删除。
-
-### companies
-
-| 字段         | 类型    | 约束               | 说明                                   |
-| ------------ | ------- | ------------------ | -------------------------------------- |
-| id           | INTEGER | PK AUTOINCREMENT   | 公司 ID                                |
-| name         | TEXT    | NOT NULL UNIQUE    | 公司名称                               |
-| builtin_key  | TEXT    | 可空 UNIQUE        | 内置公司稳定 UUID；用户公司为 NULL     |
-| career_url   | TEXT    | 可空               | 招聘官网                               |
-| last_read_at | INTEGER | 可空               | 上次点击招聘官网的 UTC Unix 毫秒时间戳 |
-| is_favorite  | INTEGER | NOT NULL DEFAULT 0 | 是否收藏                               |
-| created_at   | INTEGER | NOT NULL           | 创建时间                               |
-| updated_at   | INTEGER | NOT NULL           | 更新时间                               |
-
-不包含 `short_name`、`english_name`、`website`。
-
-行业分类通过 `company_industries` 实现多对多关联。
-
-### company_industries
-
-| 字段        | 类型    | 约束     | 说明                                  |
-| ----------- | ------- | -------- | ------------------------------------- |
-| company_id  | INTEGER | NOT NULL | 公司 ID，逻辑关联 `companies.id`      |
-| industry_id | INTEGER | NOT NULL | 行业分类 ID，逻辑关联 `industries.id` |
-| created_at  | INTEGER | NOT NULL | 创建时间                              |
-
-主键：`(company_id, industry_id)`。
-
-索引：`idx_company_industries_industry_id`。
-
-`builtin_key` 非空即为内置公司，公共 DTO 的 `isBuiltin` 由此推导，稳定 key 不向 Renderer 或 MCP 暴露。生产环境内置公司的主体数据禁止编辑和删除；开发环境放开内置公司的增删改查权限，但仍遵守被求职记录引用时的删除保护。`is_favorite` 是用户偏好，在所有环境均允许修改。
-
-公司管理页面点击招聘官网链接时，由 `CompanyService.markRead()` 写入 `last_read_at`。是否已读由界面按 `config.json` 的 `companyReadValidityMonths` 判断：为空或当前时间达到上次已读时间加配置月份数时为“未读”，否则为“已读”。该配置默认值为 3 个月。
-
-公司删除规则：
-
-1. 生产环境中的内置公司直接返回 `BUILTIN_DATA` 和“该数据为内置，无法删除/修改”，禁止删除。
-2. 查询 `opportunities.company_id` 是否引用目标公司。
-3. 有引用时返回 `COMPANY_IN_USE` 和“当前公司正在被求职记录使用，不能删除”，禁止删除。
-4. 未被引用时先删除公司的行业关联和别名，再删除公司记录。
-
-### company_aliases
-
-| 字段       | 类型    | 约束                                 | 说明     |
-| ---------- | ------- | ------------------------------------ | -------- |
-| id         | INTEGER | PK AUTOINCREMENT                     | 别名 ID  |
-| company_id | INTEGER | NOT NULL 逻辑外键，指向 companies.id | 所属公司 |
-| alias      | TEXT    | NOT NULL                             | 搜索别名 |
-| created_at | INTEGER | NOT NULL                             | 创建时间 |
-
-唯一约束：`UNIQUE(company_id, alias)`。
-
-生产环境内置公司的别名禁止新增、编辑和删除；开发环境允许通过公司编辑接口维护内置公司的别名，并随公司删除一起清理。
-
-### builtin_company_catalog_state
-
-该表固定只有 `id = 1` 一行，与目录公司变更在同一事务提交。
-
-| 字段            | 类型    | 约束                | 说明                  |
-| --------------- | ------- | ------------------- | --------------------- |
-| id              | INTEGER | PK，CHECK(id = 1)   | 固定值 1              |
-| format_version  | INTEGER | NOT NULL            | JSON 格式版本         |
-| catalog_version | INTEGER | NOT NULL            | 已应用目录版本        |
-| content_sha256  | TEXT    | NOT NULL，长度为 64 | 原始目录 JSON SHA-256 |
-| applied_at      | INTEGER | NOT NULL            | 最近应用时间          |
-
-### resume_versions
-
-| 字段          | 类型    | 约束             | 说明                |
-| ------------- | ------- | ---------------- | ------------------- |
-| id            | INTEGER | PK AUTOINCREMENT | 简历版本 ID         |
-| name          | TEXT    | NOT NULL         | 简历版本名称        |
-| relative_path | TEXT    | NOT NULL UNIQUE  | UUID 文件名及扩展名 |
-| size_bytes    | INTEGER | 可空             | 文件大小            |
-| sha256        | TEXT    | 可空             | 文件校验值          |
-| note          | TEXT    | 可空             | 备注                |
-| sort_order    | INTEGER | NOT NULL         | 显示顺序            |
-| created_at    | INTEGER | NOT NULL         | 创建时间            |
-| updated_at    | INTEGER | NOT NULL         | 更新时间            |
-
-不包含 `file_name`、`mime_type` 或 `is_active`。`sort_order` 由简历版本 service 统一维护，管理页面通过上下箭头调整顺序，数据库不直接暴露排序字段编辑。文件固定存储在：
-
-- 开发环境：`<项目根目录>/resumes/`
-- 安装环境：`<JobTrail 安装根目录>/resumes/`
-
-`relative_path` 示例：`550e8400-e29b-41d4-a716-446655440000.pdf`。
-
-### opportunities
-
-一条记录代表一个公司岗位求职机会。
-
-| 字段              | 类型    | 约束                                  | 说明           |
-| ----------------- | ------- | ------------------------------------- | -------------- |
-| id                | INTEGER | PK AUTOINCREMENT                      | 求职机会 ID    |
-| company_id        | INTEGER | NOT NULL 逻辑外键，指向 companies.id  | 公司           |
-| title             | TEXT    | NOT NULL                              | 岗位名称       |
-| department        | TEXT    | 可空                                  | 部门           |
-| location          | TEXT    | 可空                                  | 工作地点       |
-| source            | TEXT    | 可空                                  | 岗位来源       |
-| job_url           | TEXT    | 可空                                  | 岗位链接       |
-| description       | TEXT    | 可空                                  | JD 内容        |
-| status_id         | INTEGER | NOT NULL 逻辑外键，指向 statuses.id   | 当前状态       |
-| resume_version_id | INTEGER | 可空逻辑外键，指向 resume_versions.id | 使用的简历版本 |
-| discovered_at     | INTEGER | 可空                                  | 发现时间       |
-| applied_at        | INTEGER | 可空                                  | 投递时间       |
-| deadline_at       | INTEGER | 可空                                  | 截止时间       |
-| notes             | TEXT    | 可空                                  | 备注           |
-| created_at        | INTEGER | NOT NULL                              | 创建时间       |
-| updated_at        | INTEGER | NOT NULL                              | 更新时间       |
-
-索引：`company_id`、`status_id`、`deadline_at`、`updated_at`。
-
-### opportunity_status_events
-
-每行是一个求职记录的实际状态节点，不能通过 UI 手动增删改。状态名称保留写入时的快照，不受之后重命名影响。
-
-| 字段           | 类型    | 约束                                     | 说明                                    |
-| -------------- | ------- | ---------------------------------------- | --------------------------------------- |
-| id             | INTEGER | PK AUTOINCREMENT                         | 节点 ID                                 |
-| opportunity_id | INTEGER | NOT NULL 逻辑外键，指向 opportunities.id | 所属求职记录                            |
-| status_id      | INTEGER | NOT NULL 逻辑外键，指向 statuses.id      | 状态 ID                                 |
-| status_label   | TEXT    | NOT NULL                                 | 写入时的状态名称                        |
-| occurred_at    | INTEGER | NOT NULL                                 | UTC Unix 毫秒；创建或变更的实际写入时间 |
-| kind           | TEXT    | NOT NULL，`created`/`changed` 之一       | 创建或状态变更                          |
-
-索引：`(opportunity_id, occurred_at, id)` 用于按时间读取流转图，`status_id` 用于历史引用删除保护。相同时间以节点 ID 决定稳定顺序。新建求职记录写入 `created`，通过编辑或独立状态切换接口改变状态时写入 `changed`；状态未变化不增加节点。
-
-### calendar_events
-
-| 字段             | 类型    | 约束                                | 说明                                                          |
-| ---------------- | ------- | ----------------------------------- | ------------------------------------------------------------- |
-| id               | INTEGER | PK AUTOINCREMENT                    | 日程 ID                                                       |
-| opportunity_id   | INTEGER | 可空逻辑外键，指向 opportunities.id | 关联求职机会                                                  |
-| title            | TEXT    | NOT NULL                            | 日程标题                                                      |
-| event_type       | TEXT    | NOT NULL                            | 日程类型名称；直接保存所选语言的选项文案并原样显示            |
-| start_at         | INTEGER | NOT NULL                            | UTC Unix 毫秒开始时间；全天日程为其时区开始日期的 00:00       |
-| end_at           | INTEGER | NOT NULL                            | UTC Unix 毫秒结束时间；全天日程为其时区不包含结束日期的 00:00 |
-| is_all_day       | INTEGER | NOT NULL DEFAULT 0                  | 是否全天                                                      |
-| timezone         | TEXT    | NOT NULL                            | 有效的 IANA 时区名称，用于日程显示和日期归属                  |
-| location         | TEXT    | 可空                                | 地点或会议链接                                                |
-| description      | TEXT    | 可空                                | 日程说明                                                      |
-| reminder_minutes | INTEGER | 可空，非负                          | 提前提醒分钟数                                                |
-| created_at       | INTEGER | NOT NULL                            | 创建时间                                                      |
-| updated_at       | INTEGER | NOT NULL                            | 更新时间                                                      |
-
-约束：时间段日程允许 `end_at = start_at` 表示时间点，其他情况 `end_at >= start_at`；全天日程采用半开区间 `[start_at, end_at)`，必须满足 `end_at > start_at`；`reminder_minutes` 为空或为非负整数。
-
-完成状态由当前时间是否达到 `end_at` 自动计算，不存储完成标记，也不提供手动切换入口。已结束的日程不会触发提醒。
-
-索引：`idx_calendar_events_range(start_at, end_at)`。
-
-### calendar_event_reminders
-
-| 字段              | 类型    | 约束                                       | 说明                                               |
-| ----------------- | ------- | ------------------------------------------ | -------------------------------------------------- |
-| id                | INTEGER | PK AUTOINCREMENT                           | 提醒发送记录 ID                                    |
-| calendar_event_id | INTEGER | NOT NULL 逻辑外键，指向 calendar_events.id | 对应日程                                           |
-| reminder_at       | INTEGER | NOT NULL                                   | 按日程开始时间和 reminder_minutes 计算出的提醒时间 |
-| sent_at           | INTEGER | NOT NULL                                   | 实际发送时间                                       |
-
-唯一约束：`UNIQUE(calendar_event_id, reminder_at)`。不额外创建重复的 `calendar_event_id` 索引。
-
-该表只记录 Windows 本地通知发送结果，不包含邮箱或其他通知渠道。主进程每 5 分钟检查一次，只有日程未完成、`reminder_minutes` 不为空、当前时间已达到 `reminder_at` 且该表不存在对应记录时才发送通知并写入记录。删除日程时由业务 service 同步删除其提醒记录。
-
-## 逻辑关联维护策略
-
-- 禁止使用 `REFERENCES`、`ON DELETE` 等 SQLite 物理外键语法。
-- `CompanyService` 删除公司前检查是否有求职记录引用；删除成功后同步删除行业关联和公司别名。
-- `IndustryService` 删除行业前检查是否有公司引用。
-- `StatusService` 删除状态前检查是否有求职记录当前或历史引用，并禁止删除最后一个状态。
-- `ResumeService` 删除简历前检查是否有求职记录引用，并通过工作单元的提交/回滚钩子同步处理内部文件。
-- `OpportunityService` 在同一事务写入状态节点；删除求职记录时删除节点，并将关联日程的 `opportunity_id` 清空。
-- 所有新增和更新操作都必须在 Service 层校验逻辑外键目标记录存在；Renderer 和 MCP 不得绕过 Service 直接写表。
-
-## Seed 规则
-
-- 首次数据库初始化插入默认状态、内置行业分类、内置公司及目录状态。
-- 内置公司以已校验的开发数据库为完整来源，共 577 家；目录保存名称、行业关联、招聘官网和别名，不保存开发数据库中的公司 ID。
-- 初始化公司时由 SQLite 自增生成公司 ID，写入公司后按唯一名称查询实际 ID，再以该 ID 写入行业关联和别名。
-- `is_favorite` 和 `last_read_at` 是用户偏好，不从开发数据库复制；新数据库中的内置公司分别初始化为未收藏和未读。
-- 使用 `PRAGMA user_version` 判断首次初始化。
-- seed 数据与 `PRAGMA user_version` 必须在同一事务中提交，避免初始化中断后留下无法识别的半成品数据库。
-- 内置状态、内置行业分类和内置公司的主体数据不可删除，因此 seed 只负责首次初始化。
-- 生产环境内置状态、内置行业分类和内置公司的主体数据禁止编辑，业务 service 返回 `BUILTIN_DATA`，提示“该数据为内置，无法删除/修改”；开发环境放开增删改查，但仍执行逻辑关联删除保护。显示顺序调整属于用户排序偏好，仍可通过重排接口修改；内置公司的收藏标记属于用户偏好，允许修改。
-- 仓库中的 `resource/jobtrail-company-catalog.json` 是首次初始化与 Release 发布共用的唯一全量公司目录；每家公司使用稳定的小写 UUID v4 `builtinKey`。
-- 已初始化数据库不得再次执行或合并 seed；应用启动和软件升级均不自动更新公司目录。
-
-## 内置公司目录更新
-
-- 用户只能从设置页主动更新。主进程从固定 GitHub Release `latest/download` 地址获取 manifest 和全量 JSON，校验大小、原始文件 SHA-256、严格格式、目录版本、最低应用版本和数据约束后再同步。
-- 同一 key 覆盖名称、招聘官网、行业和别名，同时保留公司 ID、创建时间、收藏、已读时间及所有业务关联。
-- 新 key 与用户公司同名时，将原记录转为内置公司并保留其本地身份和业务数据；目录中缺少的旧内置公司保留。
-- 名称或 key 冲突、非法行业及任何约束错误会中止整个 `IMMEDIATE` 事务。成功后目录状态与公司数据一并提交。
-- 下载数据只保存在内存，不写入配置文件或长期落盘；目录更新能力不通过 MCP 暴露。
+#### `statuses`
+
+| 字段         | 类型    | 约束                 | 说明     |
+| ------------ | ------- | -------------------- | -------- |
+| `id`         | INTEGER | 主键、自增           | 状态 ID  |
+| `label`      | TEXT    | 非空、唯一           | 状态名称 |
+| `sort_order` | INTEGER | 非空                 | 显示顺序 |
+| `is_builtin` | INTEGER | 非空、默认 0、仅 0/1 | 是否内置 |
+| `created_at` | INTEGER | 非空                 | 创建时间 |
+| `updated_at` | INTEGER | 非空                 | 更新时间 |
+
+#### `industries`
+
+| 字段         | 类型    | 约束                 | 说明     |
+| ------------ | ------- | -------------------- | -------- |
+| `id`         | INTEGER | 主键、自增           | 行业 ID  |
+| `name`       | TEXT    | 非空、唯一           | 行业名称 |
+| `sort_order` | INTEGER | 非空                 | 显示顺序 |
+| `is_builtin` | INTEGER | 非空、默认 0、仅 0/1 | 是否内置 |
+| `created_at` | INTEGER | 非空                 | 创建时间 |
+| `updated_at` | INTEGER | 非空                 | 更新时间 |
+
+内置状态和行业在生产环境不可编辑、删除，排序可以由业务接口重排；开发环境允许编辑内置项，但仍受引用保护。状态被求职记录当前状态或历史节点使用时不能删除，且至少保留一个状态；行业被公司使用时不能删除。
+
+### 公司与内置目录
+
+`companies.builtin_key` 非空表示内置公司，是目录中稳定的小写 UUID v4；普通用户公司为 `NULL`。公司 ID 是本地自增 ID，不是目录身份。`is_favorite` 和 `last_read_at` 是用户偏好。行业关联和别名分别存入 `company_industries`、`company_aliases`。
+
+#### `companies`
+
+| 字段           | 类型    | 约束                 | 说明                                |
+| -------------- | ------- | -------------------- | ----------------------------------- |
+| `id`           | INTEGER | 主键、自增           | 本地公司 ID                         |
+| `name`         | TEXT    | 非空、唯一           | 公司名称                            |
+| `builtin_key`  | TEXT    | 可空、唯一           | 内置公司的稳定身份；用户公司为 NULL |
+| `career_url`   | TEXT    | 可空                 | 招聘官网链接                        |
+| `last_read_at` | INTEGER | 可空                 | 上次打开招聘链接的时间              |
+| `is_favorite`  | INTEGER | 非空、默认 0、仅 0/1 | 是否收藏                            |
+| `created_at`   | INTEGER | 非空                 | 创建时间                            |
+| `updated_at`   | INTEGER | 非空                 | 更新时间                            |
+
+#### `builtin_company_catalog_state`
+
+| 字段              | 类型    | 约束            | 说明                     |
+| ----------------- | ------- | --------------- | ------------------------ |
+| `id`              | INTEGER | 主键、必须为 1  | 固定单行标识             |
+| `format_version`  | INTEGER | 非空            | 目录 JSON 格式版本       |
+| `catalog_version` | INTEGER | 非空            | 已应用的目录内容版本     |
+| `content_sha256`  | TEXT    | 非空、长度为 64 | 原始目录 JSON 的 SHA-256 |
+| `applied_at`      | INTEGER | 非空            | 最近应用时间             |
+
+#### `company_industries`
+
+| 字段          | 类型    | 约束                            | 说明         |
+| ------------- | ------- | ------------------------------- | ------------ |
+| `company_id`  | INTEGER | 非空；与 `industry_id` 联合主键 | 公司 ID      |
+| `industry_id` | INTEGER | 非空；与 `company_id` 联合主键  | 行业 ID      |
+| `created_at`  | INTEGER | 非空                            | 关联创建时间 |
+
+#### `company_aliases`
+
+| 字段         | 类型    | 约束                           | 说明        |
+| ------------ | ------- | ------------------------------ | ----------- |
+| `id`         | INTEGER | 主键、自增                     | 别名 ID     |
+| `company_id` | INTEGER | 非空；与 `alias` 联合唯一      | 所属公司 ID |
+| `alias`      | TEXT    | 非空；与 `company_id` 联合唯一 | 搜索别名    |
+| `created_at` | INTEGER | 非空                           | 创建时间    |
+
+`builtin_company_catalog_state` 固定使用 `id=1`，记录已应用目录的格式版本、内容版本、原始 JSON 的 SHA-256 和应用时间。目录版本变化是数据内容更新，不递增数据库 `user_version`。公司被求职记录引用时不能删除；删除公司时同步清除行业关联和别名。生产环境禁止编辑或删除内置公司的主体数据，但允许调整收藏和记录招聘链接的访问时间。
+
+### 简历、求职记录与状态历史
+
+`resume_versions.relative_path` 指向 `resumes/` 中的 UUID 文件名；`size_bytes` 和 `sha256` 允许为空。`opportunities.status_id` 保存当前状态；`opportunity_status_events` 保存实际发生的创建或变更节点，`status_label` 是写入当时的状态名称快照。
+
+#### `resume_versions`
+
+| 字段            | 类型    | 约束       | 说明                  |
+| --------------- | ------- | ---------- | --------------------- |
+| `id`            | INTEGER | 主键、自增 | 简历版本 ID           |
+| `name`          | TEXT    | 非空       | 简历名称              |
+| `relative_path` | TEXT    | 非空、唯一 | `resumes/` 内的文件名 |
+| `size_bytes`    | INTEGER | 可空       | 文件大小              |
+| `sha256`        | TEXT    | 可空       | 文件哈希              |
+| `note`          | TEXT    | 可空       | 备注                  |
+| `sort_order`    | INTEGER | 非空       | 显示顺序              |
+| `created_at`    | INTEGER | 非空       | 创建时间              |
+| `updated_at`    | INTEGER | 非空       | 更新时间              |
+
+#### `opportunities`
+
+| 字段                | 类型    | 约束       | 说明              |
+| ------------------- | ------- | ---------- | ----------------- |
+| `id`                | INTEGER | 主键、自增 | 求职记录 ID       |
+| `company_id`        | INTEGER | 非空       | 公司 ID           |
+| `title`             | TEXT    | 非空       | 岗位名称          |
+| `department`        | TEXT    | 可空       | 部门              |
+| `location`          | TEXT    | 可空       | 工作地点          |
+| `source`            | TEXT    | 可空       | 岗位来源          |
+| `job_url`           | TEXT    | 可空       | 岗位链接          |
+| `description`       | TEXT    | 可空       | 岗位描述          |
+| `status_id`         | INTEGER | 非空       | 当前状态 ID       |
+| `resume_version_id` | INTEGER | 可空       | 使用的简历版本 ID |
+| `discovered_at`     | INTEGER | 可空       | 发现时间          |
+| `applied_at`        | INTEGER | 可空       | 投递时间          |
+| `deadline_at`       | INTEGER | 可空       | 截止时间          |
+| `notes`             | TEXT    | 可空       | 备注              |
+| `created_at`        | INTEGER | 非空       | 创建时间          |
+| `updated_at`        | INTEGER | 非空       | 更新时间          |
+
+#### `opportunity_status_events`
+
+| 字段             | 类型    | 约束                         | 说明                 |
+| ---------------- | ------- | ---------------------------- | -------------------- |
+| `id`             | INTEGER | 主键、自增                   | 状态节点 ID          |
+| `opportunity_id` | INTEGER | 非空                         | 所属求职记录 ID      |
+| `status_id`      | INTEGER | 非空                         | 状态 ID              |
+| `status_label`   | TEXT    | 非空                         | 写入时的状态名称快照 |
+| `occurred_at`    | INTEGER | 非空                         | 节点发生时间         |
+| `kind`           | TEXT    | 非空、仅 `created`/`changed` | 创建或状态变更       |
+
+创建求职记录时，Service 在同一事务写入 `created` 节点；状态确实变化时写入 `changed` 节点，状态未变不追加。读取历史时按 `occurred_at, id` 排序；重新打开数据库不会为缺失的历史节点补造记录。删除求职记录时删除其状态节点，并将关联日程的 `opportunity_id` 置空。被求职记录引用的简历不能删除；简历文件删除配合数据库事务的提交和回滚钩子处理。
+
+### 日程与提醒
+
+`calendar_events.opportunity_id` 可空。`event_type` 保存所选类型的文本，数据库未限制其枚举值。`timezone` 保存时区名称；`is_all_day` 控制全天语义。提醒记录按日程和计算出的提醒时间去重。
+
+#### `calendar_events`
+
+| 字段               | 类型    | 约束                      | 说明                     |
+| ------------------ | ------- | ------------------------- | ------------------------ |
+| `id`               | INTEGER | 主键、自增                | 日程 ID                  |
+| `opportunity_id`   | INTEGER | 可空                      | 关联的求职记录 ID        |
+| `title`            | TEXT    | 非空                      | 日程标题                 |
+| `event_type`       | TEXT    | 非空                      | 日程类型文本             |
+| `start_at`         | INTEGER | 非空                      | 开始时间                 |
+| `end_at`           | INTEGER | 非空、不得早于 `start_at` | 结束时间                 |
+| `is_all_day`       | INTEGER | 非空、默认 0、仅 0/1      | 是否全天                 |
+| `timezone`         | TEXT    | 非空                      | 显示和日期归属使用的时区 |
+| `location`         | TEXT    | 可空                      | 地点或会议链接           |
+| `description`      | TEXT    | 可空                      | 日程说明                 |
+| `reminder_minutes` | INTEGER | 可空；非空时不得小于 0    | 提前提醒分钟数           |
+| `created_at`       | INTEGER | 非空                      | 创建时间                 |
+| `updated_at`       | INTEGER | 非空                      | 更新时间                 |
+
+#### `calendar_event_reminders`
+
+| 字段                | 类型    | 约束                                  | 说明             |
+| ------------------- | ------- | ------------------------------------- | ---------------- |
+| `id`                | INTEGER | 主键、自增                            | 提醒记录 ID      |
+| `calendar_event_id` | INTEGER | 非空；与 `reminder_at` 联合唯一       | 所属日程 ID      |
+| `reminder_at`       | INTEGER | 非空；与 `calendar_event_id` 联合唯一 | 计算出的提醒时间 |
+| `sent_at`           | INTEGER | 非空                                  | 实际发送时间     |
+
+Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表示时间点；全天日程使用当地日期的半开区间 `[start_at, end_at)`，要求结束日期晚于开始日期。日程是否完成由当前时间与 `end_at` 计算，不保存完成标记。提醒查询要求提醒时间已到、日程尚未结束且相同 `(calendar_event_id, reminder_at)` 尚未发送；删除日程时同步删除提醒记录。
+
+### 智能体会话
+
+应用保存会话索引、完整展示事件、模型用量和附件元数据。`agent_chat_events.payload` 是结构化 JSON 文本，`seq` 决定展示顺序，`id` 用于幂等归档。`agent_model_usage` 中 token 数可空，表示模型端点没有提供该项；会话累计值只加总已报告的数值。附件文件位于 `chat-uploads/`，`relative_path` 唯一。
+
+#### `agent_conversations`
+
+| 字段                | 类型    | 约束                 | 说明                              |
+| ------------------- | ------- | -------------------- | --------------------------------- |
+| `id`                | TEXT    | 主键                 | 会话 ID，也是 LangGraph thread ID |
+| `title`             | TEXT    | 非空                 | 会话标题                          |
+| `title_finalized`   | INTEGER | 非空、默认 0、仅 0/1 | 标题是否定稿                      |
+| `input_tokens`      | INTEGER | 非空、默认 0         | 已报告的输入 token 累计           |
+| `output_tokens`     | INTEGER | 非空、默认 0         | 已报告的输出 token 累计           |
+| `cache_read_tokens` | INTEGER | 非空、默认 0         | 已报告的缓存命中 token 累计       |
+| `created_at`        | INTEGER | 非空                 | 创建时间                          |
+| `updated_at`        | INTEGER | 非空                 | 最近更新时间                      |
+
+#### `agent_chat_events`
+
+| 字段              | 类型    | 约束                                         | 说明            |
+| ----------------- | ------- | -------------------------------------------- | --------------- |
+| `seq`             | INTEGER | 主键、自增                                   | 展示顺序        |
+| `id`              | TEXT    | 非空、唯一                                   | 幂等事件 ID     |
+| `conversation_id` | TEXT    | 非空                                         | 所属会话 ID     |
+| `kind`            | TEXT    | 非空、仅 `user`/`assistant`/`tool`/`compact` | 展示事件类型    |
+| `payload`         | TEXT    | 非空                                         | 结构化事件 JSON |
+| `created_at`      | INTEGER | 非空                                         | 归档时间        |
+
+#### `agent_model_usage`
+
+| 字段                | 类型    | 约束                       | 说明                     |
+| ------------------- | ------- | -------------------------- | ------------------------ |
+| `id`                | TEXT    | 主键                       | 模型调用的幂等记录 ID    |
+| `conversation_id`   | TEXT    | 非空                       | 所属会话 ID              |
+| `kind`              | TEXT    | 非空、仅 `agent`/`compact` | 普通回复或压缩调用       |
+| `input_tokens`      | INTEGER | 可空                       | 模型报告的输入 token     |
+| `output_tokens`     | INTEGER | 可空                       | 模型报告的输出 token     |
+| `cache_read_tokens` | INTEGER | 可空                       | 模型报告的缓存命中 token |
+| `created_at`        | INTEGER | 非空                       | 调用记录时间             |
+
+#### `chat_attachments`
+
+| 字段              | 类型    | 约束       | 说明                       |
+| ----------------- | ------- | ---------- | -------------------------- |
+| `id`              | TEXT    | 主键       | 附件 ID                    |
+| `conversation_id` | TEXT    | 非空       | 所属会话 ID                |
+| `original_name`   | TEXT    | 非空       | 原始文件名                 |
+| `relative_path`   | TEXT    | 非空、唯一 | `chat-uploads/` 内的文件名 |
+| `mime_type`       | TEXT    | 非空       | 已校验的内容类型           |
+| `size_bytes`      | INTEGER | 非空       | 文件大小                   |
+| `sha256`          | TEXT    | 非空       | 文件哈希                   |
+| `created_at`      | INTEGER | 非空       | 上传时间                   |
+
+会话 `id` 同时作为 LangGraph thread ID。LangGraph `SqliteSaver` 在同一个 SQLite 文件中维护自己的 checkpoint 数据；图状态保存工作记忆与摘要，`agent_chat_events` 独立保存展示历史。删除会话时，服务会删除 checkpoint thread、归档事件、用量记录、附件元数据和附件文件。用户消息中的简历、求职记录及技能引用在归档事件和图消息元数据中保留结构化片段；界面标签按当前语言生成。
+
+## 显式索引
+
+以下是 `DatabaseManager.initialize()` 创建的全部 12 个显式索引。主键与唯一约束由 SQLite 自身维护，不重复列在此表中。
+
+| 索引名                                    | 表                          | 键                                |
+| ----------------------------------------- | --------------------------- | --------------------------------- |
+| `idx_opportunities_status_id`             | `opportunities`             | `status_id`                       |
+| `idx_opportunity_status_events_flow`      | `opportunity_status_events` | `opportunity_id, occurred_at, id` |
+| `idx_opportunity_status_events_status_id` | `opportunity_status_events` | `status_id`                       |
+| `idx_opportunities_company_id`            | `opportunities`             | `company_id`                      |
+| `idx_opportunities_deadline_at`           | `opportunities`             | `deadline_at`                     |
+| `idx_opportunities_updated_at`            | `opportunities`             | `updated_at`                      |
+| `idx_company_industries_industry_id`      | `company_industries`        | `industry_id`                     |
+| `idx_calendar_events_range`               | `calendar_events`           | `start_at, end_at`                |
+| `idx_agent_conversations_updated_at`      | `agent_conversations`       | `updated_at DESC`                 |
+| `idx_agent_chat_events_conversation`      | `agent_chat_events`         | `conversation_id, seq`            |
+| `idx_agent_model_usage_conversation`      | `agent_model_usage`         | `conversation_id, created_at`     |
+| `idx_chat_attachments_conversation_id`    | `chat_attachments`          | `conversation_id`                 |
+
+## 逻辑关联与写入边界
+
+| 保存方字段                                                                                                   | 目标                     | 维护方式                       |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------ | ------------------------------ |
+| `company_industries.company_id`、`company_aliases.company_id`                                                | `companies.id`           | 公司服务在删除公司时清理关联   |
+| `company_industries.industry_id`                                                                             | `industries.id`          | 行业被公司使用时禁止删除       |
+| `opportunities.company_id`                                                                                   | `companies.id`           | 公司被求职记录使用时禁止删除   |
+| `opportunities.status_id`、`opportunity_status_events.status_id`                                             | `statuses.id`            | 当前或历史状态被使用时禁止删除 |
+| `opportunities.resume_version_id`                                                                            | `resume_versions.id`     | 简历被求职记录使用时禁止删除   |
+| `opportunity_status_events.opportunity_id`                                                                   | `opportunities.id`       | 删除求职记录时删除节点         |
+| `calendar_events.opportunity_id`                                                                             | `opportunities.id`       | 删除求职记录时置为 `NULL`      |
+| `calendar_event_reminders.calendar_event_id`                                                                 | `calendar_events.id`     | 删除日程时删除提醒记录         |
+| `agent_chat_events.conversation_id`、`agent_model_usage.conversation_id`、`chat_attachments.conversation_id` | `agent_conversations.id` | 删除会话时清理归档、用量和附件 |
+
+求职记录、公司目录等跨表业务操作通过 Service 和 `UnitOfWork` 执行；外层工作单元使用 `IMMEDIATE` 事务，同步的嵌套操作使用 SQLite 嵌套事务。智能体归档使用自身事务，附件文件及元数据由 `AgentFileStore` 管理。Renderer 和 MCP 不直接写表。以上关联维护不是数据库外键约束，直接在 SQLite 中写入仍可能绕过业务校验。
+
+## 首次种子数据与公司目录
+
+首次建库时，在同一事务中写入：
+
+- 13 个内置状态，ID 和 `sort_order` 均为 1–13，按顺序为：感兴趣、待投递、已投递、初筛、笔试、AI面试、一面、二面、三面、HR面、Offer、淘汰、主动放弃。
+- 83 个内置行业，ID 为 1–83，`sort_order` 为 0–82。具体名称与顺序由 `src/main/database.ts` 的 `DEFAULT_INDUSTRIES` 固定。
+- 仓库 `resource/jobtrail-company-catalog.json` 中的 580 家内置公司及其行业关联、别名。公司 ID 由本地 SQLite 生成；目录的 `builtinKey` 才是跨目录版本的稳定身份。初始 `is_favorite=0`、`last_read_at=NULL`。
+- 一条 `builtin_company_catalog_state` 记录，`format_version=1`、`catalog_version=1`，`content_sha256` 为打包目录 JSON 原始文本的 SHA-256。
+
+版本 1 数据库再次打开时不会重新 seed，也不会在软件升级时自动合并公司目录。用户在设置中主动更新目录时，应用校验发布资产的大小、SHA-256、格式、目录版本和最低软件版本。更新在一个 `IMMEDIATE` 事务中按 `builtin_key` 匹配，更新目录拥有的名称、招聘官网、行业和别名，保留本地公司 ID、创建时间、收藏、已读时间及业务关联。行业关联和别名按差异维护：未变化的记录不写入，值替换时更新原记录，只有实际增减时才插入或删除；同名的用户公司可转为内置公司。新目录未收录的旧内置公司保留。冲突或约束错误会回滚整次同步。

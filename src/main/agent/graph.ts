@@ -206,7 +206,9 @@ class AgentGraphFactory {
     const parallelReadTools = new Set([
       'match_resume',
       'read_resume',
-      ...MCP_TOOLS.filter((descriptor) => descriptor.readOnly).map((descriptor) => descriptor.name),
+      ...MCP_TOOLS.filter(
+        (descriptor) => descriptor.readOnly && descriptor.readOnlyHint !== false,
+      ).map((descriptor) => descriptor.name),
     ])
     const pendingTools = (state: typeof State.State) => {
       let agentIndex = state.messages.length - 1

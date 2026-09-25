@@ -74,7 +74,7 @@ describe('内置公司目录更新', () => {
     }
     database = new DatabaseManager(paths)
     services = createServices(
-      new UnitOfWork(database.db),
+      new UnitOfWork(database.db, paths.root),
       database,
       new FileStorageService(paths),
       false,
@@ -84,6 +84,117 @@ describe('内置公司目录更新', () => {
   afterEach(() => {
     database.close()
     fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  function relationRows(companyId: number) {
+    return {
+      industries: database.db
+        .prepare(
+          'SELECT rowid AS rowId, industry_id AS industryId, created_at AS createdAt FROM company_industries WHERE company_id = ? ORDER BY industry_id',
+        )
+        .all(companyId) as Array<{ rowId: number; industryId: number; createdAt: number }>,
+      aliases: database.db
+        .prepare(
+          'SELECT id, alias, created_at AS createdAt FROM company_aliases WHERE company_id = ? ORDER BY alias',
+        )
+        .all(companyId) as Array<{ id: number; alias: string; createdAt: number }>,
+    }
+  }
+
+  it('keeps industry and alias rows when only a company field changes', () => {
+    const company = services.companies.get(1)
+    const before = relationRows(company.id)
+    const source = nextCatalog()
+    source.companies[0] = {
+      ...source.companies[0]!,
+      careerUrl: 'https://catalog.example.com/updated-careers',
+    }
+
+    services.companyCatalog.synchronize(source, companyCatalogHash(source))
+
+    expect(relationRows(company.id)).toEqual(before)
+    expect(services.companies.get(company.id).careerUrl).toBe(
+      'https://catalog.example.com/updated-careers',
+    )
+  })
+
+  it('updates changed industry and alias values in place for the same built-in key', () => {
+    const company = services.companies.get(1)
+    const before = relationRows(company.id)
+    const source = nextCatalog()
+    source.companies[0] = {
+      ...source.companies[0]!,
+      industryIds: [2],
+      aliases: ['Tencent Careers'],
+    }
+
+    services.companyCatalog.synchronize(source, companyCatalogHash(source))
+
+    expect(relationRows(company.id)).toEqual({
+      industries: [{ ...before.industries[0], industryId: 2 }],
+      aliases: [{ ...before.aliases[0], alias: 'Tencent Careers' }],
+    })
+  })
+
+  it('inserts and removes only the industry and alias rows added or removed by the catalog', () => {
+    const company = services.companies.get(1)
+    const before = relationRows(company.id)
+    const expanded = nextCatalog()
+    expanded.companies[0] = {
+      ...expanded.companies[0]!,
+      industryIds: [1, 2],
+      aliases: ['Tencent', '新增别名'],
+    }
+
+    services.companyCatalog.synchronize(expanded, companyCatalogHash(expanded))
+
+    const afterExpansion = relationRows(company.id)
+    expect(afterExpansion.industries[0]).toEqual(before.industries[0])
+    expect(afterExpansion.aliases[0]).toEqual(before.aliases[0])
+    expect(afterExpansion.industries).toHaveLength(2)
+    expect(afterExpansion.aliases).toHaveLength(2)
+
+    const reduced = {
+      ...expanded,
+      catalogVersion: expanded.catalogVersion + 1,
+      companies: [
+        { ...expanded.companies[0]!, industryIds: [2], aliases: ['新增别名'] },
+        ...expanded.companies.slice(1),
+      ],
+    }
+    services.companyCatalog.synchronize(reduced, companyCatalogHash(reduced))
+
+    expect(relationRows(company.id)).toEqual({
+      industries: [afterExpansion.industries[1]],
+      aliases: [afterExpansion.aliases[1]],
+    })
+  })
+
+  it('retains matching relation rows when adopting a same-name user company', () => {
+    const custom = services.companies.create({
+      name: '待收录公司',
+      industryIds: [1, 2],
+      aliases: ['保留别名', '旧别名'],
+    })
+    const before = relationRows(custom.id)
+    const source = nextCatalog()
+    source.companies.push({
+      builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
+      name: custom.name,
+      industryIds: [2, 3],
+      careerUrl: 'https://adopted.example.com/careers',
+      aliases: ['保留别名', '新别名'],
+    })
+
+    services.companyCatalog.synchronize(source, companyCatalogHash(source))
+
+    const after = relationRows(custom.id)
+    expect(after.industries).toEqual([
+      { ...before.industries[1], industryId: 2 },
+      { ...before.industries[0], industryId: 3 },
+    ])
+    expect(after.aliases).toEqual([before.aliases[0], { ...before.aliases[1], alias: '新别名' }])
+    expect(services.companies.get(custom.id).isBuiltin).toBe(true)
   })
 
   it('updates, adopts, and retains omitted built-ins without changing local identity or preferences', () => {
@@ -233,7 +344,7 @@ describe('内置公司目录更新', () => {
     const updater = new CompanyCatalogUpdater(
       services.companyCatalog,
       async () => responses.shift()!,
-      () => '0.5.0',
+      () => source.minimumAppVersion,
     )
 
     const result = await updater.update((value) => progress.push(value))
@@ -357,7 +468,18 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => newerResponses.shift()!,
-        () => '0.5.0',
+        () => '1.0.0',
+      ).update(() => undefined),
+    ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
+
+    const future = { ...newer, formatVersion: 2, companies: [{ unsupportedField: true }] }
+    const futureBytes = new TextEncoder().encode(JSON.stringify(future))
+    const futureResponses = [response(manifest(futureBytes)), response(futureBytes)]
+    await expect(
+      new CompanyCatalogUpdater(
+        services.companyCatalog,
+        async () => futureResponses.shift()!,
+        () => '1.0.0',
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
   })

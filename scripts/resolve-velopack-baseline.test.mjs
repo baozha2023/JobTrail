@@ -49,21 +49,38 @@ async function harness(
   return {
     outputDir,
     requests,
-    run: () =>
+    run: (targetVersion = '4.0.1') =>
       downloadPreviousVelopackFull({
         feedUrl: `http://127.0.0.1:${server.address().port}${pathname}`,
-        targetVersion: '4.0.1',
+        targetVersion,
         outputDir,
       }),
   }
 }
 
 test('missing and empty sources select Full only', async (t) => {
-  for (const options of [{ feedStatus: 404 }, { assets: [] }, { headStatus: 404 }]) {
+  for (const options of [{ feedStatus: 404 }, { assets: [] }]) {
     const h = await harness(t, options)
     assert.equal(await h.run(), null)
     assert.deepEqual(await fs.readdir(h.outputDir), [])
   }
+})
+
+test('first formal release never reads a test-version feed or creates a Delta baseline', async (t) => {
+  const h = await harness(t, { assets: [asset('0.8.0')] })
+  assert.equal(await h.run('1.0.0'), null)
+  assert.deepEqual(h.requests, [])
+  assert.deepEqual(await fs.readdir(h.outputDir), [])
+})
+
+test('later formal releases ignore test-version Full packages', async (t) => {
+  const h = await harness(t, { assets: [asset('0.8.0'), asset('1.0.0')] })
+  assert.equal((await h.run('1.0.1')).version, '1.0.0')
+  assert.deepEqual(h.requests, [
+    'GET /updates/releases.win.json',
+    `HEAD /updates/${asset('1.0.0').FileName}`,
+    `GET /updates/${asset('1.0.0').FileName}`,
+  ])
 })
 test('downloads and verifies exactly the highest Full below target even when a newer release exists', async (t) => {
   const previous = asset()
@@ -107,6 +124,7 @@ test('invalid feeds, ambiguous baselines and source failures stop the build', as
     { assets: [asset('4.0.0', { FileName: '../outside.nupkg' })] },
     { assets: [asset('4.0.0', { SHA256: 'invalid' })] },
     { headStatus: 500 },
+    { headStatus: 404 },
     { getStatus: 404 },
   ]) {
     const h = await harness(t, options)

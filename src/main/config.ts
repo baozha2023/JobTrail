@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { resolveStorageRoot } from './installation-paths'
 import path from 'node:path'
 import type { AppConfig, CloseBehavior, Locale, StatusFlowTheme, ThemeMode } from '../shared/types'
+import { assertUpdateWritable } from './update-freeze'
 
 export const DEFAULT_CONFIG: AppConfig = {
   configVersion: 1,
@@ -25,6 +26,16 @@ export const DEFAULT_CONFIG: AppConfig = {
     contextWindowK: 256,
     compactThresholdPercent: 80,
   },
+}
+
+export class ConfigLoadError extends Error {
+  readonly code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED'
+
+  constructor(code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED') {
+    super(code)
+    this.name = 'ConfigLoadError'
+    this.code = code
+  }
 }
 
 export interface AppPaths {
@@ -59,7 +70,8 @@ function mergeConfig(value: unknown): AppConfig {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     throw new Error('配置格式无效')
   const source = value as Record<string, unknown>
-  if (source.configVersion !== DEFAULT_CONFIG.configVersion) throw new Error('不支持的配置版本')
+  if (source.configVersion !== DEFAULT_CONFIG.configVersion)
+    throw new ConfigLoadError('CONFIG_VERSION_UNSUPPORTED')
   const velopack = source.velopack === undefined ? {} : asObject(source.velopack, 'velopack')
   const mcp = source.mcp === undefined ? {} : asObject(source.mcp, 'mcp')
   const ai = source.ai === undefined ? {} : asObject(source.ai, 'ai')
@@ -232,6 +244,7 @@ export class ConfigService {
   }
 
   update(input: Partial<AppConfig>): AppConfig {
+    assertUpdateWritable(this.paths.root)
     const velopackInput = input.velopack === undefined ? {} : asObject(input.velopack, 'velopack')
     const mcpInput = input.mcp === undefined ? {} : asObject(input.mcp, 'mcp')
     const aiInput = input.ai === undefined ? {} : asObject(input.ai, 'ai')
@@ -267,11 +280,9 @@ export class ConfigService {
     try {
       const content = JSON.parse(contents)
       return mergeConfig(content)
-    } catch {
-      const backup = `${this.paths.config}.broken-${randomUUID()}`
-      fs.copyFileSync(this.paths.config, backup)
-      this.write(DEFAULT_CONFIG)
-      return structuredClone(DEFAULT_CONFIG)
+    } catch (error) {
+      if (error instanceof ConfigLoadError) throw error
+      throw new ConfigLoadError('CONFIG_INVALID')
     }
   }
 

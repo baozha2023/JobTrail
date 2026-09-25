@@ -15,7 +15,11 @@ function backend(): UpdateBackend {
     waitExitThenApplyUpdate: () => {},
   }
 }
-const rollback: UpdateRollback = { preserve: async () => {}, prepare: async () => {} }
+const rollback: UpdateRollback = {
+  preserve: async () => {},
+  prepare: async () => {},
+  cancelPrepare: async () => {},
+}
 describe('desktop update transaction', () => {
   it('rejects apply before a checked update has downloaded', async () => {
     const service = new DesktopUpdateService(backend(), rollback)
@@ -65,10 +69,33 @@ describe('desktop update transaction', () => {
       prepare: async () => {
         calls.push('prepare')
       },
+      cancelPrepare: async () => {
+        calls.push('cancel')
+      },
     })
     await service.check()
     await service.download()
     await service.apply()
     expect(calls).toEqual(['preserve', 'download', 'prepare', 'apply'])
+  })
+  it('releases the update freeze when applying the package fails', async () => {
+    const calls: string[] = []
+    const implementation = backend()
+    implementation.waitExitThenApplyUpdate = () => {
+      throw new Error('apply failed')
+    }
+    const service = new DesktopUpdateService(implementation, {
+      preserve: async () => {},
+      prepare: async () => {
+        calls.push('prepare')
+      },
+      cancelPrepare: async () => {
+        calls.push('cancel')
+      },
+    })
+    await service.check()
+    await service.download()
+    await expect(service.apply()).rejects.toThrow('apply failed')
+    expect(calls).toEqual(['prepare', 'cancel'])
   })
 })

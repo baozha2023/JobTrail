@@ -22,8 +22,9 @@ export interface StatusRow {
 export interface IndustryRow {
   id: number
   name: string
+  parent_id: number | null
+  builtin_key: string | null
   sort_order: number
-  is_builtin: number
   created_at: number
   updated_at: number
 }
@@ -123,9 +124,10 @@ export function mapStatus(row: StatusRow): Status {
 export function mapIndustry(row: IndustryRow): Industry {
   return {
     id: row.id,
+    parentId: row.parent_id,
     name: row.name,
     sortOrder: row.sort_order,
-    isBuiltin: row.is_builtin === 1,
+    isBuiltin: row.builtin_key !== null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

@@ -9,6 +9,7 @@ import type {
   Opportunity,
   ResumeVersion,
 } from '../../shared/types'
+import { industryPath } from '../utils/industries'
 import { agentPartLabel, agentReferenceLabel } from './agent-reference'
 
 type Category = Extract<AgentReference, { id: number }>['kind']
@@ -96,14 +97,16 @@ const referenceOptions = computed<Record<Category, Extract<Option, { kind: 'refe
       detail: categoryLabels.value.company,
       searchText: [item.name, ...item.aliases, item.industryName ?? ''].join(' '),
     })),
-    industry: props.industries.map((item) => ({
-      kind: 'reference',
-      category: 'industry',
-      id: item.id,
-      label: item.name,
-      detail: categoryLabels.value.industry,
-      searchText: item.name,
-    })),
+    industry: props.industries
+      .filter((item) => item.parentId !== null)
+      .map((item) => ({
+        kind: 'reference',
+        category: 'industry',
+        id: item.id,
+        label: industryPath(item, props.industries),
+        detail: categoryLabels.value.industry,
+        searchText: industryPath(item, props.industries),
+      })),
   }),
 )
 

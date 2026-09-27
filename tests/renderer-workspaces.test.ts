@@ -9,6 +9,7 @@ import type {
   Company,
   CreateCalendarEventInput,
   CreateOpportunityInput,
+  Industry,
   Opportunity,
   OpportunityStatusFlow,
   Status,
@@ -30,6 +31,18 @@ function mountComposable<T>(factory: () => T): { workspace: T; wrapper: VueWrapp
   const wrapper = mount(Harness, { global: { plugins: [createPinia(), i18n] } })
   if (!workspace) throw new Error('Composable was not initialized')
   return { workspace, wrapper }
+}
+
+function industry(id: number): Industry {
+  return {
+    id,
+    parentId: 10,
+    name: `行业 ${id}`,
+    sortOrder: id,
+    isBuiltin: false,
+    createdAt: 1,
+    updatedAt: 1,
+  }
 }
 
 function calendarEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
@@ -340,7 +353,7 @@ describe('renderer domain workspaces', () => {
     const { workspace, wrapper } = mountComposable(() =>
       useManagementWorkspace({
         statuses: ref([]),
-        industries: ref([]),
+        industries: ref([industry(1), industry(2)]),
         resumes: ref([]),
         companies: ref(companies),
         loadCompanies: vi.fn(async () => undefined),
@@ -373,4 +386,60 @@ describe('renderer domain workspaces', () => {
     })
     wrapper.unmount()
   })
+
+  it.each(['desktop', 'external'])(
+    'clears a deleted industry filter after a %s change without querying the stale ID',
+    async (source) => {
+      const removed = industry(1)
+      const industries = ref([removed, industry(2)])
+      const search = vi.fn(async (query) => ({ ...query, items: [company()], total: 1 }))
+      Object.defineProperty(window, 'zhijiApi', {
+        configurable: true,
+        value: {
+          companies: { search },
+          industries: {
+            delete: vi.fn(async () => undefined),
+            list: vi.fn(async () => [industry(2)]),
+          },
+        },
+      })
+      const showError = vi.fn()
+      const { workspace, wrapper } = mountComposable(() =>
+        useManagementWorkspace({
+          statuses: ref([]),
+          industries,
+          resumes: ref([]),
+          companies: ref([]),
+          loadCompanies: vi.fn(async () => undefined),
+          loadOpportunities: vi.fn(async () => undefined),
+          loadAllOpportunities: vi.fn(async () => undefined),
+          loadCalendar: vi.fn(async () => undefined),
+          showError,
+          notifySuccess: vi.fn(),
+          notifyError: vi.fn(),
+        }),
+      )
+      workspace.selectedCompanyIndustryId.value = removed.id
+      await flushPromises()
+      search.mockClear()
+      workspace.managedCompanyPage.value = 3
+      if (source === 'desktop') await workspace.deleteIndustry(removed)
+      else {
+        industries.value = [industry(2)]
+        await workspace.loadManagedCompanies()
+      }
+      await flushPromises()
+      expect(showError).not.toHaveBeenCalled()
+      expect(workspace.selectedCompanyIndustryId.value).toBeNull()
+      expect(workspace.managedCompanyPage.value).toBe(1)
+      expect(search).toHaveBeenCalledExactlyOnceWith({
+        page: 1,
+        pageSize: 10,
+        keyword: '',
+        industryId: null,
+      })
+      expect(workspace.managedCompanies.value).toHaveLength(1)
+      wrapper.unmount()
+    },
+  )
 })

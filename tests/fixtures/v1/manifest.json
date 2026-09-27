@@ -1,0 +1,9 @@
+{
+  "format": "jobtrail-v1-baseline",
+  "files": {
+    "config.json": "358f35481f7aa8f3368aec045bcffc0d01a69c518ec899510c8489d9c9321493",
+    "data/zhiji.db": "cbaa3f3e2b9708be91427495335d9c114ff998a19640cf27599129be90082ef1",
+    "resumes/bb3e7204-fa6e-4735-aeac-52ffd33e67ab.pdf": "991d4dab6aaf9c601386d14275f896d34698b3d745e7b675d8f088dd52583790",
+    "chat-uploads/0af30f91-3eae-479f-9b7b-21c647592255.txt": "5c51efeef62be767f3e1d5cd688e0ecdceed8ec4a6272bc7939e4bab37395f8a"
+  }
+}

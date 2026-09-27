@@ -3,6 +3,10 @@ export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
 export type Locale = 'zh-CN' | 'en-US'
 export type CloseBehavior = 'tray' | 'quit'
 export type AppErrorCode =
+  | 'BACKUP_SOURCE_INVALID'
+  | 'BACKUP_INVALID'
+  | 'BACKUP_VERSION_UNSUPPORTED'
+  | 'BACKUP_FAILED'
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
   | 'BUILTIN_DATA'
@@ -70,10 +74,6 @@ export interface CompanyCatalogUpdateResult {
   unchanged: number
 }
 
-export interface VelopackConfig {
-  [key: string]: unknown
-}
-
 export interface AppConfig {
   configVersion: number
   themeMode: ThemeMode
@@ -82,7 +82,6 @@ export interface AppConfig {
   closeBehavior: CloseBehavior
   launchAtStartup: boolean
   companyReadValidityMonths: number
-  velopack: VelopackConfig
   mcp: {
     enabled: boolean
     requireWriteConfirmation: boolean
@@ -95,7 +94,11 @@ export interface AppConfig {
     contextWindowK: number
     compactThresholdPercent: number
   }
-  [key: string]: unknown
+}
+
+export type AppConfigUpdate = Partial<Omit<AppConfig, 'configVersion' | 'mcp' | 'ai'>> & {
+  mcp?: Partial<AppConfig['mcp']>
+  ai?: Partial<AppConfig['ai']>
 }
 
 export interface AgentConversation {
@@ -223,6 +226,7 @@ export interface Company {
 }
 
 export interface Industry {
+  parentId: number | null
   id: number
   name: string
   sortOrder: number
@@ -320,6 +324,12 @@ export type UpdateCompanyInput = Partial<CreateCompanyInput> & {
 
 export interface CreateIndustryInput {
   name: string
+  parentId: number
+}
+
+export interface ReorderIndustriesInput {
+  parentId: number | null
+  order: number[]
 }
 
 export type UpdateIndustryInput = Partial<CreateIndustryInput>
@@ -405,6 +415,10 @@ export interface AppErrorShape {
 }
 
 export interface ZhijiApi {
+  backup: {
+    export(): Promise<'cancelled' | 'exported'>
+    import(): Promise<'cancelled' | 'restarting'>
+  }
   agent: {
     list(): Promise<AgentConversation[]>
     create(): Promise<AgentConversation>
@@ -433,7 +447,7 @@ export interface ZhijiApi {
   }
   config: {
     get(): Promise<AppConfig>
-    update(input: Partial<AppConfig>): Promise<AppConfig>
+    update(input: AppConfigUpdate): Promise<AppConfig>
   }
   mcp: {
     getConnectionInfo(): Promise<McpConnectionInfo>
@@ -452,7 +466,7 @@ export interface ZhijiApi {
     create(input: CreateIndustryInput): Promise<Industry>
     update(id: number, input: UpdateIndustryInput): Promise<Industry>
     delete(id: number): Promise<void>
-    reorder(order: number[]): Promise<Industry[]>
+    reorder(input: ReorderIndustriesInput): Promise<Industry[]>
   }
   companies: {
     search(query: CompanyQuery): Promise<PageResult<Company>>

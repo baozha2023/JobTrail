@@ -19,6 +19,7 @@ import { ResumeService } from './services/resume-service'
 import { StatusService } from './services/status-service'
 import { UnitOfWork } from './services/unit-of-work'
 import { WebRetrievalService } from './services/web-retrieval-service'
+import { isUpdateFrozen } from './update-freeze'
 
 export interface Services {
   statuses: StatusService
@@ -41,12 +42,18 @@ export function createServiceContainer(
   services: Services
 } {
   const database = new DatabaseManager(paths)
-  const files = new FileStorageService(paths)
-  const unitOfWork = new UnitOfWork(database.db, paths.root)
-  return {
-    database,
-    unitOfWork,
-    services: createServices(unitOfWork, database, files, allowBuiltinEdit),
+  try {
+    const files = new FileStorageService(paths)
+    if (!isUpdateFrozen(paths.root)) files.recoverPendingDeletes(database.db)
+    const unitOfWork = new UnitOfWork(database.db, paths.root)
+    return {
+      database,
+      unitOfWork,
+      services: createServices(unitOfWork, database, files, allowBuiltinEdit),
+    }
+  } catch (error) {
+    database.close()
+    throw error
   }
 }
 
@@ -65,7 +72,7 @@ export function createServices(
   const opportunityStatusEvents = new OpportunityStatusEventRepository(database.db)
   const calendarRepository = new CalendarEventRepository(database.db)
   return {
-    statuses: new StatusService(unitOfWork, statusRepository, allowBuiltinEdit),
+    statuses: new StatusService(unitOfWork, statusRepository),
     industries: new IndustryService(unitOfWork, industryRepository, allowBuiltinEdit),
     companies: new CompanyService(
       unitOfWork,
@@ -73,7 +80,11 @@ export function createServices(
       industryRepository,
       allowBuiltinEdit,
     ),
-    companyCatalog: new CompanyCatalogService(unitOfWork, companyCatalogRepository),
+    companyCatalog: new CompanyCatalogService(
+      unitOfWork,
+      companyCatalogRepository,
+      industryRepository,
+    ),
     resumes: new ResumeService(unitOfWork, resumeRepository, files),
     opportunities: new OpportunityService(
       unitOfWork,

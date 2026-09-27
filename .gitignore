@@ -5,6 +5,7 @@ dist-*/
 .vite/
 .vitest/
 coverage/
+.cache/
 *.tsbuildinfo
 *.db
 *.db-shm
@@ -18,8 +19,22 @@ coverage/
 data/
 .idea
 config.json
+private-build.config.json
+.runtime/
+# Local catalog research notes, not product documentation.
+/docs/company-catalog-gank-unresolved-*.md
+*.jobtrail-backup
 resumes/
 chat-uploads/
+
+# Immutable synthetic release baseline (never includes local user data).
+!tests/fixtures/v1/config.json
+!tests/fixtures/v1/data/
+!tests/fixtures/v1/data/zhiji.db
+!tests/fixtures/v1/resumes/
+!tests/fixtures/v1/resumes/*
+!tests/fixtures/v1/chat-uploads/
+!tests/fixtures/v1/chat-uploads/*
 
 # Operating-system files
 .DS_Store

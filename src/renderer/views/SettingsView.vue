@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getErrorMessage } from '../utils/errors'
 import {
   NButton,
   NCard,
@@ -18,6 +20,7 @@ import {
 } from 'naive-ui'
 import type {
   AppConfig,
+  AppConfigUpdate,
   CloseBehavior,
   CompanyCatalogPhase,
   CompanyCatalogStatus,
@@ -45,7 +48,7 @@ const props = defineProps<{
   closeCatalogModal: () => void
 }>()
 const emit = defineEmits<{
-  updateConfig: [input: Partial<AppConfig>]
+  updateConfig: [input: AppConfigUpdate]
   aiSaved: [config: AppConfig]
   closeBehavior: [value: CloseBehavior]
   launchAtStartup: [value: boolean]
@@ -68,6 +71,28 @@ const aiCompactThresholdPercent = ref<number | null>(80)
 const keyDraft = ref('')
 const keyError = ref('')
 const aiSaving = ref(false)
+const { t } = useI18n()
+const backupBusy = ref(false)
+const backupStatus = ref('')
+const backupFailed = ref(false)
+async function backupAction(kind: 'export' | 'import'): Promise<void> {
+  if (backupBusy.value) return
+  backupBusy.value = true
+  backupFailed.value = false
+  backupStatus.value = t('settings.backupWorking')
+  try {
+    const result = await window.zhijiApi.backup[kind]()
+    backupStatus.value =
+      result === 'cancelled'
+        ? ''
+        : t(result === 'exported' ? 'settings.backupExported' : 'settings.backupRestarting')
+    if (result === 'restarting') return
+  } catch (error) {
+    backupFailed.value = true
+    backupStatus.value = getErrorMessage(error, t)
+  }
+  backupBusy.value = false
+}
 watch(
   () => props.config?.ai,
   (ai) => {
@@ -135,7 +160,7 @@ async function copySnippet(host: McpHost): Promise<void> {
 
 function updateMcp(patch: Partial<AppConfig['mcp']>): void {
   if (!props.config) return
-  emit('updateConfig', { mcp: { ...props.config.mcp, ...patch } })
+  emit('updateConfig', { mcp: patch })
 }
 
 onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
@@ -433,9 +458,32 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
         </div>
       </section>
 
+      <section class="settings-section" aria-labelledby="settings-backup-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">05</span>
+          <div>
+            <h2 id="settings-backup-title">{{ $t('settings.backupTitle') }}</h2>
+            <p>{{ $t('settings.backupDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <n-space>
+            <n-button :disabled="backupBusy || !config" @click="backupAction('export')">{{
+              $t('settings.backupExport')
+            }}</n-button>
+            <n-button :disabled="backupBusy || !config" @click="backupAction('import')">{{
+              $t('settings.backupImport')
+            }}</n-button>
+          </n-space>
+          <p v-if="backupStatus" role="status" :class="{ 'catalog-update-error': backupFailed }">
+            {{ backupStatus }}
+          </p>
+        </div>
+      </section>
+
       <section class="settings-danger" aria-labelledby="settings-danger-title">
         <div class="settings-danger-content">
-          <span class="settings-section-number">05</span>
+          <span class="settings-section-number">06</span>
           <div>
             <h2 id="settings-danger-title">{{ $t('settings.dangerZone') }}</h2>
             <p>{{ $t('settings.uninstallDescription') }}</p>

@@ -5,6 +5,7 @@ import type Database from 'better-sqlite3'
 import type { AgentAttachment } from '../../shared/types'
 import type { AppPaths } from '../config'
 import { AppServiceError } from '../services/errors'
+import { assertUpdateWritable } from '../update-freeze'
 import { extractDocument, type ExtractedDocument } from './document'
 
 type SqliteDatabase = InstanceType<typeof Database>
@@ -98,6 +99,7 @@ export class AgentFileStore {
     bytes: Uint8Array,
     multimodal: boolean,
   ): AgentAttachment {
+    assertUpdateWritable(this.paths.root)
     if (typeof name !== 'string' || typeof mimeType !== 'string' || !(bytes instanceof Uint8Array))
       throw new AppServiceError('FILE_IMPORT_FAILED', '附件参数无效')
     const originalName = path.basename(name)
@@ -148,7 +150,7 @@ export class AgentFileStore {
       .prepare(
         `SELECT id, conversation_id AS conversationId, original_name AS name,
       relative_path AS relativePath, mime_type AS mimeType, size_bytes AS sizeBytes
-      FROM chat_attachments WHERE id = ? AND conversation_id = ?`,
+      FROM chat_attachments WHERE id = ? AND conversation_id = ? AND deleting = 0`,
       )
       .get(id, conversationId) as (AgentAttachment & { relativePath: string }) | undefined
     if (!row) throw new AppServiceError('NOT_FOUND', '聊天附件不存在')
@@ -185,13 +187,12 @@ export class AgentFileStore {
   }
 
   remove(id: string, conversationId: string): void {
-    const attachment = this.get(id, conversationId)
-    const filePath = this.resolve(attachment.relativePath)
+    this.get(id, conversationId)
     this.db
-      .prepare('DELETE FROM chat_attachments WHERE id = ? AND conversation_id = ?')
+      .prepare('UPDATE chat_attachments SET deleting = 1 WHERE id = ? AND conversation_id = ?')
       .run(id, conversationId)
     try {
-      fs.rmSync(filePath, { force: true })
+      this.finishRemove(id, conversationId)
     } catch (error) {
       console.error('清理聊天附件失败', error)
     }
@@ -199,17 +200,39 @@ export class AgentFileStore {
 
   deleteConversation(conversationId: string): void {
     const rows = this.db
+      .prepare('SELECT id FROM chat_attachments WHERE conversation_id = ?')
+      .all(conversationId) as { id: string }[]
+    this.db
+      .prepare('UPDATE chat_attachments SET deleting = 1 WHERE conversation_id = ?')
+      .run(conversationId)
+    for (const row of rows) this.finishRemove(row.id, conversationId)
+  }
+
+  recoverPendingDeletes(): void {
+    const rows = this.db
       .prepare(
-        'SELECT relative_path AS relativePath FROM chat_attachments WHERE conversation_id = ?',
+        'SELECT id, conversation_id AS conversationId FROM chat_attachments WHERE deleting = 1',
       )
-      .all(conversationId) as { relativePath: string }[]
-    this.db.prepare('DELETE FROM chat_attachments WHERE conversation_id = ?').run(conversationId)
+      .all() as { id: string; conversationId: string }[]
     for (const row of rows) {
       try {
-        fs.rmSync(this.resolve(row.relativePath), { force: true })
+        this.finishRemove(row.id, row.conversationId)
       } catch (error) {
         console.error('清理聊天附件失败', error)
       }
     }
+  }
+
+  private finishRemove(id: string, conversationId: string): void {
+    const row = this.db
+      .prepare(
+        'SELECT relative_path AS relativePath FROM chat_attachments WHERE id = ? AND conversation_id = ?',
+      )
+      .get(id, conversationId) as { relativePath: string } | undefined
+    if (!row) return
+    fs.rmSync(this.resolve(row.relativePath), { force: true })
+    this.db
+      .prepare('DELETE FROM chat_attachments WHERE id = ? AND conversation_id = ?')
+      .run(id, conversationId)
   }
 }

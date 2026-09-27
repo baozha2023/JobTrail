@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import Database from 'better-sqlite3'
 import type { AppPaths } from './config'
+import { IndustryRepository } from './repositories/industry-repository'
 import { BUNDLED_COMPANY_CATALOG, BUNDLED_COMPANY_CATALOG_HASH } from './company-catalog'
 
 type SqliteDatabase = InstanceType<typeof Database>
@@ -31,91 +32,6 @@ const DEFAULT_STATUSES = [
   '主动放弃',
 ]
 
-const DEFAULT_INDUSTRIES = [
-  '互联网',
-  '游戏',
-  '人工智能',
-  '软件',
-  '芯片',
-  '硬件',
-  '通信与硬件',
-  '电子与硬件',
-  '计算机与IT服务',
-  '金融',
-  '银行',
-  '证券与投资',
-  '保险',
-  '电商与零售',
-  '消费品',
-  '食品饮料',
-  '医疗健康',
-  '生物医药',
-  '汽车',
-  '新能源',
-  '制造业',
-  '化工与材料',
-  '建筑与房地产',
-  '家居与物业',
-  '物流与供应链',
-  '交通运输',
-  '航空航天',
-  '能源与矿业',
-  '电力与公用事业',
-  '教育',
-  '旅游与酒店',
-  '媒体与内容',
-  '广告与营销',
-  '文化娱乐',
-  '专业服务与咨询',
-  '法律服务',
-  '人力资源',
-  '农业与农牧',
-  '政府与公共服务',
-  '跨境贸易',
-  '生活服务',
-  '环保与循环经济',
-  '其他服务',
-  '林业与木材',
-  '渔业与水产',
-  '烟草',
-  '纺织与服装',
-  '化妆品与美容',
-  '珠宝与奢侈品',
-  '批发贸易',
-  '医疗器械',
-  '互联网安全',
-  '云计算与数据服务',
-  '物联网',
-  '机器人与智能制造',
-  '科研与技术服务',
-  '检验检测与认证',
-  '会计审计与税务',
-  '设计与创意',
-  '知识产权服务',
-  '安保服务',
-  '国防军工',
-  '轨道交通',
-  '港口航运与海洋',
-  '邮政与快递',
-  '航空服务与机场',
-  '核工业',
-  '石油与天然气',
-  '水务与水处理',
-  '餐饮',
-  '体育与健身',
-  '养老与社会工作',
-  '出版与印刷',
-  '影视与演艺',
-  '宠物与兽医',
-  '租赁服务',
-  '维修与保养',
-  '国际组织',
-  '非营利与社会组织',
-  '殡葬与生命服务',
-  '地质勘查与测绘',
-  '气象与海洋观测',
-  '招标采购与工程服务',
-]
 export class DatabaseManager {
   readonly db: SqliteDatabase
 
@@ -164,11 +80,13 @@ export class DatabaseManager {
 
       CREATE TABLE industries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        parent_id INTEGER CHECK (parent_id IS NULL OR (parent_id > 0 AND parent_id <> id)),
+        builtin_key TEXT UNIQUE,
         sort_order INTEGER NOT NULL,
-        is_builtin INTEGER NOT NULL DEFAULT 0 CHECK (is_builtin IN (0, 1)),
         created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        updated_at INTEGER NOT NULL,
+        CHECK (parent_id IS NOT NULL OR builtin_key IS NOT NULL)
       );
 
       CREATE TABLE companies (
@@ -221,6 +139,7 @@ export class DatabaseManager {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         title_finalized INTEGER NOT NULL DEFAULT 0 CHECK (title_finalized IN (0, 1)),
+        deleting INTEGER NOT NULL DEFAULT 0 CHECK (deleting IN (0, 1)),
         input_tokens INTEGER NOT NULL DEFAULT 0,
         output_tokens INTEGER NOT NULL DEFAULT 0,
         cache_read_tokens INTEGER NOT NULL DEFAULT 0,
@@ -250,6 +169,7 @@ export class DatabaseManager {
       CREATE TABLE chat_attachments (
         id TEXT PRIMARY KEY,
         conversation_id TEXT NOT NULL,
+        deleting INTEGER NOT NULL DEFAULT 0 CHECK (deleting IN (0, 1)),
         original_name TEXT NOT NULL,
         relative_path TEXT NOT NULL UNIQUE,
         mime_type TEXT NOT NULL,
@@ -316,6 +236,9 @@ export class DatabaseManager {
       CREATE INDEX idx_opportunities_company_id ON opportunities(company_id);
       CREATE INDEX idx_opportunities_deadline_at ON opportunities(deadline_at);
       CREATE INDEX idx_opportunities_updated_at ON opportunities(updated_at);
+      CREATE UNIQUE INDEX idx_industries_root_name ON industries(name) WHERE parent_id IS NULL;
+      CREATE UNIQUE INDEX idx_industries_child_name ON industries(parent_id, name) WHERE parent_id IS NOT NULL;
+      CREATE INDEX idx_industries_parent_order ON industries(parent_id, sort_order, id);
       CREATE INDEX idx_company_industries_industry_id ON company_industries(industry_id);
       CREATE INDEX idx_calendar_events_range ON calendar_events(start_at, end_at);
       CREATE INDEX idx_agent_conversations_updated_at ON agent_conversations(updated_at DESC);
@@ -349,17 +272,15 @@ export class DatabaseManager {
       DEFAULT_STATUSES.forEach((label, index) =>
         insertStatus.run(index + 1, label, index + 1, now, now),
       )
-      const insertIndustry = this.db.prepare(
-        'INSERT INTO industries (id, name, sort_order, is_builtin, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)',
-      )
-      DEFAULT_INDUSTRIES.forEach((label, index) =>
-        insertIndustry.run(index + 1, label, index, now, now),
+      const industryIds = new IndustryRepository(this.db).synchronize(
+        BUNDLED_COMPANY_CATALOG.industries,
+        now,
       )
       for (const companySeed of BUNDLED_COMPANY_CATALOG.companies) {
         insertCompany.run(companySeed.name, companySeed.builtinKey, companySeed.careerUrl, now, now)
         const { id: companyId } = getCompanyId.get(companySeed.name) as { id: number }
-        for (const industryId of companySeed.industryIds)
-          addIndustry.run(companyId, industryId, now)
+        for (const industryKey of companySeed.industryKeys)
+          addIndustry.run(companyId, industryIds.get(industryKey)!, now)
         for (const alias of companySeed.aliases) addAlias.run(companyId, alias, now)
       }
       this.db

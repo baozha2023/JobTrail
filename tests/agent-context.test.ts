@@ -88,6 +88,7 @@ describe('agent context and display history', () => {
     }
     const config = new ConfigService(paths)
     config.update({
+      mcp: { enabled: false, requireWriteConfirmation: true },
       ai: { ...config.get().ai, baseUrl: `http://127.0.0.1:${address.port}/v1`, modelId: 'mock' },
     })
     let container = createServiceContainer(paths, false)

@@ -1,5 +1,6 @@
 import type {
   AppConfig,
+  AppConfigUpdate,
   CalendarEvent,
   CalendarRange,
   Company,
@@ -10,6 +11,7 @@ import type {
   CreateOpportunityInput,
   CreateStatusInput,
   Industry,
+  ReorderIndustriesInput,
   Opportunity,
   OpportunityStatusFlow,
   OpportunityQuery,
@@ -36,6 +38,8 @@ import type {
 } from './types'
 
 export interface IpcChannelMap {
+  'backup:export': { args: []; result: 'cancelled' | 'exported' }
+  'backup:import': { args: []; result: 'cancelled' | 'restarting' }
   'agent:list': { args: []; result: AgentConversation[] }
   'agent:create': { args: []; result: AgentConversation }
   'agent:history': { args: [id: string]; result: AgentHistory }
@@ -61,7 +65,7 @@ export interface IpcChannelMap {
     result: AppConfig
   }
   'config:get': { args: []; result: AppConfig }
-  'config:update': { args: [input: Partial<AppConfig>]; result: AppConfig }
+  'config:update': { args: [input: AppConfigUpdate]; result: AppConfig }
   'mcp:get-connection-info': { args: []; result: McpConnectionInfo }
 
   'statuses:list': { args: []; result: Status[] }
@@ -76,7 +80,7 @@ export interface IpcChannelMap {
   'industries:create': { args: [input: CreateIndustryInput]; result: Industry }
   'industries:update': { args: [id: number, input: UpdateIndustryInput]; result: Industry }
   'industries:delete': { args: [id: number]; result: void }
-  'industries:reorder': { args: [order: number[]]; result: Industry[] }
+  'industries:reorder': { args: [input: ReorderIndustriesInput]; result: Industry[] }
 
   'companies:search': { args: [query: CompanyQuery]; result: PageResult<Company> }
   'companies:list': { args: []; result: Company[] }

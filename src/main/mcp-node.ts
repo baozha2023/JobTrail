@@ -7,6 +7,7 @@ import { createJobTrailMcpServer } from './mcp/server'
 import { createServiceContainer } from './service-container'
 import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE } from './database'
 import { mcpSessionDirectory, updateFreezePath } from './update-freeze'
+import { restoreDirectory } from './backup-restore'
 
 function requiredEnvironment(name: 'JOBTRAIL_MCP_ROOT' | 'JOBTRAIL_MCP_VERSION'): string {
   const value = process.env[name]?.trim()
@@ -28,13 +29,13 @@ function appPaths(root: string): AppPaths {
 const version = requiredEnvironment('JOBTRAIL_MCP_VERSION')
 const paths = appPaths(path.resolve(requiredEnvironment('JOBTRAIL_MCP_ROOT')))
 const freezePath = updateFreezePath(paths.root)
-if (fs.existsSync(freezePath)) process.exit(75)
+if (fs.existsSync(freezePath) || fs.existsSync(restoreDirectory(paths.root))) process.exit(75)
 const leaseDirectory = mcpSessionDirectory(paths.root)
 fs.mkdirSync(leaseDirectory, { recursive: true })
 const leasePath = path.join(leaseDirectory, `${process.pid}-${randomUUID()}`)
 fs.writeFileSync(leasePath, '', { flag: 'wx' })
 process.once('exit', () => fs.rmSync(leasePath, { force: true }))
-if (fs.existsSync(freezePath)) process.exit(75)
+if (fs.existsSync(freezePath) || fs.existsSync(restoreDirectory(paths.root))) process.exit(75)
 let config: ConfigService
 let container: ReturnType<typeof createServiceContainer>
 try {

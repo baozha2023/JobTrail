@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   parseCalendarRange,
+  parseCalendarEvent,
   parseCompany,
   parseOpportunity,
   parseOpportunityQuery,
@@ -11,6 +12,12 @@ import { AppServiceError, errorShape } from '../src/main/services/errors'
 
 describe('typed IPC validation', () => {
   it('rejects malformed DTO values instead of coercing them', () => {
+    expect(() =>
+      parseCalendarEvent(
+        { title: 'point', eventType: '面试', startAt: 1000, endAt: 1000, reminderMinutes: 0 },
+        false,
+      ),
+    ).toThrowError(AppServiceError)
     expect(() => parseCalendarRange({ startAt: '0', endAt: 1 })).toThrowError(AppServiceError)
     expect(() => parseCompany({ name: '公司', aliases: ['有效', 1] }, false)).toThrowError(
       AppServiceError,

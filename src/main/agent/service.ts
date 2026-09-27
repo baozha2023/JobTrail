@@ -15,6 +15,7 @@ import type {
 import type { AppPaths, ConfigService } from '../config'
 import type { Services } from '../service-container'
 import { AppServiceError } from '../services/errors'
+import { assertUpdateWritable, isUpdateFrozen } from '../update-freeze'
 import { AgentFileStore } from './files'
 import { createAgentGraph } from './graph'
 import { AgentArchive } from './archive'
@@ -31,10 +32,12 @@ export class AgentService {
   private readonly archive: AgentArchive
   private readonly running = new Map<string, AbortController>()
   private readonly inFlight = new Set<Promise<unknown>>()
+  private readonly inFlightByConversation = new Map<string, Set<Promise<unknown>>>()
   private closing = false
+  private updateSuspended = false
 
   constructor(
-    paths: AppPaths,
+    private readonly paths: AppPaths,
     private readonly db: SqliteDatabase,
     private readonly config: ConfigService,
     private readonly services: Services,
@@ -52,13 +55,13 @@ export class AgentService {
     this.assertOpen()
     return this.db
       .prepare(
-        'SELECT id, title, created_at AS createdAt, updated_at AS updatedAt FROM agent_conversations ORDER BY updated_at DESC',
+        'SELECT id, title, created_at AS createdAt, updated_at AS updatedAt FROM agent_conversations WHERE deleting = 0 ORDER BY updated_at DESC',
       )
       .all() as AgentConversation[]
   }
 
   create(): AgentConversation {
-    this.assertOpen()
+    this.assertWritable()
     const conversation = {
       id: randomUUID(),
       title: this.config.get().locale === 'en-US' ? 'New chat' : '新对话',
@@ -74,6 +77,7 @@ export class AgentService {
   }
 
   rename(id: string, inputTitle: string): AgentConversation {
+    this.assertWritable()
     this.ensure(id)
     if (typeof inputTitle !== 'string')
       throw new AppServiceError('VALIDATION_ERROR', '对话标题无效')
@@ -97,13 +101,20 @@ export class AgentService {
     this.assertOpen()
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
-      !this.db.prepare('SELECT 1 FROM agent_conversations WHERE id = ?').get(id)
+      !this.db.prepare('SELECT 1 FROM agent_conversations WHERE id = ? AND deleting = 0').get(id)
     )
       throw new AppServiceError('NOT_FOUND', '对话不存在')
   }
 
   private assertOpen(): void {
     if (this.closing) throw new AppServiceError('VALIDATION_ERROR', '智能体正在关闭')
+  }
+
+  private assertWritable(): void {
+    this.assertOpen()
+    if (this.updateSuspended)
+      throw new AppServiceError('VALIDATION_ERROR', '应用正在更新，请稍后重试')
+    assertUpdateWritable(this.paths.root)
   }
 
   private async rawPending(id: string): Promise<AgentPending | null> {
@@ -136,7 +147,7 @@ export class AgentService {
   }
 
   history(id: string): Promise<AgentHistory> {
-    return this.track(() => this.readHistory(id))
+    return this.track(id, () => this.readHistory(id))
   }
 
   private async readHistory(id: string): Promise<AgentHistory> {
@@ -165,24 +176,59 @@ export class AgentService {
   }
 
   delete(id: string): Promise<void> {
-    return this.track(() => this.deleteConversation(id))
+    const prior = [...(this.inFlightByConversation.get(id) ?? [])]
+    return this.track(id, () => this.deleteConversation(id, prior))
   }
 
-  private async deleteConversation(id: string): Promise<void> {
+  private async deleteConversation(id: string, prior: Promise<unknown>[]): Promise<void> {
     this.ensure(id)
     if (this.running.has(id)) throw new AppServiceError('VALIDATION_ERROR', '请先停止当前回复')
-    await this.saver.deleteThread(id)
+    this.db.prepare('UPDATE agent_conversations SET deleting = 1 WHERE id = ?').run(id)
+    await Promise.allSettled(prior)
+    try {
+      await this.finishDeletion(id)
+    } catch (error) {
+      // The durable marker hides the conversation; startup will retry cleanup.
+      console.error('清理智能体会话失败', error)
+    }
+  }
+
+  private async finishDeletion(id: string): Promise<void> {
+    // A newly created conversation has never initialized LangGraph's tables.
+    if (
+      this.db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'checkpoints'")
+        .get()
+    )
+      await this.saver.deleteThread(id)
     this.archive.delete(id)
     this.files.deleteConversation(id)
     this.db.prepare('DELETE FROM agent_conversations WHERE id = ?').run(id)
   }
 
+  async recoverPendingDeletions(): Promise<void> {
+    if (isUpdateFrozen(this.paths.root)) return
+    const rows = this.db.prepare('SELECT id FROM agent_conversations WHERE deleting = 1').all() as {
+      id: string
+    }[]
+    for (const row of rows) {
+      try {
+        await this.finishDeletion(row.id)
+      } catch (error) {
+        console.error('恢复智能体会话清理失败', error)
+      }
+    }
+    this.files.recoverPendingDeletes()
+  }
+
   upload(id: string, sourcePath: string): AgentAttachment {
+    this.assertWritable()
     this.ensure(id)
     return this.files.import(id, sourcePath, this.config.get().ai.multimodal)
   }
 
   uploadBytes(id: string, name: string, mimeType: string, bytes: Uint8Array): AgentAttachment {
+    this.assertWritable()
     this.ensure(id)
     return this.files.importBytes(id, name, mimeType, bytes, this.config.get().ai.multimodal)
   }
@@ -198,7 +244,11 @@ export class AgentService {
   }
 
   removeUpload(id: string, attachmentId: string): Promise<void> {
-    return this.track(() => this.removePendingUpload(id, attachmentId))
+    const prior = [...(this.inFlightByConversation.get(id) ?? [])]
+    return this.track(id, async () => {
+      await Promise.allSettled(prior)
+      await this.removePendingUpload(id, attachmentId)
+    })
   }
 
   private async removePendingUpload(id: string, attachmentId: string): Promise<void> {
@@ -210,6 +260,7 @@ export class AgentService {
   }
 
   saveSettings(ai: AppConfig['ai']): AppConfig {
+    this.assertWritable()
     if (
       !ai ||
       typeof ai.baseUrl !== 'string' ||
@@ -239,7 +290,7 @@ export class AgentService {
   }
 
   send(id: string, inputParts: AgentDraftPart[], attachmentIds: string[]): Promise<void> {
-    return this.track(() => this.sendMessage(id, inputParts, attachmentIds))
+    return this.track(id, () => this.sendMessage(id, inputParts, attachmentIds))
   }
 
   private async sendMessage(
@@ -276,7 +327,7 @@ export class AgentService {
   }
 
   compact(id: string): Promise<void> {
-    return this.track(async () => {
+    return this.track(id, async () => {
       this.ensure(id)
       if (await this.rawPending(id))
         throw new AppServiceError('VALIDATION_ERROR', '请先完成当前待确认操作')
@@ -285,7 +336,7 @@ export class AgentService {
   }
 
   resume(id: string, answer: string[] | boolean): Promise<void> {
-    return this.track(() => this.resumeConversation(id, answer))
+    return this.track(id, () => this.resumeConversation(id, answer))
   }
 
   private async resumeConversation(id: string, answer: string[] | boolean): Promise<void> {
@@ -312,19 +363,29 @@ export class AgentService {
     this.running.get(id)?.abort()
   }
 
-  private track<T>(action: () => Promise<T>): Promise<T> {
-    if (this.closing)
-      return Promise.reject(new AppServiceError('VALIDATION_ERROR', '智能体正在关闭'))
+  private track<T>(id: string, action: () => Promise<T>): Promise<T> {
+    try {
+      this.assertWritable()
+    } catch (error) {
+      return Promise.reject(error)
+    }
     const work = action()
     this.inFlight.add(work)
-    return work.finally(() => this.inFlight.delete(work))
+    const conversationWork = this.inFlightByConversation.get(id) ?? new Set<Promise<unknown>>()
+    conversationWork.add(work)
+    this.inFlightByConversation.set(id, conversationWork)
+    return work.finally(() => {
+      this.inFlight.delete(work)
+      conversationWork.delete(work)
+      if (!conversationWork.size) this.inFlightByConversation.delete(id)
+    })
   }
 
   private async run(
     id: string,
     input: { messages?: HumanMessage[]; mode: 'chat' | 'compact' } | Command,
   ): Promise<void> {
-    if (this.closing) throw new AppServiceError('VALIDATION_ERROR', '智能体正在关闭')
+    this.ensure(id)
     if (this.running.has(id)) throw new AppServiceError('VALIDATION_ERROR', '对话正在回复中')
     const controller = new AbortController()
     this.running.set(id, controller)
@@ -492,5 +553,37 @@ export class AgentService {
     for (const controller of this.running.values()) controller.abort()
     await Promise.allSettled([...this.inFlight])
     await this.mcp.close()
+  }
+
+  async suspendForUpdate(): Promise<void> {
+    this.updateSuspended = true
+    for (const controller of this.running.values()) controller.abort()
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    let expired = false
+    try {
+      await Promise.race([
+        (async () => {
+          await Promise.allSettled([...this.inFlight])
+          // Promise.race does not cancel its losing branch. An expired attempt
+          // must not close a client that resumeAfterUpdate has made available.
+          if (expired) return
+          // The built-in MCP client keeps its stdio server alive between calls.
+          // Release its session lease before the updater waits for MCP processes.
+          await this.mcp.close()
+        })(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('agent_operations_did_not_stop')), 15_000)
+        }),
+      ])
+    } catch (error) {
+      expired = true
+      throw error
+    } finally {
+      if (timeout) clearTimeout(timeout)
+    }
+  }
+
+  resumeAfterUpdate(): void {
+    this.updateSuspended = false
   }
 }

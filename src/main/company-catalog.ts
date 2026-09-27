@@ -21,12 +21,20 @@ const normalizedText = (maximum: number) =>
 const catalogEntrySchema = z.strictObject({
   builtinKey: z.string().regex(UUID_V4),
   name: normalizedText(200),
-  industryIds: z.array(z.number().int().min(1).max(83)).min(1).max(83),
+  industryKeys: z.array(z.string().regex(UUID_V4)).min(1).max(1_000),
   careerUrl: z.string().max(2048).nullable(),
   aliases: z.array(normalizedText(200)).max(100),
 })
 
+const catalogIndustrySchema = z.strictObject({
+  builtinKey: z.string().regex(UUID_V4),
+  parentKey: z.string().regex(UUID_V4).nullable(),
+  code: z.string().regex(/^(?:[A-T]|[0-9]{2})$/),
+  name: normalizedText(200),
+})
+
 const catalogSchema = z.strictObject({
+  industries: z.array(catalogIndustrySchema).min(1).max(1_000),
   formatVersion: z.literal(COMPANY_CATALOG_FORMAT_VERSION),
   catalogVersion: z.number().int().positive(),
   minimumAppVersion: z.string().regex(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/),
@@ -51,6 +59,23 @@ export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
   const parsed = catalogSchema.safeParse(value)
   if (!parsed.success) throw invalidCatalog()
 
+  const industryKeys = new Map(parsed.data.industries.map((item) => [item.builtinKey, item]))
+  const codes = new Set(parsed.data.industries.map((item) => item.code))
+  if (industryKeys.size !== parsed.data.industries.length || codes.size !== industryKeys.size)
+    throw invalidCatalog()
+  const siblingNames = new Set<string>()
+  for (const industry of parsed.data.industries) {
+    const siblingName = JSON.stringify([industry.parentKey, industry.name])
+    if (siblingNames.has(siblingName)) throw invalidCatalog()
+    siblingNames.add(siblingName)
+    if (industry.parentKey === null) {
+      if (!/^[A-T]$/.test(industry.code)) throw invalidCatalog()
+    } else {
+      const parent = industryKeys.get(industry.parentKey)
+      if (!parent || parent.parentKey !== null || !/^[0-9]{2}$/.test(industry.code))
+        throw invalidCatalog()
+    }
+  }
   const keys = new Set<string>()
   const names = new Set<string>()
   for (const company of parsed.data.companies) {
@@ -58,7 +83,13 @@ export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
     if (names.has(company.name)) throw invalidCatalog()
     keys.add(company.builtinKey)
     names.add(company.name)
-    if (new Set(company.industryIds).size !== company.industryIds.length) throw invalidCatalog()
+    if (
+      new Set(company.industryKeys).size !== company.industryKeys.length ||
+      company.industryKeys.some(
+        (key) => !industryKeys.has(key) || industryKeys.get(key)!.parentKey === null,
+      )
+    )
+      throw invalidCatalog()
     if (new Set(company.aliases).size !== company.aliases.length) throw invalidCatalog()
     if (company.aliases.includes(company.name)) throw invalidCatalog()
     if (company.careerUrl !== null) {

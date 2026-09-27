@@ -7,6 +7,10 @@ export function errorCode(error: unknown): AppErrorCode | null {
   const code = (error as { code?: unknown }).code
   if (typeof code !== 'string') return null
   const known: AppErrorCode[] = [
+    'BACKUP_INVALID',
+    'BACKUP_SOURCE_INVALID',
+    'BACKUP_VERSION_UNSUPPORTED',
+    'BACKUP_FAILED',
     'VALIDATION_ERROR',
     'NOT_FOUND',
     'BUILTIN_DATA',

@@ -1,6 +1,10 @@
 import type Database from 'better-sqlite3'
 import type { CompanyCatalogEntry } from '../company-catalog'
 
+export type ResolvedCatalogCompany = Omit<CompanyCatalogEntry, 'industryKeys'> & {
+  industryIds: number[]
+}
+
 type SqliteDatabase = InstanceType<typeof Database>
 
 export interface CompanyCatalogStateRow {
@@ -46,13 +50,6 @@ export class CompanyCatalogRepository {
       .get() as CompanyCatalogStateRow
   }
 
-  builtinIndustryIds(): Set<number> {
-    const rows = this.db
-      .prepare('SELECT id FROM industries WHERE is_builtin = 1 ORDER BY id')
-      .all() as Array<{ id: number }>
-    return new Set(rows.map((row) => row.id))
-  }
-
   findByBuiltinKey(builtinKey: string): CatalogCompanySnapshot | undefined {
     return this.snapshot(
       this.db
@@ -69,7 +66,7 @@ export class CompanyCatalogRepository {
     )
   }
 
-  insert(entry: CompanyCatalogEntry, timestamp: number): number {
+  insert(entry: ResolvedCatalogCompany, timestamp: number): number {
     this.db
       .prepare(
         'INSERT INTO companies (name, builtin_key, career_url, last_read_at, is_favorite, created_at, updated_at) VALUES (?, ?, ?, NULL, 0, ?, ?)',
@@ -85,7 +82,7 @@ export class CompanyCatalogRepository {
 
   updateCatalogData(
     current: CatalogCompanySnapshot,
-    entry: CompanyCatalogEntry,
+    entry: ResolvedCatalogCompany,
     timestamp: number,
   ): void {
     this.db

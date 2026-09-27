@@ -3,7 +3,6 @@ import { useI18n } from 'vue-i18n'
 import type {
   Company,
   CreateCompanyInput,
-  CreateIndustryInput,
   Industry,
   ResumeVersion,
   Status,
@@ -51,9 +50,18 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const companyForm = ref<CompanyForm>({ name: '', industryIds: [], careerUrl: null, aliases: [] })
   const showIndustryModal = ref(false)
   const editingIndustryId = ref<number | null>(null)
-  const industryForm = ref<CreateIndustryInput>({ name: '' })
+  const industryForm = ref<{ name: string; parentId: number | null }>({ name: '', parentId: null })
 
   async function loadManagedCompanies(): Promise<void> {
+    // Reference lists are refreshed before this query. A deleted industry no
+    // longer constrains company search, including deletions made through MCP.
+    if (
+      selectedCompanyIndustryId.value !== null &&
+      !options.industries.value.some((item) => item.id === selectedCompanyIndustryId.value)
+    ) {
+      selectedCompanyIndustryId.value = null
+      managedCompanyPage.value = 1
+    }
     const request = ++managedCompanyRequest
     managedCompaniesLoading.value = true
     try {
@@ -99,10 +107,18 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   }
 
   async function moveIndustry(id: number, offset: number): Promise<void> {
-    const reordered = reorderedIds(options.industries.value, id, offset)
+    const parentId = options.industries.value.find((item) => item.id === id)!.parentId
+    const reordered = reorderedIds(
+      options.industries.value.filter((item) => item.parentId === parentId),
+      id,
+      offset,
+    )
     if (!reordered) return
     try {
-      options.industries.value = await window.zhijiApi.industries.reorder(reordered)
+      options.industries.value = await window.zhijiApi.industries.reorder({
+        parentId,
+        order: reordered,
+      })
       options.notifySuccess(t('feedback.reorderSuccess'))
     } catch (error) {
       options.showError(error)
@@ -209,20 +225,33 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
 
   function openIndustryEditor(industry?: Industry): void {
     editingIndustryId.value = industry?.id ?? null
-    industryForm.value = { name: industry?.name ?? '' }
+    industryForm.value = {
+      name: industry?.name ?? '',
+      parentId: industry?.parentId ?? null,
+    }
     showIndustryModal.value = true
   }
 
   async function saveIndustry(): Promise<void> {
-    if (!industryForm.value.name.trim()) {
+    if (
+      !industryForm.value.name.trim() ||
+      ((!editingIndustryId.value ||
+        options.industries.value.find((item) => item.id === editingIndustryId.value)?.parentId !==
+          null) &&
+        industryForm.value.parentId === null)
+    ) {
       options.notifyError(t('error.required'))
       return
     }
     try {
       const isEditing = editingIndustryId.value !== null
-      const input = cloneDto(industryForm.value)
-      if (isEditing) await window.zhijiApi.industries.update(editingIndustryId.value!, input)
-      else await window.zhijiApi.industries.create(input)
+      const { name, parentId } = industryForm.value
+      if (isEditing)
+        await window.zhijiApi.industries.update(editingIndustryId.value!, {
+          name,
+          ...(parentId === null ? {} : { parentId }),
+        })
+      else await window.zhijiApi.industries.create({ name, parentId: parentId! })
       options.industries.value = await window.zhijiApi.industries.list()
       await Promise.all([options.loadCompanies(), loadManagedCompanies()])
       showIndustryModal.value = false
@@ -235,7 +264,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   async function deleteIndustry(industry: Industry): Promise<void> {
     try {
       await window.zhijiApi.industries.delete(industry.id)
-      options.industries.value = options.industries.value.filter((item) => item.id !== industry.id)
+      options.industries.value = await window.zhijiApi.industries.list()
       await Promise.all([options.loadCompanies(), loadManagedCompanies()])
       options.notifySuccess(t('feedback.deleteSuccess'))
     } catch (error) {
@@ -323,8 +352,17 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     }
   }
 
-  watch([companyManagementSearch, selectedCompanyIndustryId], () => {
+  watch([companyManagementSearch, selectedCompanyIndustryId], (_value, previous) => {
     managedCompanyPage.value = 1
+    // Clearing a deleted reference happens inside loadManagedCompanies, which
+    // already performs the query. Do not issue a second identical request.
+    if (
+      previous[0] === companyManagementSearch.value &&
+      selectedCompanyIndustryId.value === null &&
+      previous[1] !== null &&
+      !options.industries.value.some((item) => item.id === previous[1])
+    )
+      return
     void loadManagedCompanies().catch(options.showError)
   })
 

@@ -16,6 +16,8 @@ import { resolveDesktopAssets } from './runtime-assets'
 import { ExternalDataMonitor } from './external-data-monitor'
 import { AgentService } from './agent/service'
 import { getMcpConnectionInfo } from './ipc/mcp'
+import { registerBackupIpc } from './ipc/backup'
+import { recoverRestore, recoverBackupWork } from './backup-restore'
 import { sendToTrustedWindow } from './ipc/register-channel'
 
 // Velopack must run before Electron startup work.
@@ -210,9 +212,11 @@ function createWindow(config: ConfigService): void {
   })
 }
 
-function initializeApplication(): void {
+async function initializeApplication(): Promise<void> {
   Menu.setApplicationMenu(null)
   const paths = getAppPaths()
+  recoverRestore(paths)
+  recoverBackupWork(paths)
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
@@ -224,8 +228,13 @@ function initializeApplication(): void {
     getMcpConnectionInfo,
     (event) => sendToTrustedWindow('agent:event', event),
   )
+  await agent.recoverPendingDeletions()
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
-  registerVelopackIpc(container.database)
+  registerVelopackIpc(container.database, agent)
+  registerBackupIpc(paths, container.database, config, agent, () => {
+    app.relaunch()
+    app.quit()
+  })
   if (installed)
     app.setLoginItemSettings({
       name: 'JobTrail',
@@ -252,12 +261,21 @@ function initializeApplication(): void {
 
 app
   .whenReady()
-  .then(() => {
+  .then(async () => {
     if (!hasSingleInstanceLock || process.argv.includes('--handoff-root')) return
     try {
-      initializeApplication()
+      await initializeApplication()
     } catch (error) {
       if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
+        // A root launch owns the final error message after any update rollback.
+        // Direct development/runtime launches have no parent to report the failure.
+        if (!process.env.JOBTRAIL_LAUNCH_TOKEN)
+          dialog.showErrorBox(
+            '职迹无法读取本地数据 / Unable to read local data',
+            error instanceof ConfigLoadError && error.code === 'CONFIG_INVALID'
+              ? '配置文件损坏、内容无效或加密密钥不匹配。原配置和数据库已保留，未重置。请保留数据目录，使用相同构建密钥的客户端，或联系维护者协助恢复备份。\nConfiguration is invalid or cannot be decrypted. Your data has been preserved.'
+              : '配置或数据库版本不受当前客户端支持。原数据已保留，请使用支持该数据版本的客户端。\nThis data version is unsupported. Your data has been preserved; use a compatible client.',
+          )
         setImmediate(() => app.exit(INCOMPATIBLE_DATA_EXIT_CODE))
         return
       }

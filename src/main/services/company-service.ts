@@ -41,8 +41,11 @@ export class CompanyService {
 
   search(query: CompanyQuery): PageResult<Company> {
     assertPageQuery(query)
-    if (query.industryId !== null && query.industryId !== undefined)
+    if (query.industryId !== null && query.industryId !== undefined) {
       assertPositiveId(query.industryId, '行业分类 ID')
+      if (!this.industries.get(query.industryId))
+        throw new AppServiceError('NOT_FOUND', '行业分类不存在')
+    }
     const result = this.repository.search({ ...query, keyword: query.keyword?.trim() })
     return {
       items: result.items,
@@ -105,6 +108,8 @@ export class CompanyService {
           input.industryIds === undefined
             ? current.industryIds
             : normalizeIndustryIds(input.industryIds)
+        if (current.isBuiltin && industryIds.length === 0)
+          throw new AppServiceError('VALIDATION_ERROR', '内置公司至少关联一个二级行业')
         this.validateIndustries(industryIds)
         const aliases = input.aliases === undefined ? undefined : normalizeAliases(input.aliases)
         this.repository.update(
@@ -143,8 +148,9 @@ export class CompanyService {
   private validateIndustries(industryIds: number[]): void {
     industryIds.forEach((industryId) => {
       assertPositiveId(industryId, '行业分类 ID')
-      if (!this.industries.get(industryId))
-        throw new AppServiceError('VALIDATION_ERROR', '行业分类不存在')
+      const industry = this.industries.get(industryId)
+      if (!industry || industry.parent_id === null)
+        throw new AppServiceError('VALIDATION_ERROR', '公司只能关联二级行业')
     })
   }
 }

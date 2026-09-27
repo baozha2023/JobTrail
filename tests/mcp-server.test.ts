@@ -100,7 +100,7 @@ describe('JobTrail MCP server', () => {
     return result.structuredContent as Record<string, unknown>
   }
 
-  it('gates all data access while disabled and advertises exactly 37 tools', async () => {
+  it('allows reads by default, gates access when disabled, and advertises exactly 37 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
     expect(listed.tools).toHaveLength(37)
@@ -111,6 +111,8 @@ describe('JobTrail MCP server', () => {
     expect(
       listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.readOnlyHint,
     ).toBe(false)
+    await call(client, 'list_statuses')
+    config.update({ mcp: { enabled: false, requireWriteConfirmation: true } })
     const result = await client.callTool({ name: 'list_statuses', arguments: {} })
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toMatchObject({
@@ -203,13 +205,23 @@ describe('JobTrail MCP server', () => {
     const statusOrder = [status.id, ...statuses.map((item) => item.id)]
     await call(client, 'reorder_statuses', { order: statusOrder })
 
-    const industries = (await call(client, 'list_industries')).items as Array<{ id: number }>
+    const industries = (await call(client, 'list_industries')).items as Array<{
+      id: number
+      parentId: number | null
+    }>
     await call(client, 'get_industry', { id: industries[0].id })
-    const industry = (await call(client, 'create_industry', { input: { name: 'MCP 行业' } }))
-      .item as { id: number }
+    const industry = (
+      await call(client, 'create_industry', {
+        input: { name: 'MCP 行业', parentId: industries[0].id },
+      })
+    ).item as { id: number }
     await call(client, 'update_industry', { id: industry.id, input: { name: 'MCP 行业更新' } })
     await call(client, 'reorder_industries', {
-      order: [industry.id, ...industries.map((item) => item.id)],
+      parentId: industries[0].id,
+      order: [
+        industry.id,
+        ...industries.filter((item) => item.parentId === industries[0].id).map((item) => item.id),
+      ],
     })
 
     const company = (

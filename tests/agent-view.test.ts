@@ -792,7 +792,10 @@ describe('agent composer', () => {
             industryName: '互联网',
           } as Company,
         ],
-        industries: [{ id: 13, name: '互联网' } as Industry],
+        industries: [
+          { id: 1, name: '信息技术', parentId: null } as Industry,
+          { id: 13, name: '互联网', parentId: 1 } as Industry,
+        ],
       },
       global,
     })
@@ -808,7 +811,7 @@ describe('agent composer', () => {
     await flushPromises()
     expect(
       [...document.querySelectorAll('.agent-command-option')].map((item) => item.textContent),
-    ).toEqual(['简历', '求职记录', '公司', '行业'])
+    ).toEqual(['简历', '求职记录', '公司', '二级行业'])
     editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
     editor.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
@@ -830,7 +833,7 @@ describe('agent composer', () => {
     await flushPromises()
     expect(
       [...document.querySelectorAll('.agent-command-option')].map((item) => item.textContent),
-    ).toEqual(['简历', '求职记录', '公司', '行业'])
+    ).toEqual(['简历', '求职记录', '公司', '二级行业'])
     chooseOption(0)
     typeAtCaret(editor, '@前')
     await flushPromises()
@@ -875,7 +878,9 @@ describe('agent composer', () => {
     expect(document.querySelectorAll('.agent-command-option')).toHaveLength(1)
     chooseOption(0)
     await flushPromises()
-    expect(editor.querySelector('.agent-reference')?.textContent).toBe('@行业 / 互联网')
+    expect(editor.querySelector('.agent-reference')?.textContent).toBe(
+      '@二级行业 / 信息技术 / 互联网',
+    )
 
     let finishPendingSend!: () => void
     send.mockImplementationOnce(

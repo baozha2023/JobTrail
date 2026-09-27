@@ -4,3 +4,4 @@ dist-*
 out
 native
 config.json
+private-build.config.json

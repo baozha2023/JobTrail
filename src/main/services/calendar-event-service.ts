@@ -112,7 +112,7 @@ export class CalendarEventService {
     if (
       input.reminderMinutes !== null &&
       input.reminderMinutes !== undefined &&
-      (!Number.isSafeInteger(input.reminderMinutes) || input.reminderMinutes < 0)
+      (!Number.isSafeInteger(input.reminderMinutes) || input.reminderMinutes <= 0)
     ) {
       throw new AppServiceError('VALIDATION_ERROR', '提醒时间无效')
     }

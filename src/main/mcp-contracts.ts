@@ -222,7 +222,8 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'list_industries',
     title: 'List industries',
-    description: 'List all industries in display order.',
+    description:
+      'List the two-level industry tree in display order. parentId is null for groups; only second-level industries can be assigned to companies or referenced in chat.',
     readOnly: true,
     inputSchema: emptyInput,
     outputSchema: itemsOutput(industrySchema),
@@ -240,24 +241,42 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'create_industry',
     title: 'Create industry',
-    description: 'Create a custom industry.',
+    description:
+      'Create a custom second-level industry under an existing first-level group using parentId.',
     readOnly: false,
     inputSchema: createIndustryArgs,
     outputSchema: itemOutput(industrySchema),
-    preview: (_s, a) => ({ entityType: 'industry', before: null, after: a.input }),
+    preview: (s, a) => ({
+      entityType: 'industry',
+      before: null,
+      after: { ...a.input, parentName: s.industries.get(a.input.parentId).name },
+    }),
     execute: (s, a) => ({ item: s.industries.create(a.input) }),
   }),
   tool({
     name: 'update_industry',
     title: 'Update industry',
-    description: 'Update a custom industry.',
+    description:
+      'Rename a custom second-level industry or move it to another first-level group using parentId. Built-in industries are editable only in development.',
     readOnly: false,
     idempotent: true,
     inputSchema: updateIndustryArgs,
     outputSchema: itemOutput(industrySchema),
     preview: (s, a) => {
       const before = s.industries.get(a.id)
-      return { entityType: 'industry', before, after: { ...before, ...a.input } }
+      const parentId = a.input.parentId ?? before.parentId
+      return {
+        entityType: 'industry',
+        before: {
+          ...before,
+          parentName: before.parentId === null ? null : s.industries.get(before.parentId).name,
+        },
+        after: {
+          ...before,
+          ...a.input,
+          parentName: parentId === null ? null : s.industries.get(parentId).name,
+        },
+      }
     },
     execute: (s, a) => ({ item: s.industries.update(a.id, a.input) }),
   }),
@@ -279,17 +298,24 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'reorder_industries',
     title: 'Reorder industries',
-    description: 'Set the complete display order of industries.',
+    description:
+      'Set the complete sibling order under parentId; use null for first-level sections.',
     readOnly: false,
     idempotent: true,
-    inputSchema: orderInputSchema,
+    inputSchema: z.strictObject({
+      parentId: positiveIdSchema.nullable(),
+      order: z.array(positiveIdSchema),
+    }),
     outputSchema: itemsOutput(industrySchema),
     preview: (s, a) => ({
       entityType: 'industry_order',
-      before: s.industries.list().map(({ id, updatedAt }) => ({ id, updatedAt })),
-      after: a.order,
+      before: s.industries
+        .list()
+        .filter((item) => item.parentId === a.parentId)
+        .map(({ id, updatedAt }) => ({ id, updatedAt })),
+      after: a,
     }),
-    execute: (s, a) => ({ items: s.industries.reorder(a.order) }),
+    execute: (s, a) => ({ items: s.industries.reorder(a) }),
   }),
 
   tool({

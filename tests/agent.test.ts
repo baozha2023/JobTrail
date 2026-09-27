@@ -62,6 +62,7 @@ describe('built-in LangGraph agent', () => {
     }
     const config = new ConfigService(paths)
     config.update({
+      mcp: { enabled: false, requireWriteConfirmation: true },
       ai: {
         baseUrl: `http://127.0.0.1:${address.port}/v1`,
         modelId: 'mock',
@@ -159,6 +160,20 @@ describe('built-in LangGraph agent', () => {
     if (first.messages[0].role === 'user')
       expect(first.messages[0].parts).toEqual([{ kind: 'text', text: '请阅读附件' }])
     expect(first.messages[0].attachments[0].id).toBe(attachment.id)
+    const storedUser = container.database.db
+      .prepare(
+        "SELECT id, payload FROM agent_chat_events WHERE conversation_id = ? AND kind = 'user'",
+      )
+      .get(conversation.id) as { id: string; payload: string }
+    const incomplete = JSON.parse(storedUser.payload)
+    delete incomplete.attachmentIds
+    container.database.db
+      .prepare('UPDATE agent_chat_events SET payload = ? WHERE id = ?')
+      .run(JSON.stringify(incomplete), storedUser.id)
+    await expect(agent.history(conversation.id)).rejects.toThrow('用户消息归档缺少附件列表')
+    container.database.db
+      .prepare('UPDATE agent_chat_events SET payload = ? WHERE id = ?')
+      .run(storedUser.payload, storedUser.id)
     expect(events.some((event) => event.kind === 'done')).toBe(true)
     expect(
       events

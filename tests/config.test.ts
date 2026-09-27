@@ -4,6 +4,10 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AppPaths } from '../src/main/config'
 import { ConfigLoadError, ConfigService, DEFAULT_CONFIG } from '../src/main/config'
+import { encryptConfig, decryptConfig } from '../src/main/config-crypto'
+import type { AppConfig, AppConfigUpdate } from '../src/shared/types'
+const readStored = (file: string): AppConfig =>
+  decryptConfig(fs.readFileSync(file, 'utf8')) as AppConfig
 import { updateFreezePath } from '../src/main/update-freeze'
 
 describe('config service', () => {
@@ -25,26 +29,86 @@ describe('config service', () => {
     }
   }
 
-  it('writes defaults atomically and preserves unknown fields', () => {
+  it('creates complete defaults and persists partial settings updates atomically', () => {
     const paths = createPaths()
     const config = new ConfigService(paths)
     expect(config.get()).toMatchObject(DEFAULT_CONFIG)
     expect(config.get().companyReadValidityMonths).toBe(3)
     expect(config.get().ai.contextWindowK).toBe(256)
     expect(config.get().ai.compactThresholdPercent).toBe(80)
-    fs.writeFileSync(
-      paths.config,
-      JSON.stringify({ ...config.get(), customExtension: { enabled: true } }),
-    )
     const loaded = new ConfigService(paths)
-    expect(loaded.get().customExtension).toEqual({ enabled: true })
     expect(loaded.update({ locale: 'en-US' }).locale).toBe('en-US')
     expect(loaded.update({ companyReadValidityMonths: 6 }).companyReadValidityMonths).toBe(6)
     expect(loaded.update({ statusFlowTheme: 'ocean' }).statusFlowTheme).toBe('ocean')
     expect(new ConfigService(paths).get().statusFlowTheme).toBe('ocean')
-    expect(JSON.parse(fs.readFileSync(paths.config, 'utf8')).customExtension).toEqual({
-      enabled: true,
+    expect(readStored(paths.config)).toEqual(loaded.get())
+    expect(loaded.update({ ai: { modelId: ' test-model ' } }).ai).toEqual({
+      ...DEFAULT_CONFIG.ai,
+      modelId: 'test-model',
     })
+    expect(new ConfigService(paths).get()).toEqual(loaded.get())
+  })
+
+  it('enables MCP with write confirmation by default and preserves an explicit opt-out', () => {
+    const paths = createPaths()
+    const config = new ConfigService(paths)
+    expect(config.get().mcp).toEqual({ enabled: true, requireWriteConfirmation: true })
+    config.update({ mcp: { enabled: false } })
+    expect(new ConfigService(paths).get().mcp.enabled).toBe(false)
+    expect(new ConfigService(paths).get().mcp).toEqual({
+      enabled: false,
+      requireWriteConfirmation: true,
+    })
+  })
+
+  it('rejects every missing or unknown persisted field without repairing the file', () => {
+    const paths = createPaths()
+    for (const group of [null, 'mcp', 'ai'] as const) {
+      const fields = Object.keys(group === null ? DEFAULT_CONFIG : DEFAULT_CONFIG[group])
+      for (const field of [...fields, 'unknownExtension']) {
+        const value = structuredClone(DEFAULT_CONFIG) as unknown as Record<string, unknown>
+        const object = group === null ? value : (value[group] as Record<string, unknown>)
+        if (field === 'unknownExtension') object[field] = true
+        else delete object[field]
+        const encrypted = encryptConfig(value)
+        fs.writeFileSync(paths.config, encrypted)
+        expect(() => new ConfigService(paths), `${group ?? 'root'}.${field}`).toThrow(
+          'CONFIG_INVALID',
+        )
+        expect(fs.readFileSync(paths.config, 'utf8')).toBe(encrypted)
+      }
+    }
+    const removed = encryptConfig({ ...DEFAULT_CONFIG, velopack: { includePrerelease: true } })
+    fs.writeFileSync(paths.config, removed)
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(removed)
+  })
+
+  it('rejects invalid patches without changing memory or disk', () => {
+    const paths = createPaths()
+    const config = new ConfigService(paths)
+    const original = fs.readFileSync(paths.config)
+    for (const input of [
+      null,
+      [],
+      {},
+      { locale: undefined },
+      { configVersion: 1 },
+      { configVersion: 2 },
+      { velopack: {} },
+      { unknownExtension: true },
+      { ai: {} },
+      { mcp: {} },
+      { mcp: null },
+      { mcp: { enabled: undefined } },
+      { mcp: { enabled: false, extra: true } },
+      { ai: { apiKey: 'private-key-must-not-be-written', extra: true } },
+      { companyReadValidityMonths: Number.MAX_SAFE_INTEGER + 1 },
+    ]) {
+      expect(() => config.update(input as AppConfigUpdate)).toThrow()
+      expect(config.get()).toEqual(DEFAULT_CONFIG)
+      expect(fs.readFileSync(paths.config)).toEqual(original)
+    }
   })
 
   it('preserves config while an update snapshot is being prepared', () => {
@@ -66,7 +130,7 @@ describe('config service', () => {
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(malformed)
     expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
 
-    const future = JSON.stringify({ configVersion: 2, ai: { apiKey: 'preserve-me' } })
+    const future = encryptConfig({ configVersion: 2, ai: { apiKey: 'preserve-me' } })
     fs.writeFileSync(paths.config, future)
     expect(() => new ConfigService(paths)).toThrow('CONFIG_VERSION_UNSUPPORTED')
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(future)
@@ -75,7 +139,7 @@ describe('config service', () => {
 
   it('preserves configuration with an invalid known field', () => {
     const paths = createPaths()
-    const invalid = JSON.stringify({ configVersion: 1, locale: 'fr-FR' })
+    const invalid = encryptConfig({ ...DEFAULT_CONFIG, locale: 'fr-FR' })
     fs.writeFileSync(paths.config, invalid)
     expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(invalid)
@@ -85,7 +149,7 @@ describe('config service', () => {
     const paths = createPaths()
     fs.writeFileSync(
       paths.config,
-      JSON.stringify({ configVersion: 1, companyReadValidityMonths: 0 }),
+      encryptConfig({ ...DEFAULT_CONFIG, companyReadValidityMonths: 0 }),
     )
     const original = fs.readFileSync(paths.config, 'utf8')
     expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
@@ -93,7 +157,7 @@ describe('config service', () => {
   })
   it('rejects an invalid status flow theme', () => {
     const paths = createPaths()
-    fs.writeFileSync(paths.config, JSON.stringify({ ...DEFAULT_CONFIG, statusFlowTheme: 'neon' }))
+    fs.writeFileSync(paths.config, encryptConfig({ ...DEFAULT_CONFIG, statusFlowTheme: 'neon' }))
     const original = fs.readFileSync(paths.config, 'utf8')
     expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(original)
@@ -143,18 +207,18 @@ describe('config service', () => {
     })
     expect(local.ai.multimodal).toBe(true)
     expect(local.ai.apiKey).toBe('sk-local')
-    expect(JSON.parse(fs.readFileSync(paths.config, 'utf8')).ai.apiKey).toBe('sk-local')
+    expect(readStored(paths.config).ai.apiKey).toBe('sk-local')
   })
   it('preserves configuration on filesystem read failure', () => {
     const paths = createPaths()
-    fs.writeFileSync(paths.config, JSON.stringify(DEFAULT_CONFIG))
+    fs.writeFileSync(paths.config, encryptConfig(DEFAULT_CONFIG))
     const read = vi.spyOn(fs, 'readFileSync').mockImplementationOnce(() => {
       throw new Error('access denied')
     })
     expect(() => new ConfigService(paths)).toThrow('access denied')
     read.mockRestore()
     expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
-    expect(JSON.parse(fs.readFileSync(paths.config, 'utf8'))).toEqual(DEFAULT_CONFIG)
+    expect(readStored(paths.config)).toEqual(DEFAULT_CONFIG)
   })
   it('keeps memory and disk unchanged when atomic replacement fails', () => {
     const paths = createPaths()
@@ -164,7 +228,7 @@ describe('config service', () => {
     })
     expect(() => config.update({ locale: 'en-US' })).toThrow('locked')
     expect(config.get().locale).toBe('zh-CN')
-    expect(JSON.parse(fs.readFileSync(paths.config, 'utf8')).locale).toBe('zh-CN')
+    expect(readStored(paths.config).locale).toBe('zh-CN')
     expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
   })
 })

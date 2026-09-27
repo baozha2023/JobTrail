@@ -50,6 +50,10 @@ function manifest(bytes: Uint8Array): Uint8Array {
   )
 }
 
+const leafKeys = ['64', '65', '66'].map(
+  (code) => BUNDLED_COMPANY_CATALOG.industries.find((item) => item.code === code)!.builtinKey,
+)
+
 function nextCatalog(): CompanyCatalogDocument {
   return parseCompanyCatalog({
     ...structuredClone(BUNDLED_COMPANY_CATALOG),
@@ -85,6 +89,14 @@ describe('内置公司目录更新', () => {
     database.close()
     fs.rmSync(root, { recursive: true, force: true })
   })
+
+  function leafId(index: number): number {
+    return (
+      database.db
+        .prepare('SELECT id FROM industries WHERE builtin_key = ?')
+        .get(leafKeys[index]) as { id: number }
+    ).id
+  }
 
   function relationRows(companyId: number) {
     return {
@@ -124,14 +136,14 @@ describe('内置公司目录更新', () => {
     const source = nextCatalog()
     source.companies[0] = {
       ...source.companies[0]!,
-      industryIds: [2],
+      industryKeys: [leafKeys[1]!],
       aliases: ['Tencent Careers'],
     }
 
     services.companyCatalog.synchronize(source, companyCatalogHash(source))
 
     expect(relationRows(company.id)).toEqual({
-      industries: [{ ...before.industries[0], industryId: 2 }],
+      industries: [before.industries[1]],
       aliases: [{ ...before.aliases[0], alias: 'Tencent Careers' }],
     })
   })
@@ -142,7 +154,7 @@ describe('内置公司目录更新', () => {
     const expanded = nextCatalog()
     expanded.companies[0] = {
       ...expanded.companies[0]!,
-      industryIds: [1, 2],
+      industryKeys: [leafKeys[0]!, leafKeys[1]!, leafKeys[2]!],
       aliases: ['Tencent', '新增别名'],
     }
 
@@ -151,14 +163,14 @@ describe('内置公司目录更新', () => {
     const afterExpansion = relationRows(company.id)
     expect(afterExpansion.industries[0]).toEqual(before.industries[0])
     expect(afterExpansion.aliases[0]).toEqual(before.aliases[0])
-    expect(afterExpansion.industries).toHaveLength(2)
+    expect(afterExpansion.industries).toHaveLength(3)
     expect(afterExpansion.aliases).toHaveLength(2)
 
     const reduced = {
       ...expanded,
       catalogVersion: expanded.catalogVersion + 1,
       companies: [
-        { ...expanded.companies[0]!, industryIds: [2], aliases: ['新增别名'] },
+        { ...expanded.companies[0]!, industryKeys: [leafKeys[1]!], aliases: ['新增别名'] },
         ...expanded.companies.slice(1),
       ],
     }
@@ -173,7 +185,7 @@ describe('内置公司目录更新', () => {
   it('retains matching relation rows when adopting a same-name user company', () => {
     const custom = services.companies.create({
       name: '待收录公司',
-      industryIds: [1, 2],
+      industryIds: [leafId(0), leafId(1)],
       aliases: ['保留别名', '旧别名'],
     })
     const before = relationRows(custom.id)
@@ -181,7 +193,7 @@ describe('内置公司目录更新', () => {
     source.companies.push({
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
-      industryIds: [2, 3],
+      industryKeys: [leafKeys[1]!, leafKeys[2]!],
       careerUrl: 'https://adopted.example.com/careers',
       aliases: ['保留别名', '新别名'],
     })
@@ -190,8 +202,8 @@ describe('内置公司目录更新', () => {
 
     const after = relationRows(custom.id)
     expect(after.industries).toEqual([
-      { ...before.industries[1], industryId: 2 },
-      { ...before.industries[0], industryId: 3 },
+      { ...before.industries[1], industryId: leafId(1) },
+      { ...before.industries[0], industryId: leafId(2) },
     ])
     expect(after.aliases).toEqual([before.aliases[0], { ...before.aliases[1], alias: '新别名' }])
     expect(services.companies.get(custom.id).isBuiltin).toBe(true)
@@ -206,7 +218,7 @@ describe('内置公司目录更新', () => {
     const omitted = services.companies.get(2)
     const custom = services.companies.create({
       name: '待收录公司',
-      industryIds: [1],
+      industryIds: [leafId(0)],
       careerUrl: 'https://local.example.com',
       aliases: ['本地别名'],
     })
@@ -220,14 +232,14 @@ describe('内置公司目录更新', () => {
       ...source.companies[0]!,
       name: `${source.companies[0]!.name}更新`,
       careerUrl: 'https://catalog.example.com/careers',
-      industryIds: [2],
+      industryKeys: [leafKeys[1]!],
       aliases: ['目录别名'],
     }
     source.companies.splice(1, 1)
     source.companies.push({
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
-      industryIds: [3],
+      industryKeys: [leafKeys[2]!],
       careerUrl: 'https://adopted.example.com/careers',
       aliases: ['收录别名'],
     })
@@ -247,7 +259,7 @@ describe('内置公司目录更新', () => {
       id: original.id,
       name: source.companies[0]!.name,
       careerUrl: 'https://catalog.example.com/careers',
-      industryIds: [2],
+      industryIds: [leafId(1)],
       aliases: ['目录别名'],
       isBuiltin: true,
       isFavorite: true,
@@ -262,7 +274,7 @@ describe('内置公司目录更新', () => {
     expect(services.companies.get(custom.id)).toMatchObject({
       id: custom.id,
       careerUrl: 'https://adopted.example.com/careers',
-      industryIds: [3],
+      industryIds: [leafId(2)],
       aliases: ['收录别名'],
       isBuiltin: true,
       createdAt: custom.createdAt,
@@ -310,7 +322,10 @@ describe('内置公司目录更新', () => {
 
   it('rejects invalid industries, version rollback, and changed content at the same version', () => {
     const invalidIndustry = nextCatalog()
-    invalidIndustry.companies[0] = { ...invalidIndustry.companies[0]!, industryIds: [999] }
+    invalidIndustry.companies[0] = {
+      ...invalidIndustry.companies[0]!,
+      industryKeys: ['00000000-0000-4000-8000-000000000000'],
+    }
     expect(() =>
       services.companyCatalog.synchronize(invalidIndustry, companyCatalogHash(invalidIndustry)),
     ).toThrowError(expect.objectContaining({ code: 'CATALOG_INVALID' }))

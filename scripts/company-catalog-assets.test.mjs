@@ -18,11 +18,25 @@ test('copies the full catalog byte-for-byte and emits a verifiable manifest', ()
       formatVersion: 1,
       catalogVersion: 2,
       minimumAppVersion: '0.4.0',
+      industries: [
+        {
+          builtinKey: '00000000-0000-4000-8000-000000000001',
+          parentKey: null,
+          code: 'A',
+          name: '一级',
+        },
+        {
+          builtinKey: '00000000-0000-4000-8000-000000000002',
+          parentKey: '00000000-0000-4000-8000-000000000001',
+          code: '01',
+          name: '二级',
+        },
+      ],
       companies: [
         {
           builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
           name: '测试公司',
-          industryIds: [1],
+          industryKeys: ['00000000-0000-4000-8000-000000000002'],
           careerUrl: 'https://example.com/careers',
           aliases: ['Test Company'],
         },

@@ -33,8 +33,13 @@ function resolveReference(part: DataReference, services: Services): DataReferenc
     }
     case 'company':
       return { kind: part.kind, id: part.id, name: services.companies.get(part.id).name }
-    case 'industry':
-      return { kind: part.kind, id: part.id, name: services.industries.get(part.id).name }
+    case 'industry': {
+      const industry = services.industries.get(part.id)
+      if (industry.parentId === null)
+        throw new AppServiceError('VALIDATION_ERROR', '只能引用二级行业')
+      const parent = services.industries.get(industry.parentId)
+      return { kind: part.kind, id: part.id, name: `${parent.name} / ${industry.name}` }
+    }
   }
 }
 

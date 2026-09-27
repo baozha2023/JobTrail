@@ -1,7 +1,9 @@
 import type { CompanyCatalogStatus, CompanyCatalogUpdateResult } from '../../shared/types'
 import type { CompanyCatalogDocument } from '../company-catalog'
+import { IndustryRepository } from '../repositories/industry-repository'
 import type {
   CatalogCompanySnapshot,
+  ResolvedCatalogCompany,
   CompanyCatalogRepository,
 } from '../repositories/company-catalog-repository'
 import { AppServiceError, uniqueError } from './errors'
@@ -14,10 +16,7 @@ function sameValues<T extends number | string>(first: T[], second: T[]): boolean
   return left.every((value, index) => value === right[index])
 }
 
-function matchesCatalog(
-  current: CatalogCompanySnapshot,
-  entry: CompanyCatalogDocument['companies'][number],
-): boolean {
+function matchesCatalog(current: CatalogCompanySnapshot, entry: ResolvedCatalogCompany): boolean {
   return (
     current.name === entry.name &&
     current.builtinKey === entry.builtinKey &&
@@ -31,6 +30,7 @@ export class CompanyCatalogService {
   constructor(
     private readonly unitOfWork: UnitOfWork,
     private readonly repository: CompanyCatalogRepository,
+    private readonly industries: IndustryRepository,
   ) {}
 
   status(): CompanyCatalogStatus {
@@ -60,12 +60,6 @@ export class CompanyCatalogService {
       }
     }
 
-    const builtinIndustryIds = this.repository.builtinIndustryIds()
-    for (const company of catalog.companies) {
-      if (company.industryIds.some((industryId) => !builtinIndustryIds.has(industryId)))
-        throw new AppServiceError('CATALOG_INVALID', '获取的内置公司数据有误，请稍后重试')
-    }
-
     try {
       return this.unitOfWork.run(() => {
         const timestamp = Date.now()
@@ -74,14 +68,25 @@ export class CompanyCatalogService {
         let adopted = 0
         let unchanged = 0
 
-        for (const entry of catalog.companies) {
+        const industryIds = this.industries.synchronize(catalog.industries, timestamp)
+        for (const source of catalog.companies) {
+          const { industryKeys, ...company } = source
+          const entry: ResolvedCatalogCompany = {
+            ...company,
+            industryIds: industryKeys.map((key) => {
+              const id = industryIds.get(key)
+              if (id === undefined || this.industries.get(id)!.parent_id === null)
+                throw new AppServiceError('CATALOG_INVALID', '公司目录只能关联二级行业')
+              return id
+            }),
+          }
           const keyed = this.repository.findByBuiltinKey(entry.builtinKey)
           if (keyed) {
             const nameOwner = this.repository.findByName(entry.name)
             if (nameOwner && nameOwner.id !== keyed.id)
               throw new AppServiceError(
                 'CATALOG_CONFLICT',
-                '本地公司与新数据存在冲突，请检查公司名称后重试',
+                '本地公司或行业与新目录存在名称冲突，请检查后重试',
               )
             if (matchesCatalog(keyed, entry)) unchanged += 1
             else {
@@ -96,7 +101,7 @@ export class CompanyCatalogService {
             if (sameName.builtinKey !== null)
               throw new AppServiceError(
                 'CATALOG_CONFLICT',
-                '本地公司与新数据存在冲突，请检查公司名称后重试',
+                '本地公司或行业与新目录存在名称冲突，请检查后重试',
               )
             this.repository.updateCatalogData(sameName, entry, timestamp)
             adopted += 1
@@ -121,7 +126,7 @@ export class CompanyCatalogService {
       if (uniqueError(error))
         throw new AppServiceError(
           'CATALOG_CONFLICT',
-          '本地公司与新数据存在冲突，请检查公司名称后重试',
+          '本地公司或行业与新目录存在名称冲突，请检查后重试',
         )
       throw error
     }

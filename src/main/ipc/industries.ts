@@ -1,6 +1,6 @@
 import type { Services } from '../service-container'
 import { registerChannel } from './register-channel'
-import { ids, numberValue, parseIndustry } from './validators'
+import { numberValue, parseIndustry, parseIndustryOrder } from './validators'
 
 export function registerIndustryIpc(services: Services): void {
   registerChannel('industries:list', () => services.industries.list())
@@ -14,7 +14,7 @@ export function registerIndustryIpc(services: Services): void {
   registerChannel('industries:delete', (id) =>
     services.industries.delete(numberValue(id, '行业分类 ID')),
   )
-  registerChannel('industries:reorder', (order) =>
-    services.industries.reorder(ids(order, '行业分类顺序')),
+  registerChannel('industries:reorder', (input) =>
+    services.industries.reorder(parseIndustryOrder(input)),
   )
 }

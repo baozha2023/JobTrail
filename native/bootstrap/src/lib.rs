@@ -8,6 +8,8 @@ use std::{
 };
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
+pub mod shortcuts;
+
 pub const LAUNCHER: &str = "JobTrail.exe";
 pub const UNINSTALLER: &str = "JobTrail-Uninstall.exe";
 pub const MARKER: &str = ".jobtrail-root";

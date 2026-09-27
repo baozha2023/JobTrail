@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
 import { buildCompanyCatalogAssets } from './company-catalog-assets.mjs'
+import { smokeLauncherUpdate } from './test-launcher-update.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
@@ -60,6 +61,16 @@ run(cargo, [
 ])
 const bootstrapResources = path.join(root, 'dist', 'win-unpacked', 'resources', 'bootstrap')
 fs.mkdirSync(bootstrapResources, { recursive: true })
+const launcherBytes = fs.readFileSync(path.join(binaries, 'launcher.exe'))
+smokeLauncherUpdate(path.join(binaries, 'launcher.exe'))
+fs.writeFileSync(path.join(bootstrapResources, 'JobTrail.exe'), launcherBytes)
+fs.writeFileSync(
+  path.join(bootstrapResources, 'launcher.json'),
+  JSON.stringify({
+    version: pkg.version,
+    sha256: createHash('sha256').update(launcherBytes).digest('hex'),
+  }),
+)
 fs.copyFileSync(
   path.join(binaries, 'uninstaller.exe'),
   path.join(bootstrapResources, 'JobTrail-Uninstall.exe'),

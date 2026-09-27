@@ -5,12 +5,11 @@ import { getStorageRoot } from '../config'
 import { ROOT_LAUNCHER } from '../installation-paths'
 import type { ConfigService } from '../config'
 import { registerChannel } from './register-channel'
-import { record, type ConfigUpdate } from './validators'
 
 export function registerConfigIpc(config: ConfigService): void {
   registerChannel('config:get', () => config.get())
   registerChannel('config:update', (input) => {
-    const next = config.update(record(input, '配置') as ConfigUpdate)
+    const next = config.update(input)
     nativeTheme.themeSource = next.themeMode
     if (app.isPackaged && fs.existsSync(path.join(getStorageRoot(), '.jobtrail-root')))
       app.setLoginItemSettings({

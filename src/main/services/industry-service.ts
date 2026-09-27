@@ -1,9 +1,12 @@
-import type { CreateIndustryInput, Industry, UpdateIndustryInput } from '../../shared/types'
+import type {
+  CreateIndustryInput,
+  Industry,
+  ReorderIndustriesInput,
+  UpdateIndustryInput,
+} from '../../shared/types'
 import { IndustryRepository } from '../repositories/industry-repository'
 import { AppServiceError, assertNonEmptyUpdate, assertPositiveId, uniqueError } from './errors'
 import type { UnitOfWork } from './unit-of-work'
-
-const builtinMessage = '该数据为内置，无法删除/修改'
 
 export class IndustryService {
   constructor(
@@ -20,17 +23,32 @@ export class IndustryService {
     if (!row) throw new AppServiceError('NOT_FOUND', '行业分类不存在')
     return this.repository.map(row)
   }
-  create(input: CreateIndustryInput): Industry {
-    const name = input.name.trim()
+  private assertParent(id: number): void {
+    if (this.get(id).parentId !== null)
+      throw new AppServiceError('VALIDATION_ERROR', '所属分类必须是一级行业')
+  }
+  private name(value: string): string {
+    const name = value.trim()
     if (!name) throw new AppServiceError('VALIDATION_ERROR', '行业分类名称不能为空')
+    return name
+  }
+  private assertEditable(industry: Industry): void {
+    if (industry.isBuiltin && !this.allowBuiltinEdit)
+      throw new AppServiceError('BUILTIN_DATA', '该数据为内置，无法删除/修改')
+  }
+  create(input: CreateIndustryInput): Industry {
     try {
       return this.unitOfWork.run(() => {
-        const timestamp = Date.now()
-        const id = this.repository.create({ name }, this.repository.maxSortOrder() + 1, timestamp)
+        this.assertParent(input.parentId)
+        const id = this.repository.create(
+          { name: this.name(input.name), parentId: input.parentId },
+          Date.now(),
+        )
         return this.get(id)
       })
     } catch (error) {
-      if (uniqueError(error)) throw new AppServiceError('VALIDATION_ERROR', '行业分类名称已存在')
+      if (uniqueError(error))
+        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在')
       throw error
     }
   }
@@ -39,42 +57,55 @@ export class IndustryService {
       return this.unitOfWork.run(() => {
         assertNonEmptyUpdate(input, '行业分类')
         const current = this.get(id)
-        if (current.isBuiltin && !this.allowBuiltinEdit)
-          throw new AppServiceError('BUILTIN_DATA', builtinMessage)
-        const name = input.name === undefined ? current.name : input.name.trim()
-        if (!name) throw new AppServiceError('VALIDATION_ERROR', '行业分类名称不能为空')
-        this.repository.update(id, { name }, Date.now())
+        this.assertEditable(current)
+        if (input.parentId !== undefined) {
+          if (current.parentId === null)
+            throw new AppServiceError('VALIDATION_ERROR', '不能改变一级行业的层级')
+          this.assertParent(input.parentId)
+        }
+        this.repository.update(
+          this.repository.get(id)!,
+          input.name === undefined ? current.name : this.name(input.name),
+          input.parentId ?? current.parentId,
+          Date.now(),
+        )
         return this.get(id)
       })
     } catch (error) {
-      if (uniqueError(error)) throw new AppServiceError('VALIDATION_ERROR', '行业分类名称已存在')
+      if (uniqueError(error))
+        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在')
       throw error
     }
   }
   delete(id: number): void {
     this.unitOfWork.run(() => {
       const current = this.get(id)
-      if (current.isBuiltin && !this.allowBuiltinEdit)
-        throw new AppServiceError('BUILTIN_DATA', builtinMessage)
-      const used = this.repository.countUsage(id)
-      if (used > 0)
+      this.assertEditable(current)
+      if (current.parentId === null && this.repository.siblings(id).length)
+        throw new AppServiceError('INDUSTRY_IN_USE', '请先删除或移动该分类下的二级行业')
+      const count = this.repository.countUsage(id)
+      if (count)
         throw new AppServiceError('INDUSTRY_IN_USE', '当前行业分类正在被公司使用，不能删除', {
-          count: used,
+          count,
         })
-      if (this.repository.delete(id) === 0) throw new AppServiceError('NOT_FOUND', '行业分类不存在')
+      this.repository.delete(id)
+      this.repository.reorder(
+        this.repository.siblings(current.parentId).map((row) => row.id),
+        Date.now(),
+      )
     })
   }
-  reorder(order: number[]): Industry[] {
+  reorder(input: ReorderIndustriesInput): Industry[] {
     return this.unitOfWork.run(() => {
-      const current = this.list().map((industry) => industry.id)
+      if (input.parentId !== null) this.assertParent(input.parentId)
+      const current = this.repository.siblings(input.parentId).map((row) => row.id)
       if (
-        order.length !== current.length ||
-        new Set(order).size !== order.length ||
-        order.some((id) => !current.includes(id))
-      ) {
-        throw new AppServiceError('VALIDATION_ERROR', '行业分类顺序无效')
-      }
-      this.repository.reorder(order, Date.now())
+        input.order.length !== current.length ||
+        new Set(input.order).size !== current.length ||
+        input.order.some((id) => !current.includes(id))
+      )
+        throw new AppServiceError('VALIDATION_ERROR', '请提交同一分类下的完整行业顺序')
+      this.repository.reorder(input.order, Date.now())
       return this.list()
     })
   }

@@ -15,7 +15,13 @@ function validateReleaseCatalog(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Company catalog must be an object')
   const keys = Object.keys(value).sort()
-  const expected = ['catalogVersion', 'companies', 'formatVersion', 'minimumAppVersion'].sort()
+  const expected = [
+    'catalogVersion',
+    'companies',
+    'industries',
+    'formatVersion',
+    'minimumAppVersion',
+  ].sort()
   if (JSON.stringify(keys) !== JSON.stringify(expected))
     throw new Error('Company catalog has invalid root fields')
   if (
@@ -32,13 +38,61 @@ function validateReleaseCatalog(value) {
     value.companies.length > 10_000
   )
     throw new Error('Company catalog must contain companies')
+  if (
+    !Array.isArray(value.industries) ||
+    !value.industries.length ||
+    value.industries.length > 1_000
+  )
+    throw new Error('Invalid industry dictionary')
+  const industryMap = new Map()
+  const codes = new Set()
+  const siblingNames = new Set()
+  for (const industry of value.industries) {
+    if (
+      !industry ||
+      JSON.stringify(Object.keys(industry).sort()) !==
+        JSON.stringify(['builtinKey', 'code', 'name', 'parentKey']) ||
+      !UUID_V4.test(industry.builtinKey) ||
+      industryMap.has(industry.builtinKey) ||
+      (industry.parentKey !== null && !UUID_V4.test(industry.parentKey)) ||
+      typeof industry.code !== 'string' ||
+      !/^(?:[A-T]|[0-9]{2})$/.test(industry.code) ||
+      codes.has(industry.code) ||
+      typeof industry.name !== 'string' ||
+      !industry.name.length ||
+      industry.name.length > 200 ||
+      industry.name !== industry.name.trim()
+    )
+      throw new Error('Invalid industry dictionary entry')
+    const siblingName = JSON.stringify([industry.parentKey, industry.name])
+    if (siblingNames.has(siblingName)) throw new Error('Duplicate industry name')
+    siblingNames.add(siblingName)
+    codes.add(industry.code)
+    industryMap.set(industry.builtinKey, industry)
+  }
+  for (const industry of value.industries) {
+    if (
+      industry.parentKey === null
+        ? !/^[A-T]$/.test(industry.code)
+        : !industryMap.has(industry.parentKey) ||
+          industryMap.get(industry.parentKey).parentKey !== null ||
+          !/^[0-9]{2}$/.test(industry.code)
+    )
+      throw new Error('Invalid industry parent')
+  }
   const builtinKeys = new Set()
   const names = new Set()
   for (const company of value.companies) {
     if (!company || typeof company !== 'object' || Array.isArray(company))
       throw new Error('Company catalog entry must be an object')
     const companyKeys = Object.keys(company).sort()
-    const expectedCompanyKeys = ['aliases', 'builtinKey', 'careerUrl', 'industryIds', 'name'].sort()
+    const expectedCompanyKeys = [
+      'aliases',
+      'builtinKey',
+      'careerUrl',
+      'industryKeys',
+      'name',
+    ].sort()
     if (JSON.stringify(companyKeys) !== JSON.stringify(expectedCompanyKeys))
       throw new Error('Company catalog entry has invalid fields')
     if (!UUID_V4.test(company.builtinKey) || builtinKeys.has(company.builtinKey))
@@ -52,12 +106,12 @@ function validateReleaseCatalog(value) {
     )
       throw new Error('Company catalog contains an invalid or duplicate name')
     if (
-      !Array.isArray(company.industryIds) ||
-      company.industryIds.length === 0 ||
-      company.industryIds.length > 83 ||
-      new Set(company.industryIds).size !== company.industryIds.length ||
-      company.industryIds.some(
-        (industryId) => !Number.isSafeInteger(industryId) || industryId < 1 || industryId > 83,
+      !Array.isArray(company.industryKeys) ||
+      company.industryKeys.length === 0 ||
+      company.industryKeys.length > 1_000 ||
+      new Set(company.industryKeys).size !== company.industryKeys.length ||
+      company.industryKeys.some(
+        (key) => !industryMap.has(key) || industryMap.get(key).parentKey === null,
       )
     )
       throw new Error('Company catalog contains invalid industries')

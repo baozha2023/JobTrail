@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import { h } from 'vue'
 import {
   NCard,
   NDataTable,
   NInput,
-  NSelect,
+  NCascader,
   NSpace,
   type DataTableColumns,
   type PaginationProps,
-  type SelectOption,
+  type CascaderOption,
 } from 'naive-ui'
 import type { Company } from '../../shared/types'
 defineProps<{
@@ -17,12 +18,23 @@ defineProps<{
   pagination: PaginationProps
   search: string
   selectedIndustryId: number | null
-  industryOptions: SelectOption[]
+  industryOptions: CascaderOption[]
 }>()
 const emit = defineEmits<{
   'update:search': [value: string]
   'update:selectedIndustryId': [value: number | null]
 }>()
+
+const industryFilterMenuProps = { class: 'company-industry-filter-menu' }
+const renderIndustryFilterPrefix = () => null
+function renderIndustryFilterLabel(option: CascaderOption) {
+  if (!option.children) return option.label
+  return h(
+    'span',
+    { onClick: () => emit('update:selectedIndustryId', option.value as number) },
+    option.label,
+  )
+}
 </script>
 <template>
   <section class="page-section management-page">
@@ -35,8 +47,13 @@ const emit = defineEmits<{
           :placeholder="$t('management.companySearch')"
           @update:value="emit('update:search', $event)"
         />
-        <n-select
+        <n-cascader
           :value="selectedIndustryId"
+          check-strategy="all"
+          :show-path="false"
+          :render-prefix="renderIndustryFilterPrefix"
+          :render-label="renderIndustryFilterLabel"
+          :menu-props="industryFilterMenuProps"
           clearable
           filterable
           class="company-industry-filter"
@@ -50,6 +67,7 @@ const emit = defineEmits<{
       ><n-data-table
         class="responsive-table"
         table-layout="fixed"
+        :scroll-x="900"
         remote
         paginate-single-page
         :columns="columns"

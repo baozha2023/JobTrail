@@ -4,7 +4,8 @@ import type { AgentMessage, AgentUsage } from '../../shared/types'
 import { ATTACHMENT_MARKER, AgentFileStore } from './files'
 
 type SqliteDatabase = InstanceType<typeof Database>
-type StoredMessage = AgentMessage & { attachmentIds?: string[] }
+type StoredUserMessage = Extract<AgentMessage, { role: 'user' }> & { attachmentIds: string[] }
+type StoredMessage = Exclude<AgentMessage, { role: 'user' }> | StoredUserMessage
 
 function usageValues(message: AIMessage): [number | null, number | null, number | null] {
   const usage = message.usage_metadata
@@ -153,10 +154,12 @@ export class AgentArchive {
     return rows.map(({ payload }) => {
       const message = JSON.parse(payload) as StoredMessage
       if (message.role === 'user') {
-        message.attachments = (message.attachmentIds ?? []).map((id) =>
-          this.files.get(id, conversationId),
-        )
-        delete message.attachmentIds
+        const { attachmentIds, ...user } = message
+        if (!Array.isArray(attachmentIds)) throw new Error('用户消息归档缺少附件列表')
+        return {
+          ...user,
+          attachments: attachmentIds.map((id) => this.files.get(id, conversationId)),
+        }
       }
       return message
     })
@@ -216,7 +219,7 @@ export class AgentArchive {
       .prepare("SELECT payload FROM agent_chat_events WHERE conversation_id = ? AND kind = 'user'")
       .all(conversationId) as { payload: string }[]
     return rows.some(({ payload }) =>
-      (JSON.parse(payload) as StoredMessage).attachmentIds?.includes(attachmentId),
+      (JSON.parse(payload) as StoredUserMessage).attachmentIds.includes(attachmentId),
     )
   }
 

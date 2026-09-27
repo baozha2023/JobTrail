@@ -6,6 +6,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { chromium } from 'playwright'
+import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
 
 const packageVersion = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')).version
 const inheritedEnvironment = Object.fromEntries(
@@ -31,17 +32,26 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
     if (tools.tools.length !== 37 || new Set(tools.tools.map((tool) => tool.name)).size !== 37) {
       throw new Error(`${name}: expected 37 unique tools, received ${tools.tools.length}`)
     }
-    const disabled = await client.callTool({ name: 'list_statuses', arguments: {} })
-    if (!disabled.isError || disabled.structuredContent?.error?.code !== 'MCP_DISABLED') {
-      throw new Error(`${name}: default-disabled guard did not return MCP_DISABLED`)
+    const enabled = await client.callTool({ name: 'list_statuses', arguments: {} })
+    if (enabled.isError) {
+      throw new Error(`${name}: default-enabled MCP did not allow reading statuses`)
     }
     const configRoot = transportOptions.env?.JOBTRAIL_MCP_ROOT ?? transportOptions.cwd
     const configPath = path.join(configRoot, 'config.json')
     const originalConfig = fs.readFileSync(configPath, 'utf8')
     try {
-      const config = JSON.parse(originalConfig)
+      const config = decodeTestConfig(originalConfig)
+      if (config.mcp.enabled !== true || config.mcp.requireWriteConfirmation !== true) {
+        throw new Error(`${name}: expected MCP and write confirmation enabled by default`)
+      }
+      config.mcp.enabled = false
+      fs.writeFileSync(configPath, encodeTestConfig(config))
+      const disabled = await client.callTool({ name: 'list_statuses', arguments: {} })
+      if (!disabled.isError || disabled.structuredContent?.error?.code !== 'MCP_DISABLED') {
+        throw new Error(`${name}: disabled guard did not return MCP_DISABLED`)
+      }
       config.mcp.enabled = true
-      fs.writeFileSync(configPath, JSON.stringify(config))
+      fs.writeFileSync(configPath, encodeTestConfig(config))
       const expired = await client.callTool({
         name: 'read_web_page',
         arguments: {
@@ -205,6 +215,52 @@ async function smokeRootUpdateGate(transportOptions, root) {
   }
 }
 
+async function smokeRootConfigDialog(transportOptions, root) {
+  const configPath = path.join(root, 'config.json')
+  const original = fs.readFileSync(configPath)
+  const invalid = Buffer.from('{ invalid json')
+  let child
+  try {
+    fs.writeFileSync(configPath, invalid)
+    child = spawn(transportOptions.command, [], {
+      cwd: root,
+      windowsHide: true,
+      stdio: 'ignore',
+    })
+    const exited = new Promise((resolve, reject) => {
+      child.once('error', reject)
+      child.once('exit', resolve)
+    })
+    const check = spawnSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        path.resolve('scripts/assert-root-error-dialog.ps1'),
+        '-TargetProcessId',
+        String(child.pid),
+      ],
+      { encoding: 'utf8', timeout: 25000, windowsHide: true },
+    )
+    if (check.error || check.status !== 0)
+      throw new Error(`Native recovery dialog check failed: ${check.error ?? check.stderr}`)
+    if ((await exited) !== 78) throw new Error('Root recovery dialog must exit with code 78')
+    if (!fs.readFileSync(configPath).equals(invalid))
+      throw new Error('Recovery dialog changed configuration')
+    console.log('Native root recovery dialog verified; original configuration preserved')
+  } finally {
+    if (child && child.exitCode === null)
+      await new Promise((resolve) => {
+        child.once('exit', resolve)
+        child.kill()
+      })
+    fs.writeFileSync(configPath, original)
+  }
+}
+
 function linkTree(source, destination) {
   fs.mkdirSync(destination, { recursive: true })
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
@@ -240,11 +296,11 @@ export async function smokeLauncher(executable, launcherSource) {
       versionNegotiation: { mode: { pin: '2026-07-28' } },
     })
     smokeInvalidConfig('root-launcher', transportOptions, root)
-    smokeInvalidConfig('root-launcher-desktop', { ...transportOptions, args: [] }, root)
+    await smokeRootConfigDialog(transportOptions, root)
     await smokeRootUpdateGate(transportOptions, root)
     console.log('Root launcher MCP pipe and lifetime smoke passed')
   } finally {
-    fs.rmSync(staging, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+    await fs.promises.rm(staging, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
   }
 }
 
@@ -277,10 +333,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       ...inheritedEnvironment,
       APPDATA: root,
       LOCALAPPDATA: root,
+      // Root-supervised startup reports the final error after rollback. Direct
+      // desktop presentation is exercised by test-startup-errors.mjs.
+      JOBTRAIL_LAUNCH_TOKEN: '00000000-0000-4000-8000-000000000001',
     }
     delete desktopEnvironment.ELECTRON_RUN_AS_NODE
     smokeInvalidConfig(
-      'packaged-desktop',
+      'packaged-desktop-root-supervised',
       {
         command: executable,
         args: [],

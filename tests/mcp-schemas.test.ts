@@ -18,6 +18,17 @@ describe('MCP input schemas', () => {
 
   it('rejects invalid time ranges and order arrays', () => {
     expect(
+      schema('create_calendar_event').safeParse({
+        input: {
+          title: 'point',
+          eventType: '面试',
+          startAt: 1000,
+          endAt: 1000,
+          reminderMinutes: 0,
+        },
+      }).success,
+    ).toBe(false)
+    expect(
       schema('list_calendar_events').safeParse({ range: { startAt: 20, endAt: 10 } }).success,
     ).toBe(false)
     expect(schema('reorder_statuses').safeParse({ order: [1, 1] }).success).toBe(false)

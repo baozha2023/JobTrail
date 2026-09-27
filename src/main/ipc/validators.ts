@@ -1,5 +1,4 @@
 import type {
-  AppConfig,
   CalendarRange,
   CompanyQuery,
   CreateCalendarEventInput,
@@ -8,6 +7,7 @@ import type {
   CreateOpportunityInput,
   CreateStatusInput,
   OpportunityQuery,
+  ReorderIndustriesInput,
   UpdateCalendarEventInput,
   UpdateCompanyInput,
   UpdateIndustryInput,
@@ -120,11 +120,25 @@ export function parseIndustry(
   partial: boolean,
 ): CreateIndustryInput | UpdateIndustryInput {
   const source = record(value, '行业分类')
-  assertOnlyKeys(source, ['name'], '行业分类')
+  assertOnlyKeys(source, ['name', 'parentId'], '行业分类')
   const name = stringValue(source.name, '行业分类名称', !partial)
-  const input: UpdateIndustryInput = name === undefined ? {} : { name }
+  const parentId =
+    source.parentId === undefined && partial
+      ? undefined
+      : numberValue(source.parentId, '一级行业 ID')
+  const input: UpdateIndustryInput = {
+    ...(name === undefined ? {} : { name }),
+    ...(parentId === undefined ? {} : { parentId }),
+  }
   if (partial) assertNonEmptyUpdate(input, '行业分类')
   return input
+}
+
+export function parseIndustryOrder(value: unknown): ReorderIndustriesInput {
+  const source = record(value, '行业分类排序')
+  assertOnlyKeys(source, ['parentId', 'order'], '行业分类排序')
+  const parentId = source.parentId === null ? null : numberValue(source.parentId, '一级行业 ID')
+  return { parentId, order: ids(source.order, '行业分类顺序') }
 }
 
 export function parseCompany(value: unknown, partial: false): CreateCompanyInput
@@ -257,6 +271,8 @@ export function parseCalendarEvent(
   }
   const opportunityId = nullableInteger(source.opportunityId, '求职记录 ID')
   const reminderMinutes = nullableInteger(source.reminderMinutes, '提醒分钟数')
+  if (reminderMinutes !== undefined && reminderMinutes !== null && reminderMinutes <= 0)
+    throw new AppServiceError('VALIDATION_ERROR', '提醒时间必须大于 0 分钟')
   if (opportunityId !== undefined) input.opportunityId = opportunityId
   if (reminderMinutes !== undefined) input.reminderMinutes = reminderMinutes
   const isAllDay = booleanValue(source.isAllDay, '全天状态', false)
@@ -338,5 +354,3 @@ export function parseUrl(value: unknown): string {
     throw new AppServiceError('VALIDATION_ERROR', '仅允许打开 HTTP(S) 链接')
   return parsed.toString()
 }
-
-export type ConfigUpdate = Partial<AppConfig>

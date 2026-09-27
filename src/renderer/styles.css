@@ -221,6 +221,14 @@ h1 {
 .management-page .toolbar-card .company-industry-filter {
   width: min(100%, 220px);
 }
+
+.company-industry-filter-menu .n-cascader-option__prefix {
+  display: none;
+}
+
+.company-industry-filter-menu .n-cascader-option--show-prefix {
+  padding-left: 18px;
+}
 .responsive-table {
   width: 100%;
   min-width: 0;

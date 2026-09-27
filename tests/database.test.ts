@@ -101,11 +101,9 @@ describe('职迹最终数据库结构和业务服务', () => {
     expect(
       (database!.db.prepare('SELECT COUNT(*) AS count FROM industries').get() as { count: number })
         .count,
-    ).toBe(83)
-    expect(services.industries.list().map((industry) => industry.id)).toEqual(
-      Array.from({ length: 83 }, (_, index) => index + 1),
-    )
-    expect(new Set(services.industries.list().map((industry) => industry.name)).size).toBe(83)
+    ).toBe(117)
+    expect(services.industries.list().filter((item) => item.parentId === null)).toHaveLength(20)
+    expect(services.industries.list().filter((item) => item.parentId !== null)).toHaveLength(97)
     expect(
       services.statuses
         .list()
@@ -153,7 +151,17 @@ describe('职迹最终数据库结构和业务服务', () => {
         .all(),
     ).toEqual(
       builtinCompanies.flatMap((company, index) =>
-        company.industryIds.map((industryId) => ({ companyId: index + 1, industryId })),
+        company.industryKeys
+          .map(
+            (key) =>
+              (
+                database!.db
+                  .prepare('SELECT id FROM industries WHERE builtin_key = ?')
+                  .get(key) as { id: number }
+              ).id,
+          )
+          .sort((a, b) => a - b)
+          .map((industryId) => ({ companyId: index + 1, industryId })),
       ),
     )
     expect(
@@ -238,11 +246,15 @@ describe('职迹最终数据库结构和业务服务', () => {
       )
       expect(company.name).toBe(company.name.trim())
       expect(company.name.length).toBeGreaterThan(0)
-      expect(company.industryIds.length).toBeGreaterThan(0)
+      expect(company.industryKeys.length).toBeGreaterThan(0)
       expect(
-        company.industryIds.every((id) => Number.isSafeInteger(id) && id >= 1 && id <= 83),
+        company.industryKeys.every((key) =>
+          BUNDLED_COMPANY_CATALOG.industries.some(
+            (item) => item.builtinKey === key && item.parentKey !== null,
+          ),
+        ),
       ).toBe(true)
-      expect(new Set(company.industryIds).size).toBe(company.industryIds.length)
+      expect(new Set(company.industryKeys).size).toBe(company.industryKeys.length)
       expect(company.aliases.every((alias) => alias.length > 0 && alias === alias.trim())).toBe(
         true,
       )
@@ -378,6 +390,33 @@ describe('职迹最终数据库结构和业务服务', () => {
     services.statuses.delete(second.id)
   })
 
+  it('allows installed builds to delete unused built-in statuses but protects current and historical references', () => {
+    const [historical, current, unused] = services.statuses.list()
+    const company = services.companies.create({ name: '内置状态引用公司' })
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '内置状态引用岗位',
+      statusId: historical.id,
+    })
+
+    expect(() => services.statuses.delete(historical.id)).toThrowError(
+      expect.objectContaining({ code: 'STATUS_IN_USE' }),
+    )
+    services.opportunities.changeStatus(opportunity.id, current.id)
+    expect(() => services.statuses.delete(historical.id)).toThrowError(
+      expect.objectContaining({ code: 'STATUS_IN_USE' }),
+    )
+    expect(() => services.statuses.delete(current.id)).toThrowError(
+      expect.objectContaining({ code: 'STATUS_IN_USE' }),
+    )
+
+    services.statuses.delete(unused.id)
+    expect(services.statuses.list().some((status) => status.id === unused.id)).toBe(false)
+    services.opportunities.delete(opportunity.id)
+    services.statuses.delete(historical.id)
+    services.statuses.delete(current.id)
+  })
+
   it('rolls back opportunity changes when a status event cannot be written', () => {
     const company = services.companies.create({ name: '原子写入公司' })
     const first = services.statuses.create({ label: '事务前' })
@@ -417,9 +456,10 @@ describe('职迹最终数据库结构和业务服务', () => {
     const status = services.statuses.list()[0]
     const industry = services.industries.list()[0]
     const company = services.companies.list()[0]
+    expect(services.statuses.update(status.id, { label: '安装版可编辑状态' }).label).toBe(
+      '安装版可编辑状态',
+    )
     for (const action of [
-      () => services.statuses.update(status.id, { label: '禁止' }),
-      () => services.statuses.delete(status.id),
       () => services.industries.update(industry.id, { name: '禁止' }),
       () => services.industries.delete(industry.id),
       () => services.companies.update(company.id, { name: '禁止' }),
@@ -437,7 +477,10 @@ describe('职迹最终数据库结构和业务服务', () => {
       services.companies.update(company.id, { isFavorite: !company.isFavorite }).isFavorite,
     ).toBe(!company.isFavorite)
 
-    const customIndustry = services.industries.create({ name: '测试行业' })
+    const customIndustry = services.industries.create({
+      parentId: services.industries.list().find((item) => item.parentId === null)!.id,
+      name: '测试行业',
+    })
     const customCompany = services.companies.create({
       name: '测试公司',
       industryIds: [customIndustry.id],
@@ -474,7 +517,10 @@ describe('职迹最终数据库结构和业务服务', () => {
     services.statuses.delete(status.id)
     expect(() => services.statuses.get(status.id)).toThrowError(AppServiceError)
 
-    const industry = services.industries.create({ name: '其他行业' })
+    const industry = services.industries.create({
+      parentId: services.industries.list().find((item) => item.parentId === null)!.id,
+      name: '其他行业',
+    })
     expect(services.industries.update(industry.id, { name: '其他行业更新' }).name).toBe(
       '其他行业更新',
     )
@@ -487,8 +533,10 @@ describe('职迹最终数据库结构和业务服务', () => {
     const status = developmentServices.statuses.list()[0]
     const industries = developmentServices.industries.list()
     const companies = developmentServices.companies.list()
-    const industry = industries.find((item) =>
-      companies.every((company) => !company.industryIds.includes(item.id)),
+    const industry = industries.find(
+      (item) =>
+        item.parentId !== null &&
+        companies.every((company) => !company.industryIds.includes(item.id)),
     )
     const company = developmentServices.companies.list()[0]
 
@@ -546,7 +594,10 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   it('paginates company and opportunity searches in SQLite with unchanged filters', () => {
-    const industry = services.industries.create({ name: '分页行业' })
+    const industry = services.industries.create({
+      parentId: services.industries.list().find((item) => item.parentId === null)!.id,
+      name: '分页行业',
+    })
     const companies = ['甲', '乙', '丙'].map((suffix) =>
       services.companies.create({
         name: `分页公司${suffix}`,
@@ -603,15 +654,23 @@ describe('职迹最终数据库结构和业务服务', () => {
   })
 
   it('manages company industries through a many-to-many relation', () => {
-    const firstIndustry = services.industries.create({ name: '多行业一' })
-    const secondIndustry = services.industries.create({ name: '多行业二' })
+    const firstIndustry = services.industries.create({
+      parentId: services.industries.list().find((item) => item.parentId === null)!.id,
+      name: '多行业一',
+    })
+    const secondIndustry = services.industries.create({
+      parentId: services.industries.list().find((item) => item.parentId === null)!.id,
+      name: '多行业二',
+    })
     const company = services.companies.create({
       name: '多行业公司',
       industryIds: [secondIndustry.id, firstIndustry.id],
     })
 
     expect(company.industryIds).toEqual([firstIndustry.id, secondIndustry.id])
-    expect(company.industryName).toBe('多行业一, 多行业二')
+    expect(company.industryName).toBe(
+      `${services.industries.get(firstIndustry.parentId!).name} / 多行业一, ${services.industries.get(secondIndustry.parentId!).name} / 多行业二`,
+    )
     expect(services.companies.search({ page: 1, pageSize: 10, keyword: '多行业一' }).items).toEqual(
       [],
     )

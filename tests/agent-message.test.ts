@@ -10,7 +10,10 @@ describe('agent message references', () => {
         get: () => ({ companyName: '真实公司', title: '真实岗位' }),
       },
       companies: { get: () => ({ name: '真实公司主体' }) },
-      industries: { get: () => ({ name: '真实行业' }) },
+      industries: {
+        get: (id: number) =>
+          id === 13 ? { name: '真实行业', parentId: 1 } : { name: '一级行业', parentId: null },
+      },
     } as unknown as Services
     const { message } = prepareUserMessage(
       [
@@ -29,7 +32,7 @@ describe('agent message references', () => {
     expect(message.content).toContain('真实简历')
     expect(message.content).toContain('真实公司 · 真实岗位')
     expect(message.content).toContain('[Company reference: ID 11; name 真实公司主体]')
-    expect(message.content).toContain('[Industry reference: ID 13; name 真实行业]')
+    expect(message.content).toContain('[Industry reference: ID 13; name 一级行业 / 真实行业]')
     expect(message.content).not.toContain('伪造')
     expect(message.additional_kwargs.jobtrailParts).toEqual([
       { kind: 'resume', id: 7, name: '真实简历' },
@@ -38,7 +41,7 @@ describe('agent message references', () => {
       { kind: 'text', text: '、' },
       { kind: 'company', id: 11, name: '真实公司主体' },
       { kind: 'text', text: ' 与 ' },
-      { kind: 'industry', id: 13, name: '真实行业' },
+      { kind: 'industry', id: 13, name: '一级行业 / 真实行业' },
     ])
   })
 })

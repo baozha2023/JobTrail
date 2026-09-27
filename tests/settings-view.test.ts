@@ -103,7 +103,6 @@ describe('设置页', () => {
       closeBehavior: 'quit',
       launchAtStartup: false,
       companyReadValidityMonths: 3,
-      velopack: {},
       mcp: { enabled: true, requireWriteConfirmation: true },
       ai: {
         baseUrl: 'https://api.example.com/v1',
@@ -157,7 +156,6 @@ describe('设置页', () => {
       closeBehavior: 'quit',
       launchAtStartup: false,
       companyReadValidityMonths: 3,
-      velopack: {},
       mcp: { enabled: true, requireWriteConfirmation: true },
       ai: {
         baseUrl: 'https://api.openai.com/v1',
@@ -179,7 +177,7 @@ describe('设置页', () => {
 
     expect(wrapper.emitted('updateConfig')).toEqual([
       [{ themeMode: 'dark' }],
-      [{ mcp: { enabled: false, requireWriteConfirmation: true } }],
+      [{ mcp: { enabled: false } }],
     ])
     expect(wrapper.emitted('closeBehavior')).toEqual([['tray']])
     wrapper.unmount()

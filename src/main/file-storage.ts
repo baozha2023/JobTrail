@@ -1,10 +1,13 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import type Database from 'better-sqlite3'
 import type { AppPaths } from './config'
 import { AppServiceError } from './services/errors'
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx'])
+const STAGED_RESUME_NAME =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}-(.+\.(?:pdf|doc|docx))$/i
 
 export interface ResumeSourceInfo {
   sourcePath: string
@@ -156,6 +159,32 @@ export class FileStorageService {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
         console.error('简历回收文件清理失败', error)
     }
+  }
+
+  recoverPendingDeletes(db: InstanceType<typeof Database>): void {
+    const trashDirectory = path.join(this.paths.resumes, '.trash')
+    if (!fs.existsSync(trashDirectory)) return
+    // A second MCP process may start while the desktop is deleting a resume.
+    // The writer lock makes the row check happen after that transaction commits.
+    db.transaction(() => {
+      this.assertDirectory(trashDirectory)
+      const referenced = db.prepare('SELECT 1 FROM resume_versions WHERE relative_path = ?')
+      for (const entry of fs.readdirSync(trashDirectory, { withFileTypes: true })) {
+        const match = STAGED_RESUME_NAME.exec(entry.name)
+        if (!match || !entry.isFile() || entry.isSymbolicLink()) continue
+        const temporaryPath = path.join(trashDirectory, entry.name)
+        const relativePath = match[1]
+        const destination = this.resolve(relativePath)
+        if (referenced.get(relativePath)) {
+          // The database transaction never committed: put the referenced file back.
+          if (fs.existsSync(destination)) continue
+          fs.renameSync(temporaryPath, destination)
+        } else {
+          // The row is gone, so completing the physical deletion is safe to retry.
+          fs.unlinkSync(temporaryPath)
+        }
+      }
+    }).immediate()
   }
 
   private assertDirectory(directory: string): void {

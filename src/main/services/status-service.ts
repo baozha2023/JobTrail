@@ -3,13 +3,10 @@ import { StatusRepository } from '../repositories/status-repository'
 import { AppServiceError, assertNonEmptyUpdate, assertPositiveId, uniqueError } from './errors'
 import type { UnitOfWork } from './unit-of-work'
 
-const builtinMessage = '该数据为内置，无法删除/修改'
-
 export class StatusService {
   constructor(
     private readonly unitOfWork: UnitOfWork,
     private readonly repository: StatusRepository,
-    private readonly allowBuiltinEdit: boolean,
   ) {}
   list(): Status[] {
     return this.repository.list().map((row) => this.repository.map(row))
@@ -39,8 +36,6 @@ export class StatusService {
       return this.unitOfWork.run(() => {
         assertNonEmptyUpdate(input, '状态')
         const current = this.get(id)
-        if (current.isBuiltin && !this.allowBuiltinEdit)
-          throw new AppServiceError('BUILTIN_DATA', builtinMessage)
         const label = input.label === undefined ? current.label : input.label.trim()
         if (!label) throw new AppServiceError('VALIDATION_ERROR', '状态名称不能为空')
         this.repository.update(id, { label }, Date.now())
@@ -53,9 +48,7 @@ export class StatusService {
   }
   delete(id: number): void {
     this.unitOfWork.run(() => {
-      const current = this.get(id)
-      if (current.isBuiltin && !this.allowBuiltinEdit)
-        throw new AppServiceError('BUILTIN_DATA', builtinMessage)
+      this.get(id)
       const used = this.repository.countUsage(id)
       if (used > 0)
         throw new AppServiceError('STATUS_IN_USE', '该状态已被求职记录或历史使用，不能删除', {

@@ -1,6 +1,8 @@
 #![windows_subsystem = "windows"]
 use anyhow::{bail, Context, Result};
 use jobtrail_bootstrap::{error_dialog, plain_file, version};
+#[path = "../launcher_update.rs"]
+mod launcher_update;
 #[path = "../rollback.rs"]
 mod rollback;
 use std::{ffi::OsString, process::Command};
@@ -42,9 +44,29 @@ fn run(args: &[OsString]) -> Result<rollback::LaunchOutcome> {
 }
 fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "--bootstrap-check") {
+        std::process::exit(
+            if args
+                == [
+                    OsString::from("--bootstrap-check"),
+                    OsString::from(env!("JOBTRAIL_VERSION")),
+                ]
+            {
+                0
+            } else {
+                1
+            },
+        );
+    }
+    if args == [OsString::from("--refresh-root")] {
+        std::process::exit(if launcher_update::run().is_ok() { 0 } else { 1 });
+    }
     match run(&args) {
         Ok(rollback::LaunchOutcome::Healthy) => {}
         Ok(rollback::LaunchOutcome::IncompatibleData) => {
+            if !is_mcp_mode(&args) {
+                error_dialog(&anyhow::anyhow!("配置无法读取或本地数据版本不受支持。原配置和数据库已保留，未重置。请使用支持该数据版本且使用相同构建密钥的客户端；如仍无法启动，请保留数据目录并联系维护者协助恢复备份。\nLocal configuration/data cannot be read. Your data has been preserved. Use a compatible client or contact the maintainer for recovery."));
+            }
             std::process::exit(rollback::INCOMPATIBLE_DATA_EXIT_CODE);
         }
         Err(error) => {

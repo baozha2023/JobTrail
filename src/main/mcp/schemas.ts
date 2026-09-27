@@ -48,6 +48,7 @@ export const statusSchema = z.strictObject({
 
 export const industrySchema = z.strictObject({
   id: positiveIdSchema,
+  parentId: positiveIdSchema.nullable(),
   name: z.string(),
   sortOrder: z.number().int(),
   isBuiltin: z.boolean(),
@@ -119,7 +120,7 @@ export const calendarEventSchema = z.strictObject({
   timezone: z.string(),
   location: z.string().nullable(),
   description: z.string().nullable(),
-  reminderMinutes: z.number().int().nonnegative().nullable(),
+  reminderMinutes: z.number().int().positive().nullable(),
   isCompleted: z.boolean(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
@@ -127,8 +128,14 @@ export const calendarEventSchema = z.strictObject({
 
 export const createStatusInputSchema = z.strictObject({ label: requiredText })
 export const updateStatusInputSchema = nonEmptyUpdate({ label: requiredText.optional() })
-export const createIndustryInputSchema = z.strictObject({ name: requiredText })
-export const updateIndustryInputSchema = nonEmptyUpdate({ name: requiredText.optional() })
+export const createIndustryInputSchema = z.strictObject({
+  name: requiredText,
+  parentId: positiveIdSchema,
+})
+export const updateIndustryInputSchema = nonEmptyUpdate({
+  name: requiredText.optional(),
+  parentId: positiveIdSchema.optional(),
+})
 
 const companyInputShape = {
   name: requiredText,
@@ -184,7 +191,7 @@ const calendarInputShape = {
   timezone: requiredText.optional(),
   location: nullableText.optional(),
   description: nullableText.optional(),
-  reminderMinutes: z.number().int().nonnegative().nullable().optional(),
+  reminderMinutes: z.number().int().positive().nullable().optional(),
 }
 export const createCalendarInputSchema = z
   .strictObject(calendarInputShape)

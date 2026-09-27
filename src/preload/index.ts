@@ -30,6 +30,10 @@ const invoke = async <K extends IpcChannel>(
 }
 
 const zhijiApi: ZhijiApi = {
+  backup: {
+    export: () => invoke('backup:export'),
+    import: () => invoke('backup:import'),
+  },
   agent: {
     list: () => invoke('agent:list'),
     create: () => invoke('agent:create'),
@@ -84,7 +88,7 @@ const zhijiApi: ZhijiApi = {
     create: (input) => invoke('industries:create', input),
     update: (id, input) => invoke('industries:update', id, input),
     delete: (id) => invoke('industries:delete', id),
-    reorder: (order) => invoke('industries:reorder', order),
+    reorder: (input) => invoke('industries:reorder', input),
   },
   companies: {
     search: (query) => invoke('companies:search', query),

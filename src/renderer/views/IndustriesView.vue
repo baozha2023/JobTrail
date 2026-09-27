@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { NCard, NDataTable, type DataTableColumns, type PaginationProps } from 'naive-ui'
+import { NCard, NDataTable, type DataTableColumns } from 'naive-ui'
 import type { Industry } from '../../shared/types'
 defineProps<{
   columns: DataTableColumns<Industry>
   data: Industry[]
-  pagination: PaginationProps
 }>()
 </script>
 <template>
@@ -13,10 +12,9 @@ defineProps<{
       ><n-data-table
         class="responsive-table"
         table-layout="fixed"
-        paginate-single-page
         :columns="columns"
         :data="data"
-        :pagination="pagination"
+        :row-key="(row: Industry) => row.id"
         ><template #empty>{{ $t('management.industryEmpty') }}</template>
       </n-data-table></n-card
     >

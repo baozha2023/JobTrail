@@ -541,6 +541,7 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<LaunchOutcome> {
                 if second == LaunchCheck::Healthy {
                     register(root, &installed_version, false)?;
                     fs::remove_file(pending_path)?;
+                    clear_update_freeze(&state_root)?;
                     clean_rollback(root);
                     return Ok(LaunchOutcome::Healthy);
                 }

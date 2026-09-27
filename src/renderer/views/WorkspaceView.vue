@@ -9,6 +9,7 @@ import {
   lightTheme,
   NButton,
   NCard,
+  NCascader,
   NConfigProvider,
   NDatePicker,
   NForm,
@@ -30,6 +31,7 @@ import {
 } from 'naive-ui'
 import type {
   AppConfig,
+  AppConfigUpdate,
   Company,
   CompanyCatalogPhase,
   CompanyCatalogProgress,
@@ -50,9 +52,11 @@ import IndustriesView from './IndustriesView.vue'
 import ResumesView from './ResumesView.vue'
 import CompaniesView from './CompaniesView.vue'
 import SettingsView from './SettingsView.vue'
+import AppUpdateModal from '../components/AppUpdateModal.vue'
 import AgentView from './AgentView.vue'
 import Sidebar from '../layout/Sidebar.vue'
 import Titlebar from '../layout/Titlebar.vue'
+import { buildIndustryTree, industryCascaderOptions } from '../utils/industries'
 import { getErrorMessage } from '../utils/errors'
 import { useStatusesStore } from '../stores/statuses'
 import { useIndustriesStore } from '../stores/industries'
@@ -80,6 +84,7 @@ const viewportWidth = ref(window.innerWidth)
 const activeView = ref<ViewKey>('opportunities')
 const loading = ref(false)
 const checkingForUpdates = ref(false)
+const availableUpdateVersion = ref<string | null>(null)
 const currentVersion = ref('—')
 const mcpConnectionInfo = ref<McpConnectionInfo | null>(null)
 const uninstalling = ref(false)
@@ -112,7 +117,6 @@ function createTablePagination(initialPageSize = 10) {
   }))
 }
 const statusPagination = createTablePagination()
-const industryPagination = createTablePagination()
 const resumePagination = createTablePagination()
 
 const menuOptions = computed(() => [
@@ -146,8 +150,18 @@ const sidebarWidth = computed(() =>
 const statusOptions = computed(() =>
   statuses.value.map((item) => ({ label: item.label, value: item.id })),
 )
-const industryOptions = computed(() =>
-  industries.value.map((item) => ({ label: item.name, value: item.id })),
+const industryTree = computed(() => buildIndustryTree(industries.value))
+const industryOptions = computed(() => industryCascaderOptions(industries.value))
+const companyIndustryOptions = computed(() => industryCascaderOptions(industries.value, true))
+const parentIndustryOptions = computed(() =>
+  industries.value
+    .filter((item) => item.parentId === null)
+    .map((item) => ({ label: item.name, value: item.id })),
+)
+const editingRootIndustry = computed(
+  () =>
+    editingIndustryId.value !== null &&
+    industries.value.find((item) => item.id === editingIndustryId.value)?.parentId === null,
 )
 const companyOptions = computed(() =>
   companies.value.map((item) => ({ label: item.name, value: item.id })),
@@ -430,82 +444,86 @@ const statusColumns = computed<DataTableColumns<Status>>(() => [
   },
   { title: t('management.statusName'), key: 'label', width: '68%', ellipsis: { tooltip: true } },
   {
-    title: t('common.edit'),
+    title: t('common.actions'),
     key: 'actions',
     width: '20%',
     render: (row) =>
-      row.isBuiltin && !isDevelopment.value
-        ? h('span', { class: 'muted-text', title: t('management.builtinLocked') }, '—')
-        : h(
-            NSpace,
-            { size: 8, wrap: true },
-            {
-              default: () => [
-                h(
-                  NButton,
-                  { size: 'small', onClick: () => openStatusEditor(row) },
-                  { default: () => t('common.edit') },
-                ),
-                h(
-                  NPopconfirm,
-                  { onPositiveClick: () => deleteStatus(row) },
-                  {
-                    trigger: () =>
-                      h(
-                        NButton,
-                        { size: 'small', tertiary: true, type: 'error' },
-                        { default: () => t('common.delete') },
-                      ),
-                    default: () => t('management.statusDeleteConfirm'),
-                  },
-                ),
-              ],
-            },
-          ),
+      h(
+        NSpace,
+        { size: 8, wrap: true },
+        {
+          default: () => [
+            h(
+              NButton,
+              { size: 'small', onClick: () => openStatusEditor(row) },
+              { default: () => t('common.edit') },
+            ),
+            h(
+              NPopconfirm,
+              { onPositiveClick: () => deleteStatus(row) },
+              {
+                trigger: () =>
+                  h(
+                    NButton,
+                    { size: 'small', tertiary: true, type: 'error' },
+                    { default: () => t('common.delete') },
+                  ),
+                default: () => t('management.statusDeleteConfirm'),
+              },
+            ),
+          ],
+        },
+      ),
   },
 ])
 
 const industryColumns = computed<DataTableColumns<Industry>>(() => [
+  { title: t('management.industryName'), key: 'name', width: '58%', ellipsis: { tooltip: true } },
   {
     title: '',
     key: 'order',
     width: '12%',
-    render: (row) => orderControls(row.id, industries.value, moveIndustry),
-  },
-  { title: t('management.industryName'), key: 'name', width: '68%', ellipsis: { tooltip: true } },
-  {
-    title: t('common.edit'),
-    key: 'actions',
-    width: '20%',
     render: (row) =>
-      row.isBuiltin && !isDevelopment.value
-        ? h('span', { class: 'muted-text', title: t('management.builtinLocked') }, '—')
-        : h(
-            NSpace,
-            { size: 8, wrap: true },
-            {
-              default: () => [
-                h(
-                  NButton,
-                  { size: 'small', onClick: () => openIndustryEditor(row) },
-                  { default: () => t('common.edit') },
-                ),
-                h(
-                  NPopconfirm,
-                  { onPositiveClick: () => deleteIndustry(row) },
-                  {
-                    trigger: () =>
-                      h(
-                        NButton,
-                        { size: 'small', tertiary: true, type: 'error' },
-                        { default: () => t('common.delete') },
-                      ),
-                    default: () => t('management.industryDeleteConfirm'),
-                  },
-                ),
-              ],
-            },
-          ),
+      orderControls(
+        row.id,
+        industries.value.filter((item) => item.parentId === row.parentId),
+        moveIndustry,
+      ),
+  },
+  {
+    title: t('common.actions'),
+    key: 'actions',
+    width: '30%',
+    render: (row) =>
+      h(
+        NSpace,
+        { size: 8, wrap: true },
+        {
+          default: () =>
+            !row.isBuiltin || isDevelopment.value
+              ? [
+                  h(
+                    NButton,
+                    { size: 'small', onClick: () => openIndustryEditor(row) },
+                    { default: () => t('common.edit') },
+                  ),
+                  h(
+                    NPopconfirm,
+                    { onPositiveClick: () => deleteIndustry(row) },
+                    {
+                      trigger: () =>
+                        h(
+                          NButton,
+                          { size: 'small', tertiary: true, type: 'error' },
+                          { default: () => t('common.delete') },
+                        ),
+                      default: () => t('management.industryDeleteConfirm'),
+                    },
+                  ),
+                ]
+              : [],
+        },
+      ),
   },
 ])
 
@@ -580,7 +598,6 @@ const companyColumns = computed<DataTableColumns<Company>>(() => [
   {
     title: t('management.companyIndustry'),
     key: 'industryName',
-    width: '14%',
     ellipsis: { tooltip: true },
     render: (row) => row.industryName ?? '—',
   },
@@ -611,7 +628,7 @@ const companyColumns = computed<DataTableColumns<Company>>(() => [
   {
     title: t('management.companyReadStatus'),
     key: 'readStatus',
-    width: '12%',
+    width: 100,
     render: (row) =>
       h(
         NTag,
@@ -624,7 +641,7 @@ const companyColumns = computed<DataTableColumns<Company>>(() => [
   {
     title: t('management.companyFavorite'),
     key: 'isFavorite',
-    width: '8%',
+    width: 76,
     render: (row) =>
       h(
         NButton,
@@ -657,9 +674,9 @@ const companyColumns = computed<DataTableColumns<Company>>(() => [
       ),
   },
   {
-    title: t('common.edit'),
+    title: t('common.actions'),
     key: 'actions',
-    width: '18%',
+    width: 136,
     render: (row) =>
       row.isBuiltin && !isDevelopment.value
         ? h('span', { class: 'muted-text', title: t('management.builtinLocked') }, '—')
@@ -885,13 +902,13 @@ async function refreshExternalData(): Promise<void> {
         industriesStore.load(),
         resumesStore.load(),
         companiesStore.load(),
-        loadManagedCompanies(),
         loadAllOpportunities(),
       ])
       baseResults.forEach((result) => {
         if (result.status === 'rejected') showError(result.reason)
       })
       const viewResults = await Promise.allSettled([
+        loadManagedCompanies(),
         loadOpportunities(),
         loadCalendar(),
         reloadStatusFlow(),
@@ -930,7 +947,7 @@ async function updateCompanyCatalog(): Promise<void> {
     catalogProgress.value = 100
     const refreshResults = await Promise.allSettled([
       companiesStore.load(),
-      loadManagedCompanies(),
+      industriesStore.load().then(loadManagedCompanies),
       loadAllOpportunities(),
       loadOpportunities(),
       loadCalendar(),
@@ -954,7 +971,7 @@ function closeCatalogModal(): void {
   catalogModalVisible.value = false
 }
 
-async function saveConfig(input: Partial<AppConfig>): Promise<void> {
+async function saveConfig(input: AppConfigUpdate): Promise<void> {
   if (!config.value) return
   try {
     await settingsStore.update(input)
@@ -992,37 +1009,28 @@ function setLaunchAtStartup(value: boolean): void {
 }
 
 async function checkForUpdates(): Promise<void> {
-  if (checkingForUpdates.value) return
+  if (checkingForUpdates.value || availableUpdateVersion.value) return
   if (isDevelopment.value) {
     message.info(t('settings.updateUnavailableDevelopment'))
     return
   }
   checkingForUpdates.value = true
-  let statusMessage: { destroy: () => void } | null = message.loading(t('settings.checking'), {
+  const statusMessage = message.loading(t('settings.checking'), {
     duration: 0,
   })
   try {
     const updateInfo = await window.velopackApi.checkForUpdates()
-    statusMessage.destroy()
-    statusMessage = null
     if (!updateInfo) {
       message.success(t('settings.noUpdate'))
       return
     }
 
-    message.info(t('settings.updateFound'))
-    if (!window.confirm(t('settings.updateAvailable'))) return
-
-    statusMessage = message.loading(t('settings.updating'), { duration: 0 })
-    await window.velopackApi.downloadUpdates()
-    await window.velopackApi.applyUpdates()
+    availableUpdateVersion.value = updateInfo.TargetFullRelease.Version
   } catch (error) {
-    statusMessage?.destroy()
-    statusMessage = null
     console.error('Update failed', error)
     message.error(t('settings.updateFailed'))
   } finally {
-    statusMessage?.destroy()
+    statusMessage.destroy()
     checkingForUpdates.value = false
   }
 }
@@ -1093,6 +1101,12 @@ onBeforeUnmount(() => {
 
 <template>
   <n-config-provider :theme="theme" :locale="naiveLocale">
+    <AppUpdateModal
+      v-if="availableUpdateVersion"
+      :current-version="currentVersion"
+      :target-version="availableUpdateVersion"
+      @close="availableUpdateVersion = null"
+    />
     <div class="window-root">
       <Titlebar
         :title="t('appName')"
@@ -1202,8 +1216,7 @@ onBeforeUnmount(() => {
             <IndustriesView
               v-if="activeView === 'industries'"
               :columns="industryColumns"
-              :data="industries"
-              :pagination="industryPagination"
+              :data="industryTree"
             />
             <ResumesView
               v-if="activeView === 'resumes'"
@@ -1473,6 +1486,14 @@ onBeforeUnmount(() => {
         @close="showIndustryModal = false"
       >
         <n-form label-placement="top">
+          <n-form-item v-if="!editingRootIndustry" :label="t('management.industryParent')" required>
+            <n-select
+              v-model:value="industryForm.parentId"
+              filterable
+              :options="parentIndustryOptions"
+              :placeholder="t('management.industryParentPlaceholder')"
+            />
+          </n-form-item>
           <n-form-item :label="t('management.industryName')" required>
             <n-input
               v-model:value="industryForm.name"
@@ -1559,13 +1580,16 @@ onBeforeUnmount(() => {
             />
           </n-form-item>
           <n-form-item :label="t('management.companyIndustry')">
-            <n-select
+            <n-cascader
               v-model:value="companyForm.industryIds"
+              :cascade="false"
+              check-strategy="child"
+              :show-path="false"
               multiple
               clearable
               filterable
               max-tag-count="responsive"
-              :options="industryOptions"
+              :options="companyIndustryOptions"
               :placeholder="t('management.companyIndustryPlaceholder')"
             />
           </n-form-item>

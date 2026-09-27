@@ -33,9 +33,9 @@ export class CompanyRepository {
     }
     if (query.industryId !== null && query.industryId !== undefined) {
       clauses.push(
-        'EXISTS (SELECT 1 FROM company_industries ci WHERE ci.company_id = c.id AND ci.industry_id = ?)',
+        'EXISTS (SELECT 1 FROM company_industries ci JOIN industries i ON i.id = ci.industry_id WHERE ci.company_id = c.id AND (i.id = ? OR i.parent_id = ?))',
       )
-      params.push(query.industryId)
+      params.push(query.industryId, query.industryId)
     }
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : ''
     return this.db.transaction(() => {
@@ -85,11 +85,12 @@ export class CompanyRepository {
     return this.db
       .prepare(
         `
-      SELECT ci.company_id, ci.industry_id, i.name AS industry_name
+      SELECT ci.company_id, ci.industry_id, p.name || ' / ' || i.name AS industry_name
       FROM company_industries ci
       JOIN industries i ON i.id = ci.industry_id
+      JOIN industries p ON p.id = i.parent_id
       WHERE ci.company_id = ?
-      ORDER BY i.sort_order, i.id
+      ORDER BY p.sort_order, p.id, i.sort_order, i.id
     `,
       )
       .all(companyId) as CompanyIndustryRow[]
@@ -111,11 +112,12 @@ export class CompanyRepository {
     const industries = this.db
       .prepare(
         `
-      SELECT ci.company_id, ci.industry_id, i.name AS industry_name
+      SELECT ci.company_id, ci.industry_id, p.name || ' / ' || i.name AS industry_name
       FROM company_industries ci
       JOIN industries i ON i.id = ci.industry_id
+      JOIN industries p ON p.id = i.parent_id
       WHERE ci.company_id IN (SELECT value FROM json_each(?))
-      ORDER BY ci.company_id, i.sort_order, i.id
+      ORDER BY ci.company_id, p.sort_order, p.id, i.sort_order, i.id
     `,
       )
       .all(companyIds) as CompanyIndustryRow[]

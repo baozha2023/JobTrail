@@ -136,6 +136,7 @@ src/main/
 ├─ database.ts                SQLite 初始化与生命周期
 ├─ company-catalog.ts         公司目录格式、校验与读取
 ├─ company-catalog-updater.ts 公司目录下载与完整性校验
+├─ company-catalog-fetch.ts   Chromium 下载流与重定向地址校验
 ├─ file-storage.ts            受控简历文件存储
 ├─ config.ts                  配置读取、校验和原子写入
 ├─ config-crypto.ts           配置认证加密与构建密钥边界
@@ -258,7 +259,7 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 - `resource/jobtrail-company-catalog.json` 是首次 seed 和 Release 使用的唯一全量目录。
 - 公司目录状态存储在 `builtin_company_catalog_state` 单行表中。
 - 目录、公司、行业关系和别名更新在同一 `IMMEDIATE` 事务提交。
-- 目录更新只接受固定 GitHub Release 地址的 HTTPS 响应，并限制最终主机和下载大小。
+- 目录更新从固定 GitHub Release 资产直链下载，使用 Electron `net.request`，在发起请求及每次跟随重定向前校验 HTTPS 和 GitHub 资产域名，限制重定向次数、总超时和下载大小；不得依赖 Electron `net.fetch` 不可靠的 `Response.url`。
 - 使用 manifest 校验文件名、大小和原始 SHA-256，然后校验格式版本、目录版本、最低应用版本、唯一 key、唯一名称和行业关联。
 - 读取远端目录时，在当前结构的严格解析前先检查格式合法的 `minimumAppVersion`；未来目录结构若要求更新客户端，沿用现有升级提示，不误报为目录损坏。
 - 同一内置 key 更新时保留公司 ID、创建时间、收藏、已读时间和业务关联。
@@ -503,7 +504,7 @@ sandbox: true
 
 - `VelopackApp` 启动钩子位于 Main 入口的 Electron 初始化之前。
 - 只使用 Velopack，不引入 Squirrel、electron-updater 或第二套更新状态机。
-- Feed 固定为 `https://github.com/baozha2023/JobTrail/releases/latest/download`，通道固定为 `win`。
+- `UpdateManager` 固定接收仓库地址 `https://github.com/baozha2023/JobTrail`，由 Velopack 自动识别 GitHub 更新源并解析 Release 资产，通道固定为 `win`；不要传入 Release 下载目录地址。内置公司目录与构建基线下载仍使用资产直链。
 - Renderer 和配置不提供更新源、channel 或 prerelease 覆盖。
 - `UpdateInfo` 由 Main 在检查更新后持有；下载和应用接口不接受 Renderer 回传的更新对象。
 - 检查、下载和应用互斥；应用前确认目标版本已下载并与待应用版本一致。

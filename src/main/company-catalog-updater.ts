@@ -12,15 +12,10 @@ import { AppServiceError } from './services/errors'
 
 const MANIFEST_MAX_BYTES = 16 * 1024
 const DOWNLOAD_TIMEOUT_MS = 30_000
-const ALLOWED_DOWNLOAD_HOSTS = new Set([
-  'github.com',
-  'objects.githubusercontent.com',
-  'release-assets.githubusercontent.com',
-])
 
 export type CompanyCatalogFetcher = (
   input: string,
-  init: { signal: AbortSignal; redirect: 'follow' },
+  init: { signal: AbortSignal },
 ) => Promise<Response>
 
 export type CompanyCatalogProgressReporter = (progress: CompanyCatalogProgress) => void
@@ -40,14 +35,6 @@ function catalogMissingError(): AppServiceError {
 function validateResponse(response: Response): void {
   if (response.status === 404) throw catalogMissingError()
   if (response.status !== 200) throw catalogDownloadError()
-  let url: URL
-  try {
-    url = new URL(response.url)
-  } catch {
-    throw catalogDownloadError()
-  }
-  if (url.protocol !== 'https:' || !ALLOWED_DOWNLOAD_HOSTS.has(url.hostname))
-    throw catalogDownloadError()
 }
 
 async function readResponse(
@@ -110,7 +97,6 @@ export class CompanyCatalogUpdater {
       report({ phase: 'metadata', progress: 0 })
       const manifestResponse = await this.fetcher(COMPANY_CATALOG_MANIFEST_URL, {
         signal: controller.signal,
-        redirect: 'follow',
       })
       const manifestBytes = await readResponse(manifestResponse, MANIFEST_MAX_BYTES)
       const manifest = parseCompanyCatalogManifest(new TextDecoder().decode(manifestBytes))
@@ -119,7 +105,6 @@ export class CompanyCatalogUpdater {
 
       const catalogResponse = await this.fetcher(COMPANY_CATALOG_ASSET_URL, {
         signal: controller.signal,
-        redirect: 'follow',
       })
       const catalogBytes = await readResponse(
         catalogResponse,

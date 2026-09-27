@@ -1,14 +1,13 @@
-import { app, net } from 'electron'
+import { app } from 'electron'
 
 import type { Services } from '../service-container'
 import { CompanyCatalogUpdater } from '../company-catalog-updater'
+import { fetchCompanyCatalog } from '../company-catalog-fetch'
 import { registerChannel, sendToTrustedWindow } from './register-channel'
 
 export function registerCompanyCatalogIpc(services: Services): () => void {
-  const updater = new CompanyCatalogUpdater(
-    services.companyCatalog,
-    (url, init) => net.fetch(url, init),
-    () => app.getVersion(),
+  const updater = new CompanyCatalogUpdater(services.companyCatalog, fetchCompanyCatalog, () =>
+    app.getVersion(),
   )
 
   registerChannel('company-catalog:get-status', () => services.companyCatalog.status())

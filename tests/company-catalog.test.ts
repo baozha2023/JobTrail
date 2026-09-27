@@ -19,10 +19,8 @@ import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
 
-function response(bytes: Uint8Array, url = 'https://release-assets.githubusercontent.com/file') {
-  const value = new Response(new Uint8Array(bytes).buffer)
-  Object.defineProperty(value, 'url', { value: url })
-  return value
+function response(bytes: Uint8Array) {
+  return new Response(new Uint8Array(bytes).buffer)
 }
 
 function streamedResponse(chunks: Uint8Array[]) {
@@ -34,9 +32,6 @@ function streamedResponse(chunks: Uint8Array[]) {
       },
     }),
   )
-  Object.defineProperty(value, 'url', {
-    value: 'https://release-assets.githubusercontent.com/file',
-  })
   return value
 }
 
@@ -400,9 +395,6 @@ describe('内置公司目录更新', () => {
 
   it('reports missing published catalog assets without presenting a temporary network error', async () => {
     const missingResponse = new Response('', { status: 404 })
-    Object.defineProperty(missingResponse, 'url', {
-      value: 'https://github.com/baozha2023/JobTrail/releases/latest/download/missing',
-    })
     await expect(
       new CompanyCatalogUpdater(
         services.companyCatalog,
@@ -428,9 +420,8 @@ describe('内置公司目录更新', () => {
     )
   })
 
-  it('rejects HTTP failures, invalid redirects, oversized data, malformed JSON, and newer app requirements', async () => {
+  it('rejects HTTP failures, oversized data, malformed JSON, and newer app requirements', async () => {
     const failedResponse = new Response('', { status: 503 })
-    Object.defineProperty(failedResponse, 'url', { value: 'https://github.com/file' })
     await expect(
       new CompanyCatalogUpdater(
         services.companyCatalog,
@@ -441,14 +432,6 @@ describe('内置公司目录更新', () => {
       code: 'CATALOG_DOWNLOAD_FAILED',
       message: '暂时无法获取内置公司数据，请稍后重试',
     })
-
-    await expect(
-      new CompanyCatalogUpdater(
-        services.companyCatalog,
-        async () => response(new Uint8Array([1]), 'https://example.com/file'),
-        () => '0.5.0',
-      ).update(() => undefined),
-    ).rejects.toMatchObject({ code: 'CATALOG_DOWNLOAD_FAILED' })
 
     const oneByteManifest = new TextEncoder().encode(
       JSON.stringify({

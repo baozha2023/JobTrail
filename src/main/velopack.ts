@@ -15,7 +15,8 @@ import type { AgentService } from './agent/service'
 import { createRollbackPoint, preserveRollbackPackage } from './update-rollback'
 import { waitForMcpSessions, updateFreezePath } from './update-freeze'
 
-export const UPDATE_FEED_URL = 'https://github.com/baozha2023/JobTrail/releases/latest/download'
+// Velopack detects GitHub sources and resolves release assets from the repository.
+export const UPDATE_REPOSITORY_URL = 'https://github.com/baozha2023/JobTrail'
 
 async function writeJsonAtomic(target: string, value: unknown): Promise<void> {
   const temporary = `${target}.tmp-${randomUUID()}`
@@ -112,7 +113,7 @@ export function registerVelopackIpc(database: DatabaseManager, agent: AgentServi
     ) {
       throw new AppServiceError('VALIDATION_ERROR', '请使用已安装的 Windows 版本检查更新')
     }
-    return (service ??= new DesktopUpdateService(new UpdateManager(UPDATE_FEED_URL), {
+    return (service ??= new DesktopUpdateService(new UpdateManager(UPDATE_REPOSITORY_URL), {
       preserve: (targetVersion) =>
         preserveRollbackPackage({
           dataRoot: getStorageRoot(),

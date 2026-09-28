@@ -94,6 +94,16 @@ export class CompanyCatalogRepository {
     this.syncAliases(current.id, current.aliases, entry.aliases, timestamp)
   }
 
+  convertOmittedToCustom(builtinKeys: string[], timestamp: number): number {
+    return this.db
+      .prepare(
+        `UPDATE companies SET builtin_key = NULL, updated_at = ?
+         WHERE builtin_key IS NOT NULL
+           AND builtin_key NOT IN (SELECT value FROM json_each(?))`,
+      )
+      .run(timestamp, JSON.stringify(builtinKeys)).changes
+  }
+
   updateState(
     formatVersion: number,
     catalogVersion: number,

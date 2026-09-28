@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { app } from 'electron'
 import type Database from 'better-sqlite3'
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
 import { Command } from '@langchain/langgraph'
@@ -14,15 +15,28 @@ import type {
 } from '../../shared/types'
 import type { AppPaths, ConfigService } from '../config'
 import type { Services } from '../service-container'
-import { AppServiceError } from '../services/errors'
+import { AppServiceError, errorShape } from '../services/errors'
 import { assertUpdateWritable, isUpdateFrozen } from '../update-freeze'
 import { AgentFileStore } from './files'
 import { createAgentGraph } from './graph'
 import { AgentArchive } from './archive'
 import { AgentMcpClient } from './mcp-client'
 import { prepareUserMessage } from './message'
+import type { AgentRuntimeInfo } from './runtime'
 
 type SqliteDatabase = InstanceType<typeof Database>
+const UNKNOWN_TOOL_RESULT = {
+  'zh-CN': {
+    crashed: '执行进程意外退出；工具调用结果未知，请先读取当前数据再判断。',
+    cancelled: '用户已停止此工具调用；执行结果未知，请先读取当前数据再判断。',
+  },
+  'en-US': {
+    crashed:
+      'The agent process exited unexpectedly. The tool result is unknown; read the current data before deciding what happened.',
+    cancelled:
+      'The user stopped this tool call. The result is unknown; read the current data before deciding what happened.',
+  },
+} as const
 
 export class AgentService {
   readonly files: AgentFileStore
@@ -43,12 +57,26 @@ export class AgentService {
     private readonly services: Services,
     connection: ConstructorParameters<typeof AgentMcpClient>[1],
     private readonly emit: (event: AgentEvent) => void,
+    runtime: AgentRuntimeInfo = {
+      packaged: app?.isPackaged ?? false,
+      appPath: app?.getAppPath?.() ?? process.cwd(),
+      resourcesPath: process.resourcesPath ?? process.cwd(),
+      appVersion: app?.getVersion?.() ?? '1.0.0',
+    },
   ) {
     this.files = new AgentFileStore(paths, db)
     this.archive = new AgentArchive(db, this.files)
     this.saver = new SqliteSaver(db)
-    this.mcp = new AgentMcpClient(config, connection)
-    this.graph = createAgentGraph(config, services, this.files, this.mcp, this.saver, this.archive)
+    this.mcp = new AgentMcpClient(config, connection, runtime.appVersion)
+    this.graph = createAgentGraph(
+      config,
+      services,
+      this.files,
+      this.mcp,
+      this.saver,
+      this.archive,
+      runtime,
+    )
   }
 
   list(): AgentConversation[] {
@@ -289,29 +317,55 @@ export class AgentService {
     return this.config.update({ ai })
   }
 
-  send(id: string, inputParts: AgentDraftPart[], attachmentIds: string[]): Promise<void> {
-    return this.track(id, () => this.sendMessage(id, inputParts, attachmentIds))
+  send(
+    id: string,
+    inputParts: AgentDraftPart[],
+    attachmentIds: string[],
+    messageId?: string,
+  ): Promise<void> {
+    return this.track(id, () => this.sendMessage(id, inputParts, attachmentIds, messageId))
   }
 
-  private async sendMessage(
+  async validateSend(
     id: string,
     inputParts: AgentDraftPart[],
     attachmentIds: string[],
   ): Promise<void> {
+    this.assertWritable()
+    await this.prepareSend(id, inputParts, attachmentIds)
+  }
+
+  private async prepareSend(
+    id: string,
+    inputParts: AgentDraftPart[],
+    attachmentIds: string[],
+    messageId?: string,
+  ): Promise<{ message: HumanMessage; title: string }> {
     this.ensure(id)
     if (await this.rawPending(id))
       throw new AppServiceError('VALIDATION_ERROR', '请先回答当前问题或确认请求')
-    const { message, title } = prepareUserMessage(
+    const prepared = prepareUserMessage(
       inputParts,
       attachmentIds,
       this.services,
       this.config.reload().mcp.enabled,
+      messageId,
     )
     for (const attachmentId of attachmentIds) {
       const attachment = this.files.get(attachmentId, id)
       if (attachment.mimeType.startsWith('image/') && !this.config.get().ai.multimodal)
         throw new AppServiceError('VALIDATION_ERROR', '请先启用多模态图片输入')
     }
+    return prepared
+  }
+
+  private async sendMessage(
+    id: string,
+    inputParts: AgentDraftPart[],
+    attachmentIds: string[],
+    messageId?: string,
+  ): Promise<void> {
+    const { message, title } = await this.prepareSend(id, inputParts, attachmentIds, messageId)
     const row = this.db
       .prepare('SELECT title_finalized AS titleFinalized FROM agent_conversations WHERE id = ?')
       .get(id) as {
@@ -335,15 +389,29 @@ export class AgentService {
     })
   }
 
+  async validateCompact(id: string): Promise<void> {
+    this.assertWritable()
+    this.ensure(id)
+    if (await this.rawPending(id))
+      throw new AppServiceError('VALIDATION_ERROR', '请先完成当前待确认操作')
+  }
+
   resume(id: string, answer: string[] | boolean): Promise<void> {
     return this.track(id, () => this.resumeConversation(id, answer))
   }
 
-  private async resumeConversation(id: string, answer: string[] | boolean): Promise<void> {
+  async validateResume(id: string, answer: string[] | boolean): Promise<void> {
+    this.assertWritable()
+    await this.prepareResume(id, answer)
+  }
+
+  private async prepareResume(
+    id: string,
+    answer: string[] | boolean,
+  ): Promise<string[] | { approved: boolean; fingerprint: string }> {
     this.ensure(id)
     const pending = await this.rawPending(id)
     if (!pending) throw new AppServiceError('VALIDATION_ERROR', '没有等待回复的请求')
-    let response: string[] | { approved: boolean; fingerprint: string }
     if (pending.kind === 'question') {
       if (
         !Array.isArray(answer) ||
@@ -351,12 +419,32 @@ export class AgentService {
         answer.some((item) => typeof item !== 'string' || !item.trim() || item.length > 10_000)
       )
         throw new AppServiceError('VALIDATION_ERROR', '请回答全部问题，每项不超过 10000 字符')
-      response = answer.map((item) => item.trim())
-    } else {
-      if (typeof answer !== 'boolean') throw new AppServiceError('VALIDATION_ERROR', '确认结果无效')
-      response = { approved: answer, fingerprint: pending.fingerprint }
+      return answer.map((item) => item.trim())
     }
+    if (typeof answer !== 'boolean') throw new AppServiceError('VALIDATION_ERROR', '确认结果无效')
+    return { approved: answer, fingerprint: pending.fingerprint }
+  }
+
+  private async resumeConversation(id: string, answer: string[] | boolean): Promise<void> {
+    const response = await this.prepareResume(id, answer)
     await this.run(id, new Command({ resume: response }))
+  }
+
+  async hasUserMessage(id: string, messageId: string): Promise<boolean> {
+    this.ensure(id)
+    const saved = () =>
+      !!this.db
+        .prepare('SELECT 1 FROM agent_chat_events WHERE id = ? AND conversation_id = ?')
+        .get(`user:${messageId}`, id)
+    if (saved()) return true
+    await this.readHistory(id)
+    return saved()
+  }
+
+  async recoverInterruptedRun(id: string, partialText: string): Promise<void> {
+    this.ensure(id)
+    await this.recordCancelledTools(id, true)
+    if (partialText.trim()) this.archive.partial(id, randomUUID(), partialText)
   }
 
   cancel(id: string): void {
@@ -501,17 +589,16 @@ export class AgentService {
           console.error('保存已取消的工具调用失败', checkpointError)
         }
       }
-      const message = controller.signal.aborted
-        ? '已停止回复'
-        : error instanceof Error
-          ? error.message
-          : String(error)
-      this.emit({ conversationId: id, kind: 'error', text: message })
+      this.emit({
+        conversationId: id,
+        kind: 'error',
+        errorCode: controller.signal.aborted ? 'AGENT_CANCELLED' : errorShape(error).code,
+      })
       if (!controller.signal.aborted) throw error
     }
   }
 
-  private async recordCancelledTools(id: string): Promise<void> {
+  private async recordCancelledTools(id: string, crashed = false): Promise<void> {
     const thread = { configurable: { thread_id: id } }
     const snapshot = await this.graph.getState(thread)
     const messages = (snapshot.values?.messages ?? []) as BaseMessage[]
@@ -527,6 +614,8 @@ export class AgentService {
     )
     const missing = calls.filter((call) => call.id && !completed.has(call.id))
     if (!missing.length) return
+    const unknownResult =
+      UNKNOWN_TOOL_RESULT[this.config.get().locale][crashed ? 'crashed' : 'cancelled']
     await this.graph.updateState(
       thread,
       {
@@ -536,7 +625,7 @@ export class AgentService {
               name: call.name,
               tool_call_id: call.id!,
               status: 'error',
-              content: '用户已停止此工具调用；执行结果未知，请先读取当前数据再判断。',
+              content: unknownResult,
             }),
         ),
       },

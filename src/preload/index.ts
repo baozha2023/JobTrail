@@ -46,9 +46,10 @@ const zhijiApi: ZhijiApi = {
     preview: (id, attachmentId) => invoke('agent:preview', id, attachmentId),
     openAttachment: (id, attachmentId) => invoke('agent:open-attachment', id, attachmentId),
     removeUpload: (id, attachmentId) => invoke('agent:remove-upload', id, attachmentId),
-    send: (id, parts, attachmentIds) => invoke('agent:send', id, parts, attachmentIds),
-    compact: (id) => invoke('agent:compact', id),
-    resume: (id, answer) => invoke('agent:resume', id, answer),
+    send: (id, parts, attachmentIds, jobId) =>
+      invoke('agent:send', id, parts, attachmentIds, jobId),
+    compact: (id, jobId) => invoke('agent:compact', id, jobId),
+    resume: (id, answer, jobId) => invoke('agent:resume', id, answer, jobId),
     cancel: (id) => invoke('agent:cancel', id),
     saveSettings: (ai) => invoke('agent:save-settings', ai),
     onEvent: (listener) => {

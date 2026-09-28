@@ -102,7 +102,9 @@ MCP adapter
   -> Application services
   -> same repositories / controlled file stores
 
-Built-in agent (LangGraph in Main)
+Built-in agent
+  -> Main AgentCoordinator: admission, FIFO queue, events, lifecycle
+  -> Electron utility processes: AgentService and LangGraph execution
   -> JobTrail MCP client for business tools
   -> existing services for selected read-only resources
   -> SQLite checkpointer and agent-owned metadata
@@ -127,7 +129,7 @@ Built-in agent (LangGraph in Main)
 src/main/
 ├─ desktop.ts                  Electron 生命周期与窗口入口
 ├─ mcp-node.ts                 独立 MCP stdio 进程入口
-├─ agent/                      LangGraph、MCP 客户端、归档、附件、文档解析和技能
+├─ agent/                      执行协调器、utility process、LangGraph、MCP 客户端、归档、附件、文档解析和技能
 ├─ ipc.ts                      IPC 模块注册入口
 ├─ ipc/                        分领域 IPC handler 与边界校验
 ├─ services/                   应用业务规则
@@ -232,7 +234,7 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 
 - 使用 `better-sqlite3`，只在受信任的桌面 Main 和独立 MCP Node 中加载。
 - 数据库结构以 `docs/database.md` 为唯一声明，schema 变更必须同步更新文档和测试。
-- 当前 v1.0.0 处于首个正式版的发布准备阶段；数据库和配置格式分别以 `PRAGMA user_version = 1`、`configVersion = 1` 为基线。软件版本升级不要求数据版本升级。
+- v1.0.0 已作为首个正式版发布；数据库和配置格式分别以 `PRAGMA user_version = 1`、`configVersion = 1` 为基线。软件版本升级不要求数据版本升级。后续持久化变更遵循 [数据库与配置文件长期维护和升级指南](docs/persistence-upgrade-guide.md)；该指南中的迁移协调与跨版本转换尚未实现，不能仅提高版本号后发布。
 - 仅 `user_version = 0` 的全新数据库执行完整初始化和 seed。已初始化的版本 1 数据库不得再执行建表 SQL。测试版数据不提供迁移或兼容代码；发布前开发库差异仅在备份后经授权手工整理，不将一次性转换或 `ALTER TABLE` 脚本加入应用、启动入口或发布流程。
 - v1.0.0 发布后，数据库的表、列、索引或约束，以及配置的持久化结构变化，分别递增对应版本并提供从已发布正式版升级的迁移；格式不变则版本不变。迁移须保持用户数据并在失败时回滚。`tests/fixtures/v1/` 是合成的正式版数据基线；发布后不得重写其中的数据库、配置和附件，未来迁移测试必须从该样本的副本升级并保留业务记录。
 - 数据库版本也覆盖行内 JSON、聊天归档、LangGraph checkpoint 和中断负载的持久化语义。升级相关依赖不能只检查建表 SQL；必须用冻结样本验证多轮历史、附件引用、工具结果、使用量和待回答状态，必要时递增数据库版本并设计迁移。
@@ -265,7 +267,8 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 - 同一内置 key 更新时保留公司 ID、创建时间、收藏、已读时间和业务关联。
 - 目录更新按差异维护行业关联与别名；未变化的记录不写入，值替换使用更新，只有实际增减时才插入或删除。
 - 同名用户公司转为内置公司时保留已有数据。
-- 目录缺少的既有内置公司不删除；任何冲突使整个事务回滚。
+- 新版本目录缺少的既有内置公司清除 `builtin_key` 转为自定义公司，保留 ID、主体数据、收藏、已读时间及所有关联；更新结果单独统计“转为自定义”。该操作与目录同步共用事务，任何冲突使整个事务回滚。目录同版本同哈希不写入，行业不随公司退出目录而转换或删除。
+- 开发环境点击“更新内置公司”时，与软件更新共用“开发版无法更新，请使用已安装版本”提示，不打开更新弹窗；Main IPC 同时拒绝开发环境的目录更新请求，避免修改开发数据。
 
 ### 6.3 配置与路径
 
@@ -318,13 +321,15 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 
 ### 7.1 执行架构
 
-- 智能体运行在 Main 进程，使用 LangGraph JS `StateGraph`、`MessagesValue`、`ToolNode`、条件路由、`interrupt`、`Command` 和 `RemoveMessage`。
-- LangGraph SQLite checkpointer 与应用使用同一个 `zhiji.db`。
+- Main 中的 `AgentCoordinator` 负责接收任务、按 FIFO 排队、分配执行进程、按会话传递事件与管理生命周期；LangGraph 在 Electron utility process 中运行，使用 `StateGraph`、`MessagesValue`、`ToolNode`、条件路由、`interrupt`、`Command` 和 `RemoveMessage`。
+- 同一会话最多有一个排队或运行中的任务；最多三个 utility process 同时执行，每个进程一次只执行一个任务。任务使用 UUID 标识并返回接收回执；事件携带任务 ID 和递增序号，Renderer 按会话保存状态，重载后从 Main 的历史与任务快照恢复。
+- Main 和各执行进程分别打开同一个 `zhiji.db`；LangGraph SQLite checkpointer 与应用业务数据共用此数据库文件。智能体业务写入仍经过 MCP，不因进程隔离绕过 Service。
 - 模型使用 `@langchain/openai` 的 `ChatOpenAI`，固定调用 OpenAI Chat Completions。
 - 不实现 Anthropic、Responses 或自定义模型协议适配层。
 - 不实现第二套智能体循环、工具循环、checkpoint 或模型消息缓存。
-- `AgentService` 负责会话生命周期、并发、取消和 UI 事件；图节点负责模型、工具、压缩、归档和中断路由。
-- 应用退出时先中止并等待智能体运行结束，再关闭 MCP 客户端和 SQLite。
+- `AgentService` 负责会话、checkpoint 和单任务执行；`AgentCoordinator` 负责跨会话并发、排队、取消与 UI 事件。图节点负责模型、工具、压缩、归档和中断路由。
+- 执行进程意外退出时，Main 恢复已提交的 checkpoint，未完成工具结果标记为未知，保留可确认的部分正文，并将错误及用户消息是否已保存的状态返回 Renderer。
+- 应用退出、备份和更新前先取消排队任务，停止并等待运行任务，关闭执行进程及其 MCP 客户端，再关闭或快照 Main 的 SQLite。
 
 AI 设置包含 Base URL、Model ID、API Key、多模态开关、以 k token 为单位的上下文窗口和自动压缩阈值。上下文窗口默认 256k，自动压缩阈值默认 80%。模型设置由同一个保存动作统一校验和保存。远程端点必须使用 HTTPS 并提供 API Key；本机回环地址可以使用 HTTP 且允许空密钥。
 
@@ -415,7 +420,7 @@ AI 设置包含 Base URL、Model ID、API Key、多模态开关、以 k token �
 - 输入框高度允许用户拖动调整；附件显示为图片缩略卡或文档卡。
 - 发送后立即显示用户消息并清空输入框与待发送附件区，再按事件顺序流式显示助手正文和工具状态；发送调用失败且服务端已确认未保存用户消息时恢复原草稿和附件。若历史核对失败或显示回复仍在运行，应保留待核对消息并暂停再次发送，直到重新读取历史确认结果。
 - 主动执行 `/compact` 后立即清空输入框，并以工具调用同款行式状态显示“正在压缩”；压缩失败时恢复原命令。
-- 离开并重新进入智能体页面时，必须从 Main 恢复当前会话的运行状态；完成或错误事件必须清除该状态，确保停止与发送操作不会失真。
+- 离开并重新进入智能体页面、切换会话或重新加载 Renderer 时，必须从 Main 恢复各会话的排队、运行、待回复状态和当前输出；完成或错误事件必须清除对应任务状态。消息保存结果未知时禁止盲目重发，须先核对历史。
 - 工具调用永久保留，每行只显示一项；连续工具项支持展开和收起，紧随其后的助手正文开始输出时自动收起一次，之后允许用户手动展开。
 - 聊天附件卡片支持点击：图片在应用内显示完整预览，文档通过操作系统默认应用打开；Renderer 不得获得或拼接附件真实路径。
 - 聊天气泡不显示“我”或“智能体”角色标签。
@@ -437,6 +442,8 @@ AI 设置包含 Base URL、Model ID、API Key、多模态开关、以 k token �
 - 异步搜索、筛选和刷新必须避免旧请求结果覆盖新请求结果。
 - 所有异步调用都要处理失败并显示本地化消息；禁止空 catch。
 - 固定 UI 文案通过 vue-i18n 提供 `zh-CN` 和 `en-US`。
+- 新增的弹窗、文件选择器、状态和错误提示必须同时提供 `zh-CN` 与 `en-US` 文案，按当前语言显示。
+- Main、IPC 和智能体执行进程向 Renderer 返回稳定错误码，由 Renderer 按当前语言显示提示；不得把后端异常原文直接作为 UI 提示。写入聊天历史的系统工具结果按执行时语言生成中英文文案。
 - 数据库中的用户文本、公司名、状态名、JD 和备注不翻译。
 - 主题只支持 `light`、`dark`、`system`；system 跟随操作系统变化。
 - 默认禁止使用 `v-html` 或 `innerHTML` 渲染外部或用户内容；第 7.6 节定义的 `AgentMarkdown` 是唯一例外。
@@ -510,7 +517,7 @@ sandbox: true
 - 检查、下载和应用互斥；应用前确认目标版本已下载并与待应用版本一致。
 - 下载前校验并保留当前版本 Full 包。
 - 应用前通过 SQLite 在线备份创建数据库快照，并与配置一同写入 `.runtime/rollback/`。
-- 生成快照前创建 `.runtime/state/update-freeze`，阻止所有新业务事务、配置修改和内置智能体新写入；内置智能体停止运行中的回复，等待已开始的任务结束并关闭其常驻 MCP 客户端，已运行的 MCP 进程检测后关闭，更新流程等待其租约全部释放及既有写事务结束，随后才复制配置和数据库。准备或调用更新器失败时清除冻结标记并恢复智能体操作。
+- 生成快照前创建 `.runtime/state/update-freeze`，阻止所有新业务事务、配置修改和内置智能体新写入；智能体取消排队任务、停止运行任务并关闭 utility process 及其 MCP 客户端，已运行的 MCP 进程检测后关闭，更新流程等待其租约全部释放及既有写事务结束，随后才复制配置和数据库。准备或调用更新器失败时清除冻结标记并恢复智能体操作。
 - 维护暂停超时后，恢复智能体操作必须使旧等待分支失效；不能让 `Promise.race` 的未取消分支在稍后关闭重新使用的 MCP 客户端。
 - 待更新状态写入 `.runtime/state/pending-update.json`；回滚点提交前不得启动新版本。
 - 1.0 发布后冻结根启动器与客户端之间的健康记录、待更新/回滚记录、启动参数和退出码契约。旧根启动器先启动新客户端并读取健康记录，再完成根启动器替换；改变这些格式前必须验证旧启动器能走完整个升级链路，不能假设启动器已同步更新。当前不提前加入其他格式的解析分支。
@@ -561,7 +568,7 @@ sandbox: true
 
 不发布 Portable、MSI、Velopack 原生 Setup 或 `win-unpacked`。
 
-维护者在本地运行格式、类型、测试、Rust 和发布构建检查；确认标签版本与 `package.json` 一致后，手工创建 Draft Release 并上传完整资产。完成安装包验收后再公开发布；已有同名 Release 不覆盖。
+维护者在本地运行格式、类型、测试、Rust 和发布构建检查；打包后的智能体并发、取消、文档解析、备份暂停和退出检查是发布验收的一部分。确认标签版本与 `package.json` 一致后，手工创建 Draft Release 并上传完整资产。完成安装包验收后再公开发布；已有同名 Release 不覆盖。
 
 ## 12. 错误处理、日志与代码质量
 

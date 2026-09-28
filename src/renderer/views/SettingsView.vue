@@ -121,7 +121,7 @@ async function saveAi(): Promise<void> {
     })
     emit('aiSaved', next)
   } catch (error) {
-    keyError.value = error instanceof Error ? error.message : String(error)
+    keyError.value = getErrorMessage(error, t)
   } finally {
     aiSaving.value = false
   }
@@ -533,6 +533,11 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
               <span>{{ $t('settings.catalogAdded') }}：{{ catalogResult.added }}</span>
               <span>{{ $t('settings.catalogUpdated') }}：{{ catalogResult.updated }}</span>
               <span>{{ $t('settings.catalogAdopted') }}：{{ catalogResult.adopted }}</span>
+              <span
+                >{{ $t('settings.catalogConvertedToCustom') }}：{{
+                  catalogResult.convertedToCustom
+                }}</span
+              >
               <span>{{ $t('settings.catalogUnchanged') }}：{{ catalogResult.unchanged }}</span>
             </div>
             <n-progress type="line" :percentage="100" status="success" />

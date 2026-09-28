@@ -2,6 +2,8 @@
 
 本文记录当前代码定义的数据库结构与持久化规则。应用表的建表实现位于 `src/main/database.ts`；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v1 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
 
+正式发布后的结构变更、配置迁移、跨版本升级和回滚要求，见 [数据库与配置文件长期维护和升级指南](persistence-upgrade-guide.md)。
+
 ## 文件与版本
 
 | 内容     | 开发环境                     | 安装环境                              |
@@ -317,7 +319,7 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 - 仓库 `resource/jobtrail-company-catalog.json` 中的全部内置公司及其行业关联、别名，数量随目录内容更新。公司 ID 由本地 SQLite 生成；目录的 `builtinKey` 才是跨目录版本的稳定身份。初始 `is_favorite=0`、`last_read_at=NULL`。
 - 一条 `builtin_company_catalog_state` 记录，`format_version=1`，`catalog_version` 来自打包目录的 `catalogVersion`，`content_sha256` 为目录 JSON 原始文本的 SHA-256。
 
-版本 1 数据库再次打开时不会重新 seed，也不会在软件升级时自动合并公司目录。用户在设置中主动更新目录时，应用校验发布资产的大小、SHA-256、格式、目录版本和最低软件版本。更新在一个 `IMMEDIATE` 事务中按 `builtin_key` 匹配，更新目录拥有的名称、招聘官网、行业和别名，保留本地公司 ID、创建时间、收藏、已读时间及业务关联。行业关联和别名按差异维护：未变化的记录不写入，值替换时更新原记录，只有实际增减时才插入或删除；同名的用户公司可转为内置公司。新目录未收录的旧内置公司保留。冲突或约束错误会回滚整次同步。
+版本 1 数据库再次打开时不会重新 seed，也不会在软件升级时自动合并公司目录。用户在设置中主动更新目录时，应用校验发布资产的大小、SHA-256、格式、目录版本和最低软件版本。更新在一个 `IMMEDIATE` 事务中按 `builtin_key` 匹配，更新目录拥有的名称、招聘官网、行业和别名，保留本地公司 ID、创建时间、收藏、已读时间及业务关联。行业关联和别名按差异维护：未变化的记录不写入，值替换时更新原记录，只有实际增减时才插入或删除；同名的用户公司可转为内置公司。新版本目录未收录的旧内置公司清除 `builtin_key` 并更新 `updated_at`，转为自定义公司；保留本地 ID、其他字段、行业关联、别名和求职记录，按自定义公司的权限处理。转换数量单独返回并显示；同版本同哈希不触发转换。冲突或约束错误会回滚整次同步。
 
 目录根结构固定为 `{ formatVersion, catalogVersion, minimumAppVersion, industries, companies }`。行业条目为 `{ builtinKey, parentKey, code, name }`，一级 `parentKey=null`、代码 A–T，二级通过父节点 UUID 关联一级并使用两位标准代码。公司条目使用 `industryKeys` 引用二级 UUID；本地接口仍使用解析后的 `industryIds`。不解析旧目录字段。
 

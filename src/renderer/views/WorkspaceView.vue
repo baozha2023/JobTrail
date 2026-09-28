@@ -63,6 +63,7 @@ import { useIndustriesStore } from '../stores/industries'
 import { useResumesStore } from '../stores/resumes'
 import { useCompaniesStore } from '../stores/companies'
 import { useSettingsStore } from '../stores/settings'
+import { useAgentStore } from '../stores/agent'
 import { useCalendarWorkspace } from '../composables/useCalendarWorkspace'
 import { useOpportunityWorkspace } from '../composables/useOpportunityWorkspace'
 import { useManagementWorkspace } from '../composables/useManagementWorkspace'
@@ -75,6 +76,7 @@ const industriesStore = useIndustriesStore()
 const resumesStore = useResumesStore()
 const companiesStore = useCompaniesStore()
 const settingsStore = useSettingsStore()
+const agentStore = useAgentStore()
 const { items: statuses } = storeToRefs(statusesStore)
 const { items: industries } = storeToRefs(industriesStore)
 const { items: resumes } = storeToRefs(resumesStore)
@@ -934,6 +936,10 @@ function receiveCatalogProgress(progress: CompanyCatalogProgress): void {
 
 async function updateCompanyCatalog(): Promise<void> {
   if (catalogUpdating.value) return
+  if (isDevelopment.value) {
+    message.info(t('settings.updateUnavailableDevelopment'))
+    return
+  }
   catalogModalVisible.value = true
   catalogUpdating.value = true
   catalogPhase.value = 'metadata'
@@ -1066,6 +1072,7 @@ let readStatusTimer: number | undefined
 let removePreferredColorSchemeListener: (() => void) | undefined
 let removeCatalogProgressListener: (() => void) | undefined
 onMounted(() => {
+  void agentStore.start().catch(showError)
   window.addEventListener('resize', updateViewportWidth)
   readStatusTimer = window.setInterval(() => {
     currentTime.value = Date.now()
@@ -1090,6 +1097,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  agentStore.stop()
   window.removeEventListener('resize', updateViewportWidth)
   if (readStatusTimer !== undefined) window.clearInterval(readStatusTimer)
   removeReminderClickListener?.()

@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { AppPaths, ConfigService } from '../config'
 import type { DatabaseManager } from '../database'
-import type { AgentService } from '../agent/service'
+import type { AgentCoordinator } from '../agent/coordinator'
 import { exportBackup, importBackup } from '../backup-archive'
 import { stageRestore, restoreDirectory, backupSessionPath } from '../backup-restore'
 import { waitForMcpSessions, updateFreezePath } from '../update-freeze'
@@ -14,7 +14,7 @@ export function registerBackupIpc(
   paths: AppPaths,
   database: DatabaseManager,
   config: ConfigService,
-  agent: AgentService,
+  agent: Pick<AgentCoordinator, 'suspendForUpdate' | 'resumeAfterUpdate'>,
   restart: () => void,
 ): void {
   let busy = false

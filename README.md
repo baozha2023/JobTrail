@@ -15,6 +15,18 @@
 
 支持简体中文与 English、浅色与深色主题、系统托盘、开机启动和应用内更新。
 
+## 技术栈
+
+| 领域         | 技术                                                  | 用途                                  |
+| ------------ | ----------------------------------------------------- | ------------------------------------- |
+| 桌面应用     | Electron、TypeScript                                  | 主进程、预加载脚本及 Windows 桌面集成 |
+| 用户界面     | Vue 3、Naive UI、Pinia、Vue I18n                      | 页面、组件、状态管理与多语言          |
+| 本地数据     | SQLite、better-sqlite3                                | 在本机保存求职记录和应用数据          |
+| 智能体与工具 | LangChain、LangGraph、MCP SDK                         | 智能体流程及外部工具连接              |
+| 网页访问     | Playwright                                            | 公司招聘网页的浏览与信息获取          |
+| 构建与发布   | electron-vite、Vite、electron-builder、Velopack、Rust | 应用构建、Windows 安装、启动与更新    |
+| 测试         | Vitest、Node.js 测试运行器、Playwright                | 单元测试及打包后的桌面应用测试        |
+
 ## 界面预览
 
 以下为中文界面，求职记录、日程和简历使用示例数据。点击图片可查看大图。
@@ -66,8 +78,6 @@ pnpm dev
 CLI。开发与发布约定见[项目开发规范](CLAUDE.md)。
 
 ## 项目文档
-
-项目基于 Electron、Vue、TypeScript 和 SQLite，Windows 启动与安装组件使用 Rust。
 
 - [项目开发规范](CLAUDE.md)
 - [数据库结构](docs/database.md)

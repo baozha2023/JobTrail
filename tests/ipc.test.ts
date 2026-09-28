@@ -49,5 +49,8 @@ describe('typed IPC validation', () => {
   it('returns structured application errors', () => {
     const shape = errorShape(new AppServiceError('NOT_FOUND', '记录不存在', { id: 7 }))
     expect(shape).toEqual({ code: 'NOT_FOUND', message: '记录不存在', details: { id: 7 } })
+    expect(errorShape(new Error('API key and C:\\private\\config.json')).message).toBe(
+      '内部操作失败',
+    )
   })
 })

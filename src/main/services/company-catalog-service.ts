@@ -56,6 +56,7 @@ export class CompanyCatalogService {
         added: 0,
         updated: 0,
         adopted: 0,
+        convertedToCustom: 0,
         unchanged: catalog.companies.length,
       }
     }
@@ -111,6 +112,10 @@ export class CompanyCatalogService {
           }
         }
 
+        const convertedToCustom = this.repository.convertOmittedToCustom(
+          catalog.companies.map((company) => company.builtinKey),
+          timestamp,
+        )
         this.repository.updateState(catalog.formatVersion, catalog.catalogVersion, hash, timestamp)
         return {
           status: 'updated',
@@ -119,6 +124,7 @@ export class CompanyCatalogService {
           added,
           updated,
           adopted,
+          convertedToCustom,
           unchanged,
         }
       })

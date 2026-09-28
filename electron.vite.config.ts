@@ -18,6 +18,7 @@ export default defineConfig({
         input: {
           desktop: path.resolve(__dirname, 'src/main/desktop.ts'),
           'mcp-node': path.resolve(__dirname, 'src/main/mcp-node.ts'),
+          'agent-worker': path.resolve(__dirname, 'src/main/agent/worker-bootstrap.ts'),
         },
       },
     },

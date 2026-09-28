@@ -48,6 +48,7 @@ export function prepareUserMessage(
   attachmentIds: string[],
   services: Services,
   mcpEnabled: boolean,
+  messageId?: string,
 ): { message: HumanMessage; title: string } {
   const parsed = z.array(AgentPartSchema).max(100).safeParse(inputParts)
   if (!parsed.success) throw new AppServiceError('VALIDATION_ERROR', '消息内容格式无效')
@@ -90,6 +91,10 @@ export function prepareUserMessage(
     .join('\n')
   return {
     title: visibleText.trim().slice(0, 40) || '附件对话',
-    message: new HumanMessage({ content, additional_kwargs: { jobtrailParts: parts } }),
+    message: new HumanMessage({
+      id: messageId,
+      content,
+      additional_kwargs: { jobtrailParts: parts },
+    }),
   }
 }

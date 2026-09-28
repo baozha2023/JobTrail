@@ -11,7 +11,7 @@ import { registerChannel } from './ipc/register-channel'
 import { AppServiceError } from './services/errors'
 import { DesktopUpdateService } from './update-service'
 import type { DatabaseManager } from './database'
-import type { AgentService } from './agent/service'
+import type { AgentCoordinator } from './agent/coordinator'
 import { createRollbackPoint, preserveRollbackPackage } from './update-rollback'
 import { waitForMcpSessions, updateFreezePath } from './update-freeze'
 
@@ -100,7 +100,10 @@ export async function markApplicationHealthy(): Promise<void> {
   child.unref()
 }
 
-export function registerVelopackIpc(database: DatabaseManager, agent: AgentService): void {
+export function registerVelopackIpc(
+  database: DatabaseManager,
+  agent: Pick<AgentCoordinator, 'suspendForUpdate' | 'resumeAfterUpdate'>,
+): void {
   let service: DesktopUpdateService | undefined
   let closing = false
   let healthCommit: Promise<void> | undefined

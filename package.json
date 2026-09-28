@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -20,8 +20,9 @@
     "package:win": "pnpm build && pnpm exec playwright install --only-shell chromium && node scripts/stage-browser.mjs && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
     "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
     "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
+    "test:agent:package": "node scripts/test-packaged-agent.mjs",
     "test:desktop:package": "node scripts/test-packaged-desktop.mjs && node scripts/test-startup-errors.mjs",
-    "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && pnpm test:desktop:package && node scripts/pack-velopack.mjs",
+    "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && pnpm test:agent:package && pnpm test:desktop:package && node scripts/pack-velopack.mjs",
     "format": "prettier --write src tests scripts docs *.ts *.json *.md",
     "format:check": "prettier --check src tests scripts docs *.ts *.json *.md"
   },
@@ -31,6 +32,7 @@
     "@langchain/langgraph-checkpoint-sqlite": "1.0.4",
     "@langchain/openai": "1.5.13",
     "@modelcontextprotocol/server": "2.0.0",
+    "@napi-rs/canvas": "0.1.80",
     "better-sqlite3": "^12.4.1",
     "cheerio": "1.2.0",
     "dompurify": "^3.4.15",

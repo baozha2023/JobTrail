@@ -36,6 +36,7 @@ export interface Services {
 export function createServiceContainer(
   paths: AppPaths,
   allowBuiltinEdit: boolean,
+  recoverDeletes = true,
 ): {
   database: DatabaseManager
   unitOfWork: UnitOfWork
@@ -44,7 +45,7 @@ export function createServiceContainer(
   const database = new DatabaseManager(paths)
   try {
     const files = new FileStorageService(paths)
-    if (!isUpdateFrozen(paths.root)) files.recoverPendingDeletes(database.db)
+    if (recoverDeletes && !isUpdateFrozen(paths.root)) files.recoverPendingDeletes(database.db)
     const unitOfWork = new UnitOfWork(database.db, paths.root)
     return {
       database,

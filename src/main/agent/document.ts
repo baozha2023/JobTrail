@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { PDFParse } from 'pdf-parse'
 import WordExtractor from 'word-extractor'
 import yauzl from 'yauzl'
@@ -135,6 +136,11 @@ async function extractDocxVisuals(filePath: string): Promise<{
 }
 
 async function extractPdf(filePath: string, includeVisuals: boolean): Promise<ExtractedDocument> {
+  // Electron utility processes need an explicit PDF.js worker URL.
+  if (!PDFParse.isNodeJS)
+    PDFParse.setWorker(
+      pathToFileURL(path.join(path.dirname(require.resolve('pdf-parse')), 'pdf.worker.mjs')).href,
+    )
   const parser = new PDFParse({ data: fs.readFileSync(filePath) })
   let text = ''
   let totalPages = 0
@@ -147,8 +153,9 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
         .filter(Boolean)
         .join('\n\n')
       totalPages = result.total
-    } catch {
+    } catch (error) {
       // A damaged text layer must not prevent visual understanding of readable pages.
+      console.error('PDF 文本提取失败', error)
     }
     if (includeVisuals) {
       try {
@@ -171,8 +178,9 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
             visuals.push({ data, label: `PDF 第 ${page.pageNumber} 页`, mimeType: 'image/png' })
           }
         }
-      } catch {
+      } catch (error) {
         // Preserve extracted text when page rendering is unavailable.
+        console.error('PDF 页面渲染失败', error)
       }
     }
   } finally {

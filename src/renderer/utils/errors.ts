@@ -31,6 +31,16 @@ export function errorCode(error: unknown): AppErrorCode | null {
     'CATALOG_APP_UPDATE_REQUIRED',
     'CATALOG_CONFLICT',
     'CATALOG_UPDATE_IN_PROGRESS',
+    'WEB_INVALID_URL',
+    'WEB_BLOCKED',
+    'WEB_CANCELLED',
+    'WEB_TIMEOUT',
+    'WEB_TOO_LARGE',
+    'WEB_UNAVAILABLE',
+    'WEB_UNSUPPORTED',
+    'WEB_PARSE_FAILED',
+    'WEB_INVALID_CURSOR',
+    'WEB_CURSOR_EXPIRED',
     'INTERNAL_ERROR',
   ]
   return known.includes(code as AppErrorCode) ? (code as AppErrorCode) : null
@@ -39,6 +49,5 @@ export function errorCode(error: unknown): AppErrorCode | null {
 export function getErrorMessage(error: unknown, translate: Translator): string {
   const code = errorCode(error)
   if (code) return translate(`error.${code}`)
-  if (error instanceof Error) return error.message
   return translate('error.generic')
 }

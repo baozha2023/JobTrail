@@ -15,6 +15,18 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 Supports Simplified Chinese and English, light and dark themes, the system tray, launch at startup, and in-app updates.
 
+## Tech stack
+
+| Area               | Technologies                                          | Role                                                               |
+| ------------------ | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| Desktop app        | Electron, TypeScript                                  | Main process, preload scripts, and Windows desktop integration     |
+| User interface     | Vue 3, Naive UI, Pinia, Vue I18n                      | Views, components, state management, and localization              |
+| Local data         | SQLite, better-sqlite3                                | Store applications and app data on the device                      |
+| AI agent and tools | LangChain, LangGraph, MCP SDK                         | Agent workflows and external tool connections                      |
+| Web access         | Playwright                                            | Browse company career pages and retrieve information               |
+| Build and release  | electron-vite, Vite, electron-builder, Velopack, Rust | Build the app and handle Windows installation, launch, and updates |
+| Testing            | Vitest, Node.js test runner, Playwright               | Unit tests and packaged desktop app tests                          |
+
 ## Screenshots
 
 The screenshots show the Chinese interface with sample applications, events, and resumes. Click an image to view it at full size.
@@ -63,8 +75,6 @@ Common commands:
 Building the installer also requires Rust with the MSVC toolchain, Visual Studio C++ Build Tools, the .NET SDK, and the Velopack CLI. See the [development guidelines](CLAUDE.md) (in Chinese) for development and release conventions.
 
 ## Project documentation
-
-JobTrail uses Electron, Vue, TypeScript, and SQLite. The Windows launcher and installer components are written in Rust.
 
 The following documents are in Chinese:
 

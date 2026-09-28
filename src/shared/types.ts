@@ -45,6 +45,13 @@ export type McpErrorCode =
   | 'CONFIRMATION_REQUIRED'
   | 'CONFIRMATION_UNSUPPORTED'
 
+export type AgentEventErrorCode =
+  | AppErrorCode
+  | 'AGENT_CANCELLED'
+  | 'AGENT_WORKER_UNAVAILABLE'
+  | 'AGENT_WORKER_EXITED'
+  | 'AGENT_WORKER_START_FAILED'
+
 export interface McpConnectionInfo {
   command: string
   args: string[]
@@ -71,6 +78,7 @@ export interface CompanyCatalogUpdateResult {
   added: number
   updated: number
   adopted: number
+  convertedToCustom: number
   unchanged: number
 }
 
@@ -106,6 +114,22 @@ export interface AgentConversation {
   title: string
   createdAt: number
   updatedAt: number
+  activity?: 'idle' | 'queued' | 'running' | 'waiting'
+  queuePosition?: number
+}
+
+export interface AgentJobReceipt {
+  jobId: string
+  conversationId: string
+  status: 'queued' | 'running' | 'waiting' | 'completed' | 'failed' | 'cancelled'
+}
+
+export interface AgentJobSnapshot extends AgentJobReceipt {
+  sequence: number
+  queuePosition?: number
+  liveText: string
+  submittedParts?: AgentDraftPart[]
+  submittedAttachments?: AgentAttachment[]
 }
 
 export interface AgentAttachment {
@@ -168,6 +192,7 @@ export interface AgentHistory {
   pending: AgentPending | null
   usage: AgentUsage
   running: boolean
+  job?: AgentJobSnapshot | null
 }
 
 export interface AgentQuestion {
@@ -181,7 +206,11 @@ export type AgentPending =
 
 export interface AgentEvent {
   conversationId: string
+  jobId?: string
+  sequence?: number
+  errorCode?: AgentEventErrorCode
   kind:
+    | 'state'
     | 'title'
     | 'token'
     | 'tool-start'
@@ -200,6 +229,9 @@ export interface AgentEvent {
   pending?: AgentPending
   usage?: AgentUsage
   compact?: Extract<AgentMessage, { role: 'compact' }>
+  state?: 'idle' | 'queued' | 'running' | 'waiting'
+  queuePosition?: number
+  submissionState?: 'saved' | 'not-saved' | 'unknown'
 }
 
 export interface Status {
@@ -435,9 +467,14 @@ export interface ZhijiApi {
     preview(id: string, attachmentId: string): Promise<string | null>
     openAttachment(id: string, attachmentId: string): Promise<void>
     removeUpload(id: string, attachmentId: string): Promise<void>
-    send(id: string, parts: AgentDraftPart[], attachmentIds: string[]): Promise<void>
-    compact(id: string): Promise<void>
-    resume(id: string, answer: string[] | boolean): Promise<void>
+    send(
+      id: string,
+      parts: AgentDraftPart[],
+      attachmentIds: string[],
+      jobId: string,
+    ): Promise<AgentJobReceipt>
+    compact(id: string, jobId: string): Promise<AgentJobReceipt>
+    resume(id: string, answer: string[] | boolean, jobId: string): Promise<AgentJobReceipt>
     cancel(id: string): Promise<void>
     saveSettings(ai: AppConfig['ai']): Promise<AppConfig>
     onEvent(listener: (event: AgentEvent) => void): () => void

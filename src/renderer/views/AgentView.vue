@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { NButton, NCard, NDropdown, NInput, NModal, NSpace } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type {
   AgentAttachment,
-  AgentConversation,
-  AgentDraftPart,
-  AgentHistory,
   AgentMessage,
   AgentPending,
   AgentUsage,
@@ -16,19 +14,13 @@ import type {
   ResumeVersion,
 } from '../../shared/types'
 import { getErrorMessage } from '../utils/errors'
+import { useAgentStore } from '../stores/agent'
 import AgentComposerEditor from '../components/AgentComposerEditor.vue'
 import AgentMarkdown from '../components/AgentMarkdown.vue'
 import AgentMessageBody from '../components/AgentMessageBody.vue'
 import AgentToolGroup from '../components/AgentToolGroup.vue'
 
 type ToolMessage = Extract<AgentMessage, { role: 'tool' }>
-interface SubmittedMessage {
-  id: string
-  previousUserIds: string[]
-  optimisticId: string
-  parts: AgentDraftPart[]
-  attachments: AgentAttachment[]
-}
 type TimelineEntry =
   | Exclude<AgentMessage, { role: 'tool' }>
   | { id: string; role: 'tool-group'; tools: ToolMessage[]; autoCollapse: boolean }
@@ -43,28 +35,71 @@ const props = defineProps<{
   dark: boolean
 }>()
 const { t } = useI18n()
-const conversations = ref<AgentConversation[]>([])
-const currentId = ref<string | null>(null)
-const messages = ref<AgentMessage[]>([])
-const usage = ref<AgentUsage | null>(null)
+const agentStore = useAgentStore()
+const { conversations, currentId } = storeToRefs(agentStore)
+const activeState = computed(() => agentStore.session(currentId.value ?? '__empty__'))
+const messages = computed({
+  get: () => activeState.value.messages,
+  set: (value: AgentMessage[]) => {
+    activeState.value.messages = value
+  },
+})
+const usage = computed({
+  get: () => activeState.value.usage,
+  set: (value: AgentUsage | null) => {
+    activeState.value.usage = value
+  },
+})
 const messagePane = ref<HTMLElement | null>(null)
-const pending = ref<AgentPending | null>(null)
+const pending = computed({
+  get: () => activeState.value.pending,
+  set: (value: AgentPending | null) => {
+    activeState.value.pending = value
+  },
+})
 const draft = ref('')
 const composer = ref<InstanceType<typeof AgentComposerEditor> | null>(null)
-const answerSelection = ref<(number | null)[]>([])
-const answerText = ref<string[]>([])
-const questionStep = ref(0)
-const uploads = ref<AgentAttachment[]>([])
-const busy = ref(false)
-const compacting = ref(false)
+const answerSelection = computed({
+  get: () => activeState.value.answerSelection,
+  set: (value: (number | null)[]) => {
+    activeState.value.answerSelection = value
+  },
+})
+const answerText = computed({
+  get: () => activeState.value.answerText,
+  set: (value: string[]) => {
+    activeState.value.answerText = value
+  },
+})
+const questionStep = computed({
+  get: () => activeState.value.questionStep,
+  set: (value: number) => {
+    activeState.value.questionStep = value
+  },
+})
+const uploads = computed({
+  get: () => activeState.value.uploads,
+  set: (value: AgentAttachment[]) => {
+    activeState.value.uploads = value
+  },
+})
+const busy = computed(
+  () => activeState.value.activity === 'running' || activeState.value.activity === 'queued',
+)
+const compacting = computed(() => activeState.value.compacting)
 const uploading = ref(false)
-const error = ref('')
+const submitting = ref(false)
+const error = computed({
+  get: () => activeState.value.error,
+  set: (value: string) => {
+    activeState.value.error = value
+  },
+})
 const previews = ref<Record<string, string>>({})
 const imagePreview = ref<{ name: string; url: string } | null>(null)
-const unverifiedSubmission = ref<SubmittedMessage | null>(null)
-const verifyingSubmission = ref(false)
+const unverifiedSubmission = computed(() => activeState.value.unverified)
+const verifyingSubmission = computed(() => activeState.value.verifying)
 const historyMenu = ref<{ id: string; x: number; y: number } | null>(null)
-let optimisticSequence = 0
 const deleteTargetId = ref<string | null>(null)
 const renameTargetId = ref<string | null>(null)
 const renameDraft = ref('')
@@ -72,10 +107,17 @@ const renameSaving = ref(false)
 const activeConversation = computed(() =>
   conversations.value.find((conversation) => conversation.id === currentId.value),
 )
-const historyMenuOptions = computed(() => [
-  { label: t('agent.rename'), key: 'rename' },
-  { label: t('agent.delete'), key: 'delete' },
-])
+const historyMenuOptions = computed(() => {
+  const target = conversations.value.find((item) => item.id === historyMenu.value?.id)
+  return [
+    { label: t('agent.rename'), key: 'rename' },
+    {
+      label: t('agent.delete'),
+      key: 'delete',
+      disabled: target?.activity === 'queued' || target?.activity === 'running',
+    },
+  ]
+})
 const timeline = computed<TimelineEntry[]>(() => {
   const entries: TimelineEntry[] = []
   for (const message of messages.value) {
@@ -143,29 +185,10 @@ function advanceQuestion(): void {
   if (questionStep.value < pending.value.questions.length - 1) moveQuestion(questionStep.value + 1)
   else void respond(questionAnswers.value)
 }
-function showPending(value: AgentPending | null): void {
-  pending.value = value
-  questionStep.value = 0
-  answerSelection.value =
-    value?.kind === 'question'
-      ? value.questions.map((question) => {
-          const recommended = question.options?.findIndex((option) => option.recommended)
-          return recommended !== undefined && recommended >= 0 ? recommended : null
-        })
-      : []
-  answerText.value = value?.kind === 'question' ? value.questions.map(() => '') : []
-}
 function formatK(tokens: number | null | undefined): string {
   return tokens === null || tokens === undefined
     ? t('agent.usageUnavailable')
     : `${(tokens / 1000).toFixed(1)}k`
-}
-function lastTool(predicate: (message: ToolMessage) => boolean): ToolMessage | undefined {
-  for (let index = messages.value.length - 1; index >= 0; index--) {
-    const message = messages.value[index]
-    if (message.role === 'tool' && predicate(message)) return message
-  }
-  return undefined
 }
 const thinking = computed(() => {
   if (!busy.value || compacting.value || pending.value) return false
@@ -190,7 +213,6 @@ watch(
   },
 )
 function showHistoryMenu(event: MouseEvent, id: string): void {
-  if (busy.value || uploading.value || unverifiedSubmission.value) return
   historyMenu.value = { id, x: event.clientX, y: event.clientY }
 }
 function chooseHistoryMenu(key: string): void {
@@ -282,7 +304,7 @@ async function onPaste(event: ClipboardEvent): Promise<void> {
         file.type,
         new Uint8Array(await file.arrayBuffer()),
       )
-      uploads.value.push(attachment)
+      agentStore.session(id).uploads.push(attachment)
       await loadPreview(attachment, id)
     }
     error.value = ''
@@ -293,131 +315,101 @@ async function onPaste(event: ClipboardEvent): Promise<void> {
   }
 }
 
-async function discardUploads(id: string, attachments: AgentAttachment[]): Promise<void> {
-  for (const attachment of attachments) {
-    try {
-      await window.zhijiApi.agent.removeUpload(id, attachment.id)
-    } catch (cause) {
-      console.error('清理未发送附件失败', cause)
-    }
+async function refreshList(): Promise<void> {
+  await agentStore.refreshList()
+}
+
+function saveDraft(id: string | null): void {
+  if (!id || !composer.value) return
+  const state = agentStore.session(id)
+  if (state.activity !== 'queued' && state.activity !== 'running')
+    state.draftParts = composer.value.readParts()
+}
+
+async function restoreDraft(id: string): Promise<void> {
+  if (currentId.value !== id) return
+  previews.value = {}
+  imagePreview.value = null
+  await nextTick()
+  if (currentId.value !== id) return
+  composer.value?.restoreParts(agentStore.session(id).draftParts)
+  for (const attachment of [
+    ...agentStore.session(id).uploads,
+    ...agentStore.session(id).messages.flatMap((message) => message.attachments),
+  ])
+    void loadPreview(attachment, id)
+}
+
+async function selectConversation(id: string): Promise<void> {
+  if (currentId.value !== id) saveDraft(currentId.value)
+  try {
+    await agentStore.select(id)
+    if (currentId.value === id) await restoreDraft(id)
+  } catch (cause) {
+    agentStore.session(id).error = getErrorMessage(cause, t)
   }
 }
 
-async function refreshList(): Promise<void> {
-  conversations.value = await window.zhijiApi.agent.list()
-}
-function applyHistory(id: string, history: AgentHistory): void {
-  if (currentId.value !== id) return
-  messages.value = history.messages
-  showPending(history.pending)
-  usage.value = history.usage
-  busy.value = history.running
-  for (const attachment of history.messages.flatMap((message) => message.attachments))
-    void loadPreview(attachment, id)
-}
-async function selectConversation(id: string): Promise<void> {
-  if (unverifiedSubmission.value) {
-    if (unverifiedSubmission.value.id === id) await verifySubmission()
-    return
-  }
-  if (currentId.value && currentId.value !== id && uploads.value.length)
-    await discardUploads(currentId.value, uploads.value)
-  currentId.value = id
-  uploads.value = []
-  previews.value = {}
-  imagePreview.value = null
-  const history = await window.zhijiApi.agent.history(id)
-  applyHistory(id, history)
-}
 async function createConversation(): Promise<string> {
-  const conversation = await window.zhijiApi.agent.create()
-  await refreshList()
-  await selectConversation(conversation.id)
-  return conversation.id
+  const newChatParts = currentId.value ? [] : (composer.value?.readParts() ?? [])
+  saveDraft(currentId.value)
+  const id = await agentStore.create()
+  if (newChatParts.length) agentStore.session(id).draftParts = newChatParts
+  await restoreDraft(id)
+  return id
 }
+
 async function removeConversation(id: string): Promise<void> {
   try {
-    await window.zhijiApi.agent.delete(id)
-    await refreshList()
-    if (currentId.value === id) {
-      currentId.value = null
-      messages.value = []
-      imagePreview.value = null
-      showPending(null)
-      usage.value = null
-    }
+    await agentStore.remove(id)
+    if (currentId.value) await restoreDraft(currentId.value)
   } catch (cause) {
-    error.value = getErrorMessage(cause, t)
+    agentStore.session(id).error = getErrorMessage(cause, t)
   }
 }
+
 async function upload(): Promise<void> {
   if (uploading.value) return
   uploading.value = true
+  let id = currentId.value
   try {
     if (uploads.value.length >= 5) {
       error.value = t('agent.tooManyAttachments')
       return
     }
-    const id = currentId.value ?? (await createConversation())
+    id ??= await createConversation()
     const attachment = await window.zhijiApi.agent.upload(id)
     if (attachment) {
-      uploads.value.push(attachment)
+      agentStore.session(id).uploads.push(attachment)
       await loadPreview(attachment, id)
     }
   } catch (cause) {
-    error.value = getErrorMessage(cause, t)
+    agentStore.session(id ?? '__empty__').error = getErrorMessage(cause, t)
   } finally {
     uploading.value = false
   }
 }
+
 async function removeAttachment(attachment: AgentAttachment): Promise<void> {
-  if (!currentId.value || uploading.value) return
+  const id = currentId.value
+  if (!id || uploading.value) return
   try {
-    await window.zhijiApi.agent.removeUpload(currentId.value, attachment.id)
-    uploads.value = uploads.value.filter((item) => item.id !== attachment.id)
-    delete previews.value[attachment.id]
+    await window.zhijiApi.agent.removeUpload(id, attachment.id)
+    const state = agentStore.session(id)
+    state.uploads = state.uploads.filter((item) => item.id !== attachment.id)
+    if (currentId.value === id) delete previews.value[attachment.id]
   } catch (cause) {
-    error.value = getErrorMessage(cause, t)
+    agentStore.session(id).error = getErrorMessage(cause, t)
   }
 }
-function restoreSubmission(request: SubmittedMessage): void {
-  messages.value = messages.value.filter((item) => item.id !== request.optimisticId)
-  uploads.value = request.attachments
-  composer.value?.restoreParts(request.parts)
-}
-function submissionWasSaved(request: SubmittedMessage, history: AgentHistory): boolean {
-  return history.messages.some(
-    (item) => item.role === 'user' && !request.previousUserIds.includes(item.id),
-  )
-}
+
 async function verifySubmission(): Promise<void> {
-  const request = unverifiedSubmission.value
-  if (!request || verifyingSubmission.value) return
-  verifyingSubmission.value = true
-  try {
-    const history = await window.zhijiApi.agent.history(request.id)
-    busy.value = history.running
-    if (submissionWasSaved(request, history)) {
-      unverifiedSubmission.value = null
-      applyHistory(request.id, history)
-      error.value = ''
-      void refreshList().catch((cause) => {
-        error.value = getErrorMessage(cause, t)
-      })
-    } else if (!history.running) {
-      unverifiedSubmission.value = null
-      restoreSubmission(request)
-      error.value = t('agent.sendNotSaved')
-    }
-  } catch (cause) {
-    error.value = t('agent.sendUnverified')
-    console.error('核对已发送消息失败', cause)
-  } finally {
-    verifyingSubmission.value = false
-  }
+  if (currentId.value) await agentStore.verifySubmission(currentId.value)
 }
+
 async function send(): Promise<void> {
   if (
+    submitting.value ||
     busy.value ||
     uploading.value ||
     pending.value ||
@@ -429,12 +421,8 @@ async function send(): Promise<void> {
     error.value = t('agent.messageTooLong')
     return
   }
-  let submitted: SubmittedMessage | null = null
-  let sendCompleted = false
-  let runningAfterFailure = false
-  let compactSubmission: { parts: AgentDraftPart[]; completed: boolean } | null = null
+  submitting.value = true
   try {
-    const id = currentId.value ?? (await createConversation())
     const parts = composer.value?.readParts() ?? []
     const command = parts.some((part) => part.kind === 'command')
     const typedCompact =
@@ -447,170 +435,66 @@ async function send(): Promise<void> {
         error.value = t('agent.compactOnly')
         return
       }
-      busy.value = true
-      compacting.value = true
-      error.value = ''
-      compactSubmission = { parts, completed: false }
+      const id = currentId.value ?? (await agentStore.create())
       composer.value?.clear()
       draft.value = ''
-      await nextTick()
-      await window.zhijiApi.agent.compact(id)
-      compactSubmission.completed = true
-      compacting.value = false
-      await selectConversation(id)
+      await agentStore.compact(id, parts)
       return
     }
     if (!draft.value.trim() && !uploads.value.length) return
-    busy.value = true
-    error.value = ''
-    const attachmentIds = uploads.value.map((item) => item.id)
-    const submittedAttachments = [...uploads.value]
-    const optimisticId = `optimistic-${++optimisticSequence}`
-    submitted = {
-      id,
-      previousUserIds: messages.value.filter((item) => item.role === 'user').map((item) => item.id),
-      optimisticId,
-      parts,
-      attachments: submittedAttachments,
-    }
-    messages.value = [
-      ...messages.value,
-      { id: optimisticId, role: 'user', parts, attachments: submittedAttachments },
-    ]
+    const id = currentId.value ?? (await agentStore.create())
+    const attachments = [...agentStore.session(id).uploads]
     composer.value?.clear()
     draft.value = ''
-    uploads.value = []
-    await nextTick()
-    await window.zhijiApi.agent.send(id, parts, attachmentIds)
-    sendCompleted = true
-    await selectConversation(id)
-    await refreshList()
+    await agentStore.send(id, parts, attachments)
   } catch (cause) {
     error.value = getErrorMessage(cause, t)
-    if (compactSubmission && !compactSubmission.completed) {
-      composer.value?.restoreParts(compactSubmission.parts)
-    }
-    const request = submitted
-    if (request) {
-      if (sendCompleted) {
-        error.value = t('agent.sendSavedRefreshFailed')
-        return
-      }
-      try {
-        const history = await window.zhijiApi.agent.history(request.id)
-        runningAfterFailure = history.running
-        if (submissionWasSaved(request, history)) {
-          applyHistory(request.id, history)
-          error.value = ''
-          void refreshList().catch((refreshError) => {
-            error.value = getErrorMessage(refreshError, t)
-          })
-        } else if (history.running) {
-          unverifiedSubmission.value = request
-          error.value = t('agent.sendUnverified')
-        } else {
-          restoreSubmission(request)
-        }
-      } catch (historyError) {
-        unverifiedSubmission.value = request
-        error.value = t('agent.sendUnverified')
-        console.error('检查已发送消息失败', historyError)
-      }
-    }
   } finally {
-    compacting.value = false
-    busy.value = runningAfterFailure
+    submitting.value = false
   }
 }
+
 async function respond(value: string[] | boolean): Promise<void> {
   if (!currentId.value || !pending.value || busy.value) return
   if (pending.value.kind === 'question' && !canReply.value) return
-  const id = currentId.value
-  const request = pending.value
-  busy.value = true
-  pending.value = null
-  error.value = ''
-  const waiting = lastTool((message) => message.status === 'waiting')
-  if (waiting) waiting.status = 'running'
-  try {
-    await window.zhijiApi.agent.resume(id, value)
-    await selectConversation(id)
-  } catch (cause) {
-    if (currentId.value === id && !pending.value) pending.value = request
-    if (waiting?.status === 'running') waiting.status = 'waiting'
-    error.value = getErrorMessage(cause, t)
-  } finally {
-    busy.value = false
-  }
-}
-async function cancel(): Promise<void> {
-  if (currentId.value) await window.zhijiApi.agent.cancel(currentId.value)
+  await agentStore.resume(currentId.value, value)
 }
 
-let unsubscribe: (() => void) | undefined
+async function cancel(): Promise<void> {
+  if (currentId.value) await agentStore.cancel(currentId.value)
+}
+
+watch(
+  () => activeState.value.draftVersion,
+  async () => {
+    await nextTick()
+    composer.value?.restoreParts(activeState.value.draftParts)
+  },
+)
+watch(
+  () => [currentId.value, messages.value.length, uploads.value.length],
+  () => {
+    const id = currentId.value
+    if (!id) return
+    for (const attachment of [
+      ...uploads.value,
+      ...messages.value.flatMap((message) => message.attachments),
+    ])
+      if (!previews.value[attachment.id]) void loadPreview(attachment, id)
+  },
+)
+
 onMounted(async () => {
-  unsubscribe = window.zhijiApi.agent.onEvent((event) => {
-    if (event.conversationId !== currentId.value) return
-    if (event.kind === 'title') {
-      const current = conversations.value.find((item) => item.id === event.conversationId)
-      if (current && event.text) current.title = event.text
-    } else if (event.kind === 'token' && event.text) {
-      const last = messages.value.at(-1)
-      if (last?.role === 'assistant' && last.id.startsWith('live:')) last.text += event.text
-      else
-        messages.value.push({
-          id: `live:${++optimisticSequence}`,
-          role: 'assistant',
-          text: event.text,
-          attachments: [],
-        })
-    } else if (event.kind === 'tool-start' && event.toolCallId) {
-      messages.value.push({
-        id: `tool:${event.toolCallId}`,
-        role: 'tool',
-        toolCallId: event.toolCallId,
-        name: event.toolName ?? '',
-        args: event.toolArgs ?? '{}',
-        result: null,
-        status: 'running',
-        attachments: [],
-      })
-    } else if (event.kind === 'tool-end' && event.toolCallId) {
-      const call = lastTool((item) => item.toolCallId === event.toolCallId)
-      if (call) {
-        call.status = event.toolStatus ?? 'completed'
-        call.result = event.toolResult ?? ''
-      }
-    } else if (event.kind === 'pending') {
-      showPending(event.pending ?? null)
-      const waiting = messages.value.find(
-        (message) => message.role === 'tool' && message.status === 'running',
-      )
-      if (waiting?.role === 'tool') waiting.status = 'waiting'
-    } else if (event.kind === 'compact' && event.compact) {
-      compacting.value = false
-      messages.value.push(event.compact)
-    } else if (event.kind === 'usage' && event.usage) {
-      usage.value = event.usage
-    } else if (event.kind === 'done') {
-      busy.value = false
-      compacting.value = false
-    } else if (event.kind === 'error') {
-      busy.value = false
-      compacting.value = false
-      error.value = event.text ?? ''
-    }
-  })
   try {
-    await refreshList()
-    if (conversations.value[0]) await selectConversation(conversations.value[0].id)
+    await agentStore.start()
+    if (currentId.value) await selectConversation(currentId.value)
+    else if (conversations.value[0]) await selectConversation(conversations.value[0].id)
   } catch (cause) {
     error.value = getErrorMessage(cause, t)
   }
 })
 onBeforeUnmount(() => {
-  unsubscribe?.()
-  if (currentId.value && uploads.value.length) void discardUploads(currentId.value, uploads.value)
+  saveDraft(currentId.value)
 })
 </script>
 
@@ -881,13 +765,9 @@ onBeforeUnmount(() => {
     <aside class="agent-history">
       <div class="agent-history-header">
         <strong>{{ t('agent.history') }}</strong
-        ><n-button
-          size="small"
-          type="primary"
-          :disabled="busy || uploading || !!unverifiedSubmission || verifyingSubmission"
-          @click="createConversation"
-          >{{ t('agent.newChat') }}</n-button
-        >
+        ><n-button size="small" type="primary" :disabled="uploading" @click="createConversation">{{
+          t('agent.newChat')
+        }}</n-button>
       </div>
       <div v-if="!conversations.length" class="agent-empty">{{ t('agent.noChats') }}</div>
       <div
@@ -897,17 +777,18 @@ onBeforeUnmount(() => {
         :class="{ active: currentId === conversation.id }"
         @contextmenu.prevent="showHistoryMenu($event, conversation.id)"
       >
-        <button
-          type="button"
-          :disabled="
-            busy ||
-            uploading ||
-            verifyingSubmission ||
-            (!!unverifiedSubmission && conversation.id !== unverifiedSubmission.id)
-          "
-          @click="selectConversation(conversation.id)"
-        >
-          {{ conversation.title }}
+        <button type="button" @click="selectConversation(conversation.id)">
+          <span
+            v-if="conversation.activity === 'running'"
+            class="agent-history-spinner"
+            :title="t('agent.thinking')"
+            :aria-label="t('agent.thinking')"
+            role="img"
+          ></span>
+          <span class="agent-history-title">{{ conversation.title }}</span>
+          <span v-if="conversation.activity === 'queued'" class="agent-queue-label">{{
+            t('agent.queued')
+          }}</span>
         </button>
       </div>
       <n-dropdown
@@ -1320,6 +1201,9 @@ onBeforeUnmount(() => {
   background: #7865d622;
 }
 .agent-history-row button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1331,6 +1215,38 @@ onBeforeUnmount(() => {
   text-align: left;
   cursor: pointer;
   padding: 8px;
+}
+.agent-history-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-queue-label {
+  flex: none;
+  margin-left: auto;
+  padding-left: 5px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+.agent-history-spinner {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #8067e766;
+  border-top-color: #8067e7;
+  animation: agent-history-spin 0.8s linear infinite;
+}
+@keyframes agent-history-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-history-spinner {
+    animation: none;
+  }
 }
 .agent-history-menu-anchor {
   position: absolute;

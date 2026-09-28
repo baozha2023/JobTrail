@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { app } from 'electron'
 import { ChatOpenAI } from '@langchain/openai'
 import {
   AIMessage,
@@ -34,6 +33,7 @@ import { AgentFileStore, ATTACHMENT_MARKER } from './files'
 import { AgentMcpClient } from './mcp-client'
 import { AgentArchive } from './archive'
 import { buildAgentSystemPrompt } from './prompt'
+import type { AgentRuntimeInfo } from './runtime'
 
 const CompactResult = z.object({
   id: z.string(),
@@ -88,10 +88,10 @@ function imageTokenEstimate(messages: BaseMessage[]): number {
   )
 }
 
-function skillInstructions(): string {
-  const file = app.isPackaged
-    ? path.join(process.resourcesPath, 'skills', 'resume-match', 'SKILL.md')
-    : path.join(app.getAppPath(), 'src', 'main', 'agent', 'skills', 'resume-match', 'SKILL.md')
+function skillInstructions(runtime: AgentRuntimeInfo): string {
+  const file = runtime.packaged
+    ? path.join(runtime.resourcesPath, 'skills', 'resume-match', 'SKILL.md')
+    : path.join(runtime.appPath, 'src', 'main', 'agent', 'skills', 'resume-match', 'SKILL.md')
   return fs.readFileSync(file, 'utf8').replace(/^---[\s\S]*?---\s*/, '')
 }
 
@@ -102,8 +102,9 @@ export function createAgentGraph(
   mcp: AgentMcpClient,
   saver: SqliteSaver,
   archive: AgentArchive,
+  runtime: AgentRuntimeInfo,
 ) {
-  return new AgentGraphFactory(config, services, files, mcp, saver, archive).makeGraph()
+  return new AgentGraphFactory(config, services, files, mcp, saver, archive, runtime).makeGraph()
 }
 
 class AgentGraphFactory {
@@ -114,6 +115,7 @@ class AgentGraphFactory {
     private readonly mcp: AgentMcpClient,
     private readonly saver: SqliteSaver,
     private readonly archive: AgentArchive,
+    private readonly runtime: AgentRuntimeInfo,
   ) {}
 
   makeGraph() {
@@ -172,7 +174,7 @@ class AgentGraphFactory {
         const description = storedDescription?.trim() ? storedDescription : jd
         if (!description?.trim()) return ['请先提供岗位 JD 或选择有岗位说明的求职记录。', null]
         return resumeDocumentResult(resumeId, 'resumeText', {
-          skill: skillInstructions(),
+          skill: skillInstructions(this.runtime),
           resumeName: resume.name,
           jd: description,
         })

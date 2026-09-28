@@ -21,6 +21,7 @@ data/
 config.json
 private-build.config.json
 .runtime/
+.gank-electronics/
 # Local catalog research notes, not product documentation.
 /docs/company-catalog-gank-unresolved-*.md
 *.jobtrail-backup

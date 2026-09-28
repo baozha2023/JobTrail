@@ -76,6 +76,7 @@ describe('内置公司更新弹窗', () => {
           added: 2,
           updated: 3,
           adopted: 4,
+          convertedToCustom: 5,
           unchanged: 492,
         },
         closeCatalogModal: close,
@@ -86,6 +87,7 @@ describe('内置公司更新弹窗', () => {
     expect(modal.text()).toContain('更新完成')
     expect(modal.text()).toContain('新增：2')
     expect(modal.text()).toContain('转为内置：4')
+    expect(modal.text()).toContain('转为自定义：5')
     const closeButton = modal.findAll('button').find((button) => button.text() === '关闭')
     expect(closeButton).toBeDefined()
     closeButton!.trigger('click')
@@ -116,7 +118,9 @@ describe('设置页', () => {
     const saveSettings = vi
       .fn()
       .mockResolvedValueOnce(config)
-      .mockRejectedValueOnce(new Error('模型配置无效'))
+      .mockRejectedValueOnce(
+        Object.assign(new Error('raw diagnostics'), { code: 'VALIDATION_ERROR' }),
+      )
     Object.defineProperty(window, 'zhijiApi', {
       value: { agent: { saveSettings } },
       configurable: true,
@@ -137,7 +141,8 @@ describe('设置页', () => {
     expect(wrapper.emitted('aiSaved')?.[0]).toEqual([config])
     await saveButton!.trigger('click')
     await flushPromises()
-    expect(wrapper.find('[role="alert"]').text()).toContain('模型配置无效')
+    expect(wrapper.find('[role="alert"]').text()).toContain('输入内容无效')
+    expect(wrapper.find('[role="alert"]').text()).not.toContain('raw diagnostics')
     wrapper.unmount()
   })
 

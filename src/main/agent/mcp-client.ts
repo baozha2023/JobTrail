@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import { app } from 'electron'
 import { Client, isInputRequiredResult, type CallToolResult } from '@modelcontextprotocol/client'
 import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotocol/client/stdio'
 import { interrupt } from '@langchain/langgraph'
@@ -16,6 +15,7 @@ export class AgentMcpClient {
   constructor(
     private readonly config: ConfigService,
     private readonly connection: () => McpConnectionInfo,
+    private readonly appVersion: string,
   ) {}
 
   private async ready(): Promise<Client> {
@@ -33,7 +33,7 @@ export class AgentMcpClient {
     const info = this.connection()
     const env = { ...getDefaultEnvironment(), ...info.env }
     const client = new Client(
-      { name: 'jobtrail-built-in-agent', version: app.getVersion() },
+      { name: 'jobtrail-built-in-agent', version: this.appVersion },
       {
         capabilities: { elicitation: {} },
         versionNegotiation: { mode: { pin: '2026-07-28' } },

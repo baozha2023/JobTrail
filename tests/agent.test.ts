@@ -207,7 +207,9 @@ describe('built-in LangGraph agent', () => {
     const closing = agent.close()
     await cancelled
     await closing
-    expect(events.some((event) => event.kind === 'error' && event.text === '已停止回复')).toBe(true)
+    expect(
+      events.some((event) => event.kind === 'error' && event.errorCode === 'AGENT_CANCELLED'),
+    ).toBe(true)
     container.database.close()
     container = createServiceContainer(paths, false)
     agent = new AgentService(

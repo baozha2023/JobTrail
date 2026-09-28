@@ -15,6 +15,7 @@ import { registerVelopackIpc } from './velopack'
 import { resolveDesktopAssets } from './runtime-assets'
 import { ExternalDataMonitor } from './external-data-monitor'
 import { AgentService } from './agent/service'
+import { AgentCoordinator } from './agent/coordinator'
 import { getMcpConnectionInfo } from './ipc/mcp'
 import { registerBackupIpc } from './ipc/backup'
 import { recoverRestore, recoverBackupWork } from './backup-restore'
@@ -33,7 +34,7 @@ const APP_ICON_PATH = app.isPackaged
 const DEVELOPMENT_SHORTCUT_NAME = `${path.parse(process.execPath).name}.lnk`
 
 let database: DatabaseManager | undefined
-let agent: AgentService | undefined
+let agent: AgentCoordinator | undefined
 let mainWindow: BrowserWindow | undefined
 let tray: Tray | undefined
 let isQuitting = false
@@ -220,15 +221,18 @@ async function initializeApplication(): Promise<void> {
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
-  agent = new AgentService(
+  const agentCore = new AgentService(
     paths,
     container.database.db,
     config,
     container.services,
     getMcpConnectionInfo,
-    (event) => sendToTrustedWindow('agent:event', event),
+    () => undefined,
   )
-  await agent.recoverPendingDeletions()
+  await agentCore.recoverPendingDeletions()
+  agent = new AgentCoordinator(agentCore, paths, getMcpConnectionInfo, (event) =>
+    sendToTrustedWindow('agent:event', event),
+  )
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
   registerVelopackIpc(container.database, agent)
   registerBackupIpc(paths, container.database, config, agent, () => {

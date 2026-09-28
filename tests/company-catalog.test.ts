@@ -18,6 +18,7 @@ import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
+import { CompanyCatalogRepository } from '../src/main/repositories/company-catalog-repository'
 
 function response(bytes: Uint8Array) {
   return new Response(new Uint8Array(bytes).buffer)
@@ -81,6 +82,7 @@ describe('内置公司目录更新', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     database.close()
     fs.rmSync(root, { recursive: true, force: true })
   })
@@ -204,7 +206,7 @@ describe('内置公司目录更新', () => {
     expect(services.companies.get(custom.id).isBuiltin).toBe(true)
   })
 
-  it('updates, adopts, and retains omitted built-ins without changing local identity or preferences', () => {
+  it('updates, adopts, and converts omitted built-ins without changing local identity or preferences', () => {
     const source = nextCatalog()
     const original = services.companies.get(1)
     services.companies.update(original.id, { isFavorite: true })
@@ -247,6 +249,7 @@ describe('内置公司目录更新', () => {
       added: 0,
       updated: 1,
       adopted: 1,
+      convertedToCustom: 1,
       unchanged: BUNDLED_COMPANY_CATALOG.companies.length - 2,
     })
     const updated = services.companies.get(original.id)
@@ -264,7 +267,7 @@ describe('内置公司目录更新', () => {
     expect(services.companies.get(omitted.id)).toMatchObject({
       id: omitted.id,
       name: omitted.name,
-      isBuiltin: true,
+      isBuiltin: false,
     })
     expect(services.companies.get(custom.id)).toMatchObject({
       id: custom.id,
@@ -276,6 +279,74 @@ describe('内置公司目录更新', () => {
     })
     expect(services.opportunities.get(opportunity.id).companyId).toBe(custom.id)
     expect(services.companyCatalog.status().catalogVersion).toBe(source.catalogVersion)
+  })
+
+  it('preserves omitted company data and references, grants custom editing, and can readopt it', () => {
+    const source = nextCatalog()
+    const omittedEntry = source.companies.shift()!
+    const company = database.db
+      .prepare('SELECT id FROM companies WHERE builtin_key = ?')
+      .get(omittedEntry.builtinKey) as { id: number }
+    services.companies.update(company.id, { isFavorite: true })
+    services.companies.markRead(company.id)
+    const before = database.db
+      .prepare('SELECT * FROM companies WHERE id = ?')
+      .get(company.id) as Record<string, unknown>
+    const relations = relationRows(company.id)
+    const opportunity = services.opportunities.create({
+      companyId: company.id,
+      title: '退出目录后保留岗位',
+      statusId: 1,
+    })
+    const custom = services.companies.create({ name: '不受目录移除影响的自定义公司' })
+
+    expect(
+      services.companyCatalog.synchronize(source, companyCatalogHash(source)).convertedToCustom,
+    ).toBe(1)
+    const after = database.db
+      .prepare('SELECT * FROM companies WHERE id = ?')
+      .get(company.id) as Record<string, unknown>
+    expect(after).toEqual({ ...before, builtin_key: null, updated_at: expect.any(Number) })
+    expect(relationRows(company.id)).toEqual(relations)
+    expect(services.opportunities.get(opportunity.id)).toEqual(opportunity)
+    expect(services.companies.get(custom.id)).toEqual(custom)
+    expect(
+      services.companyCatalog.synchronize(source, companyCatalogHash(source)).convertedToCustom,
+    ).toBe(0)
+    expect(database.db.prepare('SELECT * FROM companies WHERE id = ?').get(company.id)).toEqual(
+      after,
+    )
+    services.companies.update(company.id, { careerUrl: 'https://custom.example.com' })
+    expect(services.companies.get(company.id).careerUrl).toBe('https://custom.example.com')
+
+    const restored = {
+      ...source,
+      catalogVersion: source.catalogVersion + 1,
+      companies: [...source.companies, omittedEntry],
+    }
+    const result = services.companyCatalog.synchronize(restored, companyCatalogHash(restored))
+    expect(result).toMatchObject({ added: 0, adopted: 1, convertedToCustom: 0 })
+    expect(services.companies.get(company.id)).toMatchObject({ isBuiltin: true, isFavorite: true })
+    expect(services.opportunities.get(opportunity.id)).toEqual(opportunity)
+  })
+
+  it('rolls back conversions and other changes when committing catalog state fails', () => {
+    const source = nextCatalog()
+    source.companies.splice(1, 2)
+    source.companies[0]!.careerUrl = 'https://rollback.example.com'
+    const before = database.db.prepare('SELECT * FROM companies ORDER BY id').all()
+    const state = services.companyCatalog.status()
+    vi.spyOn(CompanyCatalogRepository.prototype, 'updateState').mockImplementationOnce(() => {
+      throw new Error('simulated state write failure')
+    })
+    expect(() => services.companyCatalog.synchronize(source, companyCatalogHash(source))).toThrow(
+      'simulated state write failure',
+    )
+    expect(database.db.prepare('SELECT * FROM companies ORDER BY id').all()).toEqual(before)
+    expect(services.companyCatalog.status()).toEqual(state)
+    expect(
+      services.companyCatalog.synchronize(source, companyCatalogHash(source)).convertedToCustom,
+    ).toBe(2)
   })
 
   it('rolls back every catalog change when a name conflicts', () => {
@@ -311,6 +382,7 @@ describe('内置公司目录更新', () => {
       added: 0,
       updated: 0,
       adopted: 0,
+      convertedToCustom: 0,
       unchanged: BUNDLED_COMPANY_CATALOG.companies.length,
     })
   })

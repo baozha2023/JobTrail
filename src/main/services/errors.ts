@@ -49,7 +49,7 @@ export function toAppError(error: unknown): AppServiceError {
       return new AppServiceError('DATABASE_ERROR', '数据库操作失败')
     if (/ENOENT|EACCES|EPERM|EISDIR/i.test(error.message))
       return new AppServiceError('FILE_IMPORT_FAILED', '文件操作失败')
-    return new AppServiceError('INTERNAL_ERROR', error.message)
+    return new AppServiceError('INTERNAL_ERROR', '内部操作失败')
   }
   return new AppServiceError('INTERNAL_ERROR', '发生未知错误')
 }

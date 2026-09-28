@@ -1,9 +1,9 @@
 import { dialog, shell } from 'electron'
-import type { AgentService } from '../agent/service'
+import type { AgentCoordinator } from '../agent/coordinator'
 import { AppServiceError } from '../services/errors'
 import { registerChannel } from './register-channel'
 
-export function registerAgentIpc(agent: AgentService): void {
+export function registerAgentIpc(agent: AgentCoordinator): void {
   registerChannel('agent:list', () => agent.list())
   registerChannel('agent:create', () => agent.create())
   registerChannel('agent:history', (id) => agent.history(id))
@@ -32,9 +32,11 @@ export function registerAgentIpc(agent: AgentService): void {
     if (result) throw new AppServiceError('FILE_OPEN_FAILED', '聊天附件打开失败')
   })
   registerChannel('agent:remove-upload', (id, attachmentId) => agent.removeUpload(id, attachmentId))
-  registerChannel('agent:send', (id, parts, attachmentIds) => agent.send(id, parts, attachmentIds))
-  registerChannel('agent:compact', (id) => agent.compact(id))
-  registerChannel('agent:resume', (id, answer) => agent.resume(id, answer))
+  registerChannel('agent:send', (id, parts, attachmentIds, jobId) =>
+    agent.send(id, parts, attachmentIds, jobId),
+  )
+  registerChannel('agent:compact', (id, jobId) => agent.compact(id, jobId))
+  registerChannel('agent:resume', (id, answer, jobId) => agent.resume(id, answer, jobId))
   registerChannel('agent:cancel', (id) => agent.cancel(id))
   registerChannel('agent:save-settings', (ai) => agent.saveSettings(ai))
 }

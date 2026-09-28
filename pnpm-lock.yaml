@@ -23,6 +23,9 @@ importers:
       '@modelcontextprotocol/server':
         specifier: 2.0.0
         version: 2.0.0
+      '@napi-rs/canvas':
+        specifier: 0.1.80
+        version: 0.1.80
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.11.1

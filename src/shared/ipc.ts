@@ -35,6 +35,7 @@ import type {
   AgentAttachment,
   AgentEvent,
   AgentDraftPart,
+  AgentJobReceipt,
 } from './types'
 
 export interface IpcChannelMap {
@@ -54,11 +55,14 @@ export interface IpcChannelMap {
   'agent:open-attachment': { args: [id: string, attachmentId: string]; result: void }
   'agent:remove-upload': { args: [id: string, attachmentId: string]; result: void }
   'agent:send': {
-    args: [id: string, parts: AgentDraftPart[], attachmentIds: string[]]
-    result: void
+    args: [id: string, parts: AgentDraftPart[], attachmentIds: string[], jobId: string]
+    result: AgentJobReceipt
   }
-  'agent:compact': { args: [id: string]; result: void }
-  'agent:resume': { args: [id: string, answer: string[] | boolean]; result: void }
+  'agent:compact': { args: [id: string, jobId: string]; result: AgentJobReceipt }
+  'agent:resume': {
+    args: [id: string, answer: string[] | boolean, jobId: string]
+    result: AgentJobReceipt
+  }
   'agent:cancel': { args: [id: string]; result: void }
   'agent:save-settings': {
     args: [ai: AppConfig['ai']]

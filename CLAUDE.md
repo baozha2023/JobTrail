@@ -552,7 +552,7 @@ sandbox: true
 2. 校验历史包大小和 SHA-256。
 3. 使用 `vpk pack` 生成更新资产。
 4. 计算解压目录、Full 包和根程序所需空间，并构建内嵌 Rust 启动器、卸载器和程序载荷。
-5. 校验最终 Feed 中的每个资产。
+5. 校验 Velopack 生成的全部包，并确认输出目录没有未列入 Feed 的 nupkg；历史 Full 包只作为本地 Delta 构建输入，随后从本次 Feed 和输出目录中移除。有历史基线时，最终 Feed 必须恰好列出当前版本的一个 Full 和一个 Delta 包；没有基线时只列出当前 Full 包。
 6. 逐字节发布全量公司目录，并生成、复验文件名、大小和 SHA-256 manifest。
 
 只有 Feed 为 404、为空或没有合适历史版本时允许 Full-only。网络错误、无效 Feed、歧义基线或校验失败必须终止构建。
@@ -561,7 +561,7 @@ sandbox: true
 
 - `JobTrail-Setup-<version>.exe`
 - `releases.win.json`
-- nupkg
+- 当前版本的 Full/Delta nupkg
 - `jobtrail-company-catalog.json`
 - `jobtrail-company-catalog.manifest.json`
 - `SHA256SUMS.txt`（人工发布前生成的资产校验清单）

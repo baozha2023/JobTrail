@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
 import { buildCompanyCatalogAssets } from './company-catalog-assets.mjs'
+import { finalizeVelopackAssets } from './finalize-velopack-assets.mjs'
 import { smokeLauncherUpdate } from './test-launcher-update.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -43,7 +44,7 @@ if (fs.existsSync(output) && fs.lstatSync(output).isSymbolicLink())
   throw new Error('Output must not be a link')
 fs.rmSync(output, { recursive: true, force: true })
 fs.mkdirSync(output, { recursive: true })
-await downloadPreviousVelopackFull({
+const baseline = await downloadPreviousVelopackFull({
   feedUrl: 'https://github.com/baozha2023/JobTrail/releases/latest/download',
   targetVersion: pkg.version,
   outputDir: output,
@@ -117,15 +118,8 @@ fs.copyFileSync(
   path.join(binaries, 'installer.exe'),
   path.join(output, `JobTrail-Setup-${pkg.version}.exe`),
 )
-for (const asset of feed.Assets) {
-  if (path.basename(asset.FileName) !== asset.FileName) throw new Error('Invalid asset filename')
-  const data = fs.readFileSync(path.join(output, asset.FileName))
-  if (
-    data.length !== asset.Size ||
-    createHash('sha256').update(data).digest('hex') !== asset.SHA256.toLowerCase()
-  )
-    throw new Error(`Invalid release asset: ${asset.FileName}`)
-}
+// The previous Full package is only a local input for Delta generation.
+await finalizeVelopackAssets(output, pkg.version, baseline)
 // Only publish the custom offline setup and the update feed/packages.
 for (const name of ['zhiji-win-Setup.exe', 'RELEASES', 'assets.win.json'])
   fs.rmSync(path.join(output, name), { force: true })

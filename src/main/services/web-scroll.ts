@@ -139,7 +139,10 @@ async function captureFrame(frame: Frame): Promise<FrameCapture> {
     }
     for (const element of all) {
       if (contained(element) || captured.has(element)) continue
-      if (!element.matches('h1,h2,h3,p,a[href]')) continue
+      const textContainer =
+        element.matches('main,section,div') &&
+        [...element.children].every((child) => child.matches('span,small,strong,em,b,i'))
+      if (!element.matches('h1,h2,h3,p,a[href]') && !textContainer) continue
       const value = text(element)
       if (!value) continue
       if (captureUnits + value.length > maxCaptureUnits) {
@@ -147,6 +150,7 @@ async function captureFrame(frame: Frame): Promise<FrameCapture> {
         break
       }
       captureUnits += value.length
+      if (textContainer) captured.add(element)
       const anchor = element.closest('a[href]') as HTMLAnchorElement | null
       const links: Array<{ text: string; url: string }> = []
       if (anchor && !appendLink(links, value.slice(0, 120), anchor.href)) break

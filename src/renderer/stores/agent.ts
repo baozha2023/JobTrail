@@ -12,6 +12,7 @@ import type {
 } from '../../shared/types'
 import { getErrorMessage } from '../utils/errors'
 import { i18n } from '../i18n'
+import { reportRendererFault } from '../diagnostics'
 
 type AgentActivity = NonNullable<AgentConversation['activity']>
 interface SubmittedMessage {
@@ -237,7 +238,7 @@ export const useAgentStore = defineStore('agent', () => {
       if (state.sequence === 0) state.activity = 'idle'
       state.unverified = true
       state.error = i18n.global.t('agent.sendUnverified')
-      console.error('核对已发送消息失败', cause)
+      reportRendererFault('agent.verify-submission', cause)
     } finally {
       state.verifying = false
     }
@@ -285,7 +286,7 @@ export const useAgentStore = defineStore('agent', () => {
     }
     if (state.jobId === jobId && state.sequence === 0)
       state.activity = receipt.status === 'running' ? 'running' : 'queued'
-    void refreshList().catch((cause) => console.error('刷新聊天列表失败', cause))
+    void refreshList().catch((cause) => reportRendererFault('agent.refresh-list', cause))
   }
 
   async function compact(id: string, parts: AgentDraftPart[]): Promise<void> {
@@ -349,7 +350,9 @@ export const useAgentStore = defineStore('agent', () => {
       if (event.sequence !== undefined) {
         if (event.sequence <= state.sequence) return
         if (state.sequence && event.sequence !== state.sequence + 1)
-          void loadHistory(event.conversationId).catch(console.error)
+          void loadHistory(event.conversationId).catch((cause) =>
+            reportRendererFault('agent.load-history', cause),
+          )
         state.sequence = event.sequence
       }
     }

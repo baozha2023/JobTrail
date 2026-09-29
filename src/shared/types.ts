@@ -556,9 +556,17 @@ export interface VelopackApi {
   getVersion(): Promise<string>
   rendererHealthy(): Promise<boolean>
   checkForUpdates(): Promise<import('velopack').UpdateInfo | null>
-  downloadUpdates(): Promise<boolean>
-  applyUpdates(): Promise<boolean>
+  downloadUpdates(attemptId: number): Promise<boolean>
+  applyUpdates(attemptId: number): Promise<boolean>
+  onProgress(listener: (progress: AppUpdateProgress) => void): () => void
   uninstall(): Promise<'started' | 'development' | 'unavailable'>
+}
+
+export interface AppUpdateProgress {
+  attemptId: number
+  stage: 'preserve' | 'transfer' | 'verify' | 'backup' | 'handoff'
+  mode?: 'delta' | 'full'
+  percentage?: number
 }
 
 export interface WindowControlsApi {

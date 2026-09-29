@@ -1,6 +1,7 @@
 import { ConfigService } from '../config'
 import { createServiceContainer } from '../service-container'
 import { errorShape } from '../services/errors'
+import { logFault } from '../diagnostics'
 import { AgentService } from './service'
 import type { AgentWorkerRequest, AgentWorkerResponse } from './worker-protocol'
 
@@ -34,6 +35,7 @@ async function run(request: Extract<AgentWorkerRequest, { kind: 'run' }>): Promi
     else await agent.resume(request.conversationId, request.answer ?? [])
     post({ kind: 'finished', jobId: request.jobId })
   } catch (cause) {
+    logFault('agent.run', cause)
     post({
       kind: 'finished',
       jobId: request.jobId,
@@ -65,9 +67,10 @@ parentPort.on('message', (message) => {
       )
       post({ kind: 'ready' })
     } catch (cause) {
+      logFault('agent.initialize', cause)
       post({
         kind: 'init-error',
-        error: cause instanceof Error ? cause.message : String(cause),
+        errorCode: errorShape(cause).code,
       })
     }
   } else if (request.kind === 'run') void run(request)

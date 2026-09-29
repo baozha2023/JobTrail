@@ -6,6 +6,7 @@ import { AgentService } from '../src/main/agent/service'
 import { ConfigService, type AppPaths } from '../src/main/config'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServiceContainer } from '../src/main/service-container'
+import { initializeFaultLogger } from '../src/main/diagnostics'
 import { updateFreezePath } from '../src/main/update-freeze'
 
 const roots: string[] = []
@@ -138,6 +139,7 @@ describe('crash recovery for managed files and agent cleanup', () => {
 
   it('retries a conversation deletion after an interrupted attachment cleanup', async () => {
     const { paths, config } = fixture()
+    initializeFaultLogger('main', '1.1.0', true, paths.root)
     const first = createAgent(paths, config)
     const conversation = first.agent.create()
     const attachment = first.agent.uploadBytes(
@@ -147,7 +149,6 @@ describe('crash recovery for managed files and agent cleanup', () => {
       new TextEncoder().encode('synthetic data'),
     )
     const attachmentPath = first.agent.getAttachmentPath(conversation.id, attachment.id)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(first.agent.files, 'deleteConversation').mockImplementationOnce(() => {
       throw new Error('simulated interruption')
     })
@@ -159,7 +160,12 @@ describe('crash recovery for managed files and agent cleanup', () => {
         .prepare('SELECT deleting FROM agent_conversations WHERE id = ?')
         .get(conversation.id),
     ).toEqual({ deleting: 1 })
-    expect(log).toHaveBeenCalledOnce()
+    expect(
+      JSON.parse(fs.readFileSync(path.join(paths.root, 'logs', 'app.jsonl'), 'utf8')),
+    ).toMatchObject({
+      operation: 'agent.conversation-cleanup',
+      code: 'INTERNAL_ERROR',
+    })
     await first.agent.close()
     first.container.database.close()
     vi.restoreAllMocks()

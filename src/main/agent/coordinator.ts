@@ -17,6 +17,7 @@ import { AppServiceError } from '../services/errors'
 import { AgentService } from './service'
 import type { AgentRuntimeInfo } from './runtime'
 import type { AgentWorkerRequest, AgentWorkerResponse } from './worker-protocol'
+import { forwardDiagnosticStderr, logFault, reportFault } from '../diagnostics'
 
 type JobOperation = 'send' | 'compact' | 'resume'
 interface Job {
@@ -43,6 +44,7 @@ interface WorkerSlot {
   ready: boolean
   job?: Job
   closed: boolean
+  reportedFailure?: boolean
 }
 
 const MAX_ACTIVE_JOBS = 3
@@ -303,7 +305,8 @@ export class AgentCoordinator {
         try {
           idle.process.postMessage(this.runRequest(job))
         } catch (cause) {
-          console.error('向智能体执行进程提交任务失败', cause)
+          logFault('agent.submit', cause)
+          idle.reportedFailure = true
           idle.process.kill()
         }
         this.notifyQueue()
@@ -316,7 +319,7 @@ export class AgentCoordinator {
           this.createSlot()
         } catch (cause) {
           this.workerStartFailures = MAX_WORKER_START_FAILURES
-          console.error('无法创建智能体执行进程', cause)
+          logFault('agent.spawn', cause)
           this.pump()
           return
         }
@@ -343,6 +346,12 @@ export class AgentCoordinator {
     const process = utilityProcess.fork(executable, [], {
       serviceName: 'JobTrail Agent',
       stdio: 'pipe',
+      env: {
+        ...globalThis.process.env,
+        JOBTRAIL_LOG_ROOT: this.paths.root,
+        JOBTRAIL_LOG_VERSION: app.getVersion(),
+        JOBTRAIL_LOG_PACKAGED: app.isPackaged ? '1' : '0',
+      },
     })
     const slot: WorkerSlot = { process, ready: false, closed: false }
     this.slots.push(slot)
@@ -361,26 +370,29 @@ export class AgentCoordinator {
           mcpConnection: this.mcpConnection(),
         } satisfies AgentWorkerRequest)
       } catch (cause) {
-        console.error('初始化智能体执行进程失败', cause)
+        logFault('agent.initialize', cause)
+        slot.reportedFailure = true
         process.kill()
       }
     })
     process.on('message', (message: AgentWorkerResponse) => this.onWorkerMessage(slot, message))
-    process.on('exit', (code) => {
+    process.on('exit', () => {
       slot.closed = true
       const job = slot.job
       const slotIndex = this.slots.indexOf(slot)
       if (slotIndex >= 0) this.slots.splice(slotIndex, 1)
       if (!slot.ready && !this.closing && !this.suspended) this.workerStartFailures++
+      if (!this.closing && !this.suspended && !slot.reportedFailure)
+        reportFault({ source: 'main', operation: 'agent.exit', code: 'PROCESS_EXITED' })
       if (job) {
-        console.error('智能体执行进程意外退出', code)
         void this.finishJob(job, 'AGENT_WORKER_EXITED', true)
       } else this.pump()
     })
-    process.on('error', (type, location, report) => {
-      console.error('智能体执行进程错误', type, location, report)
+    process.on('error', () => {
+      slot.reportedFailure = true
+      reportFault({ source: 'main', operation: 'agent.process-error', code: 'PROCESS_ERROR' })
     })
-    process.stderr?.on('data', (chunk: Buffer) => console.error(String(chunk)))
+    forwardDiagnosticStderr(process.stderr)
   }
 
   private onWorkerMessage(slot: WorkerSlot, message: AgentWorkerResponse): void {
@@ -389,7 +401,8 @@ export class AgentCoordinator {
       this.workerStartFailures = 0
       this.pump()
     } else if (message.kind === 'init-error') {
-      console.error('智能体执行进程启动失败', message.error)
+      slot.reportedFailure = true
+      reportFault({ source: 'main', operation: 'agent.startup', code: message.errorCode })
       slot.process.kill()
     } else if (message.kind === 'event') {
       if (slot.job?.jobId === message.jobId) this.receiveWorkerEvent(slot.job, message.event)
@@ -443,7 +456,7 @@ export class AgentCoordinator {
       try {
         await this.agent.recoverInterruptedRun(job.conversationId, job.liveText)
       } catch (cause) {
-        console.error('恢复中断的智能体运行失败', cause)
+        logFault('agent.recover', cause)
       }
     }
     let submissionState: AgentEvent['submissionState']
@@ -454,7 +467,8 @@ export class AgentCoordinator {
           submissionState = (await this.agent.hasUserMessage(job.conversationId, job.jobId))
             ? 'saved'
             : 'not-saved'
-        } catch {
+        } catch (error) {
+          logFault('agent.submission-state', error)
           submissionState = 'unknown'
         }
       }
@@ -505,7 +519,7 @@ export class AgentCoordinator {
         jobId: job.jobId,
       } satisfies AgentWorkerRequest)
     } catch (cause) {
-      console.error('取消智能体任务失败', cause)
+      logFault('agent.cancel', cause)
       job.slot?.process.kill()
     }
     if (!job.cancelTimer)
@@ -529,7 +543,8 @@ export class AgentCoordinator {
       if (!slot.closed)
         try {
           slot.process.postMessage({ kind: 'close' } satisfies AgentWorkerRequest)
-        } catch {
+        } catch (error) {
+          logFault('agent.worker-close', error)
           slot.process.kill()
         }
     }

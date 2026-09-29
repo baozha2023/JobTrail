@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { logFault } from './diagnostics'
 import fs from 'node:fs'
 import path from 'node:path'
 import type Database from 'better-sqlite3'
@@ -157,7 +158,7 @@ export class FileStorageService {
       fs.unlinkSync(staged.temporaryPath)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-        console.error('简历回收文件清理失败', error)
+        logFault('file.recycle-cleanup', error)
     }
   }
 

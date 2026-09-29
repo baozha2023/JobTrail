@@ -4,6 +4,7 @@ import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotoc
 import { interrupt } from '@langchain/langgraph'
 import type { McpConnectionInfo } from '../../shared/types'
 import type { ConfigService } from '../config'
+import { forwardDiagnosticStderr, logFault } from '../diagnostics'
 
 function previewFingerprint(message: string): string {
   return crypto.createHash('sha256').update(message).digest('hex')
@@ -47,11 +48,12 @@ export class AgentMcpClient {
         env,
         stderr: 'pipe',
       })
-      transport.stderr?.on('data', () => undefined)
+      forwardDiagnosticStderr(transport.stderr)
       await client.connect(transport)
       await client.listTools()
     } catch (error) {
-      await client.close().catch(() => {})
+      logFault('mcp.connect', error)
+      await client.close().catch((closeError) => logFault('mcp.connect-cleanup', closeError))
       throw error
     }
     client.onclose = () => {

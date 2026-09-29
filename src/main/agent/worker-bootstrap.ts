@@ -1,10 +1,25 @@
-import { DOMMatrix, ImageData, Path2D } from '@napi-rs/canvas'
+import { initializeFaultLogger, logFault } from '../diagnostics'
 
-// pdf-parse evaluates PDF.js during module loading. Utility processes do not
-// inherit the DOM geometry globals available in Electron's main process.
-Object.assign(globalThis, { DOMMatrix, ImageData, Path2D })
-
-void import('./worker').catch((error: unknown) => {
-  console.error('智能体执行进程无法启动', error)
+initializeFaultLogger(
+  'agent',
+  process.env.JOBTRAIL_LOG_VERSION ?? 'unknown',
+  process.env.JOBTRAIL_LOG_PACKAGED === '1',
+  process.env.JOBTRAIL_LOG_ROOT ?? process.cwd(),
+)
+process.on('uncaughtExceptionMonitor', (error) => logFault('process.uncaught', error))
+process.on('unhandledRejection', (error) => {
+  logFault('process.unhandled-rejection', error)
   process.exit(1)
 })
+
+// pdf-parse evaluates PDF.js during module loading. Initialize diagnostics
+// before loading native modules, then provide geometry globals for the worker.
+void import('@napi-rs/canvas')
+  .then(({ DOMMatrix, ImageData, Path2D }) => {
+    Object.assign(globalThis, { DOMMatrix, ImageData, Path2D })
+    return import('./worker')
+  })
+  .catch((error: unknown) => {
+    logFault('agent.bootstrap', error)
+    process.exit(1)
+  })

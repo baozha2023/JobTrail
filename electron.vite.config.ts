@@ -17,7 +17,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           desktop: path.resolve(__dirname, 'src/main/desktop.ts'),
-          'mcp-node': path.resolve(__dirname, 'src/main/mcp-node.ts'),
+          'mcp-node': path.resolve(__dirname, 'src/main/mcp-bootstrap.ts'),
           'agent-worker': path.resolve(__dirname, 'src/main/agent/worker-bootstrap.ts'),
         },
       },

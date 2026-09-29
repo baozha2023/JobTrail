@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { logFault } from '../diagnostics'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -155,7 +156,7 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
       totalPages = result.total
     } catch (error) {
       // A damaged text layer must not prevent visual understanding of readable pages.
-      console.error('PDF 文本提取失败', error)
+      logFault('agent.pdf-text', error)
     }
     if (includeVisuals) {
       try {
@@ -180,7 +181,7 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
         }
       } catch (error) {
         // Preserve extracted text when page rendering is unavailable.
-        console.error('PDF 页面渲染失败', error)
+        logFault('agent.pdf-render', error)
       }
     }
   } finally {
@@ -244,14 +245,16 @@ async function extractDocumentUncached(
     let text = ''
     try {
       text = (await new WordExtractor().extract(filePath)).getBody().trim()
-    } catch {
+    } catch (error) {
+      logFault('agent.doc-text', error)
       // A readable image can still make a DOCX useful when its text layer is damaged.
     }
     if (extension === '.docx' && includeVisuals) {
       try {
         const result = await extractDocxVisuals(filePath)
         return { text, ...result }
-      } catch {
+      } catch (error) {
+        logFault('agent.docx-visuals', error)
         // Preserve extracted text when the Office media package is malformed.
       }
     }

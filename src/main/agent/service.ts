@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { logFault } from '../diagnostics'
 import { app } from 'electron'
 import type Database from 'better-sqlite3'
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
@@ -217,7 +218,7 @@ export class AgentService {
       await this.finishDeletion(id)
     } catch (error) {
       // The durable marker hides the conversation; startup will retry cleanup.
-      console.error('清理智能体会话失败', error)
+      logFault('agent.conversation-cleanup', error)
     }
   }
 
@@ -243,7 +244,7 @@ export class AgentService {
       try {
         await this.finishDeletion(row.id)
       } catch (error) {
-        console.error('恢复智能体会话清理失败', error)
+        logFault('agent.conversation-recover', error)
       }
     }
     this.files.recoverPendingDeletes()
@@ -586,7 +587,7 @@ export class AgentService {
         try {
           await this.recordCancelledTools(id)
         } catch (checkpointError) {
-          console.error('保存已取消的工具调用失败', checkpointError)
+          logFault('agent.cancel-checkpoint', checkpointError)
         }
       }
       this.emit({

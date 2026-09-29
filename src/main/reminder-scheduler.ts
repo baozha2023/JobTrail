@@ -1,4 +1,5 @@
 import { BrowserWindow, Notification } from 'electron'
+import { logFault } from './diagnostics'
 import type { Locale } from '../shared/types'
 import { CalendarReminderService } from './services/calendar-reminder-service'
 
@@ -63,23 +64,23 @@ export class ReminderScheduler {
             try {
               this.reminders.markSent(reminder.eventId, reminder.reminderAt)
             } catch (error) {
-              console.error('Failed to persist calendar reminder delivery', error)
+              logFault('reminder.persist', error)
             }
           })
           notification.once('failed', (_event, error) => {
             this.active.delete(key)
-            console.error('Calendar notification failed', error)
+            logFault('reminder.notification', error)
           })
           notification.once('close', () => this.active.delete(key))
           notification.on('click', () => this.openEvent(reminder.eventId, reminder.startAt))
           notification.show()
         } catch (error) {
           this.active.delete(key)
-          console.error(`Failed to send calendar reminder ${reminder.eventId}`, error)
+          logFault('reminder.send', error)
         }
       }
     } catch (error) {
-      console.error('Failed to check calendar reminders', error)
+      logFault('reminder.check', error)
     } finally {
       this.checking = false
     }

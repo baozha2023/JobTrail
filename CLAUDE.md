@@ -21,7 +21,7 @@
 2. `docs/database.md`：SQLite 完整结构、字段、索引和初始化规则。
 3. `src/shared/types.ts`：跨进程 DTO 和公开类型。
 4. `src/shared/ipc.ts`：Renderer 与 Main 的 IPC 契约。
-5. `package.json`、`native/bootstrap/Cargo.toml`、`scripts/pack-velopack.mjs`、`scripts/resolve-velopack-baseline.mjs`：工具链、版本与发布流程。
+5. `package.json`、`native/bootstrap/Cargo.toml`、`scripts/pack-velopack.mjs`、`scripts/resolve-velopack-baseline.mjs`、`scripts/release-proxy.mjs`：工具链、版本与发布流程。
 6. `README.md`：面向用户和贡献者的公开说明。
 
 实现与权威文档不一致时，必须查明实际需求并统一修正。禁止通过兼容分支长期保留相互冲突的行为。
@@ -69,7 +69,7 @@
 - 支持浅色、深色和跟随系统主题。
 - 固定 UI 文案支持 `zh-CN` 和 `en-US`。
 - 支持系统托盘、关闭行为、当前用户开机启动、单实例、应用内更新和卸载。
-- 软件更新使用随主题与语言切换的应用内确认弹窗，展示当前版本和目标版本；下载、安装期间禁止重复提交或关闭确认弹窗，失败后允许重试，不使用系统原生 `window.confirm`。
+- 软件更新使用随主题与语言切换的应用内确认弹窗，展示当前版本、目标版本和分阶段进度；下载进度来自 Velopack，准备与交接阶段仅显示有上限的估算值，应用退出前不得显示安装已完成或 100%。下载、安装期间禁止重复提交或关闭确认弹窗，失败后允许重试，不使用系统原生 `window.confirm`。
 - 设置页提供完整加密备份导出和导入，包含配置、SQLite 全库、简历及聊天附件；导入经校验与明确替换确认后重启恢复，不做合并。
 - 卸载程序在明确警告并取得用户确认后清空安装根目录中的程序与用户数据，但保留空的安装根目录。
 
@@ -128,6 +128,8 @@ Built-in agent
 ```text
 src/main/
 ├─ desktop.ts                  Electron 生命周期与窗口入口
+├─ diagnostics.ts              进程故障日志、轮转与子进程诊断转发
+├─ mcp-bootstrap.ts            MCP 诊断初始化与进程入口
 ├─ mcp-node.ts                 独立 MCP stdio 进程入口
 ├─ agent/                      执行协调器、utility process、LangGraph、MCP 客户端、归档、附件、文档解析和技能
 ├─ ipc.ts                      IPC 模块注册入口
@@ -157,11 +159,13 @@ src/renderer/
 ├─ stores/                    跨页面共享状态
 ├─ layout/                    窗口与导航布局
 ├─ i18n.ts                    固定 UI 文案
+├─ diagnostics.ts             Renderer 故障上报
 └─ styles.css                 全局样式
 
 src/shared/
 ├─ types.ts                   JSON 可序列化 DTO 与公开接口
 ├─ ipc.ts                     IPC 通道映射
+├─ diagnostics.ts             跨进程故障字段校验与脱敏
 └─ calendar.ts                跨层日历纯函数
 
 native/bootstrap/             Windows 启动器、安装器、卸载器和更新回滚
@@ -481,8 +485,9 @@ sandbox: true
 - 使用本地 stdio；stdout 只输出协议内容，诊断信息写入 stderr。
 - 安装版只允许唯一且精确的 `--mcp` 参数进入 MCP 模式，混入其他参数必须拒绝。
 - Tool 调用现有 Application Service，不访问 Repository，不直接执行 SQL，也不绕过文件服务。
-- `read_web_page` 是唯一的网页 MCP 工具，读取公开页面正文、标题层级和链接，不提取或保存职位；岗位整理由智能体基于已读取内容完成。`scroll: true` 用于自动滚动加载的列表，覆盖页面、嵌套滚动容器、可访问 iframe 和开放 Shadow DOM，不点击按钮。`cursor`/`nextCursor` 是唯一续读协议：同一游标先读取当前批次剩余正文与链接，再推进滚动；续读必须使用相同网址、渲染模式和 `scroll`。正文每次最多 20,000 个 UTF-16 单位、链接最多 50 条，多出的内容不得直接丢弃。快照仅在 MCP 进程内缓存，不落盘；普通快照空闲 10 分钟过期，滚动会话空闲 5 分钟或最长存活 15 分钟后关闭，最多 8 个会话、合计 32 MiB，游标失效从 0 重新读取。最多 2 个活动浏览器滚动会话，单次最多 45 秒及 12 次滚动、单会话最多 200 次滚动。到达可观察末尾不能证明网站数据完整，资源限制、阻断和故障须写入 `incompleteReason`。网页工具不检查 robots.txt。一般请求使用 GET/HEAD；另允许严格限定的同站 JSON 查询型 POST 及已核实的北森查询接口，拒绝表单、登录、修改类及其他 POST。通用查询规则无法证明网站端无副作用，须标记 MCP `readOnlyHint: false` 并在结果中提示。POST 请求体须限制大小、层级和字段，拒绝重定向及认证信息传递。所有目标网页访问必须校验并固定公网 IP，限制总请求量与输出体积。系统 DNS 仅返回 `198.18.0.0/15` 代理保留地址时，通过固定公网 IP 的 Cloudflare DNS over HTTPS 查询目标域名，校验全部返回地址后固定连接；不得直接放行代理保留地址，解析结果仅短时缓存。动态页面在禁用 Service Worker、拦截子请求的隔离浏览器中渲染，浏览器二进制随 Windows 包分发。
+- `read_web_page` 是唯一的网页 MCP 工具，读取公开页面正文、标题层级和链接，不提取或保存职位；岗位整理由智能体基于已读取内容完成。`scroll: true` 用于自动滚动加载的列表，覆盖页面、嵌套滚动容器、可访问 iframe 和开放 Shadow DOM，不点击按钮。`cursor`/`nextCursor` 是唯一续读协议：同一游标先读取当前批次剩余正文与链接，再推进滚动；续读必须使用相同网址、渲染模式和 `scroll`。正文每次最多 20,000 个 UTF-16 单位、链接最多 50 条，多出的内容不得直接丢弃。快照仅在 MCP 进程内缓存，不落盘；普通快照空闲 10 分钟过期，滚动会话空闲 5 分钟或最长存活 15 分钟后关闭，最多 8 个会话、合计 32 MiB，游标失效从 0 重新读取。最多 2 个活动浏览器滚动会话，单次最多 45 秒及 12 次滚动、单会话最多 200 次滚动。到达可观察末尾不能证明网站数据完整，资源限制、阻断和故障须写入 `incompleteReason`。网页工具不检查 robots.txt。一般请求使用 GET/HEAD；POST 仅允许同站请求命中白名单：北森的三个已知查询接口、以 search/query/list/filter/lookup/find/posts/count/results/items/details/suggestions 结尾的 JSON 接口，以及公开页面的 `/csrf/token` 初始化接口。其他 POST 被拦截。接口白名单无法证明网站端无副作用，须标记 MCP `readOnlyHint: false` 并在结果中提示。POST 请求体限定为不超过 16 KiB 的 JSON 对象，不跟随 POST 重定向；仅转发必要的同站请求头（包括 Cookie 和 X-CSRF-Token），不转发 Authorization。所有目标网页访问必须校验并固定公网 IP，最多 100 次请求，单响应最多 16 MiB、单读取会话累计最多 32 MiB。系统 DNS 仅返回 `198.18.0.0/15` 代理保留地址时，通过固定公网 IP 的 Cloudflare DNS over HTTPS 查询目标域名，校验全部返回地址后固定连接；不得直接放行代理保留地址，解析结果仅短时缓存。动态页面在禁用 Service Worker、拦截子请求的隔离浏览器中渲染，浏览器二进制随 Windows 包分发。
 - 网页工具仅对暂时性网络或服务故障在原有总预算内自动重试一次；取消、权限拒绝、安全限制、无效地址和解析失败不重试。错误以结构化代码和阶段返回；分页后续页失败时保留已核实岗位并说明不完整原因，不得把提取失败视为无岗位。智能体不应对已耗尽重试的相同请求再循环调用，应说明无法核验并建议稍后重试。
+- 通用 POST 白名单还须拒绝路径中明确表示写入动作的段，包括 create、update、delete、remove、save、submit 和 upload；这项拦截不能证明其他白名单接口没有副作用。
 - 输入与输出使用严格 schema，拒绝未知字段，并与共享 DTO 语义一致。
 - 首个正式版发布后，MCP 工具名称、参数与返回值语义是对外契约；破坏性修改须先制定已发布调用方的升级策略，并通过双协议回归。当前不为未发布的历史工具名或参数保留别名。
 - `readOnly`、`destructive`、`idempotent` 标记必须反映真实行为。
@@ -555,6 +560,8 @@ sandbox: true
 5. 校验 Velopack 生成的全部包，并确认输出目录没有未列入 Feed 的 nupkg；历史 Full 包只作为本地 Delta 构建输入，随后从本次 Feed 和输出目录中移除。有历史基线时，最终 Feed 必须恰好列出当前版本的一个 Full 和一个 Delta 包；没有基线时只列出当前 Full 包。
 6. 逐字节发布全量公司目录，并生成、复验文件名、大小和 SHA-256 manifest。
 
+历史包请求优先使用 `HTTPS_PROXY`，未设置时使用 Windows 当前用户启用的 HTTP(S) 系统代理；没有代理时直连。代理仅用于发布基线下载，不改变包大小和 SHA-256 校验。
+
 只有 Feed 为 404、为空或没有合适历史版本时允许 Full-only。网络错误、无效 Feed、歧义基线或校验失败必须终止构建。
 
 公开资产限于：
@@ -578,6 +585,10 @@ sandbox: true
 - catch 后必须处理、转换、恢复或记录；禁止无说明吞掉异常。
 - 清理失败不得反向报告已经提交的业务操作失败，但必须安全记录并允许后续恢复或重试。
 - 日志不得包含简历正文、完整 JD、密钥、令牌或不必要的绝对路径。
+- 开发版故障输出到控制台；安装版写入安装根目录 `logs/` 的 JSON Lines 文件，随版本更新保留，并由卸载流程清理。主进程使用 `app.jsonl`（5 MiB，保留 3 份），智能体与 MCP 进程分别按 PID 写入 1 MiB 文件；启动时仅清理本应用命名的超过 14 天或使目录超过 50 MiB 的旧日志。同步写入不依赖退出时冲刷，日志失败不得影响业务。
+- 日志覆盖 Main、Renderer、Preload、智能体执行进程和 MCP 进程可观测的故障，包括更新检查、下载、准备、应用、回滚及启动失败。Velopack 与 Rust 原生程序日志独立，不并入应用日志；正常取消、无更新、输入校验和未找到等预期结果不记为故障。
+- 故障记录只含时间、进程、PID、版本、操作阶段、稳定错误码、HTTP 状态或系统错误码、清理后的应用内相对堆栈位置。严禁写原始请求、异常消息、子进程 stderr、用户内容、密钥、令牌和绝对路径。Renderer 与 Preload 只能通过受信任且严格校验的诊断 IPC 上报有限字段。
+- 开发版子进程只向控制台转发通过诊断字段及操作白名单校验的 JSON 行；原始 stderr 不转发，也不保存。
 - 优先使用小型纯函数、明确类型和早返回。
 - 不保留无用参数、死代码、注释掉的实现、重复判断或未使用的兼容分支。
 - 不复制大段校验、映射或业务逻辑；优先复用已有公共能力。

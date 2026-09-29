@@ -27,7 +27,7 @@ const htmlResponse = (url: string, body: string): WebResponse => ({
 async function readBrowser(url: string, network: WebNetwork) {
   const browser = await BrowserReader.open(url, network, budget())
   try {
-    return { html: await browser.html(), finalUrl: browser.finalUrl, ...browser.status }
+    return { html: await browser.page.content(), finalUrl: browser.finalUrl, ...browser.status }
   } finally {
     await browser.close()
   }
@@ -355,12 +355,14 @@ describe('public web reader', () => {
 
   it('pins the resolved IP and limits compressed and uncompressed responses', async () => {
     const server = http.createServer((request, response) => {
+      request.on('error', () => undefined)
+      response.on('error', () => undefined)
       if (request.url === '/gzip') {
         response.writeHead(200, { 'content-type': 'text/html', 'content-encoding': 'gzip' })
         response.end(zlib.gzipSync(Buffer.from('<main>压缩网页</main>')))
       } else {
         response.writeHead(200, { 'content-type': 'text/html' })
-        response.end(Buffer.alloc(4 * 1024 * 1024 + 1))
+        response.end(Buffer.alloc(16 * 1024 * 1024 + 1))
       }
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -386,6 +388,11 @@ describe('public web reader', () => {
         'GET',
       )
       expect(compressed.body.toString()).toBe('<main>压缩网页</main>')
+      const nearLimit = budget()
+      nearLimit.bytes = 32 * 1024 * 1024 - 1
+      await expect(
+        once.once(new URL(`http://pinned.test:${port}/gzip`), address, nearLimit, 'GET'),
+      ).rejects.toMatchObject({ code: 'WEB_TOO_LARGE' })
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
     }
@@ -511,7 +518,7 @@ describe('public web reader', () => {
     expect(new Set(found).size).toBe(125)
   })
 
-  it('approves only verified same-origin, strictly shaped read-only POST requests', () => {
+  it('allows the exact Beisen query endpoints on their own origin', () => {
     const page = 'https://sanycampus.zhiye.com/jobs'
     const url = 'https://sanycampus.zhiye.com/api/Jobad/GetJobAdPageList'
     const body = JSON.stringify({
@@ -524,14 +531,6 @@ describe('public web reader', () => {
     })
     expect(approveWebQueryPost(page, url, 'POST', body)).toMatchObject({ url })
     expect(approveWebQueryPost(page, url, 'POST', body)?.requiredForContent).toBe(true)
-    expect(
-      approveWebQueryPost(
-        page,
-        url,
-        'POST',
-        JSON.stringify({ ...JSON.parse(body), action: 'delete' }),
-      ),
-    ).toBeNull()
     expect(approveWebQueryPost(page, url.replace('sanycampus', 'other'), 'POST', body)).toBeNull()
     expect(
       approveWebQueryPost(page, url.replace('GetJobAdPageList', 'DeleteJob'), 'POST', body),
@@ -539,7 +538,7 @@ describe('public web reader', () => {
     expect(approveWebQueryPost(page, url, 'PUT', body)).toBeNull()
   })
 
-  it('accepts the observed Beisen campus list and filter query shapes', () => {
+  it('marks the optional Beisen filter query separately from content queries', () => {
     const page = 'https://sanycampus.zhiye.com/campus/jobs'
     const listUrl = 'https://sanycampus.zhiye.com/api/Jobad/GetJobAdPageList'
     const filterUrl = 'https://sanycampus.zhiye.com/api/Jobad/GetJobAdSearchConditions'
@@ -572,15 +571,9 @@ describe('public web reader', () => {
         JSON.stringify({ ...filters, Category: '2', Classification3: [] }),
       ),
     ).not.toBeNull()
-    expect(
-      approveWebQueryPost(page, listUrl, 'POST', JSON.stringify({ ...list, Category: ['99'] })),
-    ).toBeNull()
-    expect(
-      approveWebQueryPost(page, filterUrl, 'POST', JSON.stringify({ ...filters, action: 'write' })),
-    ).toBeNull()
   })
 
-  it('accepts verified Beisen count queries and both observed path casings', () => {
+  it('allows Beisen count queries and both observed path casings', () => {
     const page = 'https://sanycampus.zhiye.com/campus/positions'
     const portalId = 'b9c08fd9-dae3-49f3-ab87-a6691c2f34fc'
     const countUrl = `https://sanycampus.zhiye.com/api/JobAd/GetJobCount?portalId=${portalId}`
@@ -589,7 +582,6 @@ describe('public web reader', () => {
       Category: 'campus',
     }
     expect(approveWebQueryPost(page, countUrl, 'POST', JSON.stringify(count))).toMatchObject({
-      assurance: 'verified',
       requiredForContent: true,
     })
     expect(
@@ -618,18 +610,14 @@ describe('public web reader', () => {
     ).not.toBeNull()
     expect(
       approveWebQueryPost(page, `${countUrl}&extra=1`, 'POST', JSON.stringify(count)),
-    ).toBeNull()
-    expect(
-      approveWebQueryPost(page, countUrl, 'POST', JSON.stringify({ ...count, Category: 'delete' })),
-    ).toBeNull()
+    ).not.toBeNull()
   })
 
-  it('allows bounded same-origin JSON search POST and rejects mutation-shaped requests', () => {
+  it('allows same-origin JSON endpoints from the query allowlist', () => {
     const page = 'https://news.example.test/stories'
     const url = 'https://news.example.test/api/search'
     const body = JSON.stringify({ query: 'science', page: 1, filters: { category: ['research'] } })
     expect(approveWebQueryPost(page, url, 'POST', body, 'application/json')).toMatchObject({
-      assurance: 'heuristic',
       requiredForContent: true,
     })
     expect(approveWebQueryPost(page, url, 'POST', body, 'text/plain')).toBeNull()
@@ -637,44 +625,40 @@ describe('public web reader', () => {
       approveWebQueryPost(page, url.replace('news.', 'other.'), 'POST', body, 'application/json'),
     ).toBeNull()
     expect(
-      approveWebQueryPost(page, `${url}?mode=delete`, 'POST', body, 'application/json'),
-    ).toBeNull()
-    expect(
-      approveWebQueryPost(
-        page,
-        'https://news.example.test/api/delete/search',
-        'POST',
-        body,
-        'application/json',
-      ),
-    ).toBeNull()
-    expect(
-      approveWebQueryPost(
-        page,
-        'https://news.example.test/api/delete-account/search',
-        'POST',
-        body,
-        'application/json',
-      ),
-    ).toBeNull()
+      approveWebQueryPost(page, `${url}?page=2`, 'POST', body, 'application/json'),
+    ).not.toBeNull()
     expect(
       approveWebQueryPost(
         page,
         url,
         'POST',
-        JSON.stringify({ query: 'x', action: 'delete' }),
+        JSON.stringify({ payload: { regionCodes: ['BJ'] } }),
         'application/json',
       ),
-    ).toBeNull()
-    expect(
-      approveWebQueryPost(
-        page,
-        url,
-        'POST',
-        JSON.stringify({ query: 'x', apiKey: 'secret' }),
-        'application/json',
-      ),
-    ).toBeNull()
+    ).not.toBeNull()
+    for (const endpoint of [
+      'query',
+      'list',
+      'filter',
+      'lookup',
+      'find',
+      'posts',
+      'count',
+      'results',
+      'items',
+      'details',
+      'suggestions',
+    ]) {
+      expect(
+        approveWebQueryPost(
+          page,
+          `https://news.example.test/api/${endpoint}`,
+          'POST',
+          body,
+          'application/json',
+        ),
+      ).not.toBeNull()
+    }
     expect(
       approveWebQueryPost(
         page,
@@ -684,9 +668,116 @@ describe('public web reader', () => {
         'application/json',
       ),
     ).toBeNull()
+    for (const path of [
+      '/api/delete/items',
+      '/api/%64elete/items',
+      '/api/%44elete/items',
+      '/api/delete-items/list',
+      '/api/upload/posts',
+    ])
+      expect(
+        approveWebQueryPost(
+          page,
+          `https://news.example.test${path}`,
+          'POST',
+          body,
+          'application/json',
+        ),
+      ).toBeNull()
   })
 
-  it('rechecks a generic query before sending it through the network layer', async () => {
+  it('allows ByteDance posts queries and rejects unlisted endpoints', () => {
+    const page = 'https://jobs.bytedance.com/campus/position'
+    const url = 'https://jobs.bytedance.com/api/v1/search/job/posts'
+    const body = JSON.stringify({
+      keyword: 'Java',
+      limit: 10,
+      offset: 0,
+      portal_type: 3,
+      portal_entrance: 1,
+      language: 'zh',
+      recruitment_id_list: [],
+      job_category_id_list: [],
+      location_code_list: [],
+    })
+    expect(approveWebQueryPost(page, url, 'POST', body, 'application/json')).toMatchObject({
+      url,
+      requiredForContent: true,
+    })
+    expect(
+      approveWebQueryPost(
+        page,
+        'https://jobs.bytedance.com/api/posts',
+        'POST',
+        body,
+        'application/json',
+      ),
+    ).not.toBeNull()
+    expect(
+      approveWebQueryPost(
+        page,
+        'https://jobs.bytedance.com/api/apply',
+        'POST',
+        body,
+        'application/json',
+      ),
+    ).toBeNull()
+  })
+
+  it('limits the JSON body and rejects invalid POST inputs', () => {
+    const page = 'https://news.example.test/stories'
+    const url = 'https://news.example.test/api/results'
+    expect(approveWebQueryPost(page, url, 'POST', '{}', 'application/json')).not.toBeNull()
+    expect(approveWebQueryPost(page, url, 'GET', '{}', 'application/json')).toBeNull()
+    expect(approveWebQueryPost(page, url, 'POST', '[]', 'application/json')).toBeNull()
+    expect(approveWebQueryPost(page, url, 'POST', '{', 'application/json')).toBeNull()
+    expect(
+      approveWebQueryPost(
+        page,
+        url,
+        'POST',
+        JSON.stringify({ value: 'x'.repeat(16_384) }),
+        'application/json',
+      ),
+    ).toBeNull()
+  })
+
+  it('allows public CSRF initialization and forwards only selected request headers', async () => {
+    const page = 'https://news.example.test/stories'
+    const url = 'https://news.example.test/api/v1/csrf/token'
+    const approved = approveWebQueryPost(page, url, 'POST', '{}', 'application/json', {
+      cookie: 'visitor=1',
+      'x-csrf-token': 'pending',
+      'portal-channel': 'public',
+      authorization: 'secret',
+    })!
+    expect(approved).toMatchObject({ requiredForContent: false })
+    expect(approved.headers).toEqual({
+      cookie: 'visitor=1',
+      'x-csrf-token': 'pending',
+      'portal-channel': 'public',
+    })
+    const network = new WebNetwork(async () => [{ address: '8.8.8.8', family: 4 }])
+    const once = vi.fn(async (..._args: unknown[]) => ({
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: Buffer.from('{}'),
+    }))
+    Object.defineProperty(network, 'once', { value: once })
+    await network.requestQuery(approved, budget())
+    expect(once.mock.calls[0]?.[7]).toEqual(approved.headers)
+    expect(
+      approveWebQueryPost(
+        page,
+        'https://news.example.test/api/token',
+        'POST',
+        '{}',
+        'application/json',
+      ),
+    ).toBeNull()
+  })
+
+  it('rechecks the allowlist before sending a query through the network layer', async () => {
     const page = 'https://news.example.test/stories'
     const url = 'https://news.example.test/api/search'
     const approved = approveWebQueryPost(
@@ -706,7 +797,7 @@ describe('public web reader', () => {
     await network.requestQuery(approved, budget())
     expect(once).toHaveBeenCalledOnce()
     await expect(
-      network.requestQuery({ ...approved, body: { query: 'science', action: 'delete' } }, budget()),
+      network.requestQuery({ ...approved, url: 'https://news.example.test/api/apply' }, budget()),
     ).rejects.toMatchObject({ code: 'WEB_BLOCKED' })
     expect(once).toHaveBeenCalledOnce()
   })
@@ -725,8 +816,8 @@ describe('public web reader', () => {
         {
           pageUrl: 'https://sanycampus.zhiye.com/jobs',
           url: 'https://sanycampus.zhiye.com/api/Jobad/GetJobAdPageList',
+          headers: {},
           requiredForContent: true,
-          assurance: 'verified',
           body: {
             PageIndex: 1,
             PageSize: 20,
@@ -741,7 +832,7 @@ describe('public web reader', () => {
     ).rejects.toMatchObject({ code: 'WEB_BLOCKED' })
   })
 
-  it('renders JavaScript content and permits the verified read-only page query', async () => {
+  it('renders JavaScript content from an allowlisted Beisen query', async () => {
     const url = 'https://sanycampus.zhiye.com/jobs'
     const network = new WebNetwork()
     const page =
@@ -822,6 +913,138 @@ describe('public web reader', () => {
     }
   }, 30_000)
 
+  it('renders a search-scoped posts response', async () => {
+    const url = 'https://jobs.bytedance.com/campus/position'
+    const queryUrl = 'https://jobs.bytedance.com/api/v1/search/job/posts'
+    const network = new WebNetwork()
+    const page = `<html><body><main id="jobs"></main><script>
+      fetch('/api/v1/search/job/posts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({keyword:'Java', limit:10, offset:0, portal_type:3, portal_entrance:1, language:'zh'})
+      }).then(r=>r.json()).then(data=>{
+        document.getElementById('jobs').textContent = data.text;
+      });
+    </script></body></html>`
+    vi.spyOn(network, 'request').mockImplementation(async (target) => htmlResponse(target, page))
+    const query = vi.spyOn(network, 'requestQuery').mockImplementation(async (request) => ({
+      url: request.url,
+      status: 200,
+      contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({ text: 'Java 后端开发工程师' })),
+    }))
+    const rendered = await readBrowser(url, network)
+    expect(parseWebPage(rendered.html, rendered.finalUrl).text).toContain('Java 后端开发工程师')
+    expect(rendered.blockedDataRequest).toBe(false)
+    expect(query).toHaveBeenCalledOnce()
+    expect(query.mock.calls[0]?.[0].url).toBe(queryUrl)
+  }, 30_000)
+
+  it('recovers a public query after CSRF cookie initialization', async () => {
+    const url = 'https://news.example.test/stories'
+    const network = new WebNetwork()
+    const page = `<html><body><main id="feed"></main><script>
+      (async () => {
+        const search = () => fetch('/api/search', {
+          method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': document.cookie.match(/(?:^|; )csrf_token=([^;]+)/)?.[1] || 'undefined'
+          }, body: JSON.stringify({query: 'science'})
+        });
+        let response = await search();
+        if (response.status === 405) {
+          await fetch('/api/v1/csrf/token', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
+          });
+          response = await search();
+        }
+        document.getElementById('feed').textContent = (await response.json()).text;
+      })();
+    </script></body></html>`
+    vi.spyOn(network, 'request').mockImplementation(async (target) => htmlResponse(target, page))
+    const query = vi.spyOn(network, 'requestQuery').mockImplementation(async (request) => {
+      if (new URL(request.url).pathname.endsWith('/csrf/token'))
+        return {
+          url: request.url,
+          status: 200,
+          contentType: 'application/json',
+          body: Buffer.from('{}'),
+          setCookies: ['csrf_token=ready; Path=/; SameSite=Lax'],
+        }
+      const ready = request.headers['x-csrf-token'] === 'ready'
+      return {
+        url: request.url,
+        status: ready ? 200 : 405,
+        contentType: 'application/json',
+        body: Buffer.from(ready ? JSON.stringify({ text: '公开科学新闻' }) : '{}'),
+      }
+    })
+    const service = new WebRetrievalService(network)
+    try {
+      const result = await service.read({ url, render: 'dynamic' }, new AbortController().signal)
+      expect(result.text).toContain('公开科学新闻')
+      expect(result.incompleteReason).toBeNull()
+      expect(query).toHaveBeenCalledTimes(3)
+    } finally {
+      await service.dispose()
+    }
+  }, 30_000)
+
+  it('extracts visible dynamic content without serializing a large DOM', async () => {
+    const url = 'https://example.test/large-dom'
+    const network = new WebNetwork()
+    const page = `<html><body><main><p>可见正文</p></main><script>
+      const hidden = document.createElement('div');
+      hidden.style.display = 'none';
+      hidden.textContent = 'x'.repeat(5_000_000);
+      document.body.append(hidden);
+    </script></body></html>`
+    vi.spyOn(network, 'request').mockImplementation(async (target) => htmlResponse(target, page))
+    const service = new WebRetrievalService(network)
+    try {
+      const result = await service.read({ url, render: 'dynamic' }, new AbortController().signal)
+      expect(result.text).toContain('可见正文')
+      expect(result.incompleteReason).toBeNull()
+    } finally {
+      await service.dispose()
+    }
+  }, 30_000)
+
+  it('retries a dynamic shell before reporting that its content is loaded', async () => {
+    const url = 'https://example.test/app'
+    const network = new WebNetwork()
+    const shell = `<html><body><main id="app"></main><script>document.querySelector('main').textContent='首页 登录/注册'</script></body></html>`
+    const loaded = `<html><body><main id="app"></main><script>document.querySelector('main').textContent='已加载正文'.repeat(60)</script></body></html>`
+    let calls = 0
+    vi.spyOn(network, 'request').mockImplementation(async (target) =>
+      htmlResponse(target, ++calls === 3 ? loaded : shell),
+    )
+    const service = new WebRetrievalService(network)
+    try {
+      const result = await service.read({ url }, new AbortController().signal)
+      expect(result.text).toContain('已加载正文')
+      expect(result.incompleteReason).toBeNull()
+      expect(calls).toBe(3)
+    } finally {
+      await service.dispose()
+    }
+  }, 30_000)
+
+  it('reports uncertainty when a dynamic shell remains empty after retry', async () => {
+    const url = 'https://example.test/app'
+    const network = new WebNetwork()
+    const shell = `<html><body><main id="app"></main><script>document.querySelector('main').textContent='首页 登录/注册'</script></body></html>`
+    vi.spyOn(network, 'request').mockImplementation(async (target) => htmlResponse(target, shell))
+    const service = new WebRetrievalService(network)
+    try {
+      const result = await service.read({ url }, new AbortController().signal)
+      expect(result.text).toContain('首页 登录/注册')
+      expect(result.incompleteReason).toContain('尚未核实')
+    } finally {
+      await service.dispose()
+    }
+  }, 30_000)
+
   it('continues long JavaScript-rendered content from the cache', async () => {
     const url = 'https://example.test/jobs'
     const network = new WebNetwork()
@@ -862,6 +1085,61 @@ describe('public web reader', () => {
     expect(parseWebPage(rendered.html, rendered.finalUrl).text).toContain('仍可读取职位')
     expect(rendered.queryError).toBeNull()
     expect(rendered.resourceError).not.toBeNull()
+  }, 30_000)
+
+  it('reports the required query failure after an earlier optional resource error', async () => {
+    const url = 'https://sanycampus.zhiye.com/jobs'
+    const network = new WebNetwork()
+    vi.spyOn(network, 'request').mockImplementation(async (target) =>
+      htmlResponse(
+        target,
+        `<html><body><main id="app"></main><script>
+          (async () => {
+            await fetch('/api/Jobad/GetJobAdSearchConditions', {method:'POST', body:'{}'});
+            await fetch('/api/Jobad/GetJobAdPageList', {method:'POST', body:'{}'}).catch(() => {});
+          })();
+        </script></body></html>`,
+      ),
+    )
+    vi.spyOn(network, 'requestQuery').mockImplementation(async (request) => {
+      if (request.requiredForContent)
+        throw new AppServiceError('WEB_TIMEOUT', '查询超时', { stage: 'fetch' })
+      return {
+        url: request.url,
+        status: 503,
+        contentType: 'application/json',
+        body: Buffer.from('{}'),
+      }
+    })
+    const rendered = await readBrowser(url, network)
+    expect(rendered.resourceError).toMatchObject({ code: 'WEB_UNAVAILABLE' })
+    expect(rendered.queryError).toMatchObject({ code: 'WEB_TIMEOUT' })
+  }, 30_000)
+
+  it('keeps a failed query when a different request to the same endpoint succeeds', async () => {
+    const url = 'https://news.example.test/stories'
+    const network = new WebNetwork()
+    vi.spyOn(network, 'request').mockImplementation(async (target) =>
+      htmlResponse(
+        target,
+        `<html><body><main id="feed"></main><script>
+          (async () => {
+            await fetch('/api/search', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({page:1})});
+            const result = await fetch('/api/search', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({page:2})});
+            document.getElementById('feed').textContent = (await result.json()).text;
+          })();
+        </script></body></html>`,
+      ),
+    )
+    vi.spyOn(network, 'requestQuery').mockImplementation(async (request) => ({
+      url: request.url,
+      status: request.body.page === 1 ? 503 : 200,
+      contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({ text: '第二页正文' })),
+    }))
+    const rendered = await readBrowser(url, network)
+    expect(parseWebPage(rendered.html, rendered.finalUrl).text).toContain('第二页正文')
+    expect(rendered.queryError).toMatchObject({ code: 'WEB_UNAVAILABLE' })
   }, 30_000)
 
   it('blocks unknown POST and reports missing dynamic content', async () => {

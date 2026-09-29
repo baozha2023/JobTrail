@@ -1,4 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises'
+import { logFault } from '../diagnostics'
 import { AppServiceError } from './errors'
 import { BrowserReader } from './web-browser'
 import {
@@ -198,8 +199,8 @@ export class WebRetrievalService {
         if (capture.overflow) incompleteReason = '网页当前批次内容超过可可靠提取的大小上限'
         if (browser.status.queryError) incompleteReason = browser.status.queryError.message
         if (browser.status.blockedDataRequest)
-          incompleteReason = '页面尝试调用未核实的同站 POST 接口，后续内容可能缺失'
-        if (browser.status.heuristicQueryUsed)
+          incompleteReason = '页面尝试调用不在白名单中的同站 POST 接口，后续内容可能缺失'
+        if (browser.status.queryPostUsed)
           warnings.push('已执行同站查询型 POST；无法证明网站端没有记录或其他副作用')
         if (browser.status.resourceError)
           warnings.push(`部分动态资源加载失败：${browser.status.resourceError.message}`)
@@ -382,7 +383,7 @@ export class WebRetrievalService {
           if (finished) break
           if (browser.status.queryError || browser.status.blockedDataRequest) {
             incompleteReason =
-              browser.status.queryError?.message ?? '页面后续内容依赖未核实的 POST 请求'
+              browser.status.queryError?.message ?? '页面后续内容依赖未列入白名单的 POST 请求'
             finished = true
             break
           }
@@ -404,10 +405,10 @@ export class WebRetrievalService {
         ['WEB_TOO_LARGE', 'WEB_TIMEOUT'].includes(browser.status.resourceError.code)
       )
         incompleteReason ??= browser.status.resourceError.message
-      if (browser.status.heuristicQueryUsed)
+      if (browser.status.queryPostUsed)
         warnings.push('已执行同站查询型 POST；无法证明网站端没有记录或其他副作用')
       if (browser.status.blockedDataRequest)
-        incompleteReason ??= '页面尝试调用未核实的同站 POST 接口，后续内容可能缺失'
+        incompleteReason ??= '页面尝试调用不在白名单中的同站 POST 接口，后续内容可能缺失'
       if (browser.status.queryError) incompleteReason ??= browser.status.queryError.message
       if (incompleteReason) finished = true
     } catch (error) {
@@ -449,7 +450,8 @@ export class WebRetrievalService {
       await this.cache.closeBrowser(id)
       try {
         this.cache.update(id, snapshot)
-      } catch {
+      } catch (cacheError) {
+        logFault('web.cache-update', cacheError)
         resultId = null
       }
     }
@@ -492,16 +494,29 @@ export class WebRetrievalService {
     let issue: string | null = null
     if (render === 'dynamic' || (render === 'auto' && parsed.appearsDynamic)) {
       try {
+        let shortCaptureAttempts = 0
         const dynamic = await retryTransient(
           async () => {
             const browser = await BrowserReader.open(finalUrl, this.network, budget)
             try {
-              const html = await browser.html()
-              const next = parsePage(html, browser.finalUrl)
+              const capture = await browser.capture()
+              const next = capturedPage(capture, new Set())
               if (browser.status.queryError) throw browser.status.queryError
               if (browser.status.resourceError && !next.text.trim())
                 throw browser.status.resourceError
-              return { parsed: next, finalUrl: browser.finalUrl, status: browser.status }
+              const shellOnly = render === 'auto' && parsed.appearsDynamic && next.text.length < 250
+              if (shellOnly && ++shortCaptureAttempts === 1)
+                throw new AppServiceError('WEB_UNAVAILABLE', '动态网页正文尚未加载', {
+                  stage: 'render',
+                  retryable: true,
+                })
+              return {
+                parsed: next,
+                finalUrl: browser.finalUrl,
+                status: browser.status,
+                overflow: capture.overflow,
+                shellOnly,
+              }
             } finally {
               await browser.close()
             }
@@ -511,14 +526,16 @@ export class WebRetrievalService {
         )
         finalUrl = dynamic.finalUrl
         parsed = dynamic.parsed
+        if (dynamic.overflow) issue = '网页当前批次内容超过可可靠提取的大小上限'
+        if (dynamic.shellOnly) issue = '动态网页仍仅显示少量正文，后续内容尚未核实'
         if (dynamic.status.resourceError)
           warnings.push(
             `部分动态资源加载失败，结果可能不完整：${dynamic.status.resourceError.message}。`,
           )
-        if (dynamic.status.heuristicQueryUsed)
+        if (dynamic.status.queryPostUsed)
           warnings.push('已执行同站查询型 POST；无法证明网站端没有记录或其他副作用')
         if (dynamic.status.blockedDataRequest) {
-          warnings.push('页面尝试调用未核实的同站 POST 接口；这些请求已被拦截。')
+          warnings.push('页面尝试调用不在白名单中的同站 POST 接口；这些请求已被拦截。')
           issue = '网页内容可能依赖暂不支持的查询请求'
         }
       } catch (error) {

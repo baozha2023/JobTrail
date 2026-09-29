@@ -36,6 +36,7 @@ import type {
   AgentEvent,
   AgentDraftPart,
   AgentJobReceipt,
+  AppUpdateProgress,
 } from './types'
 
 export interface IpcChannelMap {
@@ -132,8 +133,8 @@ export interface IpcChannelMap {
   'velopack:get-version': { args: []; result: string }
   'velopack:renderer-healthy': { args: []; result: boolean }
   'velopack:check-for-update': { args: []; result: import('velopack').UpdateInfo | null }
-  'velopack:download-update': { args: []; result: boolean }
-  'velopack:apply-update': { args: []; result: boolean }
+  'velopack:download-update': { args: [attemptId: number]; result: boolean }
+  'velopack:apply-update': { args: [attemptId: number]; result: boolean }
   'velopack:uninstall': { args: []; result: 'started' | 'development' | 'unavailable' }
 }
 
@@ -144,6 +145,7 @@ export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 export interface AppEventMap {
   'company-catalog:progress': CompanyCatalogProgress
   'agent:event': AgentEvent
+  'velopack:progress': AppUpdateProgress
 }
 
 export type AppEventChannel = keyof AppEventMap

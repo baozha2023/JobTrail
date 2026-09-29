@@ -59,6 +59,7 @@ export interface WebResponse {
   contentType: string
   charset?: string
   body: Buffer
+  setCookies?: string[]
 }
 
 export function decodeWebText(response: WebResponse): string {
@@ -117,8 +118,8 @@ export function assertPublicAddress(address: string): void {
 
 const USER_AGENT = 'JobTrailWebReader/1.0 (+public-page-reader)'
 const MAX_REQUESTS = 100
-const MAX_TOTAL_BYTES = 20 * 1024 * 1024
-const MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+const MAX_TOTAL_BYTES = 32 * 1024 * 1024
+const MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 
 export function webAbortError(signal: AbortSignal): AppServiceError {
   return signal.reason instanceof AppServiceError
@@ -167,15 +168,22 @@ export class WebNetwork {
 
   async requestQuery(query: WebQueryPost, budget: WebBudget): Promise<WebResponse> {
     const body = JSON.stringify(query.body)
-    const approved = approveWebQueryPost(query.pageUrl, query.url, 'POST', body, 'application/json')
-    if (!approved || approved.assurance !== query.assurance)
-      throw new AppServiceError('WEB_BLOCKED', '查询请求不在已核实的只读范围内', {
+    const approved = approveWebQueryPost(
+      query.pageUrl,
+      query.url,
+      'POST',
+      body,
+      'application/json',
+      query.headers,
+    )
+    if (!approved || approved.requiredForContent !== query.requiredForContent)
+      throw new AppServiceError('WEB_BLOCKED', 'POST 查询接口不在允许列表内', {
         stage: 'fetch',
         retryable: false,
       })
     const referer = new URL(query.pageUrl)
     referer.hash = ''
-    return this.send(query.url, budget, 'POST', Buffer.from(body), referer.href)
+    return this.send(query.url, budget, 'POST', Buffer.from(body), referer.href, approved.headers)
   }
 
   private async send(
@@ -184,6 +192,7 @@ export class WebNetwork {
     method: 'GET' | 'HEAD' | 'POST',
     body?: Buffer,
     pageUrl?: string,
+    postHeaders?: Record<string, string>,
   ): Promise<WebResponse> {
     let target = input
     for (let redirects = 0; redirects <= 4; redirects++) {
@@ -198,7 +207,16 @@ export class WebNetwork {
       const address = addresses[0]
       let response: Awaited<ReturnType<WebNetwork['once']>>
       try {
-        response = await this.once(url, address, budget, method, body, pageUrl)
+        response = await this.once(
+          url,
+          address,
+          budget,
+          method,
+          body,
+          pageUrl,
+          undefined,
+          postHeaders,
+        )
       } catch (error) {
         if (budget.signal.aborted) throw webAbortError(budget.signal)
         if (error instanceof AppServiceError) throw error
@@ -206,7 +224,7 @@ export class WebNetwork {
       }
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         if (method === 'POST')
-          throw new AppServiceError('WEB_BLOCKED', '只读查询接口发生重定向，已停止请求', {
+          throw new AppServiceError('WEB_BLOCKED', 'POST 查询接口发生重定向，已停止请求', {
             stage: 'fetch',
             retryable: false,
           })
@@ -223,6 +241,7 @@ export class WebNetwork {
         contentType: contentType.split(';')[0].toLowerCase(),
         charset: /charset\s*=\s*["']?([a-z0-9_-]+)/i.exec(contentType)?.[1],
         body: response.body,
+        setCookies: response.headers['set-cookie'] ?? [],
       }
     }
     throw new AppServiceError('WEB_UNAVAILABLE', '网页重定向过多', { retryable: false })
@@ -333,6 +352,7 @@ export class WebNetwork {
     body?: Buffer,
     pageUrl?: string,
     accept = 'text/html,application/json,text/plain,application/javascript,text/css,*/*;q=0.1',
+    postHeaders?: Record<string, string>,
   ): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: Buffer }> {
     return new Promise((resolve, reject) => {
       const transport = url.protocol === 'https:' ? https : http
@@ -346,15 +366,17 @@ export class WebNetwork {
             else callback(null, address.address, address.family)
           },
           headers: {
-            'User-Agent': USER_AGENT,
-            Accept: accept,
-            'Accept-Encoding': 'identity',
+            'user-agent': USER_AGENT,
+            accept,
+            'accept-encoding': 'identity',
             ...(body
               ? {
-                  'Content-Type': 'application/json',
-                  'Content-Length': String(body.length),
-                  Origin: new URL(pageUrl!).origin,
-                  Referer: pageUrl!,
+                  ...postHeaders,
+                  'content-type': 'application/json',
+                  'content-length': String(body.length),
+                  origin: new URL(pageUrl!).origin,
+                  referer: pageUrl!,
+                  'accept-encoding': 'identity',
                 }
               : {}),
           },
@@ -366,7 +388,9 @@ export class WebNetwork {
             length += chunk.length
             budget.bytes += chunk.length
             if (length > MAX_RESPONSE_BYTES || budget.bytes > MAX_TOTAL_BYTES) {
-              request.destroy(new AppServiceError('WEB_TOO_LARGE', '网页内容超过大小上限'))
+              reject(new AppServiceError('WEB_TOO_LARGE', '网页内容超过大小上限'))
+              response.destroy()
+              request.destroy()
               return
             }
             chunks.push(chunk)

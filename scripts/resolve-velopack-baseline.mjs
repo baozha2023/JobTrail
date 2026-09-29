@@ -49,7 +49,12 @@ async function readFeed(response) {
 
 // Selection, download and integrity verification share one feed snapshot. Never
 // delegate a second "latest" selection to vpk after choosing a lower baseline.
-export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, outputDir }) {
+export async function downloadPreviousVelopackFull({
+  feedUrl,
+  targetVersion,
+  outputDir,
+  dispatcher,
+}) {
   if (!stableVersion(targetVersion)) throw new Error('invalid_baseline_target_version')
   if (semver.lte(targetVersion, FIRST_FORMAL_VERSION)) return null
   let baseUrl
@@ -66,7 +71,7 @@ export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, out
     baseUrl.hash
   )
     throw new Error('invalid_baseline_feed_url')
-  const response = await sourceRequest(sourceUrl(baseUrl, FEED_NAME), {})
+  const response = await sourceRequest(sourceUrl(baseUrl, FEED_NAME), { dispatcher })
   if (response.status === 404) {
     await response.body?.cancel()
     return null
@@ -105,6 +110,7 @@ export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, out
   const packageUrl = sourceUrl(baseUrl, selected.FileName)
   const head = await sourceRequest(packageUrl, {
     method: 'HEAD',
+    dispatcher,
   })
   if (head.status === 404) {
     await head.body?.cancel()
@@ -113,6 +119,7 @@ export async function downloadPreviousVelopackFull({ feedUrl, targetVersion, out
   if (!head.ok) throw new Error('baseline_full_request_failed')
   const download = await sourceRequest(packageUrl, {
     timeout: 30 * 60 * 1000,
+    dispatcher,
   })
   if (!download.ok) {
     await download.body?.cancel()

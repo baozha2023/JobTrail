@@ -59,6 +59,54 @@ function executablePath(): string | undefined {
   return fs.existsSync(packaged) ? packaged : undefined
 }
 
+function responseCookies(
+  url: string,
+  headers: string[],
+): Parameters<BrowserContext['addCookies']>[0] {
+  const source = new URL(url)
+  const defaultPath = source.pathname.slice(0, source.pathname.lastIndexOf('/') + 1) || '/'
+  const cookies: Array<Parameters<BrowserContext['addCookies']>[0][number]> = []
+  for (const header of headers) {
+    const [pair, ...attributes] = header.split(';')
+    const separator = pair.indexOf('=')
+    if (separator <= 0) continue
+    const cookie: (typeof cookies)[number] = {
+      name: pair.slice(0, separator).trim(),
+      value: pair.slice(separator + 1).trim(),
+      domain: source.hostname,
+      path: defaultPath,
+    }
+    for (const attribute of attributes) {
+      const [rawName, ...rawValue] = attribute.trim().split('=')
+      const name = rawName.toLowerCase()
+      const value = rawValue.join('=').trim()
+      if (name === 'domain') {
+        const domain = value.replace(/^\./, '').toLowerCase()
+        if (source.hostname === domain || source.hostname.endsWith(`.${domain}`))
+          cookie.domain = value.toLowerCase()
+      } else if (name === 'path' && value.startsWith('/')) cookie.path = value
+      else if (name === 'secure') cookie.secure = true
+      else if (name === 'httponly') cookie.httpOnly = true
+      else if (name === 'samesite' && /^(strict|lax|none)$/i.test(value))
+        cookie.sameSite = (value[0]!.toUpperCase() + value.slice(1).toLowerCase()) as
+          | 'Strict'
+          | 'Lax'
+          | 'None'
+      else if (name === 'expires') {
+        const expires = Date.parse(value)
+        if (Number.isFinite(expires)) cookie.expires = Math.floor(expires / 1_000)
+      } else if (name === 'max-age' && /^-?\d+$/.test(value))
+        cookie.expires = Math.floor(Date.now() / 1_000) + Number(value)
+    }
+    cookies.push(cookie)
+  }
+  return cookies
+}
+
+function queryKey(query: WebQueryPost): string {
+  return `${query.url}\n${JSON.stringify(query.body)}`
+}
+
 export class BrowserReader {
   readonly page: Page
   busy = true
@@ -67,9 +115,9 @@ export class BrowserReader {
   private budget: WebBudget | null = null
   private navigationFinalUrl: string
   private resourceError: AppServiceError | null = null
-  private queryError: AppServiceError | null = null
+  private readonly queryFailures = new Map<string, AppServiceError>()
   private blockedDataRequest = false
-  private heuristicQueryUsed = false
+  private queryPostUsed = false
   private pending = 0
 
   private constructor(
@@ -159,14 +207,14 @@ export class BrowserReader {
     resourceError: AppServiceError | null
     queryError: AppServiceError | null
     blockedDataRequest: boolean
-    heuristicQueryUsed: boolean
+    queryPostUsed: boolean
     pending: number
   } {
     return {
       resourceError: this.resourceError,
-      queryError: this.queryError,
+      queryError: this.queryFailures.values().next().value ?? null,
       blockedDataRequest: this.blockedDataRequest,
-      heuristicQueryUsed: this.heuristicQueryUsed,
+      queryPostUsed: this.queryPostUsed,
       pending: this.pending,
     }
   }
@@ -180,8 +228,8 @@ export class BrowserReader {
     this.busy = true
     this.budget = budget
     this.resourceError = null
-    this.queryError = null
-    this.heuristicQueryUsed = false
+    this.queryFailures.clear()
+    this.queryPostUsed = false
     const abort = () => void this.close()
     budget.signal.addEventListener('abort', abort, { once: true })
     try {
@@ -195,13 +243,6 @@ export class BrowserReader {
         readers.add(this)
       }
     }
-  }
-
-  async html(): Promise<string> {
-    const html = await this.page.content()
-    if (Buffer.byteLength(html) > 4 * 1024 * 1024)
-      throw new AppServiceError('WEB_TOO_LARGE', '渲染后的网页超过大小上限')
-    return html
   }
 
   async capture(): Promise<WebScrollCapture> {
@@ -252,6 +293,7 @@ export class BrowserReader {
             method,
             request.postData(),
             request.headers()['content-type'],
+            request.headers(),
           )
         : null
       if (method !== 'GET' && method !== 'HEAD' && !query) {
@@ -263,10 +305,10 @@ export class BrowserReader {
         await route.abort()
         return
       }
-      if (query?.assurance === 'heuristic') this.heuristicQueryUsed = true
       const response = query
         ? await this.network.requestQuery(query, budget)
         : await this.network.request(target.href, budget, method as 'GET' | 'HEAD')
+      if (query) this.queryPostUsed = true
       if (isMainNavigation && response.status >= 400)
         throw new AppServiceError(
           [401, 403].includes(response.status) ? 'WEB_BLOCKED' : 'WEB_UNAVAILABLE',
@@ -278,16 +320,23 @@ export class BrowserReader {
           },
         )
       if (isMainNavigation) this.navigationFinalUrl = response.url
-      if (query?.requiredForContent && response.status >= 400)
-        this.queryError ??= new AppServiceError(
-          [401, 403].includes(response.status) ? 'WEB_BLOCKED' : 'WEB_UNAVAILABLE',
-          `网页只读查询接口返回 HTTP ${response.status}`,
-          {
-            stage: 'fetch',
-            httpStatus: response.status,
-            retryable: [408, 429, 500, 502, 503, 504].includes(response.status),
-          },
-        )
+      if (query?.requiredForContent) {
+        const key = queryKey(query)
+        if (response.status >= 400)
+          this.queryFailures.set(
+            key,
+            new AppServiceError(
+              [401, 403].includes(response.status) ? 'WEB_BLOCKED' : 'WEB_UNAVAILABLE',
+              `网页 POST 查询接口返回 HTTP ${response.status}`,
+              {
+                stage: 'fetch',
+                httpStatus: response.status,
+                retryable: [408, 429, 500, 502, 503, 504].includes(response.status),
+              },
+            ),
+          )
+        else this.queryFailures.delete(key)
+      }
       if ([408, 429, 500, 502, 503, 504].includes(response.status))
         this.resourceError ??= new AppServiceError(
           'WEB_UNAVAILABLE',
@@ -308,6 +357,10 @@ export class BrowserReader {
             retryable: false,
           },
         )
+      if (response.setCookies?.length) {
+        const cookies = responseCookies(response.url, response.setCookies)
+        if (cookies.length) await this.context.addCookies(cookies)
+      }
       const html = isHtmlResponse(response)
       await route.fulfill({
         status: response.status,
@@ -315,14 +368,15 @@ export class BrowserReader {
         contentType: `${html ? 'text/html' : response.contentType || 'text/plain'}; charset=${html ? 'utf-8' : (response.charset ?? 'utf-8')}`,
       })
     } catch (error) {
-      this.resourceError ??=
+      const failure =
         error instanceof AppServiceError
           ? error
           : new AppServiceError('WEB_UNAVAILABLE', '部分动态资源加载失败', {
               stage: 'resource',
               retryable: false,
             })
-      if (query?.requiredForContent) this.queryError ??= this.resourceError
+      this.resourceError ??= failure
+      if (query?.requiredForContent) this.queryFailures.set(queryKey(query), failure)
       await route.abort().catch(() => undefined)
     } finally {
       this.pending--

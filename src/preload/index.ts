@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcArgs, IpcChannel, IpcResponse, IpcResult } from '../shared/ipc'
+import { faultInput, type FaultInput } from '../shared/diagnostics'
 import type {
   CalendarReminderNotification,
   ZhijiApi,
@@ -7,6 +8,7 @@ import type {
   WindowControlsApi,
   AppErrorCode,
   AppErrorShape,
+  AppUpdateProgress,
 } from '../shared/types'
 
 class IpcClientError extends Error {
@@ -20,11 +22,42 @@ class IpcClientError extends Error {
   }
 }
 
+function sendDiagnostic(input: FaultInput | null): void {
+  if (!input) return
+  try {
+    ipcRenderer.send('diagnostics:report', input)
+  } catch {
+    // A broken diagnostic transport must not replace the original failure.
+  }
+}
+
+if (typeof window !== 'undefined') {
+  const reportLocalFault = (operation: string, error: unknown) => {
+    try {
+      const input = faultInput('preload', operation, error)
+      if (input?.stack?.some((frame) => /^(?:src|out)\/preload\//.test(frame)))
+        sendDiagnostic(input)
+    } catch {
+      // The error handler must not fail while reporting its own error.
+    }
+  }
+  window.addEventListener('error', (event) => reportLocalFault('process.uncaught', event.error))
+  window.addEventListener('unhandledrejection', (event) =>
+    reportLocalFault('process.unhandled-rejection', event.reason),
+  )
+}
+
 const invoke = async <K extends IpcChannel>(
   channel: K,
   ...args: IpcArgs<K>
 ): Promise<IpcResult<K>> => {
-  const response = (await ipcRenderer.invoke(channel, ...args)) as IpcResponse<IpcResult<K>>
+  let response: IpcResponse<IpcResult<K>>
+  try {
+    response = (await ipcRenderer.invoke(channel, ...args)) as IpcResponse<IpcResult<K>>
+  } catch (error) {
+    sendDiagnostic(faultInput('preload', 'ipc-transport', error))
+    throw error
+  }
   if (!response.ok) throw new IpcClientError(response.error)
   return response.data
 }
@@ -156,8 +189,14 @@ const velopackApi: VelopackApi = {
   getVersion: () => invoke('velopack:get-version'),
   rendererHealthy: () => invoke('velopack:renderer-healthy'),
   checkForUpdates: () => invoke('velopack:check-for-update'),
-  downloadUpdates: () => invoke('velopack:download-update'),
-  applyUpdates: () => invoke('velopack:apply-update'),
+  downloadUpdates: (attemptId) => invoke('velopack:download-update', attemptId),
+  applyUpdates: (attemptId) => invoke('velopack:apply-update', attemptId),
+  onProgress: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: AppUpdateProgress) =>
+      listener(progress)
+    ipcRenderer.on('velopack:progress', handler)
+    return () => ipcRenderer.removeListener('velopack:progress', handler)
+  },
   uninstall: () => invoke('velopack:uninstall'),
 }
 
@@ -170,3 +209,6 @@ const windowControlsApi: WindowControlsApi = {
 contextBridge.exposeInMainWorld('zhijiApi', zhijiApi)
 contextBridge.exposeInMainWorld('velopackApi', velopackApi)
 contextBridge.exposeInMainWorld('windowControlsApi', windowControlsApi)
+contextBridge.exposeInMainWorld('diagnosticsApi', {
+  report: (input: FaultInput) => sendDiagnostic(input),
+})

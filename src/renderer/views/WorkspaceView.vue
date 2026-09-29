@@ -58,6 +58,7 @@ import Sidebar from '../layout/Sidebar.vue'
 import Titlebar from '../layout/Titlebar.vue'
 import { buildIndustryTree, industryCascaderOptions } from '../utils/industries'
 import { getErrorMessage } from '../utils/errors'
+import { reportRendererFault } from '../diagnostics'
 import { useStatusesStore } from '../stores/statuses'
 import { useIndustriesStore } from '../stores/industries'
 import { useResumesStore } from '../stores/resumes'
@@ -1033,7 +1034,7 @@ async function checkForUpdates(): Promise<void> {
 
     availableUpdateVersion.value = updateInfo.TargetFullRelease.Version
   } catch (error) {
-    console.error('Update failed', error)
+    reportRendererFault('update.check-ui', error)
     message.error(t('settings.updateFailed'))
   } finally {
     statusMessage.destroy()

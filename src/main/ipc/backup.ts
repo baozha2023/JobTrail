@@ -1,4 +1,5 @@
 import { app, dialog } from 'electron'
+import { logFault } from '../diagnostics'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { AppPaths, ConfigService } from '../config'
@@ -125,9 +126,9 @@ export function registerBackupIpc(
         if (work)
           await fs
             .rm(work, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
-            .catch(() => {
+            .catch((error) => {
               // Startup retries cleanup; do not report a committed export/import as failed.
-              console.error('Backup temporary cleanup deferred until next startup')
+              logFault('backup.temp-cleanup', error)
             })
       } finally {
         if (frozen && !restarting) {

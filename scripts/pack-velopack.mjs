@@ -4,7 +4,9 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { ProxyAgent } from 'undici'
 import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
+import { releaseProxyUrl } from './release-proxy.mjs'
 import { buildCompanyCatalogAssets } from './company-catalog-assets.mjs'
 import { finalizeVelopackAssets } from './finalize-velopack-assets.mjs'
 import { smokeLauncherUpdate } from './test-launcher-update.mjs'
@@ -44,11 +46,19 @@ if (fs.existsSync(output) && fs.lstatSync(output).isSymbolicLink())
   throw new Error('Output must not be a link')
 fs.rmSync(output, { recursive: true, force: true })
 fs.mkdirSync(output, { recursive: true })
-const baseline = await downloadPreviousVelopackFull({
-  feedUrl: 'https://github.com/baozha2023/JobTrail/releases/latest/download',
-  targetVersion: pkg.version,
-  outputDir: output,
-})
+const proxyUrl = releaseProxyUrl()
+const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : null
+let baseline
+try {
+  baseline = await downloadPreviousVelopackFull({
+    feedUrl: 'https://github.com/baozha2023/JobTrail/releases/latest/download',
+    targetVersion: pkg.version,
+    outputDir: output,
+    dispatcher: proxyAgent ?? undefined,
+  })
+} finally {
+  await proxyAgent?.close()
+}
 run(cargo, [
   'build',
   '--release',

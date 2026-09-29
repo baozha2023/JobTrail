@@ -5,7 +5,7 @@ import { VelopackApp } from 'velopack'
 import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { APP_ID, ROOT_LAUNCHER } from './installation-paths'
-import { trustWindow } from './ipc/register-channel'
+import { registerDiagnosticIpc, trustWindow } from './ipc/register-channel'
 import { ConfigLoadError, ConfigService, getAppPaths, getStorageRoot } from './config'
 import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE, type DatabaseManager } from './database'
 import { registerIpc, registerWindowIpc } from './ipc'
@@ -20,9 +20,34 @@ import { getMcpConnectionInfo } from './ipc/mcp'
 import { registerBackupIpc } from './ipc/backup'
 import { recoverRestore, recoverBackupWork } from './backup-restore'
 import { sendToTrustedWindow } from './ipc/register-channel'
+import { initializeFaultLogger, logFault, reportFault } from './diagnostics'
 
 // Velopack must run before Electron startup work.
-VelopackApp.build().setAutoApplyOnStartup(false).run()
+try {
+  VelopackApp.build().setAutoApplyOnStartup(false).run()
+} catch (error) {
+  initializeFaultLogger('main', app.getVersion(), app.isPackaged, getStorageRoot())
+  logFault('startup.velopack', error)
+  throw error
+}
+
+initializeFaultLogger('main', app.getVersion(), app.isPackaged, getStorageRoot())
+registerDiagnosticIpc()
+process.on('uncaughtExceptionMonitor', (error) => logFault('process.uncaught', error))
+process.on('unhandledRejection', (error) => {
+  logFault('process.unhandled-rejection', error)
+  setImmediate(() => {
+    throw error
+  })
+})
+app.on('render-process-gone', (_event, _contents, details) => {
+  if (details.reason !== 'clean-exit')
+    reportFault({ source: 'main', operation: 'renderer.exit', code: 'PROCESS_EXITED' })
+})
+app.on('child-process-gone', (_event, details) => {
+  if (details.reason !== 'clean-exit' && details.serviceName !== 'JobTrail Agent')
+    reportFault({ source: 'main', operation: 'child.exit', code: 'PROCESS_EXITED' })
+})
 
 const APP_DISPLAY_NAME = '职迹'
 const installedLauncher = path.join(getStorageRoot(), ROOT_LAUNCHER)
@@ -52,6 +77,7 @@ if (handoff) {
     windowsHide: true,
   })
   child.once('error', (error) => {
+    logFault('update.handoff', error)
     dialog.showErrorBox('职迹启动失败', error.message)
     app.exit(1)
   })
@@ -176,6 +202,7 @@ function createWindow(config: ConfigService): void {
   window.webContents.on('will-navigate', (event, target) => {
     if (!isTrustedRendererNavigation(target, rendererUrl)) event.preventDefault()
   })
+  window.webContents.on('preload-error', (_event, _path, error) => logFault('preload.load', error))
 
   if (process.platform === 'win32') {
     window.setAppDetails({
@@ -207,6 +234,7 @@ function createWindow(config: ConfigService): void {
       ? window.loadURL(rendererUrl)
       : window.loadFile(rendererFile)
   void loadRenderer.catch((error: unknown) => {
+    logFault('renderer.load', error)
     const message = error instanceof Error ? error.message : String(error)
     dialog.showErrorBox('职迹界面加载失败', message)
     app.quit()
@@ -270,6 +298,7 @@ app
     try {
       await initializeApplication()
     } catch (error) {
+      logFault('startup.initialize', error)
       if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
         // A root launch owns the final error message after any update rollback.
         // Direct development/runtime launches have no parent to report the failure.
@@ -289,6 +318,7 @@ app
     }
   })
   .catch((error: unknown) => {
+    logFault('startup.ready', error)
     const message = error instanceof Error ? error.message : String(error)
     dialog.showErrorBox('职迹启动失败', message)
     app.quit()
@@ -311,7 +341,7 @@ app.on('before-quit', (event) => {
     try {
       await agent?.close()
     } catch (error) {
-      console.error('关闭智能体失败', error)
+      logFault('agent.close', error)
     } finally {
       try {
         database?.close()

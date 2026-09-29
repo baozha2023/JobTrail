@@ -11,6 +11,8 @@ const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), '
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.agent-smoke-'))
 const runtime = path.join(staging, 'JobTrail', '.runtime', 'current')
 const fixturePdf = path.join(staging, 'stress-resume.pdf')
+// Cold Windows worker startup includes native module loading and prompt tokenization.
+const WORKER_START_TIMEOUT = 45_000
 let application
 let server
 
@@ -227,10 +229,20 @@ try {
     )
   const [receiptB, receiptC] = await Promise.all([sendChat(1), sendChat(2)])
   const receipts = [undefined, receiptB, receiptC]
-  await waitFor(
-    () => started.has('B') && started.has('C'),
-    'two concurrent MCP-backed model streams',
-  )
+  try {
+    await waitFor(
+      () => started.has('B') && started.has('C'),
+      'two concurrent initial model requests',
+      WORKER_START_TIMEOUT,
+    )
+  } catch (error) {
+    console.error('Started model streams:', [...started])
+    console.error('Receipts:', [receiptB, receiptC])
+    console.error('Jobs:', await page.evaluate(() => window.zhijiApi.agent.list()))
+    console.error('Events:', await page.evaluate(() => window.__agentSmokeEvents))
+    console.error('App diagnostics:', appDiagnostics.slice(-1800))
+    throw error
+  }
   receipts[0] = await sendChat(0)
   receipts[3] = await sendChat(3)
   assert.equal(receipts.length, 4)
@@ -272,7 +284,11 @@ try {
   )
   const p95 = responseTimes[Math.ceil(responseTimes.length * 0.95) - 1]
   assert.ok(p95 < 500, `Page switching p95 was ${p95.toFixed(1)} ms`)
-  assert.ok(Math.max(...responseTimes) < 1000, 'A page switch was unresponsive for one second')
+  const slowestPageSwitch = Math.max(...responseTimes)
+  assert.ok(
+    slowestPageSwitch < 1000,
+    `A page switch took ${slowestPageSwitch.toFixed(1)} ms under PDF parsing load`,
+  )
 
   await page.locator('.agent-history-row .agent-queue-label').getByText('排队中').waitFor()
   await page.evaluate((id) => window.zhijiApi.agent.cancel(id), conversationIds[1])
@@ -338,7 +354,11 @@ try {
     }
     return ids
   })
-  await waitFor(() => started.has('E') && started.has('F'), 'background jobs before backup')
+  await waitFor(
+    () => started.has('E') && started.has('F'),
+    'background jobs before backup',
+    WORKER_START_TIMEOUT,
+  )
   const backupFile = path.join(staging, 'agent-stress.jobtrail-backup')
   await application.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
@@ -358,7 +378,11 @@ try {
       crypto.randomUUID(),
     )
   })
-  await waitFor(() => started.has('G'), 'background job before application exit')
+  await waitFor(
+    () => started.has('G'),
+    'background job before application exit',
+    WORKER_START_TIMEOUT,
+  )
   const exitStarted = performance.now()
   await application.close()
   application = undefined
@@ -366,6 +390,13 @@ try {
   console.log(
     `Packaged agent passed: 3 workers, FIFO queue, concurrent MCP, PDF parse, reload, backup pause, exit, page p95 ${p95.toFixed(1)} ms`,
   )
+} catch (error) {
+  const logs = path.join(staging, 'JobTrail', 'logs')
+  if (fs.existsSync(logs))
+    for (const name of fs.readdirSync(logs))
+      if (name.endsWith('.jsonl'))
+        console.error(name, fs.readFileSync(path.join(logs, name), 'utf8').slice(-4000))
+  throw error
 } finally {
   if (application) await application.close()
   if (server) await new Promise((resolve) => server.close(resolve))

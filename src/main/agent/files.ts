@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { logFault } from '../diagnostics'
 import fs from 'node:fs'
 import path from 'node:path'
 import type Database from 'better-sqlite3'
@@ -194,7 +195,7 @@ export class AgentFileStore {
     try {
       this.finishRemove(id, conversationId)
     } catch (error) {
-      console.error('清理聊天附件失败', error)
+      logFault('agent.attachment-cleanup', error)
     }
   }
 
@@ -218,7 +219,7 @@ export class AgentFileStore {
       try {
         this.finishRemove(row.id, row.conversationId)
       } catch (error) {
-        console.error('清理聊天附件失败', error)
+        logFault('agent.attachment-cleanup', error)
       }
     }
   }

@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { logFault } from '../diagnostics'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { ChatOpenAI } from '@langchain/openai'
@@ -611,7 +612,8 @@ class AgentGraphFactory {
             visuals.push(...this.visualParts(content.document.visuals, `附件 ${id}`))
           } else if (this.config.get().ai.multimodal)
             visuals.push({ type: 'image_url', image_url: { url: content.dataUrl } })
-        } catch {
+        } catch (error) {
+          logFault('agent.attachment-read', error)
           text += `\n[附件 ${id} 未提取到可用内容，请勿猜测其内容]`
         }
       }

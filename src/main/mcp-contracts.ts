@@ -349,7 +349,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'read_web_page',
     title: 'Read public web page',
     description:
-      'Read any public HTML page. Set scroll: true for infinite-scroll content; omit cursor or pass 0 to start, then pass each nextCursor back with the same URL, render mode and scroll value until null. One opaque cursor continues long text and links before loading the next scroll batch. Each response contains up to 20,000 UTF-16 text units and 50 links, independent of the number of page items. The browser may execute bounded same-origin JSON POST requests to search, query, list, filter, lookup or find endpoints; their server-side effects cannot be proven absent. It does not click buttons or submit forms. Check incompleteReason and warnings before claiming all content was read.',
+      'Read any public HTML page. Set scroll: true for infinite-scroll content; omit cursor or pass 0 to start, then pass each nextCursor back with the same URL, render mode and scroll value until null. One opaque cursor continues long text and links before loading the next scroll batch. Each response contains up to 20,000 UTF-16 text units and 50 links, independent of the number of page items. The browser may execute bounded same-origin JSON POST requests to allowlisted query endpoints; their server-side effects cannot be proven absent. It does not click buttons or submit forms. Check incompleteReason and warnings before claiming all content was read.',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,

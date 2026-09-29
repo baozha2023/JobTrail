@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/server'
+import { logFault } from '../diagnostics'
 import { z } from 'zod'
 import type { ConfigService } from '../config'
 import { MCP_TOOLS } from '../mcp-contracts'
@@ -25,7 +26,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
     { name: 'jobtrail', version: dependencies.version },
     {
       instructions:
-        'Use local read tools freely. Web reads may execute bounded same-origin JSON search, query or list POST requests whose server-side effects cannot be proven absent. They retry transient network failures once and report errors or incompleteReason; do not repeat exhausted requests or treat extraction failure as no jobs. Tell the user when public web content cannot be verified. Local write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
+        'Use local read tools freely. Web reads may execute allowlisted same-origin JSON POST queries whose server-side effects cannot be proven absent. They retry transient network failures once and report errors or incompleteReason; do not repeat exhausted requests or treat extraction failure as no jobs. Tell the user when public web content cannot be verified. Local write tools may require an explicit user confirmation after showing a JobTrail change preview. Never claim a write succeeded unless the tool returns the changed record.',
       inputRequired: { legacyShim: true, maxRounds: 8, roundTimeoutMs: 600_000 },
       requestState: { verify: coordinator.verifyRequestState },
     },
@@ -80,7 +81,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
           )
         } catch (error) {
           const normalized = errorShape(error)
-          if (normalized.code === 'INTERNAL_ERROR') console.error('JobTrail MCP tool failed', error)
+          if (normalized.code === 'INTERNAL_ERROR') logFault('mcp.tool', error)
           const message =
             normalized.code === 'INTERNAL_ERROR'
               ? 'JobTrail MCP encountered an internal error.'

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { UpdateInfo, VelopackAsset } from 'velopack'
+import type { AppUpdateProgress } from '../src/shared/types'
 import {
   DesktopUpdateService,
   type UpdateBackend,
@@ -97,5 +98,51 @@ describe('desktop update transaction', () => {
     await service.download()
     await expect(service.apply()).rejects.toThrow('apply failed')
     expect(calls).toEqual(['prepare', 'cancel'])
+  })
+  it('reports actual Full download progress and the surrounding update stages', async () => {
+    const progress: Omit<AppUpdateProgress, 'attemptId'>[] = []
+    const implementation = backend()
+    implementation.downloadUpdateAsync = async (_update, report) => {
+      report?.(0)
+      report?.(42)
+      report?.(100)
+    }
+    const service = new DesktopUpdateService(implementation, rollback)
+    await service.check()
+    await service.download((event) => progress.push(event))
+    await service.apply((event) => progress.push(event))
+    expect(progress).toEqual([
+      { stage: 'preserve' },
+      { stage: 'transfer', mode: 'full', percentage: 0 },
+      { stage: 'transfer', mode: 'full', percentage: 0 },
+      { stage: 'transfer', mode: 'full', percentage: 42 },
+      { stage: 'verify' },
+      { stage: 'backup' },
+      { stage: 'handoff' },
+    ])
+  })
+  it('reports Delta milestones and a Full fallback without changing the update transaction', async () => {
+    const progress: Omit<AppUpdateProgress, 'attemptId'>[] = []
+    const implementation = backend()
+    implementation.checkForUpdatesAsync = async () =>
+      ({
+        TargetFullRelease: { Version: '0.3.1' },
+        BaseRelease: { Version: '0.3.0' },
+        DeltasToTarget: [{ Version: '0.3.1' }, { Version: '0.3.1' }],
+      }) as UpdateInfo
+    implementation.downloadUpdateAsync = async (_update, report) => {
+      for (const value of [0, 35, 70, 0, 50, 100]) report?.(value)
+    }
+    const service = new DesktopUpdateService(implementation, rollback)
+    await service.check()
+    await service.download((event) => progress.push(event))
+    expect(progress.filter((event) => event.stage === 'transfer')).toEqual([
+      { stage: 'transfer', mode: 'delta', percentage: 0 },
+      { stage: 'transfer', mode: 'delta', percentage: 35 },
+      { stage: 'transfer', mode: 'delta', percentage: 70 },
+      { stage: 'transfer', mode: 'delta', percentage: 70 },
+      { stage: 'transfer', mode: 'full', percentage: 0 },
+      { stage: 'transfer', mode: 'full', percentage: 50 },
+    ])
   })
 })

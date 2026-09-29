@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "catalogVersion": 2,
+  "catalogVersion": 3,
   "minimumAppVersion": "1.0.0",
   "industries": [
     {
@@ -17409,6 +17409,2466 @@
       "aliases": [],
       "industryKeys": [
         "3ddaa57b-b135-4a07-9a51-06c02fb9fdad"
+      ]
+    },
+    {
+      "builtinKey": "84becaeb-99d7-4018-b5be-10eb080697cb",
+      "name": "深圳市合元科技有限公司",
+      "careerUrl": "https://kiem9mgc6h.jobs.feishu.cn/179662/position/list",
+      "aliases": [
+        "合元集团"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "aeaab0fa-cdab-4c9a-b27a-fbd8cba57dff",
+      "name": "基迪奥生物",
+      "careerUrl": "https://job.genedenovo.com/recruit/apply_m/#/?way=gzh",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "7c39af91-5136-4ed5-8abf-84304f29645e",
+      "name": "重庆山外山血液净化技术股份有限公司",
+      "careerUrl": "https://hr.swskj.com:24410/talentEmployerBrand/talentEmployerBrandViewWeb?id=1962680721081163778#join",
+      "aliases": [
+        "山外山"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "5314b9c7-9f6d-460b-bf5f-849a8b1f3f8b",
+      "name": "上海皓元医药股份有限公司",
+      "careerUrl": "https://app.mokahr.com/social-recruitment/haoyuan/166320?locale=zh-CN#/",
+      "aliases": [
+        "皓元医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "4e996df4-d4cb-47a4-8478-b868cfc0170e",
+      "name": "苏州弘远电气股份有限公司",
+      "careerUrl": "https://www.farwide-electric.com/join.html",
+      "aliases": [
+        "弘远电气"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "8b6140bd-dcf2-4514-ba96-9a2b2004a63c",
+      "name": "方达中国",
+      "careerUrl": "https://frontagelab.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [
+        "方达医药"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ]
+    },
+    {
+      "builtinKey": "94d01805-7819-4315-9abc-c4ffa8782e3a",
+      "name": "南京科远智慧科技集团股份有限公司",
+      "careerUrl": "https://sciyon.zhiye.com/campus/jobs",
+      "aliases": [
+        "科远智慧"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "9fa1a62a-6a5f-4f38-bfd8-22c2a0b703c0",
+      "name": "英洛华科技股份有限公司",
+      "careerUrl": "https://hengdian2.zhiye.com/campus/jobs",
+      "aliases": [
+        "英洛华科技"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "b9194ad8-191c-4dad-ae59-3b5d0b3b264a",
+      "name": "中工国际工程股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64b4cfe82f9d24760ae8b80c/pb/school.html?orgCode=0%2F1298",
+      "aliases": [
+        "中工国际"
+      ],
+      "industryKeys": [
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9"
+      ]
+    },
+    {
+      "builtinKey": "0fe3299b-be86-49e2-a6f3-e773358e4690",
+      "name": "老百姓大药房连锁股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU62834f840dcad413c0a054d8/mc/position/campus",
+      "aliases": [
+        "老百姓大药房"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ]
+    },
+    {
+      "builtinKey": "c09b3627-3d20-4be7-8032-1719e3071066",
+      "name": "艾特网能",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0319032488D90000001000?refcode=4440",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b0e1e2d6-3b24-4398-b4b8-daeffc62fd0d",
+      "name": "中创智领（郑州）工业技术集团股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/zczl/172433?locale=zh-CN#/jobs",
+      "aliases": [
+        "中创智领集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "304b671e-2bd8-4595-9d60-ab04cd5b3353",
+      "name": "哈尔滨电机厂有限责任公司",
+      "careerUrl": "https://hec-china2027.iguopin.com/",
+      "aliases": [
+        "哈电电机"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "88f03ac5-c493-4932-b598-bbd5ee34f9be",
+      "name": "天孚通信",
+      "careerUrl": "https://tfcsz.zhiye.com/",
+      "aliases": [],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "04440107-7d40-475c-9f34-874ef0b08929",
+      "name": "当纳利亚洲",
+      "careerUrl": "https://campus.51job.com/rrd2027/about1.html",
+      "aliases": [],
+      "industryKeys": [
+        "4bf036bb-046b-465b-945e-af08b3200b55"
+      ]
+    },
+    {
+      "builtinKey": "6b850207-8514-478a-9e87-aa0635582597",
+      "name": "中荣股份",
+      "careerUrl": "https://zrpgroup.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "4bf036bb-046b-465b-945e-af08b3200b55"
+      ]
+    },
+    {
+      "builtinKey": "2356529a-0bc5-4749-b4c2-e8264ba95b70",
+      "name": "睿智医药",
+      "careerUrl": "https://chempartner.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "99e98e34-b27e-4d92-96cb-127961e588e2",
+      "name": "承葛医药",
+      "careerUrl": "https://treatgut.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "3aab8067-06e8-4d9d-b351-a4560b21502c",
+      "name": "欧普照明股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU646ed9920dcad45af14821b4/mc/index",
+      "aliases": [
+        "欧普照明"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "1ab03725-968d-4d1a-9dfc-cae19d4b1f1e",
+      "name": "广东申菱环境系统股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/shenling/164368?locale=zh-CN#/jobs",
+      "aliases": [
+        "申菱环境"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "1e1d55bd-3a30-4166-8fa1-8f8ff4964237",
+      "name": "晶易医药",
+      "careerUrl": "https://king-eagle.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "faebed5e-397a-43e7-a213-35468b497c56",
+      "name": "宁波金田铜业（集团）股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU663c2abe1eb8053acd9c0e34/mc/position/campus?projectId=203401",
+      "aliases": [
+        "金田集团"
+      ],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ]
+    },
+    {
+      "builtinKey": "da6c495b-fd23-407a-afe2-4afa42e359dc",
+      "name": "精雕科技",
+      "careerUrl": "https://jingdiao.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "2458b893-3c21-40ab-94a1-9a6019e26f7c",
+      "name": "兰剑智能",
+      "careerUrl": "https://blueswords.zhiye.com/jobs?activityGuid=3804da55-14da-48ac-900d-30ba6be25194",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "391ce351-1fab-46ff-8610-9fc04eafab32",
+      "name": "苏州高创运动控制技术有限公司",
+      "careerUrl": "https://servotronix.zhiye.com/campus/jobs",
+      "aliases": [
+        "高创运控"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "67b06089-419f-4d11-910d-3fa33e4ee60a",
+      "name": "深圳信立泰药业股份有限公司",
+      "careerUrl": "https://salubris.hotjob.cn/",
+      "aliases": [
+        "信立泰药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "fd28a4ff-ec05-44eb-84ce-2f5d6482d2a8",
+      "name": "京城机电",
+      "careerUrl": "https://campus.51job.com/jcjd2027/about2.html",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "bcbdf720-69fe-400e-bd5a-76af83698afd",
+      "name": "威高集团有限公司",
+      "careerUrl": "https://weigao.zhiye.com/campus/jobs",
+      "aliases": [
+        "威高控股"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "88f6f57e-0495-4d5f-adb4-c83c93607a50",
+      "name": "美恒公司",
+      "careerUrl": "https://intellicrane.jobs.feishu.cn/mhdl",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "95ef5de3-3d8b-48e1-b702-bd9ba32c2c65",
+      "name": "邯药公司",
+      "careerUrl": "https://hanyao.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "03191fad-391a-4fa7-b3df-266a491f7ec8",
+      "name": "立铠精密科技（盐城）有限公司",
+      "careerUrl": "https://luxcaseict.hotjob.cn/",
+      "aliases": [
+        "立铠精密"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "8151b96f-0094-4110-846a-f7920976f66e",
+      "name": "临晟集团",
+      "careerUrl": "https://adtykl.aliwork.com/o/ltmg/campus",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "3e06e649-6c11-4d3c-89ca-263050567f55",
+      "name": "亘芯悦",
+      "careerUrl": "https://genxinyuecom.zhiye.com/jobs?activityGuid=abd4193f-b115-4336-8760-97c718899fa5",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "8c1c740e-68f4-48ad-a6a7-698a493d0921",
+      "name": "明锐理想科技",
+      "careerUrl": "https://www.magic-ray.com/join.html?sessionid=",
+      "aliases": [
+        "明锐理想"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "301d8785-73a6-4be1-b98b-00b023ad209a",
+      "name": "远大阀门集团有限公司",
+      "careerUrl": "http://jobs.hbyuanda.com:1331/index/Jobcategory/index.html?type=1",
+      "aliases": [
+        "远大阀门集团"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "4cc74ba2-d380-4897-be1a-0d6aec038f1a",
+      "name": "中红医疗",
+      "careerUrl": "https://zhonghongpulin.zhiye.com/jobs?queryId=325bc960-852b-494f-a6a5-407cf8c8c973",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "e4810144-7c6f-4eec-aea4-844d7534c216",
+      "name": "恩斯克投资有限公司",
+      "careerUrl": "https://campus.51job.com/nskchina/about2.html",
+      "aliases": [
+        "恩斯克NSK"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "491a6486-07d3-4862-8188-62a3f9fc8837",
+      "name": "深蓝航天",
+      "careerUrl": "https://shenlan1.zhiye.com/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ]
+    },
+    {
+      "builtinKey": "b576a724-70f9-40bb-8167-df3eb550c398",
+      "name": "翰森制药",
+      "careerUrl": "https://hspharm.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [
+        "豪森"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "10fca170-e919-4828-b76a-d76d27f41789",
+      "name": "广州医药集团有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6a94e5b85e09b14b274b6888/pb/school.html",
+      "aliases": [
+        "广药集团"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "630886d4-cfb4-41ca-a4ec-f75b56f201bf",
+      "name": "临工重机",
+      "careerUrl": "https://lgmg.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "09d70cff-ddb9-40dd-86c4-2e363c53015a",
+      "name": "华润双鹤",
+      "careerUrl": "https://runjob.crc.com.cn/#/position?id=1920364113483874306&websiteId=1920363825775591425",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "d96bd31c-291b-4974-9c1f-9d1c0aa83674",
+      "name": "泰豪集团有限公司",
+      "careerUrl": "https://www.tellhow.cn/join/school-social.html",
+      "aliases": [
+        "泰豪公司"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "0aceebab-ee84-4db6-a8ac-4134256365ea",
+      "name": "神驰机电",
+      "careerUrl": "https://senci.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "58092ffe-396a-49f6-aa81-6429b90bbbaa",
+      "name": "BMC瑞迈特",
+      "careerUrl": "https://bmc-medical.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "e405a2b1-8a54-4977-8401-ac400066f0d8",
+      "name": "三诺生物",
+      "careerUrl": "https://wecruit.hotjob.cn/SU61f12a51bef57c632bf1a7ab/pb/school.html",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b83b1de3-2eab-4390-9a0c-a109b318e1a8",
+      "name": "纵维立方",
+      "careerUrl": "https://anycubic.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0a2ce3a4-e73e-4b7d-b4b8-e7ef72f70768",
+      "name": "诺德凯（苏州）智能装备有限公司",
+      "careerUrl": "https://hrnordkete.zhiye.com/campus/jobs",
+      "aliases": [
+        "诺德凯"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "019ba9de-ce9c-4d8e-8736-c415109b26f2",
+      "name": "利乐包装（昆山）有限公司",
+      "careerUrl": "https://jobs.51job.com/campus/caVjFTNFIwBjAAbQNiAWY.html",
+      "aliases": [
+        "利乐中国"
+      ],
+      "industryKeys": [
+        "fe7a9878-1e7d-4af2-a7c9-9ea915f06caa"
+      ]
+    },
+    {
+      "builtinKey": "aa1203f7-370d-493f-9ea1-3e879023ad7b",
+      "name": "啄木鸟医疗",
+      "careerUrl": "https://z1zgmci7a8s.jobs.feishu.cn/900011/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "2b7d90b2-38c5-45f9-9eb1-6f5ce04e18be",
+      "name": "中山大洋电机股份有限公司",
+      "careerUrl": "https://bomc.zhiye.com/campus/jobs",
+      "aliases": [
+        "大洋电机"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "ba5f4bb4-ce67-4a86-9294-4353b97cc7cc",
+      "name": "凯泉集团",
+      "careerUrl": "https://kaiquanhr.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "fa9b1eff-e0fa-45c1-9d86-913dc1c031e5",
+      "name": "大通宝富",
+      "careerUrl": "https://dartrich.zhiye.com/campus/jobs?LocId=id3206label",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "57533889-d588-42f2-bf1d-d5f469b5e963",
+      "name": "浙江天宇药业股份有限公司",
+      "careerUrl": "https://tianyupharm.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [
+        "天宇股份"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "d742579f-d2d2-4112-b7c6-196a00b66fc6",
+      "name": "安图生物",
+      "careerUrl": "https://wecruit.hotjob.cn/SU62302d64bef57c4972f79a87/mc/position/campus",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "43561879-db6a-45be-ac4e-b1d49ecb6a24",
+      "name": "深圳齐心集团股份有限公司",
+      "careerUrl": "https://comix.zhiye.com/campus/jobs",
+      "aliases": [
+        "齐心集团"
+      ],
+      "industryKeys": [
+        "de5e7cb4-c5c4-47b8-932a-79df22d64be9"
+      ]
+    },
+    {
+      "builtinKey": "007e9c5f-962f-43b3-ac27-ef7a9576e05e",
+      "name": "无锡奥特维科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/wxautowell/45558#/",
+      "aliases": [
+        "奥特维集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0bd22a97-3978-416e-81b5-896f4359caab",
+      "name": "湖南星邦智能装备股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/xingbang/67958#/",
+      "aliases": [
+        "星邦智能"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "58e6a4d2-a394-4f5c-8185-edb9f16bd9eb",
+      "name": "高博医疗集团",
+      "careerUrl": "https://gobroadhealthcare.zhiye.com/campus",
+      "aliases": [],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "5c522d08-5c10-405a-9b3d-485edecac09f",
+      "name": "赛赋医药",
+      "careerUrl": "https://safeglp.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ]
+    },
+    {
+      "builtinKey": "d2c92318-ee18-481f-9130-a4bf1912c02d",
+      "name": "浙江京新药业股份有限公司",
+      "careerUrl": "https://jingxinpharm.zhiye.com/campus/jobs",
+      "aliases": [
+        "京新药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "765b780a-3c78-4ec5-af6e-dec1cde5d30b",
+      "name": "先声药业集团",
+      "careerUrl": "https://wecruit.hotjob.cn/SU61458d83bef57c54dcb4e43f/pb/school.html",
+      "aliases": [
+        "先声药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "937042a5-cfdb-45bf-aca0-f88903d2669e",
+      "name": "华立科技股份有限公司",
+      "careerUrl": "https://holley.zhiye.com/campus/jobs",
+      "aliases": [
+        "华立科技"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "44249bb7-3efc-4304-ba88-8df3032c4e0e",
+      "name": "IQVIA艾昆纬",
+      "careerUrl": "https://careersite.tupu360.com/iqvia/position/index?recruitmentType=CAMPUSRECRUITMENT",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "ed8e6ab3-b98f-427f-8775-1b5eff482e66",
+      "name": "中车长春轨道客车股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64ca15396202cc125d482ab0/mc/position/campus",
+      "aliases": [
+        "中车长客"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ]
+    },
+    {
+      "builtinKey": "64985478-664e-436b-8f70-5af72269e00d",
+      "name": "无锡理奇",
+      "careerUrl": "https://richsys1.zhiye.com/campus/detail?jobAdId=94979205-7074-431b-94d7-8cbd749132e0",
+      "aliases": [
+        "理奇&罗斯"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "d8712fe7-899d-47de-850e-fd02f9f3dfe3",
+      "name": "新界泵业",
+      "careerUrl": "http://hr.shimge.com/humanlist1.aspx?keyword=zz&category_id=0&page=1",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "23c7e834-fc55-4f42-8c69-90237fae738c",
+      "name": "OPT奥普特",
+      "careerUrl": "https://opt.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "98374400-bbcf-4f3e-b392-5d9cd307d33a",
+      "name": "渠梁电子有限公司",
+      "careerUrl": "https://qleltd1.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [
+        "渠梁电子"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "21d522b5-7ee6-4641-9894-28f99b475ee8",
+      "name": "梅花集团",
+      "careerUrl": "https://j8fq0c3gg7.jobs.feishu.cn/905946/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "05603383-1097-4b19-b7aa-bb1f47535fc8"
+      ]
+    },
+    {
+      "builtinKey": "c285f73f-d997-4544-ad56-f5553fa0685c",
+      "name": "无锡药明合联生物技术有限公司",
+      "careerUrl": "https://app.mokahr.com/m/campus-recruitment/wuxixdc/164236?locale=zh-CN&previewKey=552584e26a1e4d23a2053aafe13366cdf3b5d7fea55a4b51bb135f78c974962e#/jobs?3396060=2026&page=1&anchorName=jobsList",
+      "aliases": [
+        "药明合联"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "080be07b-d5ca-4618-a4ea-da8ef8097180",
+      "name": "纵横股份",
+      "careerUrl": "https://jouav.zhiye.com/jobs?activityGuid=aa5a330d-4402-4040-9980-dbd14e38350f",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ]
+    },
+    {
+      "builtinKey": "e29669ce-d91d-45cc-bc1b-fedb76dda8ba",
+      "name": "丰尚公司",
+      "careerUrl": "https://famsun.zhiye.com/campus/jobs",
+      "aliases": [
+        "丰尚"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "ef076baa-74c1-4d36-acca-09f50c524812",
+      "name": "杰瑞集团",
+      "careerUrl": "https://future.jereh.com/campus/jobs?memory=%7B%7D&silence=1&sessionid=",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "195d2203-3519-465a-b741-828d15a8fcd2",
+      "name": "易思维（杭州）科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/isv-tech/170471?locale=zh-CN&sessionid=#/page/2027%20%E5%B1%8A%E6%A0%A1%E5%9B%AD%E6%8B%9B%E8%81%98",
+      "aliases": [
+        "易思维"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "24fd8f93-2fd0-423a-9058-00a0fcea7d5b",
+      "name": "新产业生物",
+      "careerUrl": "https://snibe.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "a4475bbe-0f2a-4b48-b372-05976ef45696",
+      "name": "上海镁信健康科技集团股份有限公司",
+      "careerUrl": "https://jobs.meditrusthealth.com/campus",
+      "aliases": [
+        "镁信健康"
+      ],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ]
+    },
+    {
+      "builtinKey": "b9133363-497f-4fb1-b11a-c0f13683a2a3",
+      "name": "信捷电气",
+      "careerUrl": "https://xinje.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "76ebd622-9ebe-4f3d-8324-9462162fe038",
+      "name": "中元汇吉",
+      "careerUrl": "https://zybio.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "30f56700-8d24-4dd2-be21-22dbc7cdb446",
+      "name": "特灵科技",
+      "careerUrl": "https://careers.tranetechnologies.com/global/zh/etc26",
+      "aliases": [
+        "特灵科技亚太研发中心"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "ad39adbe-e10a-4182-b168-744b4e2da71b",
+      "name": "金光集团APP（中国）",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/jinguangapp/144102#/",
+      "aliases": [
+        "金光APP（中国）"
+      ],
+      "industryKeys": [
+        "fe7a9878-1e7d-4af2-a7c9-9ea915f06caa"
+      ]
+    },
+    {
+      "builtinKey": "887cef47-1cc8-44ac-aa41-e022c1ff0f95",
+      "name": "纵苇科技有限公司",
+      "careerUrl": "https://www.zongweitech.com/zh-CN/position_list/?cid=2",
+      "aliases": [
+        "纵苇科技"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "5eb5c6a5-1535-423f-a82f-0bb51716a170",
+      "name": "山东百诺医药股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/bestcomm/43337#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "百诺医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "933db16c-eae9-4eb5-9046-06c4e2d73fc6",
+      "name": "镁伽科技",
+      "careerUrl": "https://megarobo.zhiye.com/campus/jobs",
+      "aliases": [
+        "镁伽"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0eada64f-ddd9-4d92-aed0-1382181566cb",
+      "name": "深圳市雷赛智能控制股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/leisai/146886?locale=zh-CN#/jobs/",
+      "aliases": [
+        "雷赛智能"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "94f87731-dc7e-4754-95b8-975eb04b3ab7",
+      "name": "广东领益智造股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/lingyiitech/182049?locale=zh-CN#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "领益智造"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "af5e87ce-111c-4d81-b05b-216e9c0f778c",
+      "name": "东莞市盛雄激光先进装备股份有限公司",
+      "careerUrl": "https://stronglaser.zhiye.com/campus/jobs",
+      "aliases": [
+        "盛雄激光"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "20de6448-f4ac-4915-b500-7bd91bb4e8ec",
+      "name": "北京通嘉宏瑞科技股份有限公司",
+      "careerUrl": "https://grand2012.zhiye.com/campus/jobs",
+      "aliases": [
+        "通嘉宏瑞"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b4582ab7-0186-40ce-9c3a-935499efc3d5",
+      "name": "东江控股",
+      "careerUrl": "https://tkgroup.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "302ee2f0-f476-4f5f-9947-303781989c3b"
+      ]
+    },
+    {
+      "builtinKey": "34151b1c-a9ea-42e4-bb9c-e1628c1833f5",
+      "name": "中科微至科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/zhongke/164518?locale=zh-CN#/",
+      "aliases": [
+        "中科微至"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "7334eee2-2805-4acb-8e98-a1dddd5edd93",
+      "name": "一心堂药业集团股份有限公司",
+      "careerUrl": "https://www.yixintanggroup.com/join-us.html?nav=tab5",
+      "aliases": [
+        "一心堂"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ]
+    },
+    {
+      "builtinKey": "3a42c7a7-e17d-4ade-9122-fd21ac8276a0",
+      "name": "深圳盈达信息科技有限公司",
+      "careerUrl": "https://idata.zhiye.com/Campus",
+      "aliases": [
+        "iData盈达"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "be7c74ae-37c3-48b6-9c38-c41227ce83e1",
+      "name": "轴心自控",
+      "careerUrl": "https://careers.axxonauto.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "251d43fb-01f6-4663-bea2-3f50ca09867d",
+      "name": "潍柴雷沃智慧农业科技股份有限公司",
+      "careerUrl": "https://lovol.m.zhiye.com/xyzp.html",
+      "aliases": [
+        "潍柴雷沃智慧农业"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "096b435b-cca5-4f3a-8068-ef929e18c5e2",
+      "name": "软控股份有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0121014765D90000021000",
+      "aliases": [
+        "软控股份"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0c35fe2d-5d27-4454-b6a9-ac43afbb4e78",
+      "name": "恒力重工集团有限公司",
+      "careerUrl": "https://jobs.51job.com/shanghai-mhq/coB2ZUNF88VWkGYQJmUzQ.html",
+      "aliases": [
+        "恒力重工集团"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ]
+    },
+    {
+      "builtinKey": "5032f4f2-eef7-4771-8b72-0839ec2b27ec",
+      "name": "豪迈集团",
+      "careerUrl": "https://himile.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "00375db6-06cb-4573-88d7-24512df0aab0",
+      "name": "泰德激光",
+      "careerUrl": "https://tetelaser.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "9a4e3b2e-3ba3-4c8d-b4ff-51798f0c234b",
+      "name": "巨鲨医疗",
+      "careerUrl": "https://jusha.zhiye.com/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "2be354d8-c3b8-4daa-9ed8-b4adbffea4c8",
+      "name": "圣和药业",
+      "careerUrl": "https://sanhome.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "7af45ed2-6939-43c9-930c-4fe6f943c3ae",
+      "name": "辰显光电",
+      "careerUrl": "https://vistar.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "4698b51b-2301-4823-bdd7-a43ab5a7e617",
+      "name": "梅特勒托利多",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=8652476",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "64803cac-2d52-4288-bc6c-a1b57f08912c",
+      "name": "深圳市科曼医疗设备有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=8949592",
+      "aliases": [
+        "科曼医疗"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "34e96c4a-c8cc-4576-88b6-8c868c79672d",
+      "name": "海特克动力股份有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=9545910",
+      "aliases": [
+        "海特克"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "7d48e7c7-5cbf-4b2b-8c62-b57a45dbe7c8",
+      "name": "新风天域集团",
+      "careerUrl": "https://new-frontier.hotjob.cn/SU66b188951c240e4f7f8eac8c/pb/school.html",
+      "aliases": [
+        "New Frontier Group"
+      ],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "640ea23e-a468-4cb8-9ef5-782d71023bcb",
+      "name": "赫比国际有限公司",
+      "careerUrl": "https://xym.51job.com/wechat/vuectmjobs/#/index?id=FDE9D614-5AB6-46DE-A2B3-AC679286741C&color=31BE88&prd=yddzy",
+      "aliases": [
+        "赫比集团",
+        "Hi-P"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "add7893a-06f8-4385-8319-45984bfeeb20",
+      "name": "飞亚达",
+      "careerUrl": "https://avicsz.zhiye.com/custom/campus?hideAll=true",
+      "aliases": [],
+      "industryKeys": [
+        "7e8f30f6-6085-4831-b39a-f03d9f4239d7"
+      ]
+    },
+    {
+      "builtinKey": "e4be58a6-7123-49f8-9302-57f1991e3eee",
+      "name": "大参林医药集团股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/dslyy/136052?locale=zh-CN#/page/2027%E5%B1%8A%E6%A0%A1%E6%8B%9B",
+      "aliases": [
+        "大参林医药集团",
+        "大参林"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ]
+    },
+    {
+      "builtinKey": "49c6a81c-363d-41da-91b4-aeaae24f4906",
+      "name": "国机重型装备集团股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU66c1ffa81eb8054b1a691126/pb/school.html",
+      "aliases": [
+        "国机重装"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "ec032ab0-5cc3-4f87-9b77-b211eef46c8f",
+      "name": "希奥端",
+      "careerUrl": "https://lecarc.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "8b9f82e3-4e0e-4bbe-bb23-2cdcf6d02f9f",
+      "name": "广州数控设备有限公司",
+      "careerUrl": "https://www.gsk.com.cn/list_40.aspx",
+      "aliases": [
+        "广州数控"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "e531252e-69df-408c-8818-566eb871c84f",
+      "name": "深圳市思特光学科技股份有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0624521988D90000001000?refcode=4440",
+      "aliases": [
+        "思特光学"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "b72525fa-2a2a-4f7c-9d00-1c78a91e58ba",
+      "name": "上药控股有限公司",
+      "careerUrl": "https://sph2.zhiye.com/campus/jobs",
+      "aliases": [
+        "上药控股"
+      ],
+      "industryKeys": [
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ]
+    },
+    {
+      "builtinKey": "641198e9-3ba6-428b-9404-f0aff09dd8fa",
+      "name": "和元生物",
+      "careerUrl": "https://obiosh.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "a3417252-1751-4bcf-bff6-4589602c2feb",
+      "name": "上海和记黄埔医药销售有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=9532340",
+      "aliases": [
+        "和黄医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "f90a5049-c00a-43a4-84b3-c4d1d53ec2dc",
+      "name": "都正生物",
+      "careerUrl": "https://duxact.zhiye.com/jobs?queryId=642bcc9c-7bd2-4d02-8d1d-fc0d04dfe90e",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "c0ccda6b-d3e7-44d5-8020-fb2485fc634c",
+      "name": "深圳市理邦精密仪器股份有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=9588338",
+      "aliases": [
+        "理邦仪器"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "a8b61c01-c5a0-4617-988a-b4618b70f6b5",
+      "name": "伊之密",
+      "careerUrl": "https://yizumi.zhiye.com/jobs?activityGuid=cca31cf4-18a9-435b-bcab-4cae95c1a3e0",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b1e0b1de-1c03-4c9a-85a5-2c6193260f3b",
+      "name": "中信重工机械股份有限公司",
+      "careerUrl": "https://join.citic-hic.com.cn/#/pages/school/school?id=undefined",
+      "aliases": [
+        "中信重工"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "4e637519-d417-4d0e-935b-77e7b266fcef",
+      "name": "森永股份",
+      "careerUrl": "http://kenei00.naga-mori.cn:8125/SR_JOB/SRindex.aspx?type=2",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "3fab5d1c-b28a-48cd-b20d-03478bd51d0a",
+      "name": "深圳市国微电子有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1486456670D90000005000?refcode=4444",
+      "aliases": [],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "0355b498-6a09-4eb4-8439-8799720c7bdb",
+      "name": "树根科技",
+      "careerUrl": "https://irootech.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ]
+    },
+    {
+      "builtinKey": "549069fe-c9f8-4166-90ad-575cccad5f50",
+      "name": "皖仪科技",
+      "careerUrl": "https://wayeal.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "41e0d19f-08af-4955-9b30-f7075d4134e0",
+      "name": "江苏海四达电源有限公司",
+      "careerUrl": "https://highstar.zhiye.com/campus/jobs",
+      "aliases": [
+        "海四达"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "ed2325a7-394c-41f1-8ef9-5aacfc5a9677",
+      "name": "盛合晶微半导体（江阴）有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/sjsemi/144842?locale=zh-CN",
+      "aliases": [
+        "盛合晶微"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "ddb6738f-c5c8-42bf-a8c7-72c727f44cb8",
+      "name": "眸芯科技",
+      "careerUrl": "https://molchip.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "a10aa90c-9385-48d2-b322-80a68d951daa",
+      "name": "泉峰科技",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6396cdcc0dcad40b2a419d69/pb/school.html",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "b09e29cc-4ebd-45cb-9cb5-f51bf408469c",
+      "name": "深圳晶泰科技有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/jingtai/2143?locale=zh-CN#/jobs/",
+      "aliases": [
+        "晶泰科技",
+        "XtalPi"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "686ded22-9609-4df3-95c4-2e84b74c66e7",
+      "name": "朗坤科技",
+      "careerUrl": "https://leoking.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ]
+    },
+    {
+      "builtinKey": "efea51c6-c909-4b04-84bc-fda838fd6b86",
+      "name": "麦克传感",
+      "careerUrl": "https://www.x-dhr.com/r.do?method=portal&o=1DC4C00080B81DE3BD14F2C5F44F83902D4DE4FB1836AADF&p=8D7AC68803B028E59FCC78CD08605696019088BCC85D7615",
+      "aliases": [
+        "麦克传感器"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "7c226cf2-27ec-4d88-ab8a-3aff185be391",
+      "name": "凯瑞斯德集团",
+      "careerUrl": "https://cqpharm.zhiye.com/campus/jobs",
+      "aliases": [
+        "凯瑞斯德"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "d743d2a8-2675-4d56-8182-5bf258a3004d",
+      "name": "苏州安益谱仪器有限公司",
+      "careerUrl": "https://www.anyeep.com/careers",
+      "aliases": [
+        "安益谱",
+        "安益谱A-Mass"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "9ffdf6e2-2a85-4f76-87f3-031bcd8790cb",
+      "name": "伊顿中国",
+      "careerUrl": "https://app.mokahr.com/social-recruitment/eaton/166618?locale=zh-CN#/jobs",
+      "aliases": [
+        "伊顿",
+        "Eaton"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "cad83698-74c0-4a17-b508-5fae277db664",
+      "name": "广州德擎光学科技有限公司",
+      "careerUrl": "https://www.liepin.com/campus/project-detail/13806354/",
+      "aliases": [
+        "德擎光学科技"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "c16f73cb-5f84-4976-882e-88c849a329e2",
+      "name": "松诺集团",
+      "careerUrl": "https://itead.zhiye.com/campus/jobs",
+      "aliases": [
+        "SONOFF",
+        "CoolKit"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "f411df6a-60df-4065-bfc0-5304761d35dd",
+      "name": "上海医药集团",
+      "careerUrl": "https://sph.zhiye.com/jobs?activityGuid=5781f207-d5fd-4422-9b17-b96db1b003e4",
+      "aliases": [
+        "上海医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "d0b80c94-0516-40ff-bf8e-206811fbd092",
+      "name": "基恩士（中国）有限公司",
+      "careerUrl": "https://www.keyence.com.cn/ss/careers/recruitment.jsp",
+      "aliases": [
+        "基恩士",
+        "KEYENCE"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "1fd8cc81-6809-45d3-9099-f9634806748b",
+      "name": "海克斯康（深圳）",
+      "careerUrl": "https://hexagonhms.hotjob.cn/SU69364aceb2d3b37709c47fc4/pb/school.html",
+      "aliases": [
+        "HEXAGON"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "e556143f-5a4a-4003-aa58-1fe3a152cc96",
+      "name": "上海宇量昇",
+      "careerUrl": "https://wecruit.hotjob.cn/SU63847447bef57c649c3505b5/mc/position/campus",
+      "aliases": [
+        "宇量昇"
+      ],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "a4da740f-ca46-4340-9a2e-43b3482c65d5",
+      "name": "武汉格蓝若精密技术有限公司",
+      "careerUrl": "https://oetsky.zhiye.com/campus/jobs",
+      "aliases": [
+        "格蓝若精密"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "7d564728-8350-42a7-8445-af65351a2b44",
+      "name": "平高集团有限公司",
+      "careerUrl": "https://campus.51job.com/pgjt2027/jobs.html",
+      "aliases": [
+        "平高集团"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "c6890438-68ca-4b2f-8839-6412a56e3d24",
+      "name": "中国机械工业集团有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64b60d25bef57c7e363ff1a3/mc/position/campus?projectId=108401",
+      "aliases": [
+        "国机集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "846f9310-ed83-4a07-8fea-e01e8ea2dde9",
+      "name": "海天集团",
+      "careerUrl": "https://haitian.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "24104296-cf08-42cd-bb8d-ba3241bc004f",
+      "name": "锐健集团",
+      "careerUrl": "https://campus.51job.com/rejoin2026/p2.html",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "fac02926-d0ce-4a5c-90bd-8a2e09ecbc9f",
+      "name": "齐鲁制药集团有限公司",
+      "careerUrl": "https://qilu-pharma.zhiye.com/campus/jobs",
+      "aliases": [
+        "齐鲁制药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "1e7cb2cd-7236-4511-b921-d9522dfd9207",
+      "name": "海目星激光",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/hymson/144827?locale=zh-CN#/jobs",
+      "aliases": [
+        "海目星"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "3068b5f6-7b80-4d5e-9cae-1dd951085c25",
+      "name": "森松（Morimatsu）",
+      "careerUrl": "https://app.mokahr.com/campus_apply/morimatsu/40041#/?anchorName=default_joblist&sourceToken=",
+      "aliases": [
+        "森松制药"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "54166283-55e5-4d5e-b285-88bab508bde5",
+      "name": "天隆科技",
+      "careerUrl": "https://medtl2.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "ab3650b9-e5a5-4a13-b0c9-3eb89d5be3fb",
+      "name": "有方（合肥）医疗科技有限公司",
+      "careerUrl": "https://jobs.51job.com/all/co4649923.html",
+      "aliases": [
+        "有方医疗"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "130ac22d-5008-437e-9371-7afe6ee8a6ed",
+      "name": "深圳市吉泰科驱动技术有限公司",
+      "careerUrl": "https://webapp.zhaopin.com/2026/hd/szsjt0907ZL82493/jobs/index.html",
+      "aliases": [
+        "吉泰科电气"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "debde8dd-3b06-45f4-85cd-9f74ccdc51c6",
+      "name": "东阿阿胶股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU638578550dcad415783a7882/mc/position/campus",
+      "aliases": [
+        "东阿阿胶"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "9d1ee7b3-01be-4e33-842e-6a6e1b076331",
+      "name": "杭州民生药业股份有限公司",
+      "careerUrl": "https://mspharm2.zhiye.com/campus/jobs",
+      "aliases": [
+        "杭州民生药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "afecaa0a-a35a-4977-b4b8-a573f1dd7215",
+      "name": "南京正大天晴制药有限公司",
+      "careerUrl": "https://njcttq1.zhiye.com/campus/jobs",
+      "aliases": [
+        "南京正大天晴"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "2f729dc8-d7b5-4ce9-a079-819f47478b9c",
+      "name": "成都迪康药业股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU664fe91a1c240e071a5d5001/mc/position/campus",
+      "aliases": [
+        "迪康药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "40dcca65-0be6-4815-980d-a8765123dd96",
+      "name": "东曜药业有限公司",
+      "careerUrl": "https://campus.51job.com/biodlinkBIOPHARM2026/job.html",
+      "aliases": [
+        "东曜药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "89f1d983-aefa-430d-84c7-d82c386d83a5",
+      "name": "远大医药集团有限公司",
+      "careerUrl": "https://job.grandpharma.cn/",
+      "aliases": [
+        "远大医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "ae31a750-f182-4b4f-9853-6a89669df5ab",
+      "name": "上海美迪西生物医药股份有限公司",
+      "careerUrl": "https://ihr360.com/d/vc40SM9",
+      "aliases": [
+        "美迪西"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "26983568-d047-49d0-ae48-54c7d2c10aa4",
+      "name": "武汉迈维代谢生物科技股份有限公司",
+      "careerUrl": "https://join.metware.cn/",
+      "aliases": [
+        "迈维代谢"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "c8b2e9b1-6987-4ae1-a3bc-4ad5974c6b7c",
+      "name": "天康生物股份有限公司",
+      "careerUrl": "https://tecon.m.zhiye.com/#/jobs?jc=2",
+      "aliases": [
+        "天康生物"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "bd41b647-8d90-424d-8190-a7420a145506",
+      "name": "广州维力医疗器械股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6135e2ee2f9d245c993d0bc0/pb/school.html",
+      "aliases": [
+        "维力医疗"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0c7a3d64-a105-44f2-b6fe-399f291a5284",
+      "name": "苏州玖钧智能装备有限公司",
+      "careerUrl": "https://static.tparobot.cn/file/index.html#jobs",
+      "aliases": [
+        "玖钧传动"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "855ceaf2-b997-490d-a31c-b5cb8dfb218f",
+      "name": "以岭药业",
+      "careerUrl": "https://yiling.zhiye.com/campus/jobs?queryId=df784f3a-a6d4-45c8-b15a-1898d092ee3c",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "95c006bf-4e23-4004-98bb-dc8beca09134",
+      "name": "华恒生物",
+      "careerUrl": "https://ehuaheng.zhiye.com/Campus",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "32f50901-305e-4497-9735-968fbc948272",
+      "name": "新毅东",
+      "careerUrl": "https://neweastech.zhiye.com/jobs?queryId=76a04d9e-8778-42e8-82ed-8bcb38d16240",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "cf137c39-67b8-48a7-a584-f435a8945acd",
+      "name": "桂林南药",
+      "careerUrl": "https://fosunpharma.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "2a8bf210-6cde-436e-be98-0adb5e6e1b0d",
+      "name": "漱玉平民",
+      "careerUrl": "https://sypm1.zhiye.com/campus/detail?jobAdId=9587584e-0368-4ba4-8980-abcd0d9ddacb",
+      "aliases": [],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ]
+    },
+    {
+      "builtinKey": "9a04f316-d91f-43f8-9163-c83fadd8c21e",
+      "name": "益诺思",
+      "careerUrl": "https://innostar.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "3e161ffa-1998-4efc-be49-0577c1f24461",
+      "name": "赛业集团",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/cyagen/100175#/jobs",
+      "aliases": [
+        "赛业生物"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "e628e870-8c7b-487f-811e-d3c7d45b4e2d",
+      "name": "帝迈生物",
+      "careerUrl": "https://dymind.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "2ee0defe-1c83-4e9b-8327-9f15f751a65b",
+      "name": "深圳精智达技术股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/seichitech/140888?locale=zh-CN#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "精智达"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "9172d926-7b02-48d1-b885-4000e9347eb9",
+      "name": "数坤科技",
+      "careerUrl": "https://shukun.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ]
+    },
+    {
+      "builtinKey": "4ccba5c1-fd79-42fe-bb8c-da4ecd0848fb",
+      "name": "英科医疗",
+      "careerUrl": "https://global-intco.jobs.feishu.cn/840753/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "302ee2f0-f476-4f5f-9947-303781989c3b"
+      ]
+    },
+    {
+      "builtinKey": "1966295a-4222-4719-a175-1ce649265128",
+      "name": "利欧集团",
+      "careerUrl": "https://leoglobal.jobs.feishu.cn/leoxz/",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "9a059f6f-cd3a-4fff-9f29-14b5f102a33e",
+      "name": "赛乐医疗",
+      "careerUrl": "https://sifary.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "4a84b806-700c-4338-a6d1-6981c08cdcba",
+      "name": "广东蓝光智能科技有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/blovelight/45215#/jobs",
+      "aliases": [
+        "蓝光智能"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "2d9de94a-2d31-462b-8a5f-098f34650b81",
+      "name": "普源精电",
+      "careerUrl": "https://rigolportal.jobs.feishu.cn/campus/position/list?spread=9HENZ3G",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "494382f9-6cc5-48d1-bd45-d9c3d33738ab",
+      "name": "浙江新和成股份有限公司",
+      "careerUrl": "https://xinhecheng1.zhiye.com/campus/jobs",
+      "aliases": [
+        "新和成"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "0209e76d-1bcc-4bc3-9563-24521e055155",
+      "name": "福建省晋华集成电路有限公司",
+      "careerUrl": "https://www.jhicc.com/Recruiting/Campus/Index",
+      "aliases": [
+        "晋华集成电路"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "651dd1d7-df60-4fc4-b3e0-6566557cb279",
+      "name": "天正电气",
+      "careerUrl": "https://tengen.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "fd200293-fcb5-4db0-98ec-0f6eb5ad246a",
+      "name": "赢合科技",
+      "careerUrl": "https://yhwins2.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "ad607927-363e-4b59-917a-41c26893d14f",
+      "name": "北芯生命",
+      "careerUrl": "https://insight-med.zhiye.com/campus",
+      "aliases": [
+        "北芯生命科技"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "be7a6bac-72c8-4719-9381-008275ec34e0",
+      "name": "深圳市尚水智能股份有限公司",
+      "careerUrl": "https://ss-smartech.zhiye.com/campus/jobs",
+      "aliases": [
+        "尚水智能"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "aa4dd54a-d359-4189-8e58-e3dbb2b65fa1",
+      "name": "广东利元亨智能装备股份有限公司",
+      "careerUrl": "https://liyuanheng.zhiye.com/campus/jobs?queryId=bad38225-be23-4c92-af76-7ff14708cfcd",
+      "aliases": [
+        "利元亨"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b207d9e6-f642-4e4f-ae74-940cd91ebb11",
+      "name": "中机中联工程有限公司",
+      "careerUrl": "https://cmcu.zhiye.com/campus/jobs",
+      "aliases": [
+        "中机中联"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ]
+    },
+    {
+      "builtinKey": "2ad96240-6d9f-4fae-8a22-cf0647896bdb",
+      "name": "南京天加环境科技有限公司",
+      "careerUrl": "https://tica.zhiye.com/campus/jobs?memory=&silence=1",
+      "aliases": [
+        "天加"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "48e72654-69bc-4746-8af9-65800fd434df",
+      "name": "麦米电气",
+      "careerUrl": "https://wecruit.hotjob.cn/SU628dc1272f9d243f296ed241/mc/position/campus",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "a0cd49a3-b7fc-4cee-875c-80061756627f",
+      "name": "英维克",
+      "careerUrl": "https://envicool.zhiye.com/campus",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "57d6d93b-980a-4fb2-abdb-03f8e73fca7a",
+      "name": "福建雪人集团股份有限公司",
+      "careerUrl": "https://snowman.zhiye.com/campus/jobs",
+      "aliases": [
+        "雪人集团"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "3a646864-5185-41c6-86b7-9420a69bf43f",
+      "name": "广东拓斯达科技股份有限公司",
+      "careerUrl": "https://www.topstarltd.com/lang-cn/recruitinglist/006002003.html",
+      "aliases": [
+        "拓斯达"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "7396331d-46c1-49e0-9d48-b2762e4e34dd",
+      "name": "迈安德集团有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/mad/142632?locale=zh-CN#/",
+      "aliases": [
+        "迈安德集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "f4b2eb03-349b-4bf2-a536-7feb2e3a41db",
+      "name": "诺因智能",
+      "careerUrl": "https://knowinai.jobs.feishu.cn/267533/?spread=Z4X6DD4",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b360891c-f1e3-4fa7-8026-f7fd481c862a",
+      "name": "中国电子科技集团公司第十研究所",
+      "careerUrl": "https://campus.51job.com/cetc10/campus.html",
+      "aliases": [
+        "中电科十所"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "c5797850-a0a8-4f29-b7c0-02d53d50b50a",
+      "name": "清原农冠",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/kingagroot/56082?locale=zh-CN#/jobs?page=1&anchorName=jobsList",
+      "aliases": [],
+      "industryKeys": [
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ]
+    },
+    {
+      "builtinKey": "334ef063-58a6-4516-bd12-48a51a574fd1",
+      "name": "浙江晶盛机电股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/jsjd/118048?locale=zh-CN#/jobs/",
+      "aliases": [
+        "晶盛机电"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "38da2431-5171-47a2-9f83-18c78cae35af",
+      "name": "江苏恒立液压股份有限公司",
+      "careerUrl": "https://www.henglihydraulics.com/col47/list",
+      "aliases": [
+        "恒立液压"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "527f39ec-fe71-4928-b365-b703f377b7d4",
+      "name": "杭州口腔医院",
+      "careerUrl": "https://gatewaytx.eyar.com/hrm_job_h5/index.html#/pages/index/index",
+      "aliases": [],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "84834105-fbc2-4f13-89b1-7039777ada11",
+      "name": "深圳市大族数控科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/hanscnc/118577?locale=zh-CN#/",
+      "aliases": [
+        "大族数控"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "2379e52a-7666-4ec0-a59c-f33f342b9dbc",
+      "name": "翔宇实业集团有限公司",
+      "careerUrl": "https://snyu1.zhiye.com/campus",
+      "aliases": [
+        "翔宇"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ]
+    },
+    {
+      "builtinKey": "eddda9a2-4fe3-47de-a26f-181bce21d801",
+      "name": "中国机械总院集团北京机电研究所有限公司",
+      "careerUrl": "https://camzhaopin.zhiye.com/custom/jds",
+      "aliases": [
+        "中国机械总院机电所"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "c2b9ee8d-a592-4146-9199-38df6408d857",
+      "name": "前海人寿广州总医院",
+      "careerUrl": "https://gz-foreseahealth.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "a0b31f04-719b-49d2-a3c4-52296f37ab52",
+      "name": "太原重型机械集团有限公司",
+      "careerUrl": "https://zp.tz.com.cn:10443/recruit/#/portal_job_list?job_class=campus",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "22d0a59d-d432-45c2-be76-3382301a27df",
+      "name": "山东临工工程机械有限公司",
+      "careerUrl": "https://hr.sdlg.cn/recruit#/portal_job_detail?id=_HB4_MzIzODc%253D",
+      "aliases": [
+        "山东临工",
+        "山东临工集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b321d749-cea3-4a77-bbcb-946aa0979c2d",
+      "name": "日立能源",
+      "careerUrl": "https://hitachienergy.zhiye.com/campus/jobs?sessionid=",
+      "aliases": [
+        "Hitachi Energy"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "ae3d9c1d-e1f9-4e87-9904-47991553a1e8",
+      "name": "云南白药集团股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6136b970bef57c3b638162c4/pb/school.html",
+      "aliases": [
+        "云南白药集团"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "87e684cc-c610-470f-bb7c-ea559149485a",
+      "name": "东阳光集团",
+      "careerUrl": "https://hec.zhiye.com/campus/jobs",
+      "aliases": [
+        "东阳光"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "2a2ffd8c-a7f3-46e2-86a7-13c1dff47b42",
+      "name": "宝时得",
+      "careerUrl": "https://positec.hotjob.cn/",
+      "aliases": [
+        "Positec"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "2fbfac37-fc9f-4d36-b78f-0d3ea65b2f5b",
+      "name": "中电太极（集团）有限公司",
+      "careerUrl": "https://cetctj.zhiye.com/campus/jobs",
+      "aliases": [
+        "电科太极"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "bd2fc159-63e8-44db-8307-d7ca5ae66fc7",
+      "name": "建华控股",
+      "careerUrl": "https://jianhuabm.zhiye.com/jobs?queryId=262333a3-8b82-400c-8f9f-c57811033059",
+      "aliases": [],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b"
+      ]
+    },
+    {
+      "builtinKey": "ab84b4af-a514-4013-84ba-6c83e9acb0be",
+      "name": "南方水泥有限公司",
+      "careerUrl": "https://scement4.zhiye.com/",
+      "aliases": [],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b"
+      ]
+    },
+    {
+      "builtinKey": "00c932c0-74b2-4a8c-9d30-c5e43e0860a7",
+      "name": "派克汉尼汾",
+      "careerUrl": "https://parker.51job.com/view/page3.html?sessionid=",
+      "aliases": [
+        "Parker Hannifin"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "f301a873-85f7-49d1-aee8-65617dc7f14a",
+      "name": "厦门建发健康集团有限公司",
+      "careerUrl": "https://chinacdc.zhiye.com/jfyl?key=yiliao&class=2#hot",
+      "aliases": [
+        "建发健康"
+      ],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "f4569092-8c31-431e-8d1a-14114bb69105",
+      "name": "欣旺达",
+      "careerUrl": "https://sunwodacampus.zhiye.com/custom/fb00a48c-8c6e-294f-b4c8-04a45422015c",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "b6d49581-0905-47ae-bcf1-488f7388a7e0",
+      "name": "世和基因",
+      "careerUrl": "https://wecruit.hotjob.cn/SU62e91e972f9d2406f5226f3d/mc/position/campus",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "03722147-9c49-41f9-b77e-706ff17603c2",
+      "name": "湖北华宸绿色科技有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=9206338",
+      "aliases": [
+        "华宸绿科"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ]
+    },
+    {
+      "builtinKey": "bdbb007b-90b4-4fcd-b3bd-2cb8b3c1aa5e",
+      "name": "高标科技",
+      "careerUrl": "https://kjgb.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "6906ea59-c11a-4199-9655-72094009ae85",
+      "name": "深圳市辰卓科技股份有限公司",
+      "careerUrl": "https://hire.dingtalk.com/referralWebsite?corpId=ding36dd1b1a0462e39c&jobId=undefined&referralUserId=17459148775841376&referralUserName=Demi&showmenu=false&dd_share=false",
+      "aliases": [
+        "辰卓科技"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ]
+    },
+    {
+      "builtinKey": "3892fc6d-6a3f-4876-a4b2-cc846d720f54",
+      "name": "农夫山泉股份有限公司",
+      "careerUrl": "https://jobs.yst.com.cn/campus-recruitment/yst/68367#/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "10fc8a4f-14cf-45d4-8ca6-3d1c905335d3"
+      ]
+    },
+    {
+      "builtinKey": "6f270fcd-aca6-4b79-8c3b-bb075b6daf78",
+      "name": "鲁南制药集团",
+      "careerUrl": "https://hcm.lunan.com.cn/recruit?sessionid=#/portal_job_list?job_class=campus",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "82136231-a3d6-4968-a942-925ef0ef21b2",
+      "name": "伊美尔集团",
+      "careerUrl": "https://evercare.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "09dc3b79-f653-4a7f-930c-e34429247b2c"
+      ]
+    },
+    {
+      "builtinKey": "369cbc83-92a7-4375-97a3-aa78f3cf8e7f",
+      "name": "深圳熙斯特新能源技术有限公司",
+      "careerUrl": "https://job.91boshuo.com/?ct=MTk2MzEzNjc0NDE2NDYxNDE0Ng==",
+      "aliases": [
+        "熙斯特"
+      ],
+      "industryKeys": [
+        "77b75116-b077-4581-9c43-8b0749566106"
+      ]
+    },
+    {
+      "builtinKey": "2bf742aa-bda9-4a5f-8a41-82593ca77b27",
+      "name": "中电建装备集团有限公司",
+      "careerUrl": "https://zhaopin.powerchina.cn/h5/detail/453",
+      "aliases": [
+        "中国电建装备集团"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "4c42d38c-caf8-4bd7-bab2-6b328e3fc15d",
+      "name": "中国电子科技集团公司第三十二研究所",
+      "careerUrl": "https://wecruit.hotjob.cn/SU66c447a01eb805432564cfaf/mc/position/campus",
+      "aliases": [
+        "中国电科32所"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ]
+    },
+    {
+      "builtinKey": "02eecad8-d318-4032-9e3e-e9a0380ee97e",
+      "name": "北京天助畅运医疗技术股份有限公司",
+      "careerUrl": "https://www.temedical.com/jrtz/tzzp/xyzp/",
+      "aliases": [
+        "天助畅运"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "2269439a-9626-48c3-aef3-7c5398e344dd",
+      "name": "敏捷医疗科技（苏州）有限公司",
+      "careerUrl": "https://www.agibot.cn/recruiting/campus.html",
+      "aliases": [
+        "AGIBOT敏捷"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "05b71dec-b9ee-44c8-94bb-fd0424cd68c3",
+      "name": "博众精工科技股份有限公司",
+      "careerUrl": "https://bozhon3.zhiye.com/campus/jobs",
+      "aliases": [
+        "博众精工"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "0d730caa-ca2d-41a9-9263-09fc64a4a91e",
+      "name": "保定钞票纸业有限公司",
+      "careerUrl": "https://campus.51job.com/bdcp2026/jobs.html",
+      "aliases": [],
+      "industryKeys": [
+        "fe7a9878-1e7d-4af2-a7c9-9ea915f06caa"
+      ]
+    },
+    {
+      "builtinKey": "5acaba38-d585-478b-81f4-9d07048de8b3",
+      "name": "振德医疗",
+      "careerUrl": "https://zhende1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "aa42e39a-497b-4a8e-bb4b-0b7541e58e9e",
+      "name": "江苏恩华药业股份有限公司",
+      "careerUrl": "https://hcm.nhwa-group.com/recruit/#/portal_job_list?job_class=campus&company_id=2677&contract_unit=17087523",
+      "aliases": [
+        "江苏恩华药业"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "eeb90021-9e97-42e0-9188-e0851529595c",
+      "name": "马应龙药业集团股份有限公司",
+      "careerUrl": "https://jobs.51job.com/all/coCG8HY1AzUWkPagZtB2IBMg.html?timestamp__1258=n4mx2DnDcDgC0QDsD7mK0Dkin5wggxdgbD",
+      "aliases": [
+        "马应龙药业集团"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "cdd85037-bde9-41bb-a787-6d2c52570872",
+      "name": "安美科技股份有限公司",
+      "careerUrl": "https://amer.m.zhiye.com/#/jobs?code=9c89366f-ccbd-48f5-9a9e-81e69e569785&shareid=af7be042-4a1f-4d77-a79b-4edf93c1a154&token=29edadc5d4cd6ba68dbcb462e1f514b9",
+      "aliases": [
+        "安美集团"
+      ],
+      "industryKeys": [
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ]
+    },
+    {
+      "builtinKey": "ee0fbd17-f67e-4944-8a23-6fc4fe7fd933",
+      "name": "威卡中国",
+      "careerUrl": "https://wika.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
+      ]
+    },
+    {
+      "builtinKey": "87cf6e37-a427-47a7-b6c7-2ae2e825d4e9",
+      "name": "天津医药集团",
+      "careerUrl": "https://tjph1.zhiye.com/",
+      "aliases": [],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ]
+    },
+    {
+      "builtinKey": "8323caa4-3efd-4099-8f6c-e9819707ba0a",
+      "name": "福达控股集团有限公司",
+      "careerUrl": "https://www.chinafuda.com/fdjt_rczp.aspx",
+      "aliases": [
+        "福达集团"
+      ],
+      "industryKeys": [
+        "77b75116-b077-4581-9c43-8b0749566106"
+      ]
+    },
+    {
+      "builtinKey": "98ec792e-37f1-49e5-af52-24a765263f34",
+      "name": "南京康尼机电股份有限公司",
+      "careerUrl": "https://kangni.zhiye.com/campus/jobs",
+      "aliases": [
+        "康尼机电"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ]
+    },
+    {
+      "builtinKey": "bfc5fba9-1a5c-45e8-a15c-60fcc325e796",
+      "name": "深圳市英威腾电气股份有限公司",
+      "careerUrl": "https://invt.zhiye.com/campus?sessionid=",
+      "aliases": [
+        "英威腾"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "fc9dc2fd-5d5e-41f3-943e-93e3af634957",
+      "name": "广东博迈医疗科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/brosmed/146155?locale=zh-CN#/jobs",
+      "aliases": [
+        "博迈医疗"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "b6170cf2-219f-41f9-a346-50683372d4ea",
+      "name": "基蛋生物科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/getein/74361#/jobs",
+      "aliases": [
+        "基蛋生物"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ]
+    },
+    {
+      "builtinKey": "a300cec8-63ee-4665-8f2a-3aac4f6e6add",
+      "name": "浙江捷昌线性驱动科技股份有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=8941858",
+      "aliases": [
+        "捷昌驱动"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ]
+    },
+    {
+      "builtinKey": "3ae2571f-0726-4f0d-a8d6-c59fc21df1ed",
+      "name": "河南卫华重型机械股份有限公司",
+      "careerUrl": "https://job.craneweihua.com/recruit?type=2&unit_id=0",
+      "aliases": [
+        "卫华集团"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ]
+    },
+    {
+      "builtinKey": "49391826-5248-47bb-9ff3-0382355ed22d",
+      "name": "中国医药健康产业股份有限公司",
+      "careerUrl": "https://genertec.zhiye.com/custom/7a34f1fa-99fc-d287-e761-c9dc230e5baa?oid=24&ptid=&locid=&kw=",
+      "aliases": [
+        "中国医药"
+      ],
+      "industryKeys": [
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
       ]
     }
   ]

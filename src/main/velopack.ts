@@ -7,13 +7,14 @@ import { promises as fsp } from 'node:fs'
 import { UpdateManager } from 'velopack'
 import { getStorageRoot } from './config'
 import { ROOT_UNINSTALLER } from './installation-paths'
-import { registerChannel } from './ipc/register-channel'
+import { registerChannel, sendToTrustedWindow } from './ipc/register-channel'
 import { AppServiceError } from './services/errors'
-import { DesktopUpdateService } from './update-service'
+import { DesktopUpdateService, type UpdateProgressReporter } from './update-service'
 import type { DatabaseManager } from './database'
 import type { AgentCoordinator } from './agent/coordinator'
 import { createRollbackPoint, preserveRollbackPackage } from './update-rollback'
 import { waitForMcpSessions, updateFreezePath } from './update-freeze'
+import { logFault, reportFault } from './diagnostics'
 
 // Velopack detects GitHub sources and resolves release assets from the repository.
 export const UPDATE_REPOSITORY_URL = 'https://github.com/baozha2023/JobTrail'
@@ -91,11 +92,10 @@ export async function markApplicationHealthy(): Promise<void> {
     stdio: 'ignore',
     windowsHide: true,
   })
-  child.once('error', () =>
-    console.error('Root launcher refresh could not start; retry on next launch'),
-  )
+  child.once('error', (error) => logFault('update.refresh-launcher', error))
   child.once('exit', (code) => {
-    if (code !== 0) console.error('Root launcher refresh deferred; retry on next launch')
+    if (code !== 0)
+      reportFault({ source: 'main', operation: 'update.refresh-launcher', code: 'PROCESS_EXITED' })
   })
   child.unref()
 }
@@ -107,6 +107,10 @@ export function registerVelopackIpc(
   let service: DesktopUpdateService | undefined
   let closing = false
   let healthCommit: Promise<void> | undefined
+  const reportProgress =
+    (attemptId: number): UpdateProgressReporter =>
+    (progress) =>
+      sendToTrustedWindow('velopack:progress', { attemptId, ...progress })
   const getService = () => {
     if (closing) throw new AppServiceError('VALIDATION_ERROR', '应用正在退出')
     if (
@@ -151,11 +155,15 @@ export function registerVelopackIpc(
             createdAt: new Date().toISOString(),
           })
         } catch (error) {
+          logFault('update.prepare', error)
           try {
             await Promise.all([
               fsp.rm(pendingPath, { force: true }),
               fsp.rm(freezePath, { force: true }),
             ])
+          } catch (cleanupError) {
+            logFault('update.rollback', cleanupError)
+            throw cleanupError
           } finally {
             agent.resumeAfterUpdate()
           }
@@ -187,9 +195,11 @@ export function registerVelopackIpc(
     return true
   })
   registerChannel('velopack:check-for-update', () => getService().check())
-  registerChannel('velopack:download-update', () => getService().download())
-  registerChannel('velopack:apply-update', async () => {
-    await getService().apply()
+  registerChannel('velopack:download-update', (attemptId) =>
+    getService().download(reportProgress(attemptId)),
+  )
+  registerChannel('velopack:apply-update', async (attemptId) => {
+    await getService().apply(reportProgress(attemptId))
     closing = true
     setImmediate(() => app.quit())
     return true

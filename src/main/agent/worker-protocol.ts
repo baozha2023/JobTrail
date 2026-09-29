@@ -30,5 +30,5 @@ export type AgentWorkerResponse =
   | { kind: 'ready' }
   | { kind: 'event'; jobId: string; event: AgentEvent }
   | { kind: 'finished'; jobId: string; errorCode?: AgentEventErrorCode }
-  | { kind: 'init-error'; error: string }
+  | { kind: 'init-error'; errorCode: AgentEventErrorCode }
   | { kind: 'closed' }

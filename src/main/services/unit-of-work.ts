@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import { logFault } from '../diagnostics'
 import { assertUpdateWritable } from '../update-freeze'
 
 type SqliteDatabase = InstanceType<typeof Database>
@@ -48,7 +49,7 @@ export class UnitOfWork {
         try {
           callback()
         } catch (error) {
-          console.error('事务提交后清理失败', error)
+          logFault('database.post-commit', error)
         }
       }
       return result

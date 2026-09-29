@@ -8,6 +8,7 @@ import { createServiceContainer } from './service-container'
 import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE } from './database'
 import { mcpSessionDirectory, updateFreezePath } from './update-freeze'
 import { restoreDirectory } from './backup-restore'
+import { logFault } from './diagnostics'
 
 function requiredEnvironment(name: 'JOBTRAIL_MCP_ROOT' | 'JOBTRAIL_MCP_VERSION'): string {
   const value = process.env[name]?.trim()
@@ -34,7 +35,13 @@ const leaseDirectory = mcpSessionDirectory(paths.root)
 fs.mkdirSync(leaseDirectory, { recursive: true })
 const leasePath = path.join(leaseDirectory, `${process.pid}-${randomUUID()}`)
 fs.writeFileSync(leasePath, '', { flag: 'wx' })
-process.once('exit', () => fs.rmSync(leasePath, { force: true }))
+process.once('exit', () => {
+  try {
+    fs.rmSync(leasePath, { force: true })
+  } catch (error) {
+    logFault('mcp.lease-cleanup', error)
+  }
+})
 if (fs.existsSync(freezePath) || fs.existsSync(restoreDirectory(paths.root))) process.exit(75)
 let config: ConfigService
 let container: ReturnType<typeof createServiceContainer>
@@ -42,8 +49,10 @@ try {
   config = new ConfigService(paths)
   container = createServiceContainer(paths, false)
 } catch (error) {
-  if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError)
+  if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
+    logFault('mcp.initialize', error)
     process.exit(INCOMPATIBLE_DATA_EXIT_CODE)
+  }
   throw error
 }
 let handle: StdioServerHandle | undefined
@@ -57,17 +66,27 @@ async function close(exitCode = 0): Promise<void> {
   try {
     await handle?.close()
   } catch (error) {
-    console.error('JobTrail MCP transport close failed', error)
+    logFault('mcp.transport-close', error)
     exitCode = 1
   }
   try {
     await container.services.web.dispose()
   } catch (error) {
-    console.error('JobTrail web session close failed', error)
+    logFault('mcp.web-close', error)
     exitCode = 1
   }
-  container.database.close()
-  fs.rmSync(leasePath, { force: true })
+  try {
+    container.database.close()
+  } catch (error) {
+    logFault('mcp.database-close', error)
+    exitCode = 1
+  }
+  try {
+    fs.rmSync(leasePath, { force: true })
+  } catch (error) {
+    logFault('mcp.lease-cleanup', error)
+    exitCode = 1
+  }
   process.exitCode = exitCode
 }
 
@@ -82,7 +101,7 @@ try {
       }),
     {
       legacy: 'serve',
-      onerror: (error) => console.error('JobTrail MCP protocol error', error),
+      onerror: (error) => logFault('mcp.protocol', error),
     },
   )
 } catch (error) {
@@ -94,11 +113,11 @@ process.stdin.once('end', () => void close(0))
 process.once('SIGINT', () => void close(0))
 process.once('SIGTERM', () => void close(0))
 process.once('uncaughtException', (error) => {
-  console.error('JobTrail MCP uncaught exception', error)
+  logFault('process.uncaught', error)
   void close(1)
 })
 process.once('unhandledRejection', (error) => {
-  console.error('JobTrail MCP unhandled rejection', error)
+  logFault('process.unhandled-rejection', error)
   void close(1)
 })
 freezeTimer = setInterval(() => {

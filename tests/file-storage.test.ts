@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FileStorageService } from '../src/main/file-storage'
 import { resolveStorageRoot } from '../src/main/installation-paths'
+import { initializeFaultLogger } from '../src/main/diagnostics'
 
 const roots: string[] = []
 afterEach(() => {
@@ -55,12 +56,17 @@ describe('installation and resume storage', () => {
     service.restore(staged)
     expect(fs.readFileSync(service.resolve(imported.relativePath), 'utf8')).toBe('sample')
     const deleted = service.stageRemove(imported.relativePath)
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    initializeFaultLogger('main', '1.1.0', true, root)
     vi.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
       throw new Error('locked')
     })
     expect(() => service.finalizeRemove(deleted)).not.toThrow()
-    expect(log).toHaveBeenCalledOnce()
+    expect(JSON.parse(fs.readFileSync(path.join(root, 'logs', 'app.jsonl'), 'utf8'))).toMatchObject(
+      {
+        operation: 'file.recycle-cleanup',
+        code: 'INTERNAL_ERROR',
+      },
+    )
     expect(fs.existsSync(deleted.temporaryPath)).toBe(true)
   })
   it('rejects a resume source that changes while it is copied', () => {

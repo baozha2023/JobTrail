@@ -14,6 +14,7 @@ import type {
   ResumeVersion,
 } from '../../shared/types'
 import { getErrorMessage } from '../utils/errors'
+import { reportRendererFault } from '../diagnostics'
 import { useAgentStore } from '../stores/agent'
 import AgentComposerEditor from '../components/AgentComposerEditor.vue'
 import AgentMarkdown from '../components/AgentMarkdown.vue'
@@ -252,7 +253,7 @@ async function loadPreview(attachment: AgentAttachment, id: string): Promise<str
     if (url && currentId.value === id) previews.value[attachment.id] = url
     return url
   } catch (cause) {
-    console.error('加载聊天附件预览失败', cause)
+    reportRendererFault('agent.attachment-preview', cause)
     return null
   }
 }

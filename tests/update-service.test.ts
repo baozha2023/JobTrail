@@ -145,4 +145,26 @@ describe('desktop update transaction', () => {
       { stage: 'transfer', mode: 'full', percentage: 50 },
     ])
   })
+  it('recognizes a Full fallback that restarts at zero after a single Delta', async () => {
+    const progress: Omit<AppUpdateProgress, 'attemptId'>[] = []
+    const implementation = backend()
+    implementation.checkForUpdatesAsync = async () =>
+      ({
+        TargetFullRelease: { Version: '0.3.1' },
+        BaseRelease: { Version: '0.3.0' },
+        DeltasToTarget: [{ Version: '0.3.1' }],
+      }) as UpdateInfo
+    implementation.downloadUpdateAsync = async (_update, report) => {
+      for (const value of [0, 0, 50, 100]) report?.(value)
+    }
+    const service = new DesktopUpdateService(implementation, rollback)
+    await service.check()
+    await service.download((event) => progress.push(event))
+    expect(progress.filter((event) => event.stage === 'transfer')).toEqual([
+      { stage: 'transfer', mode: 'delta', percentage: 0 },
+      { stage: 'transfer', mode: 'delta', percentage: 70 },
+      { stage: 'transfer', mode: 'full', percentage: 0 },
+      { stage: 'transfer', mode: 'full', percentage: 50 },
+    ])
+  })
 })

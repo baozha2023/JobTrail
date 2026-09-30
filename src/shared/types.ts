@@ -1,13 +1,26 @@
+import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
 export type Locale = 'zh-CN' | 'en-US'
 export type CloseBehavior = 'tray' | 'quit'
 export type AppErrorCode =
+  | 'EXAM_INVALID'
+  | 'EXAM_COUNTS_TOO_SMALL'
+  | 'EXAM_CONFLICT'
+  | 'EXAM_NOT_FOUND'
+  | 'EXAM_ALREADY_GRADING'
+  | 'EXAM_UNAVAILABLE'
+  | 'EXAM_GRADING_FAILED'
+  | 'PERSISTENCE_INVALID'
+  | 'PERSISTENCE_BUSY'
+  | 'PERSISTENCE_UNSUPPORTED'
+  | 'PERSISTENCE_FAILED'
   | 'BACKUP_SOURCE_INVALID'
   | 'BACKUP_INVALID'
   | 'BACKUP_VERSION_UNSUPPORTED'
   | 'BACKUP_FAILED'
   | 'VALIDATION_ERROR'
+  | 'AI_API_KEY_EMPTY'
   | 'NOT_FOUND'
   | 'BUILTIN_DATA'
   | 'STATUS_IN_USE'
@@ -145,12 +158,13 @@ export type AgentReference =
   | { kind: 'opportunity'; id: number; name: string }
   | { kind: 'company'; id: number; name: string }
   | { kind: 'industry'; id: number; name: string }
-  | { kind: 'skill'; name: 'resume-match' }
+  | { kind: 'skill'; name: 'resume-match' | 'study' }
   | { kind: 'command'; name: 'compact' }
 
 export type AgentDraftPart = { kind: 'text'; text: string } | AgentReference
 
 export type AgentMessage =
+  | { id: string; role: 'exam-paper'; paperId: string; attachments: [] }
   | { id: string; role: 'user'; parts: AgentDraftPart[]; attachments: AgentAttachment[] }
   | {
       id: string
@@ -447,6 +461,14 @@ export interface AppErrorShape {
 }
 
 export interface ZhijiApi {
+  exams: {
+    get(input: ExamIdentity): Promise<ExamPaper>
+    save(input: SaveExamAnswerInput): Promise<ExamPaper>
+    submit(input: SaveExamAnswerInput): Promise<ExamPaper>
+    grade(input: SaveExamAnswerInput): Promise<ExamPaper>
+    reset(input: ExamIdentity): Promise<ExamPaper>
+    onChanged(listener: (identity: ExamIdentity) => void): () => void
+  }
   backup: {
     export(): Promise<'cancelled' | 'exported'>
     import(): Promise<'cancelled' | 'restarting'>

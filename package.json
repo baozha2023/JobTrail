@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -20,12 +20,14 @@
     "package:win": "pnpm build && pnpm exec playwright install --only-shell chromium && node scripts/stage-browser.mjs && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
     "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
     "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
+    "test:exams:package": "node scripts/test-packaged-exams.mjs",
     "test:agent:package": "node scripts/test-packaged-agent.mjs",
     "test:desktop:package": "node scripts/test-packaged-desktop.mjs && node scripts/test-startup-errors.mjs",
     "test:diagnostics:package": "node scripts/test-packaged-diagnostics.mjs",
-    "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && pnpm test:agent:package && pnpm test:desktop:package && pnpm test:diagnostics:package && node scripts/pack-velopack.mjs",
+    "release:win": "pnpm package:win && pnpm test:mcp:package && pnpm test:mcp:launcher && pnpm test:agent:package && pnpm test:exams:package && pnpm test:compatibility:package && pnpm test:desktop:package && pnpm test:diagnostics:package && node scripts/pack-velopack.mjs",
     "format": "prettier --write src tests scripts docs *.ts *.json *.md",
-    "format:check": "prettier --check src tests scripts docs *.ts *.json *.md"
+    "format:check": "prettier --check src tests scripts docs *.ts *.json *.md",
+    "test:compatibility:package": "node scripts/test-packaged-compatibility.mjs"
   },
   "dependencies": {
     "@langchain/core": "1.2.11",
@@ -57,7 +59,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.7.0",
-    "electron": "43.3.0",
+    "electron": "43.5.0",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "jsdom": "^30.0.1",
@@ -66,7 +68,7 @@
     "prettier": "3.8.1",
     "semver": "7.7.4",
     "typescript": "^5.8.3",
-    "undici": "7.27.0",
+    "undici": "7.29.1",
     "vite": "^7.0.6",
     "vitest": "^4.1.11",
     "vue": "^3.5.18",
@@ -94,6 +96,10 @@
       {
         "from": "dist/browser-stage",
         "to": "browser"
+      },
+      {
+        "from": "src/main/agent/skills/study/SKILL.md",
+        "to": "skills/study/SKILL.md"
       },
       {
         "from": "src/main/agent/skills/resume-match/SKILL.md",

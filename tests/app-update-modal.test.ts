@@ -51,74 +51,134 @@ describe('application update confirmation', () => {
   })
 
   it('prevents duplicate downloads and applies only after download completes', async () => {
+    vi.useFakeTimers()
     const { wrapper, button, downloadUpdates, applyUpdates } = setup()
     let finishDownload!: () => void
     downloadUpdates.mockImplementation(
       () => new Promise<void>((resolve) => (finishDownload = resolve)),
     )
-    await button('下载并安装').trigger('click')
-    await button('下载并安装').trigger('click')
-    expect(downloadUpdates).toHaveBeenCalledOnce()
-    expect(applyUpdates).not.toHaveBeenCalled()
-    expect(button('取消').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('[role="status"]').text()).toContain('正在保留当前版本')
-    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('0')
-    finishDownload()
-    await flushPromises()
-    expect(applyUpdates).toHaveBeenCalledOnce()
-    expect(button('取消').attributes('disabled')).toBeDefined()
-    wrapper.unmount()
+    try {
+      await button('下载并安装').trigger('click')
+      await button('下载并安装').trigger('click')
+      expect(downloadUpdates).toHaveBeenCalledOnce()
+      expect(applyUpdates).not.toHaveBeenCalled()
+      expect(button('取消').attributes('disabled')).toBeDefined()
+      expect(wrapper.get('[role="status"]').text()).toContain('正在保留当前版本')
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('0')
+      finishDownload()
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect(applyUpdates).toHaveBeenCalledOnce()
+      expect(button('取消').attributes('disabled')).toBeDefined()
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
   })
 
   it('shows a failed download in the dialog and supports retry', async () => {
+    vi.useFakeTimers()
     const { wrapper, button, downloadUpdates, applyUpdates } = setup()
-    downloadUpdates.mockRejectedValueOnce(new Error('network unavailable'))
-    await button('下载并安装').trigger('click')
-    await flushPromises()
-    expect(wrapper.get('[role="alert"]').text()).toContain('更新失败')
-    expect(button('取消').attributes('disabled')).toBeUndefined()
-    expect(applyUpdates).not.toHaveBeenCalled()
-    await button('重试更新').trigger('click')
-    await flushPromises()
-    expect(downloadUpdates).toHaveBeenCalledTimes(2)
-    expect(applyUpdates).toHaveBeenCalledOnce()
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
-    wrapper.unmount()
+    try {
+      downloadUpdates.mockRejectedValueOnce(new Error('network unavailable'))
+      await button('下载并安装').trigger('click')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.get('[role="alert"]').text()).toContain('更新失败')
+      expect(button('取消').attributes('disabled')).toBeUndefined()
+      expect(applyUpdates).not.toHaveBeenCalled()
+      await button('重试更新').trigger('click')
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect(downloadUpdates).toHaveBeenCalledTimes(2)
+      expect(applyUpdates).toHaveBeenCalledOnce()
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
   })
 
   it('retries apply without downloading or preserving the old package again', async () => {
+    vi.useFakeTimers()
     const { wrapper, button, downloadUpdates, applyUpdates } = setup()
-    applyUpdates.mockRejectedValueOnce(new Error('prepare failed'))
-    await button('下载并安装').trigger('click')
-    await flushPromises()
-    expect(wrapper.get('[role="alert"]').text()).toContain('更新失败')
-    await button('重试更新').trigger('click')
-    await flushPromises()
-    expect(downloadUpdates).toHaveBeenCalledOnce()
-    expect(applyUpdates).toHaveBeenCalledTimes(2)
-    wrapper.unmount()
+    try {
+      applyUpdates.mockRejectedValueOnce(new Error('prepare failed'))
+      await button('下载并安装').trigger('click')
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect(wrapper.get('[role="alert"]').text()).toContain('更新失败')
+      await button('重试更新').trigger('click')
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(downloadUpdates).toHaveBeenCalledOnce()
+      expect(applyUpdates).toHaveBeenCalledTimes(2)
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
   })
 
-  it('shows real transfer progress and keeps the bar moving forward on Full fallback', async () => {
+  it('animates Delta fallback and bounds Full progress to downloaded bytes', async () => {
+    vi.useFakeTimers()
     const { wrapper, button, downloadUpdates, emitProgress } = setup()
     let finishDownload!: () => void
     downloadUpdates.mockImplementation(
       () => new Promise<void>((resolve) => (finishDownload = resolve)),
     )
-    await button('下载并安装').trigger('click')
-    const attemptId = downloadUpdates.mock.calls[0][0] as number
-    emitProgress({ attemptId, stage: 'transfer', mode: 'delta', percentage: 70 })
-    await wrapper.vm.$nextTick()
-    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('59')
-    expect(wrapper.get('[role="status"]').text()).toContain('增量更新')
-    emitProgress({ attemptId, stage: 'transfer', mode: 'full', percentage: 0 })
-    emitProgress({ attemptId, stage: 'transfer', mode: 'full', percentage: 50 })
-    await wrapper.vm.$nextTick()
-    expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('69')
-    expect(wrapper.get('[role="status"]').text()).toContain('完整更新包')
-    finishDownload()
-    await flushPromises()
-    wrapper.unmount()
+    try {
+      await button('下载并安装').trigger('click')
+      const attemptId = downloadUpdates.mock.calls[0][0] as number
+      emitProgress({ attemptId, stage: 'transfer', mode: 'delta', percentage: 70 })
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('0')
+      await vi.advanceTimersByTimeAsync(500)
+      expect(wrapper.get('[role="status"]').text()).toContain('增量更新')
+      const beforeFallback = Number(wrapper.get('[role="progressbar"]').attributes('aria-valuenow'))
+      expect(beforeFallback).toBeGreaterThanOrEqual(12)
+      expect(beforeFallback).toBeLessThanOrEqual(48)
+
+      emitProgress({ attemptId, stage: 'transfer', mode: 'full', percentage: 0 })
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(wrapper.get('[role="status"]').text()).toContain('完整更新包')
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('50')
+      emitProgress({ attemptId, stage: 'transfer', mode: 'full', percentage: 50 })
+      await vi.advanceTimersByTimeAsync(500)
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('64')
+      emitProgress({ attemptId, stage: 'verify' })
+      finishDownload()
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100')
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  it('smoothly skips the Full range after a successful Delta', async () => {
+    vi.useFakeTimers()
+    const { wrapper, button, downloadUpdates, emitProgress } = setup()
+    let finishDownload!: () => void
+    downloadUpdates.mockImplementation(
+      () => new Promise<void>((resolve) => (finishDownload = resolve)),
+    )
+    try {
+      await button('下载并安装').trigger('click')
+      const attemptId = downloadUpdates.mock.calls[0][0] as number
+      emitProgress({ attemptId, stage: 'transfer', mode: 'delta', percentage: 0 })
+      await vi.advanceTimersByTimeAsync(500)
+      emitProgress({ attemptId, stage: 'verify' })
+      finishDownload()
+      let previous = Number(wrapper.get('[role="progressbar"]').attributes('aria-valuenow'))
+      let sawSkippedFull = false
+      for (let index = 0; index < 95; index++) {
+        await vi.advanceTimersByTimeAsync(16)
+        const current = Number(wrapper.get('[role="progressbar"]').attributes('aria-valuenow'))
+        expect(current).toBeGreaterThanOrEqual(previous)
+        expect(current - previous).toBeLessThanOrEqual(1)
+        if (wrapper.get('[role="status"]').text().includes('跳过完整包')) sawSkippedFull = true
+        previous = current
+      }
+      expect(sawSkippedFull).toBe(true)
+      expect(previous).toBe(100)
+    } finally {
+      wrapper.unmount()
+      vi.useRealTimers()
+    }
   })
 
   it('ignores progress from a previous failed attempt when retrying', async () => {
@@ -141,6 +201,7 @@ describe('application update confirmation', () => {
   })
 
   it('shows progress messages in English when English is selected', async () => {
+    vi.useFakeTimers()
     const previousLocale = i18n.global.locale.value
     i18n.global.locale.value = 'en-US'
     try {
@@ -152,18 +213,18 @@ describe('application update confirmation', () => {
       await button('Download and install').trigger('click')
       const attemptId = downloadUpdates.mock.calls[0][0] as number
       emitProgress({ attemptId, stage: 'transfer', mode: 'full', percentage: 30 })
-      await wrapper.vm.$nextTick()
+      await vi.advanceTimersByTimeAsync(1_200)
       expect(wrapper.get('[role="status"]').text()).toContain('Downloading the full update package')
       expect(wrapper.get('[role="progressbar"]').attributes('aria-label')).toBe('Update progress')
       finishDownload()
-      await flushPromises()
       wrapper.unmount()
     } finally {
       i18n.global.locale.value = previousLocale
+      vi.useRealTimers()
     }
   })
 
-  it('simulates bounded progress for preparation and never claims installation is complete', async () => {
+  it('simulates preparation, fills skipped ranges, and reaches 100 at handoff', async () => {
     vi.useFakeTimers()
     const { wrapper, button, downloadUpdates } = setup()
     let finishDownload!: () => void
@@ -172,15 +233,13 @@ describe('application update confirmation', () => {
     )
     try {
       await button('下载并安装').trigger('click')
-      vi.advanceTimersByTime(7_000)
+      await vi.advanceTimersByTimeAsync(7_000)
       await wrapper.vm.$nextTick()
       expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('11')
       finishDownload()
-      await Promise.resolve()
-      await Promise.resolve()
-      vi.advanceTimersByTime(7_000)
+      await vi.advanceTimersByTimeAsync(3_000)
       await wrapper.vm.$nextTick()
-      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('99')
+      expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('100')
     } finally {
       wrapper.unmount()
       vi.useRealTimers()

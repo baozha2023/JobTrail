@@ -1,6 +1,6 @@
-# 职迹 SQLite 数据库（v1）
+# 职迹 SQLite 数据库（v2）
 
-本文记录当前代码定义的数据库结构与持久化规则。应用表的建表实现位于 `src/main/database.ts`；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v1 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
+本文记录当前代码定义的数据库结构与持久化规则。应用表的建表定义位于 `src/main/persistence/schema-v2.ts`，由 `src/main/database.ts` 初始化；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v2 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
 
 正式发布后的结构变更、配置迁移、跨版本升级和回滚要求，见 [数据库与配置文件长期维护和升级指南](persistence-upgrade-guide.md)。
 
@@ -15,15 +15,17 @@
 
 数据库使用 `better-sqlite3`。连接设置为 `journal_mode=WAL`、`busy_timeout=5000`；运行时可能出现 `zhiji.db-wal` 和 `zhiji.db-shm`。更新前的数据库快照通过 SQLite 在线备份取得，包含已提交的 WAL 内容。`PRAGMA data_version` 仅用于检测其他连接的改动，不是结构版本。
 
-结构版本使用 SQLite 内置 `PRAGMA user_version`，当前为 **1**；应用不创建 `schema_migrations` 表：
+结构版本使用 SQLite 内置 `PRAGMA user_version`，当前为 **2**；配置 `configVersion` 仍为 **1**。客户端自带的目标版本统一定义在 `src/main/persistence/versions.ts`，客户端发布版本不参与数据迁移路径判断。
 
-1. `user_version=0`：在一个 `IMMEDIATE` 事务内创建下述 15 张表和 15 个显式索引，写入种子数据，最后将 `user_version` 设为 1；失败时整笔事务回滚。
-2. `user_version=1`：正常打开，不再次建表或写入种子数据。
-3. 其他版本：抛出 `DatabaseVersionError` 并关闭连接；不尝试修改或降级原数据库。
+桌面每次启动先调用 `ensurePersistenceReady`，在业务连接打开前检查版本；正式 v1 数据经过白名单 `1 → 2` 迁移。迁移在数据库副本中执行，校验后借助恢复日志协调数据库和加密配置替换。中断时恢复两者，失败不重置用户数据。等于目标版本不重复迁移，高于目标或缺少路径时拒绝业务写入。MCP 与 worker 只接受当前结构，不自行迁移。
 
-当前代码只处理新库与结构版本 1，没有数据库迁移流程。`config.json` 的 `configVersion=1` 独立于 `user_version`；内置公司目录的 `catalog_version` 也独立于两者。
+全新空库直接初始化 v2（18 张应用表、17 个显式索引）。v1 建表定义冻结在 `src/main/persistence/schema-v1.ts`；v2 增加试卷三张表，并扩展聊天事件和用量类型。迁移保留既有业务数据、聊天序号、工具问答及 LangGraph checkpoint。非空未知 v0 库不能当作空库初始化。
 
-配置只接受完整、严格的当前结构，包含 `configVersion`、`themeMode`、`statusFlowTheme`、`locale`、`closeBehavior`、`launchAtStartup`、`companyReadValidityMonths`、`mcp`、`ai`。嵌套字段以 `AppConfig` 为准，所有层级均拒绝缺失或未知字段；不保留 `velopack` 配置。默认值仅在整个配置文件不存在时创建，设置的局部更新须合并为完整配置后保存。无效或不支持的配置保留原文件并拒绝启动，备份导入使用相同校验。
+旧备份按其来源版本校验，再在导入临时目录中执行同一迁移链；导入不会修改原备份。新版导出记录数据库版本 2、配置版本 1，备份封装版本仍为 1。配置结构版本、加密封装版本及公司目录版本均独立管理。
+
+配置只接受完整、严格的当前结构，包含 `configVersion`、`themeMode`、`statusFlowTheme`、`locale`、`closeBehavior`、`launchAtStartup`、`companyReadValidityMonths`、`mcp`、`ai`。嵌套字段以 `AppConfig` 为准，所有层级均拒绝缺失或未知字段；不保留 `velopack` 配置。默认值仅在整个配置文件不存在时创建，设置的局部更新须合并为完整配置后保存。无效或不支持的配置保留原文件并拒绝启动，备份导入先按来源配置版本校验，再转换并校验目标版本。
+
+配置 v1 的完整校验规则和新建默认值统一定义在 `src/main/persistence/config-v1.ts`。`ConfigService` 复用这些定义，负责加解密、文件读写和局部设置更新；迁移入口复用同一版本的校验规则。默认值不用于补齐已有配置的缺失字段。数据库各版本的建表定义则由 `persistence/validation.ts` 统一校验，避免在每个 schema 文件内重复实现结构检查。
 
 ### 发布前开发库维护
 
@@ -234,26 +236,26 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 
 #### `agent_chat_events`
 
-| 字段              | 类型    | 约束                                         | 说明            |
-| ----------------- | ------- | -------------------------------------------- | --------------- |
-| `seq`             | INTEGER | 主键、自增                                   | 展示顺序        |
-| `id`              | TEXT    | 非空、唯一                                   | 幂等事件 ID     |
-| `conversation_id` | TEXT    | 非空                                         | 所属会话 ID     |
-| `kind`            | TEXT    | 非空、仅 `user`/`assistant`/`tool`/`compact` | 展示事件类型    |
-| `payload`         | TEXT    | 非空                                         | 结构化事件 JSON |
-| `created_at`      | INTEGER | 非空                                         | 归档时间        |
+| 字段              | 类型    | 约束                                                      | 说明            |
+| ----------------- | ------- | --------------------------------------------------------- | --------------- |
+| `seq`             | INTEGER | 主键、自增                                                | 展示顺序        |
+| `id`              | TEXT    | 非空、唯一                                                | 幂等事件 ID     |
+| `conversation_id` | TEXT    | 非空                                                      | 所属会话 ID     |
+| `kind`            | TEXT    | 非空、仅 `user`/`assistant`/`tool`/`compact`/`exam-paper` | 展示事件类型    |
+| `payload`         | TEXT    | 非空                                                      | 结构化事件 JSON |
+| `created_at`      | INTEGER | 非空                                                      | 归档时间        |
 
 #### `agent_model_usage`
 
-| 字段                | 类型    | 约束                       | 说明                     |
-| ------------------- | ------- | -------------------------- | ------------------------ |
-| `id`                | TEXT    | 主键                       | 模型调用的幂等记录 ID    |
-| `conversation_id`   | TEXT    | 非空                       | 所属会话 ID              |
-| `kind`              | TEXT    | 非空、仅 `agent`/`compact` | 普通回复或压缩调用       |
-| `input_tokens`      | INTEGER | 可空                       | 模型报告的输入 token     |
-| `output_tokens`     | INTEGER | 可空                       | 模型报告的输出 token     |
-| `cache_read_tokens` | INTEGER | 可空                       | 模型报告的缓存命中 token |
-| `created_at`        | INTEGER | 非空                       | 调用记录时间             |
+| 字段                | 类型    | 约束                               | 说明                     |
+| ------------------- | ------- | ---------------------------------- | ------------------------ |
+| `id`                | TEXT    | 主键                               | 模型调用的幂等记录 ID    |
+| `conversation_id`   | TEXT    | 非空                               | 所属会话 ID              |
+| `kind`              | TEXT    | 非空、仅 `agent`/`compact`/`grade` | 普通回复、压缩或判题调用 |
+| `input_tokens`      | INTEGER | 可空                               | 模型报告的输入 token     |
+| `output_tokens`     | INTEGER | 可空                               | 模型报告的输出 token     |
+| `cache_read_tokens` | INTEGER | 可空                               | 模型报告的缓存命中 token |
+| `created_at`        | INTEGER | 非空                               | 调用记录时间             |
 
 #### `chat_attachments`
 
@@ -319,7 +321,7 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 - 仓库 `resource/jobtrail-company-catalog.json` 中的全部内置公司及其行业关联、别名，数量随目录内容更新。公司 ID 由本地 SQLite 生成；目录的 `builtinKey` 才是跨目录版本的稳定身份。初始 `is_favorite=0`、`last_read_at=NULL`。
 - 一条 `builtin_company_catalog_state` 记录，`format_version=1`，`catalog_version` 来自打包目录的 `catalogVersion`，`content_sha256` 为目录 JSON 原始文本的 SHA-256。
 
-版本 1 数据库再次打开时不会重新 seed，也不会在软件升级时自动合并公司目录。用户在设置中主动更新目录时，应用校验发布资产的大小、SHA-256、格式、目录版本和最低软件版本。更新在一个 `IMMEDIATE` 事务中按 `builtin_key` 匹配，更新目录拥有的名称、招聘官网、行业和别名，保留本地公司 ID、创建时间、收藏、已读时间及业务关联。行业关联和别名按差异维护：未变化的记录不写入，值替换时更新原记录，只有实际增减时才插入或删除；同名的用户公司可转为内置公司。新版本目录未收录的旧内置公司清除 `builtin_key` 并更新 `updated_at`，转为自定义公司；保留本地 ID、其他字段、行业关联、别名和求职记录，按自定义公司的权限处理。转换数量单独返回并显示；同版本同哈希不触发转换。冲突或约束错误会回滚整次同步。
+已初始化数据库再次打开或迁移时不会重新 seed，也不会在软件升级时自动合并公司目录。用户在设置中主动更新目录时，应用校验发布资产的大小、SHA-256、格式、目录版本和最低软件版本。更新在一个 `IMMEDIATE` 事务中按 `builtin_key` 匹配，更新目录拥有的名称、招聘官网、行业和别名，保留本地公司 ID、创建时间、收藏、已读时间及业务关联。行业关联和别名按差异维护：未变化的记录不写入，值替换时更新原记录，只有实际增减时才插入或删除；同名的用户公司可转为内置公司。新版本目录未收录的旧内置公司清除 `builtin_key` 并更新 `updated_at`，转为自定义公司；保留本地 ID、其他字段、行业关联、别名和求职记录，按自定义公司的权限处理。转换数量单独返回并显示；同版本同哈希不触发转换。冲突或约束错误会回滚整次同步。
 
 目录根结构固定为 `{ formatVersion, catalogVersion, minimumAppVersion, industries, companies }`。行业条目为 `{ builtinKey, parentKey, code, name }`，一级 `parentKey=null`、代码 A–T，二级通过父节点 UUID 关联一级并使用两位标准代码。公司条目使用 `industryKeys` 引用二级 UUID；本地接口仍使用解析后的 `industryIds`。不解析旧目录字段。
 
@@ -327,4 +329,57 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 
 `@行业` 仅提供二级候选，Main 校验层级并重新解析完整的“一级 / 二级”路径。MCP 与 IPC 共用行业业务服务。备份导出、导入还校验父子关系、公司二级引用及内置公司的非空行业关联。
 
-1.0.0 发布前开发库在停止客户端、智能体和 MCP 后，于应用外备份并一次性重建行业与公司关联，同时清空六张聊天表及聊天附件；不修改其他业务数据。应用、构建与已提交测试不包含开发数据迁移或 `ALTER` 流程。正式发布后冻结本版持久化基线，未来版本变更再设计升级迁移。
+首个正式版之前的开发数据不在迁移支持范围内；应用和发布流程不包含一次性开发库转换。正式 v1 基线保持冻结，v2 通过已注册的正式迁移步骤升级，保留公司、行业、聊天及其他业务记录。
+
+## 笔试练习（数据库版本 2）
+
+以下表与聊天通过逻辑关联连接，由 `ExamService` 校验、事务写入及清理，无物理外键。题目正文和作答均使用结构化 JSON。公开接口运行时进行题型校验，备份与迁移同时校验题型 JSON、题号、题量及关联。
+
+### `exam_papers`
+
+| 字段                       | 类型与约束                                      | 含义                         |
+| -------------------------- | ----------------------------------------------- | ---------------------------- |
+| id                         | TEXT PRIMARY KEY                                | 试卷 UUID                    |
+| conversation_id            | TEXT NOT NULL                                   | 所属聊天                     |
+| request_id                 | TEXT NOT NULL UNIQUE                            | 创建幂等标识                 |
+| task_id                    | TEXT NOT NULL                                   | 创建任务标识                 |
+| title / topic / difficulty | TEXT NOT NULL                                   | 标题、方向、难度             |
+| counts                     | TEXT NOT NULL                                   | 各题型约定数量的 JSON        |
+| status                     | TEXT NOT NULL，generating/completed/interrupted | 生成状态                     |
+| reset_version              | INTEGER NOT NULL DEFAULT 0                      | 每次重置递增，拒绝旧作答请求 |
+| revision                   | INTEGER NOT NULL DEFAULT 0                      | 变更版本，供界面合并         |
+| created_at / updated_at    | INTEGER NOT NULL                                | 创建、更新时间               |
+
+索引：`idx_exam_papers_conversation(conversation_id, created_at)`。
+
+MCP `update_exam_paper` 可按需更新 `topic`、`difficulty`、`counts`，至少传入一项；`counts` 提供三类题型的完整目标数量，总数大于零且每类不少于已生成数量。更新在事务中校验聊天归属并递增 `revision`，重复相同设置不写入。修改保留题目、作答及已有评分；新题与新判题使用新设置，进行中的判题使用请求发起时的背景。修改题量后若已有题数恰好满足目标，状态变为 completed；已完成卷增加题量后变为 interrupted，下一题追加时恢复 generating，继续使用原卡片。此操作不改变数据库结构版本。
+
+### `exam_questions`
+
+| 字段       | 类型与约束                             | 含义                          |
+| ---------- | -------------------------------------- | ----------------------------- |
+| id         | TEXT PRIMARY KEY                       | 题目 UUID                     |
+| paper_id   | TEXT NOT NULL                          | 所属试卷                      |
+| request_id | TEXT NOT NULL UNIQUE                   | 追加幂等标识                  |
+| position   | INTEGER NOT NULL，与 paper_id 联合唯一 | 从 1 开始连续题号             |
+| content    | TEXT NOT NULL                          | 题型、题干及题型特有字段 JSON |
+
+`single_choice` 固定四个选项、A–D 唯一答案及解析；`true_false` 保存布尔答案及解析；`short_answer` 仅保存题干。首题插入与聊天 `exam-paper` 卡片事件在同一事务中完成，卡片 payload 只引用 `paperId`。
+
+### `exam_answers`
+
+| 字段             | 类型与约束                      | 含义                                            |
+| ---------------- | ------------------------------- | ----------------------------------------------- |
+| question_id      | TEXT PRIMARY KEY                | 所属题目，每题仅最新作答                        |
+| paper_id         | TEXT NOT NULL                   | 所属试卷                                        |
+| value            | TEXT NOT NULL                   | 字符串、布尔值或 null 的 JSON                   |
+| version          | INTEGER NOT NULL DEFAULT 0      | 答案修改版本                                    |
+| submitted        | INTEGER NOT NULL DEFAULT 0，0/1 | 是否有有效提交结果                              |
+| result           | TEXT，可空                      | 客观题判定或简答评分、评价、参考答案 JSON       |
+| grade_request_id | TEXT，可空                      | 当前判题请求 UUID                               |
+| grade_status     | TEXT NOT NULL DEFAULT idle      | idle/queued/running/completed/error/interrupted |
+| updated_at       | INTEGER NOT NULL                | 更新时间                                        |
+
+索引：`idx_exam_answers_paper(paper_id)`。修改答案清除原结果并使旧请求失效；重置删除本卷全部作答并递增 `reset_version`。判题结果只在请求 ID、答案版本、重置版本均匹配时写回。旧请求实际产生的用量仍幂等记入 `agent_model_usage(kind='grade')`，不改变聊天上下文估算。
+
+删除聊天时先清理试卷关联数据。启动恢复将遗留生成任务、排队和运行中的判题标记为中断，不自动重新请求模型。完整备份包含试卷、题目、未提交文字、作答、评分和用量；恢复后执行同样的任务中断恢复。

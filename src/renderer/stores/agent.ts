@@ -1,3 +1,5 @@
+import { useExamsStore } from './exams'
+import { isExamTool } from '../../shared/exam-tools'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import type {
@@ -83,6 +85,7 @@ export const useAgentStore = defineStore('agent', () => {
   const currentId = ref<string | null>(null)
   const sessions = reactive<Record<string, AgentSession>>({})
   let unsubscribe: (() => void) | undefined
+  let unsubscribeExternal: (() => void) | undefined
   let started: Promise<void> | undefined
 
   function session(id: string): AgentSession {
@@ -92,10 +95,14 @@ export const useAgentStore = defineStore('agent', () => {
   async function start(): Promise<void> {
     if (started) return started
     unsubscribe = window.zhijiApi.agent.onEvent(receiveEvent)
+    unsubscribeExternal = window.zhijiApi.data.onExternalChange(() => {
+      if (currentId.value)
+        void loadHistory(currentId.value).catch((cause) =>
+          reportRendererFault('exam.history-refresh', cause),
+        )
+    })
     started = refreshList().catch((cause) => {
-      unsubscribe?.()
-      unsubscribe = undefined
-      started = undefined
+      stop()
       throw cause
     })
     return started
@@ -103,6 +110,8 @@ export const useAgentStore = defineStore('agent', () => {
 
   function stop(): void {
     unsubscribe?.()
+    unsubscribeExternal?.()
+    unsubscribeExternal = undefined
     unsubscribe = undefined
     started = undefined
   }
@@ -192,6 +201,7 @@ export const useAgentStore = defineStore('agent', () => {
 
   async function remove(id: string): Promise<void> {
     await window.zhijiApi.agent.delete(id)
+    useExamsStore().forgetConversation(id)
     delete sessions[id]
     await refreshList()
     if (currentId.value === id) {
@@ -393,6 +403,29 @@ export const useAgentStore = defineStore('agent', () => {
       if (tool?.role === 'tool') {
         tool.status = event.toolStatus ?? 'completed'
         tool.result = event.toolResult ?? ''
+      }
+      if (isExamTool(event.toolName) && event.toolResult) {
+        try {
+          const result = JSON.parse(event.toolResult)
+          const paper = result.paper
+          if (paper?.id && paper.conversationId === event.conversationId) {
+            void useExamsStore()
+              .load({ paperId: paper.id, conversationId: paper.conversationId })
+              .catch((cause) => reportRendererFault('exam.refresh', cause))
+            if (
+              paper.questionCount > 0 &&
+              !state.messages.some((m) => m.role === 'exam-paper' && m.paperId === paper.id)
+            )
+              state.messages.push({
+                id: `exam:${paper.id}`,
+                role: 'exam-paper',
+                paperId: paper.id,
+                attachments: [],
+              })
+          }
+        } catch {
+          /* Failed tools do not create cards. */
+        }
       }
     } else if (event.kind === 'pending') {
       showPending(state, event.pending ?? null)

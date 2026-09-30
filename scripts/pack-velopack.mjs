@@ -86,6 +86,15 @@ fs.copyFileSync(
   path.join(binaries, 'uninstaller.exe'),
   path.join(bootstrapResources, 'JobTrail-Uninstall.exe'),
 )
+// Packaged smoke tests can create diagnostics beside the unpacked executable.
+// They are local test data and must never become release assets.
+const unpackedLogs = path.join(root, 'dist', 'win-unpacked', 'logs')
+if (fs.existsSync(unpackedLogs)) {
+  const metadata = fs.lstatSync(unpackedLogs)
+  if (!metadata.isDirectory() || metadata.isSymbolicLink())
+    throw new Error('Release diagnostics path is not a directory')
+  fs.rmSync(unpackedLogs, { recursive: true })
+}
 run(vpk, [
   'pack',
   '--outputDir',

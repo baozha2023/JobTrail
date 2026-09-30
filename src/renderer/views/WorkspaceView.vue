@@ -65,6 +65,7 @@ import { useResumesStore } from '../stores/resumes'
 import { useCompaniesStore } from '../stores/companies'
 import { useSettingsStore } from '../stores/settings'
 import { useAgentStore } from '../stores/agent'
+import { useExamsStore } from '../stores/exams'
 import { useCalendarWorkspace } from '../composables/useCalendarWorkspace'
 import { useOpportunityWorkspace } from '../composables/useOpportunityWorkspace'
 import { useManagementWorkspace } from '../composables/useManagementWorkspace'
@@ -184,6 +185,11 @@ const naiveLocale = computed(() => (locale.value === 'zh-CN' ? zhCN : enUS))
 const { message } = createDiscreteApi(['message'], {
   configProviderProps: computed(() => ({ theme: theme.value, locale: naiveLocale.value })),
 })
+onBeforeUnmount(
+  useExamsStore().onError((text) => {
+    message.error(text)
+  }),
+)
 
 const {
   showEventModal,
@@ -1266,6 +1272,7 @@ onBeforeUnmount(() => {
               :close-catalog-modal="closeCatalogModal"
               @update-config="saveConfig"
               @ai-saved="onAiSaved"
+              @error="showError"
               @close-behavior="setCloseBehavior"
               @launch-at-startup="setLaunchAtStartup"
             />

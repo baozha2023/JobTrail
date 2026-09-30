@@ -230,6 +230,7 @@ export class AgentService {
         .get()
     )
       await this.saver.deleteThread(id)
+    this.services.exams.deleteConversation(id)
     this.archive.delete(id)
     this.files.deleteConversation(id)
     this.db.prepare('DELETE FROM agent_conversations WHERE id = ?').run(id)
@@ -307,14 +308,6 @@ export class AgentService {
       !ai.baseUrl.trim()
     )
       throw new AppServiceError('VALIDATION_ERROR', '模型设置格式无效')
-    let host: string
-    try {
-      host = new URL(ai.baseUrl).hostname
-    } catch {
-      throw new AppServiceError('VALIDATION_ERROR', 'AI Base URL 无效')
-    }
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(host) && !ai.apiKey.trim())
-      throw new AppServiceError('VALIDATION_ERROR', '远程 AI 服务需要 API Key')
     return this.config.update({ ai })
   }
 
@@ -443,6 +436,7 @@ export class AgentService {
   }
 
   async recoverInterruptedRun(id: string, partialText: string): Promise<void> {
+    if (!isUpdateFrozen(this.paths.root)) this.services.exams.interruptGeneration(id)
     this.ensure(id)
     await this.recordCancelledTools(id, true)
     if (partialText.trim()) this.archive.partial(id, randomUUID(), partialText)
@@ -481,6 +475,7 @@ export class AgentService {
     try {
       await this.runGraph(id, input, controller)
     } finally {
+      if (!isUpdateFrozen(this.paths.root)) this.services.exams.interruptGeneration(id)
       this.running.delete(id)
     }
   }
@@ -494,9 +489,9 @@ export class AgentService {
     let partialText = ''
     try {
       const stream = await this.graph.stream(input as Parameters<typeof this.graph.stream>[0], {
-        configurable: { thread_id: id },
+        configurable: { thread_id: id, job_id: partialId },
         streamMode: ['messages', 'updates'],
-        recursionLimit: 96,
+        recursionLimit: 2048,
         signal: controller.signal,
       })
       const startedTools = new Set<string>()

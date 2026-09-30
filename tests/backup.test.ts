@@ -1,3 +1,5 @@
+import { preparePersistenceUpgrade } from '../src/main/persistence-migrations'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -33,6 +35,7 @@ function fixture() {
     chatUploads: path.join(root, 'chat-uploads'),
   }
   const config = new ConfigService(paths)
+  preparePersistenceUpgrade(paths.database, config.get())
   const container = createServiceContainer(paths, false)
   containers.push(container)
   const work = fs.mkdtempSync(path.join(root, 'work-'))
@@ -100,6 +103,165 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
     Buffer.concat([newHeader, cipher.update(await ready), cipher.final(), cipher.getAuthTag()]),
   )
 }
+
+it('imports an authentic v1 payload, migrates it, exports v2 and restores again', async () => {
+  const f = fixture()
+  await backup(f)
+  await rewrite(f.archive, (entries) => {
+    entries.set('data/zhiji.db', fs.readFileSync('tests/fixtures/v1/data/zhiji.db'))
+    entries.set(
+      'config.json',
+      Buffer.from(
+        JSON.stringify(decryptConfig(fs.readFileSync('tests/fixtures/v1/config.json', 'utf8'))),
+      ),
+    )
+    const manifest = JSON.parse(entries.get('manifest.json')!.toString())
+    manifest.databaseVersion = 1
+    manifest.configVersion = 1
+    manifest.appVersion = '1.0.0'
+    for (const item of manifest.files) {
+      const data = entries.get(item.path)!
+      item.size = data.length
+      item.sha256 = createHash('sha256').update(data).digest('hex')
+    }
+    entries.set('manifest.json', Buffer.from(JSON.stringify(manifest)))
+  })
+  const original = fs.readFileSync(f.archive)
+  const prepared = await importBackup(f.archive, importWork(f.paths.root))
+  expect(fs.readFileSync(f.archive)).toEqual(original)
+  f.container.database.close()
+  fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
+  stageRestore(f.paths, prepared.directory)
+  recoverRestore(f.paths)
+  const restored = createServiceContainer(f.paths, false)
+  containers.push(restored)
+  expect(restored.database.db.pragma('user_version', { simple: true })).toBe(2)
+  expect(restored.database.db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
+  const chats = restored.database.db.prepare('SELECT * FROM agent_chat_events').all()
+  const secondArchive = path.join(f.paths.root, 'upgraded.jobtrail-backup')
+  const manifest = await exportBackup(
+    f.paths,
+    restored.database,
+    new ConfigService(f.paths),
+    '1.3.0',
+    secondArchive,
+    importWork(f.paths.root),
+  )
+  expect(manifest.databaseVersion).toBe(2)
+  const second = await importBackup(secondArchive, importWork(f.paths.root))
+  restored.database.close()
+  stageRestore(f.paths, second.directory)
+  recoverRestore(f.paths)
+  const final = createServiceContainer(f.paths, false)
+  containers.push(final)
+  expect(final.database.db.prepare('SELECT * FROM agent_chat_events').all()).toEqual(chats)
+})
+
+it('round-trips all exam types, draft answers, scores and interrupted jobs into a fresh installation', async () => {
+  const f = fixture(),
+    exam = f.container.services.exams
+  const { id: conversationId } = f.container.database.db
+    .prepare('SELECT id FROM agent_conversations LIMIT 1')
+    .get() as { id: string }
+  const p = exam.create({
+    conversationId,
+    requestId: randomUUID(),
+    taskId: randomUUID(),
+    title: 'Backup exam',
+    topic: 'TS',
+    difficulty: 'Medium',
+    counts: { single_choice: 1, true_false: 1, short_answer: 2 },
+  })
+  const identity = { conversationId, paperId: p.id }
+  exam.append({
+    ...identity,
+    requestId: randomUUID(),
+    question: {
+      type: 'single_choice',
+      prompt: '2+2',
+      options: ['1', '2', '3', '4'],
+      correct: 'D',
+      explanation: 'Addition',
+    },
+  })
+  exam.append({
+    ...identity,
+    requestId: randomUUID(),
+    question: { type: 'true_false', prompt: '1=1', correct: true, explanation: 'Identity' },
+  })
+  exam.append({
+    ...identity,
+    requestId: randomUUID(),
+    question: { type: 'short_answer', prompt: 'Define promise' },
+  })
+  let paper = exam.append({
+    ...identity,
+    requestId: randomUUID(),
+    question: { type: 'short_answer', prompt: 'Explain async' },
+  })
+  exam.submit({
+    ...identity,
+    questionId: paper.questions[0].id,
+    resetVersion: 0,
+    expectedVersion: 0,
+    value: 'D',
+  })
+  exam.save({
+    ...identity,
+    questionId: paper.questions[1].id,
+    resetVersion: 0,
+    expectedVersion: 0,
+    value: false,
+  })
+  const graded = exam.beginGrade({
+    ...identity,
+    questionId: paper.questions[2].id,
+    resetVersion: 0,
+    expectedVersion: 0,
+    value: 'Future result',
+  })
+  exam.finishGrade(
+    graded,
+    { score: 85, evaluation: 'Good answer', referenceAnswer: 'Future completion' },
+    { input_tokens: 12, output_tokens: 25 },
+  )
+  exam.beginGrade({
+    ...identity,
+    questionId: paper.questions[3].id,
+    resetVersion: 0,
+    expectedVersion: 0,
+    value: 'Unfinished draft',
+  })
+  paper = exam.get(identity)
+  await backup(f)
+  const prepared = await importBackup(f.archive, importWork(f.paths.root))
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'exam-restore-fresh-'))
+  roots.push(root)
+  const paths = {
+    root,
+    data: path.join(root, 'data'),
+    database: path.join(root, 'data/zhiji.db'),
+    config: path.join(root, 'config.json'),
+    resumes: path.join(root, 'resumes'),
+    chatUploads: path.join(root, 'chat-uploads'),
+  }
+  fs.mkdirSync(path.join(paths.root, '.runtime'), { recursive: true })
+  stageRestore(paths, prepared.directory)
+  recoverRestore(paths)
+  const restored = createServiceContainer(paths, false)
+  containers.push(restored)
+  expect(restored.services.exams.get(identity)).toEqual(paper)
+  restored.services.exams.recover()
+  const recovered = restored.services.exams.get(identity)
+  expect(recovered.status).toBe('interrupted')
+  expect(recovered.questions[0].answer.result).toMatchObject({ correct: true })
+  expect(recovered.questions[1].answer).toMatchObject({ value: false, submitted: false })
+  expect(recovered.questions[2].answer.result).toMatchObject({ score: 85 })
+  expect(recovered.questions[3].answer).toMatchObject({
+    value: 'Unfinished draft',
+    gradeStatus: 'interrupted',
+  })
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -230,7 +392,7 @@ describe('complete backup and restore', () => {
       await backup(f)
       await rewrite(f.archive, (entries) => {
         const manifest = JSON.parse(entries.get('manifest.json')!.toString())
-        manifest[field] = 2
+        manifest[field] = 99
         entries.set('manifest.json', Buffer.from(JSON.stringify(manifest)))
       })
       await expect(importBackup(f.archive, importWork(f.paths.root))).rejects.toMatchObject({

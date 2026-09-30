@@ -1,3 +1,5 @@
+import { CONFIG_V1_DEFAULTS, CONFIG_V1_SCHEMA } from './persistence/config-v1'
+import { TARGET_CONFIG_VERSION } from './persistence/versions'
 import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { resolveStorageRoot } from './installation-paths'
@@ -8,27 +10,7 @@ import { AppServiceError } from './services/errors'
 import { assertUpdateWritable } from './update-freeze'
 import { encryptConfig, decryptConfig } from './config-crypto'
 
-export const DEFAULT_CONFIG: AppConfig = {
-  configVersion: 1,
-  themeMode: 'system',
-  statusFlowTheme: 'violet',
-  locale: 'zh-CN',
-  closeBehavior: 'quit',
-  launchAtStartup: false,
-  companyReadValidityMonths: 3,
-  mcp: {
-    enabled: true,
-    requireWriteConfirmation: true,
-  },
-  ai: {
-    baseUrl: 'https://api.openai.com/v1',
-    modelId: '',
-    apiKey: '',
-    multimodal: false,
-    contextWindowK: 256,
-    compactThresholdPercent: 80,
-  },
-}
+export const DEFAULT_CONFIG: AppConfig = CONFIG_V1_DEFAULTS
 
 export class ConfigLoadError extends Error {
   readonly code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED'
@@ -68,54 +50,7 @@ export function getAppPaths(): AppPaths {
   }
 }
 
-const aiSchema = z.strictObject({
-  baseUrl: z
-    .string()
-    .trim()
-    .refine((value) => {
-      try {
-        const endpoint = new URL(value)
-        const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname)
-        return (
-          (endpoint.protocol === 'https:' || (endpoint.protocol === 'http:' && loopback)) &&
-          !endpoint.username &&
-          !endpoint.password
-        )
-      } catch {
-        return false
-      }
-    }, 'AI Base URL 必须是 HTTPS 或本机回环 HTTP 地址'),
-  modelId: z.string().trim(),
-  apiKey: z.string().trim().max(8192, 'AI API Key 无效'),
-  multimodal: z.boolean(),
-  contextWindowK: z
-    .number()
-    .int()
-    .min(8, 'AI 上下文窗口须为 8–2048k')
-    .max(2048, 'AI 上下文窗口须为 8–2048k'),
-  compactThresholdPercent: z
-    .number()
-    .int()
-    .min(50, 'AI 自动压缩阈值须为 50%–90%')
-    .max(90, 'AI 自动压缩阈值须为 50%–90%'),
-})
-const mcpSchema = z.strictObject({
-  enabled: z.boolean(),
-  requireWriteConfirmation: z.boolean(),
-})
-const settingsSchema = z.strictObject({
-  themeMode: z.enum(['light', 'dark', 'system']),
-  statusFlowTheme: z.enum(['violet', 'ocean', 'gold']),
-  locale: z.enum(['zh-CN', 'en-US']),
-  closeBehavior: z.enum(['tray', 'quit']),
-  launchAtStartup: z.boolean(),
-  companyReadValidityMonths: z.number().int().positive(),
-  mcp: mcpSchema,
-  ai: aiSchema,
-})
-const configSchema = settingsSchema.extend({
-  configVersion: z.literal(DEFAULT_CONFIG.configVersion),
-})
+const settingsSchema = CONFIG_V1_SCHEMA.omit({ configVersion: true })
 const versionSchema = z.object({ configVersion: z.number().int().positive() })
 
 function hasDefinedFields(value: object): boolean {
@@ -125,16 +60,22 @@ function hasDefinedFields(value: object): boolean {
 const updateSchema = settingsSchema
   .partial()
   .extend({
-    mcp: mcpSchema.partial().refine(hasDefinedFields, 'MCP 配置没有有效更新字段').optional(),
-    ai: aiSchema.partial().refine(hasDefinedFields, 'AI 配置没有有效更新字段').optional(),
+    mcp: settingsSchema.shape.mcp
+      .partial()
+      .refine(hasDefinedFields, 'MCP 配置没有有效更新字段')
+      .optional(),
+    ai: settingsSchema.shape.ai
+      .partial()
+      .refine(hasDefinedFields, 'AI 配置没有有效更新字段')
+      .optional(),
   })
   .refine(hasDefinedFields, '配置没有有效更新字段')
 
 export function validateConfig(value: unknown): AppConfig {
   const version = versionSchema.safeParse(value)
-  if (version.success && version.data.configVersion !== DEFAULT_CONFIG.configVersion)
+  if (version.success && version.data.configVersion !== TARGET_CONFIG_VERSION)
     throw new ConfigLoadError('CONFIG_VERSION_UNSUPPORTED')
-  const parsed = configSchema.safeParse(value)
+  const parsed = CONFIG_V1_SCHEMA.safeParse(value)
   if (!parsed.success) throw new ConfigLoadError('CONFIG_INVALID')
   return parsed.data
 }
@@ -177,8 +118,9 @@ export class ConfigService {
   private load(): AppConfig {
     fs.mkdirSync(this.paths.root, { recursive: true })
     if (!fs.existsSync(this.paths.config)) {
-      this.write(DEFAULT_CONFIG)
-      return structuredClone(DEFAULT_CONFIG)
+      const config = validateConfig(DEFAULT_CONFIG)
+      this.write(config)
+      return config
     }
 
     const contents = fs.readFileSync(this.paths.config, 'utf8')

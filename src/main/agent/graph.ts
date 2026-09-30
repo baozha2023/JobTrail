@@ -1,3 +1,11 @@
+import { createAgentModel } from './model'
+import {
+  appendExamSchema,
+  createExamSchema,
+  examIdentitySchema,
+  updateExamSchema,
+} from '../../shared/exams'
+import { isExamTool, type ExamToolName } from '../../shared/exam-tools'
 import fs from 'node:fs'
 import { logFault } from '../diagnostics'
 import path from 'node:path'
@@ -35,6 +43,14 @@ import { AgentMcpClient } from './mcp-client'
 import { AgentArchive } from './archive'
 import { buildAgentSystemPrompt } from './prompt'
 import type { AgentRuntimeInfo } from './runtime'
+
+const examAgentSchemas: Record<ExamToolName, z.ZodType> = {
+  create_exam_paper: createExamSchema.omit({ conversationId: true, requestId: true, taskId: true }),
+  append_exam_question: appendExamSchema.omit({ conversationId: true, requestId: true }),
+  update_exam_paper: updateExamSchema.omit({ conversationId: true }),
+  get_exam_paper: examIdentitySchema.omit({ conversationId: true }),
+  complete_exam_paper: examIdentitySchema.omit({ conversationId: true }),
+}
 
 const CompactResult = z.object({
   id: z.string(),
@@ -89,10 +105,10 @@ function imageTokenEstimate(messages: BaseMessage[]): number {
   )
 }
 
-function skillInstructions(runtime: AgentRuntimeInfo): string {
+function skillInstructions(runtime: AgentRuntimeInfo, name: 'resume-match' | 'study'): string {
   const file = runtime.packaged
-    ? path.join(runtime.resourcesPath, 'skills', 'resume-match', 'SKILL.md')
-    : path.join(runtime.appPath, 'src', 'main', 'agent', 'skills', 'resume-match', 'SKILL.md')
+    ? path.join(runtime.resourcesPath, 'skills', name, 'SKILL.md')
+    : path.join(runtime.appPath, 'src', 'main', 'agent', 'skills', name, 'SKILL.md')
   return fs.readFileSync(file, 'utf8').replace(/^---[\s\S]*?---\s*/, '')
 }
 
@@ -175,7 +191,7 @@ class AgentGraphFactory {
         const description = storedDescription?.trim() ? storedDescription : jd
         if (!description?.trim()) return ['请先提供岗位 JD 或选择有岗位说明的求职记录。', null]
         return resumeDocumentResult(resumeId, 'resumeText', {
-          skill: skillInstructions(this.runtime),
+          skill: skillInstructions(this.runtime, 'resume-match'),
           resumeName: resume.name,
           jd: description,
         })
@@ -195,18 +211,47 @@ class AgentGraphFactory {
 
     const mcpTools = MCP_TOOLS.map((descriptor) =>
       tool(
-        async (args) =>
-          this.mcp.call(descriptor.name, args as Record<string, unknown>, getConfig().signal),
+        async (args, config) => {
+          const payload = { ...(args as Record<string, unknown>) }
+          if (isExamTool(descriptor.name)) {
+            const context = getConfig().configurable
+            if (typeof context?.thread_id !== 'string' || !context.thread_id)
+              throw new Error('Missing exam conversation ID')
+            payload.conversationId = context.thread_id
+            if (
+              descriptor.name === 'create_exam_paper' ||
+              descriptor.name === 'append_exam_question'
+            ) {
+              const callId = config.toolCall?.id
+              if (!callId) throw new Error('Missing tool call ID')
+              payload.requestId = `${context.thread_id}:${callId}`
+            }
+            if (descriptor.name === 'create_exam_paper') {
+              if (typeof context.job_id !== 'string' || !context.job_id)
+                throw new Error('Missing exam task ID')
+              payload.taskId = context.job_id
+            }
+          }
+          return this.mcp.call(descriptor.name, payload, getConfig().signal)
+        },
         {
           name: descriptor.name,
           description: descriptor.description,
-          schema: descriptor.inputSchema,
+          schema: isExamTool(descriptor.name)
+            ? examAgentSchemas[descriptor.name]
+            : descriptor.inputSchema,
         },
       ),
     )
-    const allTools = [askUser, readResume, matchResume, ...mcpTools]
+    const study = tool(async () => skillInstructions(this.runtime, 'study'), {
+      name: 'load_study',
+      description: '用户请求笔试练习或使用 /study 时先加载学习技能。',
+      schema: z.object({}),
+    })
+    const allTools = [askUser, readResume, matchResume, study, ...mcpTools]
     const toolNode = new ToolNode(allTools)
     const parallelReadTools = new Set([
+      'load_study',
       'match_resume',
       'read_resume',
       ...MCP_TOOLS.filter(
@@ -345,19 +390,7 @@ class AgentGraphFactory {
   }
 
   private model(maxTokens?: number): ChatOpenAI {
-    const ai = this.config.reload().ai
-    if (!ai.modelId) throw new AppServiceError('VALIDATION_ERROR', '请先在设置中填写 AI 模型 ID')
-    const endpoint = new URL(ai.baseUrl)
-    if (!['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname) && !ai.apiKey)
-      throw new AppServiceError('VALIDATION_ERROR', '远程 AI 服务需要 API Key')
-    return new ChatOpenAI({
-      model: ai.modelId,
-      apiKey: ai.apiKey || 'local',
-      useResponsesApi: false,
-      streamUsage: true,
-      maxTokens,
-      configuration: { baseURL: ai.baseUrl },
-    })
+    return createAgentModel(this.config.reload().ai, maxTokens)
   }
 
   private system(mcpEnabled: boolean, summary: string): SystemMessage {

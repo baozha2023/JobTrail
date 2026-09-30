@@ -124,6 +124,7 @@ const options = computed<Option[]>(() => {
               label: '/resume-match',
               detail: t('agent.skillMatchDescription'),
             } as const,
+            { kind: 'skill', label: '/study', detail: t('exam.skillDescription') } as const,
           ]
         : []),
     ].filter((option) => option.label.toLocaleLowerCase().includes(query))
@@ -306,7 +307,8 @@ function updateContext(): void {
 function optionReference(
   option: Extract<Option, { kind: 'reference' | 'skill' | 'command' }>,
 ): AgentReference {
-  if (option.kind === 'skill') return { kind: 'skill', name: 'resume-match' }
+  if (option.kind === 'skill')
+    return { kind: 'skill', name: option.label === '/study' ? 'study' : 'resume-match' }
   if (option.kind === 'command') return { kind: 'command', name: 'compact' }
   return { kind: option.category, id: option.id, name: option.label }
 }

@@ -96,7 +96,7 @@ describe('内置公司更新弹窗', () => {
 })
 
 describe('设置页', () => {
-  it('saves the model endpoint and API key with one action and surfaces save errors', async () => {
+  it('saves model settings and forwards failures for message feedback without inline errors', async () => {
     const config: AppConfig = {
       configVersion: 1,
       themeMode: 'light',
@@ -115,12 +115,14 @@ describe('设置页', () => {
         compactThresholdPercent: 80,
       },
     }
+    const saveError = Object.assign(new Error('raw diagnostics'), { code: 'VALIDATION_ERROR' })
+    const clearedConfig = { ...config, ai: { ...config.ai, apiKey: '' } }
     const saveSettings = vi
       .fn()
       .mockResolvedValueOnce(config)
-      .mockRejectedValueOnce(
-        Object.assign(new Error('raw diagnostics'), { code: 'VALIDATION_ERROR' }),
-      )
+      .mockRejectedValueOnce(saveError)
+      .mockResolvedValueOnce(config)
+      .mockResolvedValueOnce(clearedConfig)
     Object.defineProperty(window, 'zhijiApi', {
       value: { agent: { saveSettings } },
       configurable: true,
@@ -141,8 +143,24 @@ describe('设置页', () => {
     expect(wrapper.emitted('aiSaved')?.[0]).toEqual([config])
     await saveButton!.trigger('click')
     await flushPromises()
-    expect(wrapper.find('[role="alert"]').text()).toContain('输入内容无效')
-    expect(wrapper.find('[role="alert"]').text()).not.toContain('raw diagnostics')
+    expect(wrapper.emitted('error')).toEqual([[saveError]])
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('输入内容无效')
+    expect(wrapper.text()).not.toContain('raw diagnostics')
+    expect(wrapper.emitted('aiSaved')).toHaveLength(1)
+    expect((keyInput.element as HTMLInputElement).value).toBe('sk-example')
+    await saveButton!.trigger('click')
+    await flushPromises()
+    expect(saveSettings).toHaveBeenCalledTimes(3)
+    expect(wrapper.emitted('aiSaved')).toHaveLength(2)
+    await keyInput.setValue('   ')
+    await saveButton!.trigger('click')
+    await flushPromises()
+    expect(saveSettings).toHaveBeenLastCalledWith({ ...config.ai, apiKey: '' })
+    expect(wrapper.emitted('aiSaved')?.[2]).toEqual([clearedConfig])
+    await wrapper.setProps({ config: clearedConfig })
+    expect((keyInput.element as HTMLInputElement).value).toBe('')
+    expect(wrapper.emitted('error')).toHaveLength(1)
     wrapper.unmount()
   })
 

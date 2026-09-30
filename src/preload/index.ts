@@ -6,21 +6,8 @@ import type {
   ZhijiApi,
   VelopackApi,
   WindowControlsApi,
-  AppErrorCode,
-  AppErrorShape,
   AppUpdateProgress,
 } from '../shared/types'
-
-class IpcClientError extends Error {
-  readonly code: AppErrorCode
-  readonly details: Record<string, unknown> | undefined
-  constructor(error: AppErrorShape) {
-    super(error.message)
-    this.name = 'IpcClientError'
-    this.code = error.code
-    this.details = error.details
-  }
-}
 
 function sendDiagnostic(input: FaultInput | null): void {
   if (!input) return
@@ -58,11 +45,27 @@ const invoke = async <K extends IpcChannel>(
     sendDiagnostic(faultInput('preload', 'ipc-transport', error))
     throw error
   }
-  if (!response.ok) throw new IpcClientError(response.error)
+  // contextBridge drops custom Error properties. Reject with cloneable data to preserve the code.
+  if (!response.ok) throw { name: 'IpcClientError', ...response.error }
   return response.data
 }
 
 const zhijiApi: ZhijiApi = {
+  exams: {
+    get: (input) => invoke('exams:get', input),
+    save: (input) => invoke('exams:save', input),
+    submit: (input) => invoke('exams:submit', input),
+    reset: (input) => invoke('exams:reset', input),
+    grade: (input) => invoke('exams:grade', input),
+    onChanged(listener) {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        input: import('../shared/exams').ExamIdentity,
+      ) => listener(input)
+      ipcRenderer.on('exams:changed', handler)
+      return () => ipcRenderer.removeListener('exams:changed', handler)
+    },
+  },
   backup: {
     export: () => invoke('backup:export'),
     import: () => invoke('backup:import'),

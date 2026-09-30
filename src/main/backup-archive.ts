@@ -1,3 +1,9 @@
+import {
+  validateDatabaseVersion,
+  validateConfigVersion,
+  planPersistenceUpgrade,
+  preparePersistenceUpgrade,
+} from './persistence-migrations'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
@@ -9,7 +15,7 @@ import * as yauzl from 'yauzl'
 import Database from 'better-sqlite3'
 import { z } from 'zod'
 import { configEncryptionKey, encryptConfig } from './config-crypto'
-import { validateConfig, DEFAULT_CONFIG, type AppPaths, type ConfigService } from './config'
+import { type AppPaths, type ConfigService } from './config'
 import { DB_SCHEMA_VERSION, DatabaseManager } from './database'
 import { AppServiceError } from './services/errors'
 
@@ -130,7 +136,6 @@ export async function exportBackup(
       snapshot,
       manifest.databaseVersion,
       new Set(manifest.files.map((item) => item.path.toLowerCase())),
-      work,
     )
   } catch {
     throw new AppServiceError(
@@ -261,47 +266,13 @@ function validateSnapshot(
   databaseFile: string,
   databaseVersion: number,
   declared: Set<string>,
-  work: string,
 ): void {
   const db = new Database(databaseFile, {
     readonly: true,
     fileMustExist: true,
   })
   try {
-    if (
-      db.pragma('user_version', { simple: true }) !== databaseVersion ||
-      db.pragma('integrity_check', { simple: true }) !== 'ok'
-    )
-      throw invalid()
-    // A matching user_version alone does not prove this is the formal schema.
-    const expectedRoot = path.join(work, 'expected-schema')
-    const expected = new DatabaseManager({
-      root: expectedRoot,
-      data: expectedRoot,
-      database: path.join(expectedRoot, 'schema.db'),
-      config: path.join(expectedRoot, 'config.json'),
-      resumes: path.join(expectedRoot, 'resumes'),
-      chatUploads: path.join(expectedRoot, 'chat-uploads'),
-    })
-    try {
-      const schema = expected.db
-        .prepare(
-          "SELECT name, type, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'",
-        )
-        .all() as { name: string; type: string; sql: string }[]
-      const normalize = (sql: string) => sql.replace(/\s+/g, ' ').trim()
-      for (const item of schema) {
-        const actual = db
-          .prepare('SELECT type, sql FROM sqlite_master WHERE name = ?')
-          .get(item.name) as { type: string; sql: string } | undefined
-        if (!actual || actual.type !== item.type || normalize(actual.sql) !== normalize(item.sql))
-          throw invalid()
-      }
-      if (db.prepare("SELECT 1 FROM sqlite_master WHERE type IN ('trigger', 'view') LIMIT 1").get())
-        throw invalid()
-    } finally {
-      expected.close()
-    }
+    validateDatabaseVersion(db, databaseVersion)
     if (
       db
         .prepare(
@@ -365,15 +336,14 @@ export async function importBackup(
     const manifest = manifestSchema.parse(
       JSON.parse(await fsp.readFile(path.join(directory, 'manifest.json'), 'utf8')),
     )
-    // Client semver is informational. Only explicitly supported persistent formats can be restored.
-    if (
-      manifest.databaseVersion !== DB_SCHEMA_VERSION ||
-      manifest.configVersion !== DEFAULT_CONFIG.configVersion
-    )
+    try {
+      planPersistenceUpgrade(manifest.databaseVersion, manifest.configVersion)
+    } catch {
       throw new AppServiceError(
         'BACKUP_VERSION_UNSUPPORTED',
-        '备份的数据格式版本不受当前客户端支持，请使用支持该版本迁移的客户端',
+        '备份的数据格式版本不受当前客户端支持',
       )
+    }
     const declared = new Set<string>()
     for (const item of manifest.files) {
       if (!allowedBackupPath(item.path) || declared.has(item.path.toLowerCase())) throw invalid()
@@ -397,23 +367,24 @@ export async function importBackup(
     const actual = await inventory(directory)
     if (actual.length !== declared.size || actual.some((name) => !declared.has(name)))
       throw invalid()
-    const configuration = validateConfig(
+    let configuration: import('../shared/types').AppConfig = validateConfigVersion(
       JSON.parse(await fsp.readFile(path.join(directory, 'config.json'), 'utf8')),
+      manifest.configVersion,
     )
-    validateSnapshot(
-      path.join(directory, 'data', 'zhiji.db'),
-      manifest.databaseVersion,
-      declared,
-      work,
-    )
+    validateSnapshot(path.join(directory, 'data', 'zhiji.db'), manifest.databaseVersion, declared)
     // The portable configuration exists only inside the encrypted archive / temporary staging.
+    configuration = preparePersistenceUpgrade(
+      path.join(directory, 'data', 'zhiji.db'),
+      configuration,
+    ).config
+    validateSnapshot(path.join(directory, 'data', 'zhiji.db'), DB_SCHEMA_VERSION, declared)
     await fsp.writeFile(path.join(directory, 'config.json'), encryptConfig(configuration))
     await fsp.rm(path.join(directory, 'manifest.json'))
     for (const folder of ['resumes', 'chat-uploads'])
       await fsp.mkdir(path.join(directory, folder), { recursive: true })
     return { directory, manifest }
   } catch (error) {
-    if (error instanceof AppServiceError) throw error
+    if (error instanceof AppServiceError && error.code.startsWith('BACKUP_')) throw error
     throw invalid()
   } finally {
     await fsp.rm(zipPath, { force: true })

@@ -50,6 +50,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updateConfig: [input: AppConfigUpdate]
   aiSaved: [config: AppConfig]
+  error: [error: unknown]
   closeBehavior: [value: CloseBehavior]
   launchAtStartup: [value: boolean]
 }>()
@@ -69,7 +70,6 @@ const aiMultimodal = ref(false)
 const aiContextWindowK = ref<number | null>(256)
 const aiCompactThresholdPercent = ref<number | null>(80)
 const keyDraft = ref('')
-const keyError = ref('')
 const aiSaving = ref(false)
 const { t } = useI18n()
 const backupBusy = ref(false)
@@ -109,7 +109,6 @@ watch(
 async function saveAi(): Promise<void> {
   if (aiSaving.value) return
   aiSaving.value = true
-  keyError.value = ''
   try {
     const next = await window.zhijiApi.agent.saveSettings({
       baseUrl: aiBaseUrl.value.trim(),
@@ -121,7 +120,7 @@ async function saveAi(): Promise<void> {
     })
     emit('aiSaved', next)
   } catch (error) {
-    keyError.value = getErrorMessage(error, t)
+    emit('error', error)
   } finally {
     aiSaving.value = false
   }
@@ -402,7 +401,6 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
           <n-button type="primary" :loading="aiSaving" @click="saveAi">{{
             $t('settings.aiSave')
           }}</n-button>
-          <p v-if="keyError" role="alert">{{ keyError }}</p>
         </div>
       </section>
 

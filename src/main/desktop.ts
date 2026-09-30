@@ -1,3 +1,8 @@
+import { featureErrors } from '../shared/feature-errors'
+import { AppServiceError } from './services/errors'
+import { ExamGrader } from './agent/exam-grader'
+import { registerExamIpc } from './ipc/exams'
+import { ensurePersistenceReady } from './persistence-migrations'
 import { app, BrowserWindow, Menu, Tray, dialog, nativeImage, nativeTheme, shell } from 'electron'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -18,7 +23,6 @@ import { AgentService } from './agent/service'
 import { AgentCoordinator } from './agent/coordinator'
 import { getMcpConnectionInfo } from './ipc/mcp'
 import { registerBackupIpc } from './ipc/backup'
-import { recoverRestore, recoverBackupWork } from './backup-restore'
 import { sendToTrustedWindow } from './ipc/register-channel'
 import { initializeFaultLogger, logFault, reportFault } from './diagnostics'
 
@@ -244,8 +248,7 @@ function createWindow(config: ConfigService): void {
 async function initializeApplication(): Promise<void> {
   Menu.setApplicationMenu(null)
   const paths = getAppPaths()
-  recoverRestore(paths)
-  recoverBackupWork(paths)
+  await ensurePersistenceReady(paths, Boolean(process.env.JOBTRAIL_LAUNCH_TOKEN))
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
@@ -258,9 +261,20 @@ async function initializeApplication(): Promise<void> {
     () => undefined,
   )
   await agentCore.recoverPendingDeletions()
-  agent = new AgentCoordinator(agentCore, paths, getMcpConnectionInfo, (event) =>
-    sendToTrustedWindow('agent:event', event),
+  const grader = new ExamGrader(
+    container.services.exams,
+    config,
+    (identity) => sendToTrustedWindow('exams:changed', identity),
+    paths.root,
   )
+  agent = new AgentCoordinator(
+    agentCore,
+    paths,
+    getMcpConnectionInfo,
+    (event) => sendToTrustedWindow('agent:event', event),
+    grader,
+  )
+  registerExamIpc(container.services.exams, grader)
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
   registerVelopackIpc(container.database, agent)
   registerBackupIpc(paths, container.database, config, agent, () => {
@@ -312,9 +326,22 @@ app
         setImmediate(() => app.exit(INCOMPATIBLE_DATA_EXIT_CODE))
         return
       }
-      const message = error instanceof Error ? error.message : String(error)
-      dialog.showErrorBox('职迹启动失败', message)
-      app.quit()
+      const message =
+        error instanceof AppServiceError && error.code in featureErrors['zh-CN']
+          ? featureErrors['zh-CN'][error.code as keyof (typeof featureErrors)['zh-CN']] +
+            '\n' +
+            featureErrors['en-US'][error.code as keyof (typeof featureErrors)['en-US']]
+          : '职迹启动失败，请查看日志。 / Startup failed. Please check the logs.'
+      if (!process.env.JOBTRAIL_LAUNCH_TOKEN)
+        dialog.showErrorBox('职迹启动失败 / Startup failed', message)
+      setImmediate(() =>
+        app.exit(
+          error instanceof AppServiceError &&
+            ['PERSISTENCE_INVALID', 'PERSISTENCE_UNSUPPORTED'].includes(error.code)
+            ? INCOMPATIBLE_DATA_EXIT_CODE
+            : 1,
+        ),
+      )
     }
   })
   .catch((error: unknown) => {

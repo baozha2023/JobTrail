@@ -1,3 +1,4 @@
+import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 import type {
   AppConfig,
   AppConfigUpdate,
@@ -40,6 +41,11 @@ import type {
 } from './types'
 
 export interface IpcChannelMap {
+  'exams:get': { args: [input: ExamIdentity]; result: ExamPaper }
+  'exams:save': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
+  'exams:submit': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
+  'exams:reset': { args: [input: ExamIdentity]; result: ExamPaper }
+  'exams:grade': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
   'backup:export': { args: []; result: 'cancelled' | 'exported' }
   'backup:import': { args: []; result: 'cancelled' | 'restarting' }
   'agent:list': { args: []; result: AgentConversation[] }
@@ -143,6 +149,7 @@ export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
 export interface AppEventMap {
+  'exams:changed': ExamIdentity
   'company-catalog:progress': CompanyCatalogProgress
   'agent:event': AgentEvent
   'velopack:progress': AppUpdateProgress

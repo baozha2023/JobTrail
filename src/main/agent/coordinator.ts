@@ -15,6 +15,7 @@ import type {
 import type { AppPaths } from '../config'
 import { AppServiceError } from '../services/errors'
 import { AgentService } from './service'
+import type { ExamGrader } from './exam-grader'
 import type { AgentRuntimeInfo } from './runtime'
 import type { AgentWorkerRequest, AgentWorkerResponse } from './worker-protocol'
 import { forwardDiagnosticStderr, logFault, reportFault } from '../diagnostics'
@@ -69,6 +70,7 @@ export class AgentCoordinator {
     private readonly paths: AppPaths,
     private readonly mcpConnection: () => McpConnectionInfo,
     private readonly emit: (event: AgentEvent) => void,
+    private readonly examGrader: ExamGrader,
   ) {}
 
   list(): AgentConversation[] {
@@ -107,6 +109,7 @@ export class AgentCoordinator {
   async delete(id: string): Promise<void> {
     this.assertConversationIdle(id)
     await this.agent.delete(id)
+    this.examGrader.cancelInvalid()
   }
 
   upload(id: string, sourcePath: string): AgentAttachment {
@@ -556,6 +559,7 @@ export class AgentCoordinator {
 
   async suspendForUpdate(): Promise<void> {
     this.suspended = true
+    this.examGrader.suspend()
     await this.drain()
     await this.stopWorkers()
     await this.agent.suspendForUpdate()
@@ -563,11 +567,13 @@ export class AgentCoordinator {
 
   resumeAfterUpdate(): void {
     this.agent.resumeAfterUpdate()
+    this.examGrader.resume()
     this.suspended = false
   }
 
   async close(): Promise<void> {
     this.closing = true
+    this.examGrader.suspend()
     try {
       await this.drain()
     } finally {

@@ -1,3 +1,5 @@
+import { ExamService } from './services/exam-service'
+import { ExamRepository } from './repositories/exam-repository'
 import type { AppPaths } from './config'
 import { DatabaseManager } from './database'
 import { FileStorageService } from './file-storage'
@@ -30,6 +32,7 @@ export interface Services {
   opportunities: OpportunityService
   calendar: CalendarEventService
   reminders: CalendarReminderService
+  exams: ExamService
   web: WebRetrievalService
 }
 
@@ -97,6 +100,7 @@ export function createServices(
     ),
     calendar: new CalendarEventService(unitOfWork, calendarRepository, opportunityRepository),
     reminders: new CalendarReminderService(unitOfWork, calendarRepository),
+    exams: new ExamService(unitOfWork, new ExamRepository(database.db)),
     web: new WebRetrievalService(),
   }
 }

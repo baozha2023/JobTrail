@@ -1,7 +1,33 @@
+import { featureErrors } from '../shared/feature-errors'
 import { createI18n } from 'vue-i18n'
 
 const messages = {
   'zh-CN': {
+    exam: {
+      skillDescription: '生成笔试练习卷，边出题边作答',
+      paper: '笔试练习卷',
+      open: '开始答题',
+      loading: '加载中',
+      progress: '已生成 {generated}/{total} 题 · 已提交 {answered} 题',
+      generating: '正在出题',
+      completed: '出题完成',
+      interrupted: '生成中断，可要求继续',
+      reset: '重置',
+      single_choice: '单选题',
+      true_false: '判断题',
+      short_answer: '简答题',
+      true: '正确',
+      false: '错误',
+      answerPlaceholder: '请输入你的答案',
+      grade: '判题',
+      submit: '提交',
+      retry: '判题未完成，可重试',
+      score: '得分：{score}/100',
+      reference: '参考答案',
+      correct: '回答正确',
+      incorrect: '回答错误',
+      correctAnswer: '正确答案：',
+    },
     appName: '职迹',
     window: { minimize: '最小化', maximize: '最大化', close: '关闭' },
     nav: {
@@ -201,7 +227,6 @@ const messages = {
       mentionOpportunity: '求职记录',
       mentionCompany: '公司',
       mentionIndustry: '二级行业',
-      skillMatch: '简历匹配',
       skillMatchDescription: '评估简历与岗位的匹配度、优势和缺口',
       slashTitle: '技能与指令',
       compactDescription: '压缩当前对话的工作上下文',
@@ -334,7 +359,9 @@ const messages = {
       updatePhase: {
         preserve: '正在保留当前版本以便回退…',
         delta: '正在下载并合成增量更新…',
+        skipDelta: '无需增量更新，正在准备完整更新包…',
         full: '正在下载完整更新包…',
+        skipFull: '增量更新已完成，正在跳过完整包下载…',
         verify: '正在校验更新包…',
         backup: '正在备份本地数据并准备更新…',
         handoff: '正在交给安装器，应用即将重启…',
@@ -380,6 +407,7 @@ const messages = {
       saveSuccess: '保存成功',
     },
     error: {
+      ...featureErrors['zh-CN'],
       generic: '操作失败',
       BACKUP_INVALID: '备份损坏、加密密钥不匹配或包含无效数据，当前数据未被替换。',
       BACKUP_SOURCE_INVALID:
@@ -389,6 +417,7 @@ const messages = {
       BACKUP_FAILED: '备份操作失败，请检查磁盘空间、文件权限或是否正在更新。',
       required: '请填写必填项',
       VALIDATION_ERROR: '输入内容无效',
+      AI_API_KEY_EMPTY: '当前 API Key 为空',
       NOT_FOUND: '数据不存在或已被删除',
       BUILTIN_DATA: '该数据为内置，无法删除/修改',
       STATUS_IN_USE: '该状态已被求职记录或历史使用，不能删除',
@@ -427,6 +456,31 @@ const messages = {
     weekdays: ['日', '一', '二', '三', '四', '五', '六'],
   },
   'en-US': {
+    exam: {
+      skillDescription: 'Create an interactive practice exam',
+      paper: 'Practice exam',
+      open: 'Open exam',
+      loading: 'Loading',
+      progress: '{generated}/{total} questions · {answered} submitted',
+      generating: 'Generating',
+      completed: 'Ready',
+      interrupted: 'Generation interrupted; ask to continue',
+      reset: 'Reset',
+      single_choice: 'Single choice',
+      true_false: 'True or false',
+      short_answer: 'Short answer',
+      true: 'True',
+      false: 'False',
+      answerPlaceholder: 'Enter your answer',
+      grade: 'Grade',
+      submit: 'Submit',
+      retry: 'Grading incomplete; retry',
+      score: 'Score: {score}/100',
+      reference: 'Reference answer',
+      correct: 'Correct',
+      incorrect: 'Incorrect',
+      correctAnswer: 'Correct answer:',
+    },
     appName: '职迹',
     window: { minimize: 'Minimize', maximize: 'Maximize', close: 'Close' },
     nav: {
@@ -626,7 +680,6 @@ const messages = {
       mentionOpportunity: 'Opportunity',
       mentionCompany: 'Company',
       mentionIndustry: 'Industry division',
-      skillMatch: 'Resume match',
       skillMatchDescription: 'Score resume–job fit, strengths, and gaps',
       slashTitle: 'Skills and commands',
       compactDescription: 'Compress this chat’s working context',
@@ -765,7 +818,9 @@ const messages = {
       updatePhase: {
         preserve: 'Preserving the current version for rollback…',
         delta: 'Downloading and combining delta updates…',
+        skipDelta: 'Preparing the full update without a delta…',
         full: 'Downloading the full update package…',
+        skipFull: 'Delta complete; skipping the full download…',
         verify: 'Verifying the update package…',
         backup: 'Backing up local data and preparing the update…',
         handoff: 'Handing off to the installer; the app will restart…',
@@ -813,6 +868,7 @@ const messages = {
       saveSuccess: 'Saved successfully',
     },
     error: {
+      ...featureErrors['en-US'],
       generic: 'Operation failed',
       BACKUP_INVALID:
         'The backup is damaged, uses a different encryption key, or contains invalid data. Current data has not been replaced.',
@@ -824,6 +880,7 @@ const messages = {
         'Backup failed. Check free space, file permissions, and whether an update is in progress.',
       required: 'Please fill in required fields',
       VALIDATION_ERROR: 'Invalid input',
+      AI_API_KEY_EMPTY: 'The current API Key is empty.',
       NOT_FOUND: 'The data does not exist or was deleted',
       BUILTIN_DATA: 'Built-in data cannot be edited or deleted',
       STATUS_IN_USE: 'This status is in use and cannot be deleted',

@@ -95,6 +95,31 @@ describe('fault diagnostics', () => {
     }
   })
 
+  it.each([false, true])('records a missing API key once with packaged=%s', (packaged) => {
+    const directory = root()
+    const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    try {
+      const logger = new FaultLogger('main', '1.3.0', packaged, directory)
+      const error = Object.assign(new Error('private configuration'), { code: 'AI_API_KEY_EMPTY' })
+      logger.log('ipc.exams.grade', error)
+      logger.log('ipc.exams.grade', error)
+      const output = packaged
+        ? fs.readFileSync(path.join(directory, 'logs', 'app.jsonl'), 'utf8')
+        : String(write.mock.calls[0][0])
+      const lines = output.trim().split('\n')
+      expect(lines).toHaveLength(1)
+      expect(JSON.parse(lines[0])).toMatchObject({
+        process: 'main',
+        operation: 'ipc.exams.grade',
+        code: 'AI_API_KEY_EMPTY',
+      })
+      expect(write).toHaveBeenCalledTimes(packaged ? 0 : 1)
+      expect(output).not.toContain('private configuration')
+    } finally {
+      write.mockRestore()
+    }
+  })
+
   it('forwards only validated child JSON lines to the development console', () => {
     const stream = new PassThrough()
     const lines: string[] = []

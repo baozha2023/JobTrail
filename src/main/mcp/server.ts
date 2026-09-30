@@ -1,3 +1,4 @@
+import { featureErrors } from '../../shared/feature-errors'
 import { McpServer } from '@modelcontextprotocol/server'
 import { logFault } from '../diagnostics'
 import { z } from 'zod'
@@ -61,7 +62,7 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
               await descriptor.execute(dependencies.services, args, ctx.mcpReq.signal),
             )
 
-          if (config.mcp.requireWriteConfirmation) {
+          if (config.mcp.requireWriteConfirmation && descriptor.confirmation !== 'never') {
             const version = server.server.getNegotiatedProtocolVersion()
             const capabilities = server.server.getClientCapabilities() as
               | { elicitation?: unknown }
@@ -77,15 +78,18 @@ export function createJobTrailMcpServer(dependencies: McpServerDependencies): Mc
             descriptor,
             args,
             ctx,
-            config.mcp.requireWriteConfirmation,
+            config.mcp.requireWriteConfirmation && descriptor.confirmation !== 'never',
           )
         } catch (error) {
           const normalized = errorShape(error)
-          if (normalized.code === 'INTERNAL_ERROR') logFault('mcp.tool', error)
+          logFault('mcp.tool', error)
+          const localized = featureErrors[dependencies.config.get().locale]
           const message =
-            normalized.code === 'INTERNAL_ERROR'
-              ? 'JobTrail MCP encountered an internal error.'
-              : normalized.message
+            normalized.code in localized
+              ? localized[normalized.code as keyof typeof localized]
+              : normalized.code === 'INTERNAL_ERROR'
+                ? 'JobTrail MCP encountered an internal error.'
+                : normalized.message
           return errorResult(normalized.code, message, normalized.details)
         }
       },

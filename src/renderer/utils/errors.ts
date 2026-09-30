@@ -7,11 +7,24 @@ export function errorCode(error: unknown): AppErrorCode | null {
   const code = (error as { code?: unknown }).code
   if (typeof code !== 'string') return null
   const known: AppErrorCode[] = [
+    'EXAM_INVALID',
+    'EXAM_COUNTS_TOO_SMALL',
+    'EXAM_CONFLICT',
+    'EXAM_NOT_FOUND',
+    'EXAM_ALREADY_GRADING',
+    'EXAM_UNAVAILABLE',
+    'EXAM_GRADING_FAILED',
+    'PERSISTENCE_INVALID',
+    'PERSISTENCE_BUSY',
+    'PERSISTENCE_UNSUPPORTED',
+    'PERSISTENCE_FAILED',
+
     'BACKUP_INVALID',
     'BACKUP_SOURCE_INVALID',
     'BACKUP_VERSION_UNSUPPORTED',
     'BACKUP_FAILED',
     'VALIDATION_ERROR',
+    'AI_API_KEY_EMPTY',
     'NOT_FOUND',
     'BUILTIN_DATA',
     'STATUS_IN_USE',

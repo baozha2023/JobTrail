@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isExamTool } from '../../shared/exam-tools'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AgentMessage } from '../../shared/types'
@@ -43,7 +44,7 @@ const statusKey = {
           <span class="agent-tool-name">{{ tool.name }}</span>
           <span class="agent-tool-state">{{ t(statusKey[tool.status]) }}</span>
         </summary>
-        <div class="agent-tool-details">
+        <div v-if="!isExamTool(tool.name)" class="agent-tool-details">
           <template v-if="tool.args !== '{}'">
             <strong>{{ t('agent.toolInput') }}</strong>
             <pre>{{ tool.args }}</pre>

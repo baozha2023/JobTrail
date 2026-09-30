@@ -2,10 +2,25 @@ import { describe, expect, it } from 'vitest'
 import { MCP_TOOLS } from '../src/main/mcp-contracts'
 
 describe('MCP tool contracts', () => {
+  it('rejects unstructured exam output and limits the confirmation exception to four exam writes', () => {
+    const exams = MCP_TOOLS.filter((tool) => tool.name.includes('exam_'))
+    expect(exams).toHaveLength(5)
+    for (const tool of exams)
+      expect(tool.outputSchema.safeParse({ paper: { unexpected: true } }).success).toBe(false)
+    expect(
+      MCP_TOOLS.filter((tool) => tool.confirmation === 'never').map((tool) => tool.name),
+    ).toEqual([
+      'create_exam_paper',
+      'update_exam_paper',
+      'append_exam_question',
+      'complete_exam_paper',
+    ])
+  })
   it('covers domain service methods without exposing SQL or standalone aliases', () => {
     const names = MCP_TOOLS.map((tool) => tool.name)
     expect(names).toEqual(
       expect.arrayContaining([
+        'update_exam_paper',
         'list_statuses',
         'get_status',
         'create_status',
@@ -49,10 +64,10 @@ describe('MCP tool contracts', () => {
     expect(names).not.toContain('discover_web_jobs')
     expect(MCP_TOOLS.some((tool) => tool.description.toLowerCase().includes('sql'))).toBe(false)
     expect(MCP_TOOLS.filter((tool) => tool.destructive).every((tool) => !tool.readOnly)).toBe(true)
-    expect(MCP_TOOLS).toHaveLength(37)
-    expect(new Set(names)).toHaveProperty('size', 37)
-    expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(14)
-    expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(23)
+    expect(MCP_TOOLS).toHaveLength(42)
+    expect(new Set(names)).toHaveProperty('size', 42)
+    expect(MCP_TOOLS.filter((tool) => tool.readOnly)).toHaveLength(15)
+    expect(MCP_TOOLS.filter((tool) => !tool.readOnly)).toHaveLength(27)
     expect(MCP_TOOLS.filter((tool) => !tool.readOnly).every((tool) => tool.preview)).toBe(true)
     expect(MCP_TOOLS.filter((tool) => tool.readOnly).every((tool) => !tool.preview)).toBe(true)
   })

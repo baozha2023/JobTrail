@@ -201,7 +201,8 @@ export function registerVelopackIpc(
   registerChannel('velopack:apply-update', async (attemptId) => {
     await getService().apply(reportProgress(attemptId))
     closing = true
-    setImmediate(() => app.quit())
+    // Give the renderer time to show the 98–100% handoff before Velopack takes over.
+    setTimeout(() => app.quit(), 1_200)
     return true
   })
   registerChannel('velopack:uninstall', async () => {

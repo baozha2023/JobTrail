@@ -4,7 +4,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAgentStore } from '../src/renderer/stores/agent'
 import { i18n } from '../src/renderer/i18n'
+import { getErrorMessage } from '../src/renderer/utils/errors'
 import type { AgentEvent, AgentHistory, AgentJobSnapshot } from '../src/shared/types'
+
+const eventSubscriptions = {
+  data: { onExternalChange: () => () => {} },
+}
 
 const conversations = [
   { id: 'chat-a', title: 'A', createdAt: 1, updatedAt: 1 },
@@ -22,11 +27,43 @@ const usage: AgentHistory['usage'] = {
 beforeEach(() => setActivePinia(createPinia()))
 
 describe('agent session store', () => {
-  it('renders worker errors in the selected language', async () => {
+  it('releases both event subscriptions when startup fails before retrying', async () => {
+    const stopAgent = vi.fn()
+    const stopExternal = vi.fn()
+    const list = vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue([])
+    const onEvent = vi.fn(() => stopAgent)
+    const onExternalChange = vi.fn(() => stopExternal)
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: { agent: { list, onEvent }, data: { onExternalChange } },
+    })
+    const store = useAgentStore()
+    await expect(store.start()).rejects.toThrow('unavailable')
+    expect(stopAgent).toHaveBeenCalledOnce()
+    expect(stopExternal).toHaveBeenCalledOnce()
+    await store.start()
+    expect(onEvent).toHaveBeenCalledTimes(2)
+    expect(onExternalChange).toHaveBeenCalledTimes(2)
+    store.stop()
+    expect(stopExternal).toHaveBeenCalledTimes(2)
+  })
+  it.each([
+    {
+      code: 'AGENT_WORKER_EXITED' as const,
+      zh: '智能体执行进程意外退出，请重试',
+      en: 'The agent process exited unexpectedly. Please try again.',
+    },
+    {
+      code: 'AI_API_KEY_EMPTY' as const,
+      zh: '当前 API Key 为空',
+      en: 'The current API Key is empty.',
+    },
+  ])('renders $code in the selected language', async ({ code, zh, en }) => {
     let listener: ((event: AgentEvent) => void) | undefined
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => conversations.map((conversation) => ({ ...conversation })),
           onEvent: (next: (event: AgentEvent) => void) => {
@@ -46,18 +83,21 @@ describe('agent session store', () => {
         jobId: 'worker-job',
         sequence: 1,
         kind: 'error',
-        errorCode: 'AGENT_WORKER_EXITED',
+        errorCode: code,
       })
-      expect(store.session('chat-a').error).toContain('意外退出')
+      expect(store.session('chat-a').error).toBe(zh)
       i18n.global.locale.value = 'en-US'
       listener?.({
         conversationId: 'chat-a',
         jobId: 'worker-job',
         sequence: 2,
         kind: 'error',
-        errorCode: 'AGENT_WORKER_EXITED',
+        errorCode: code,
       })
-      expect(store.session('chat-a').error).toContain('exited unexpectedly')
+      expect(store.session('chat-a').error).toBe(en)
+      if (code === 'AI_API_KEY_EMPTY') {
+        expect(getErrorMessage({ code, message: 'raw diagnostics' }, i18n.global.t)).toBe(en)
+      }
     } finally {
       i18n.global.locale.value = originalLocale
       store.stop()
@@ -85,7 +125,10 @@ describe('agent session store', () => {
         return () => undefined
       }),
     }
-    Object.defineProperty(window, 'zhijiApi', { configurable: true, value: { agent: api } })
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: { ...eventSubscriptions, agent: api },
+    })
     const store = useAgentStore()
     await store.start()
     const state = store.session('chat-a')
@@ -125,7 +168,10 @@ describe('agent session store', () => {
         return () => undefined
       }),
     }
-    Object.defineProperty(window, 'zhijiApi', { configurable: true, value: { agent: api } })
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: { ...eventSubscriptions, agent: api },
+    })
     const store = useAgentStore()
     await store.start()
     const parts = [{ kind: 'text' as const, text: '未保存' }]
@@ -173,7 +219,10 @@ describe('agent session store', () => {
         return () => undefined
       }),
     }
-    Object.defineProperty(window, 'zhijiApi', { configurable: true, value: { agent: api } })
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: { ...eventSubscriptions, agent: api },
+    })
     const store = useAgentStore()
     await store.start()
     await store.select('chat-a')
@@ -217,7 +266,7 @@ describe('agent session store', () => {
     }
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
-      value: { agent: api },
+      value: { ...eventSubscriptions, agent: api },
     })
 
     const store = useAgentStore()

@@ -29,8 +29,8 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
   try {
     await client.connect(transport)
     const tools = await client.listTools()
-    if (tools.tools.length !== 37 || new Set(tools.tools.map((tool) => tool.name)).size !== 37) {
-      throw new Error(`${name}: expected 37 unique tools, received ${tools.tools.length}`)
+    if (tools.tools.length !== 42 || new Set(tools.tools.map((tool) => tool.name)).size !== 42) {
+      throw new Error(`${name}: expected 42 unique tools, received ${tools.tools.length}`)
     }
     const enabled = await client.callTool({ name: 'list_statuses', arguments: {} })
     if (enabled.isError) {
@@ -264,6 +264,7 @@ async function smokeRootConfigDialog(transportOptions, root) {
 function linkTree(source, destination) {
   fs.mkdirSync(destination, { recursive: true })
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+    if (entry.name === 'logs') continue
     const from = path.join(source, entry.name)
     const to = path.join(destination, entry.name)
     if (entry.isDirectory()) linkTree(from, to)
@@ -338,15 +339,17 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       JOBTRAIL_LAUNCH_TOKEN: '00000000-0000-4000-8000-000000000001',
     }
     delete desktopEnvironment.ELECTRON_RUN_AS_NODE
+    const desktopRoot = path.join(root, 'desktop')
+    linkTree(path.dirname(executable), desktopRoot)
     smokeInvalidConfig(
       'packaged-desktop-root-supervised',
       {
-        command: executable,
-        args: [],
-        cwd: path.dirname(executable),
+        command: path.join(desktopRoot, 'zhiji.exe'),
+        args: [`--user-data-dir=${path.join(root, 'desktop-user-data')}`],
+        cwd: desktopRoot,
         env: desktopEnvironment,
       },
-      path.dirname(executable),
+      desktopRoot,
     )
     console.log(`Packaged MCP smoke passed for ${executable}`)
   } finally {

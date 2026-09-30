@@ -20,6 +20,11 @@ import type {
   ResumeVersion,
 } from '../src/shared/types'
 
+const eventSubscriptions = {
+  data: { onExternalChange: () => () => {} },
+  exams: { onChanged: () => () => {} },
+}
+
 const global = { plugins: [i18n, createPinia()] }
 beforeEach(() => {
   const pinia = createPinia()
@@ -31,7 +36,7 @@ describe('agent markdown', () => {
   it('renders common Markdown, removes unsafe HTML, and opens only validated links', async () => {
     const openExternal = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(window, 'zhijiApi', {
-      value: { system: { openExternal } },
+      value: { ...eventSubscriptions, system: { openExternal } },
       configurable: true,
     })
     const wrapper = mount(AgentMarkdown, {
@@ -83,6 +88,7 @@ describe('agent attachments', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -163,6 +169,7 @@ describe('agent attachments', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -290,6 +297,7 @@ describe('agent send recovery', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history,
@@ -356,6 +364,7 @@ describe('agent send recovery', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
       },
     })
@@ -391,6 +400,7 @@ describe('agent send recovery', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
       },
     })
@@ -455,6 +465,7 @@ describe('agent composer', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list,
           history: async (id: string) => ({
@@ -525,6 +536,7 @@ describe('agent composer', () => {
     let onAgentEvent: ((event: AgentEvent) => void) | undefined
     Object.defineProperty(window, 'zhijiApi', {
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -591,6 +603,7 @@ describe('agent composer', () => {
     const conversation = { id: 'neutral-question', title: '待选择', createdAt: 1, updatedAt: 1 }
     Object.defineProperty(window, 'zhijiApi', {
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -687,6 +700,7 @@ describe('agent composer', () => {
     const send = vi.fn()
     Object.defineProperty(window, 'zhijiApi', {
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -790,6 +804,7 @@ describe('agent composer', () => {
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           history: async () => ({
@@ -900,6 +915,7 @@ describe('agent composer', () => {
     const removeUpload = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(window, 'zhijiApi', {
       value: {
+        ...eventSubscriptions,
         agent: {
           list: async () => [conversation],
           create: async () => conversation,
@@ -1187,7 +1203,7 @@ describe('agent composer', () => {
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
     )
     await flushPromises()
-    expect(editor.querySelector('.agent-reference')?.textContent).toBe('/简历匹配')
+    expect(editor.querySelector('.agent-reference')?.textContent).toBe('resume-match')
     editor.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
     )
@@ -1212,7 +1228,7 @@ describe('agent composer', () => {
     await flushPromises()
     chooseOption(0)
     await flushPromises()
-    expect(editor.querySelector('.agent-reference')?.textContent).toBe('/简历匹配')
+    expect(editor.querySelector('.agent-reference')?.textContent).toBe('resume-match')
     editor.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }),
     )
@@ -1279,7 +1295,7 @@ describe('agent composer', () => {
     expect(document.querySelector('.agent-command-option')?.textContent).toContain('/compact')
     chooseOption(0)
     await flushPromises()
-    expect(editor.querySelector('.agent-reference')?.textContent).toBe('/compact')
+    expect(editor.querySelector('.agent-reference')?.textContent).toBe('compact')
     editor.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
     )
@@ -1324,7 +1340,7 @@ describe('agent composer', () => {
     host.remove()
   })
 
-  it('uses the same localized reference labels in the editor and sent-message body', async () => {
+  it('uses the same raw skill labels in the editor and sent-message body across locales', async () => {
     Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ left: 0, top: 0, bottom: 0, width: 0, height: 0, right: 0 }),
@@ -1360,7 +1376,7 @@ describe('agent composer', () => {
       const parts = (editorWrapper.vm as unknown as { readParts(): AgentDraftPart[] }).readParts()
       const body = mount(AgentMessageBody, { props: { parts }, global })
       expect(body.find('.agent-reference').text()).toBe(label)
-      expect(label).toBe('/Resume match')
+      expect(label).toBe('resume-match')
       body.unmount()
       const plain = mount(AgentMessageBody, {
         props: { parts: [{ kind: 'text', text: '@简历「伪造」[resumeId=7]' }] },

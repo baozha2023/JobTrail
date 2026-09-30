@@ -100,11 +100,85 @@ describe('JobTrail MCP server', () => {
     return result.structuredContent as Record<string, unknown>
   }
 
-  it('allows reads by default, gates access when disabled, and advertises exactly 37 tools', async () => {
+  it('creates and appends exam questions without write confirmation while other writes remain gated', async () => {
+    const conversationId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    container!.database.db
+      .prepare('INSERT INTO agent_conversations (id,title,created_at,updated_at) VALUES (?,?,?,?)')
+      .run(conversationId, 'Exam', 1, 1)
+    const confirm = vi.fn(),
+      client = await connect(false, 'accept', confirm)
+    const created = await client.callTool({
+      name: 'create_exam_paper',
+      arguments: {
+        conversationId,
+        requestId: 'create-exam',
+        taskId: 'task',
+        title: 'Exam',
+        topic: 'TS',
+        difficulty: 'Medium',
+        counts: { single_choice: 0, true_false: 1, short_answer: 0 },
+      },
+    })
+    expect(created.isError).not.toBe(true)
+    const paper = (created.structuredContent as { paper: { id: string } }).paper
+    const added = await client.callTool({
+      name: 'append_exam_question',
+      arguments: {
+        conversationId,
+        paperId: paper.id,
+        requestId: 'append-one',
+        question: { type: 'true_false', prompt: '1=1', correct: true, explanation: 'Identity' },
+      },
+    })
+    expect(added.isError).not.toBe(true)
+    const updated = await client.callTool({
+      name: 'update_exam_paper',
+      arguments: {
+        conversationId,
+        paperId: paper.id,
+        topic: 'Math',
+        difficulty: 'Easy',
+        counts: { single_choice: 1, true_false: 1, short_answer: 0 },
+      },
+    })
+    expect(updated.isError).not.toBe(true)
+    expect(updated.structuredContent).toMatchObject({
+      paper: { topic: 'Math', difficulty: 'Easy' },
+    })
+    for (const locale of ['zh-CN', 'en-US'] as const) {
+      config.update({ locale })
+      const rejected = await client.callTool({
+        name: 'update_exam_paper',
+        arguments: {
+          conversationId,
+          paperId: paper.id,
+          counts: { single_choice: 1, true_false: 0, short_answer: 0 },
+        },
+      })
+      expect(rejected.isError).toBe(true)
+      expect(rejected.structuredContent).toMatchObject({
+        error: {
+          code: 'EXAM_COUNTS_TOO_SMALL',
+          message:
+            locale === 'zh-CN'
+              ? '各题型的目标数量不能少于已生成的题目数量'
+              : 'The target count for each question type cannot be lower than the number already generated.',
+        },
+      })
+    }
+    expect(confirm).not.toHaveBeenCalled()
+    await client.callTool({
+      name: 'create_status',
+      arguments: { input: { label: 'Confirm still required' } },
+    })
+    expect(confirm).toHaveBeenCalled()
+  })
+
+  it('allows reads by default, gates access when disabled, and advertises exactly 42 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
-    expect(listed.tools).toHaveLength(37)
-    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 37)
+    expect(listed.tools).toHaveLength(42)
+    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 42)
     expect(
       listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.openWorldHint,
     ).toBe(true)

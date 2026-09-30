@@ -1,3 +1,11 @@
+import type { ExamPaper } from '../shared/exams'
+import {
+  createExamSchema,
+  appendExamSchema,
+  examIdentitySchema,
+  examQuestionSchema,
+  updateExamSchema,
+} from '../shared/exams'
 import { z } from 'zod'
 import type { Services } from './service-container'
 import {
@@ -42,6 +50,7 @@ interface McpToolDescriptorBase {
   destructive: boolean
   idempotent: boolean
   openWorld: boolean
+  confirmation?: 'never'
   readOnlyHint?: boolean
   inputSchema: z.ZodType
   outputSchema: z.ZodType
@@ -78,6 +87,7 @@ type McpToolDefinition<I extends z.ZodType, O extends z.ZodType> = {
   destructive?: boolean
   idempotent?: boolean
   openWorld?: boolean
+  confirmation?: 'never'
   readOnlyHint?: boolean
   inputSchema: I
   outputSchema: O
@@ -109,6 +119,42 @@ function tool<I extends z.ZodType, O extends z.ZodType>(
   } as unknown as McpToolDescriptor
 }
 
+function examSummary(paper: ExamPaper) {
+  return {
+    id: paper.id,
+    conversationId: paper.conversationId,
+    title: paper.title,
+    topic: paper.topic,
+    difficulty: paper.difficulty,
+    counts: paper.counts,
+    status: paper.status,
+    questionCount: paper.questions.length,
+  }
+}
+const examSummarySchema = createExamSchema
+  .pick({ conversationId: true, title: true, topic: true, difficulty: true, counts: true })
+  .extend({
+    id: z.string().uuid(),
+    status: z.enum(['generating', 'completed', 'interrupted']),
+    questionCount: z.number().int().min(0).max(300),
+  })
+const examReadSchema = examSummarySchema.omit({ questionCount: true }).extend({
+  taskId: createExamSchema.shape.taskId,
+  resetVersion: z.number().int().nonnegative(),
+  revision: z.number().int().nonnegative(),
+  createdAt: z.number().int().nonnegative(),
+  updatedAt: z.number().int().nonnegative(),
+  questions: z
+    .array(
+      z.strictObject({
+        id: z.string().uuid(),
+        position: z.number().int().min(1).max(300),
+        content: examQuestionSchema,
+      }),
+    )
+    .max(300),
+})
+const examSummaryOutput = z.strictObject({ paper: examSummarySchema })
 const emptyInput = z.strictObject({})
 const createStatusArgs = z.strictObject({ input: createStatusInputSchema })
 const updateStatusArgs = z.strictObject({ id: positiveIdSchema, input: updateStatusInputSchema })
@@ -146,6 +192,82 @@ const updateCalendarArgs = z.strictObject({
 })
 
 export const MCP_TOOLS: readonly McpToolDescriptor[] = [
+  tool({
+    name: 'create_exam_paper',
+    title: '创建练习卷',
+    description:
+      '创建笔试练习卷。内置智能体自动提供 conversationId、taskId、requestId；外部调用须提供这些标识。',
+    readOnly: false,
+    confirmation: 'never',
+    idempotent: true,
+    inputSchema: createExamSchema,
+    outputSchema: examSummaryOutput,
+    preview: (_s, args) => ({ entityType: 'exam', before: null, after: args }),
+    execute: (s, args) => ({ paper: examSummary(s.exams.create(args)) }),
+  }),
+  tool({
+    name: 'update_exam_paper',
+    title: '修改练习卷设置',
+    description:
+      '修改所属聊天试卷的 topic、difficulty 或 counts，至少提供一项；counts 必须提供三种题型的完整目标数量，且不得少于对应已生成题数。保留已有题目、作答和评分；增加题量后可在原卷继续追加题目。内置智能体自动提供 conversationId。',
+    readOnly: false,
+    confirmation: 'never',
+    idempotent: true,
+    inputSchema: updateExamSchema,
+    outputSchema: examSummaryOutput,
+    preview: (s, args) => ({
+      entityType: 'exam',
+      before: examSummary(
+        s.exams.get({ conversationId: args.conversationId, paperId: args.paperId }),
+      ),
+      after: args,
+    }),
+    execute: (s, args) => ({ paper: examSummary(s.exams.update(args)) }),
+  }),
+  tool({
+    name: 'append_exam_question',
+    title: '追加练习题',
+    description:
+      '每完成一道完整题目立即保存到试卷，禁止等待整卷生成后批量保存。requestId 用于幂等重试。',
+    readOnly: false,
+    confirmation: 'never',
+    idempotent: true,
+    inputSchema: appendExamSchema,
+    outputSchema: examSummaryOutput,
+    preview: (_s, args) => ({ entityType: 'exam', before: null, after: args }),
+    execute: (s, args) => ({ paper: examSummary(s.exams.append(args)) }),
+  }),
+  tool({
+    name: 'get_exam_paper',
+    title: '读取练习卷',
+    description: '读取所属聊天的试卷及已生成题目，继续出题前核对已有内容。',
+    readOnly: true,
+    idempotent: true,
+    inputSchema: examIdentitySchema,
+    outputSchema: z.strictObject({ paper: examReadSchema }),
+    execute: (s, args) => {
+      const paper = s.exams.get(args)
+      return {
+        paper: {
+          ...paper,
+          questions: paper.questions.map(({ answer: _answer, ...q }) => q),
+        },
+      }
+    },
+  }),
+  tool({
+    name: 'complete_exam_paper',
+    title: '完成练习卷',
+    description: '全部题型达到约定数量后完成出卷。',
+    readOnly: false,
+    confirmation: 'never',
+    idempotent: true,
+    inputSchema: examIdentitySchema,
+    outputSchema: examSummaryOutput,
+    preview: (_s, args) => ({ entityType: 'exam', before: null, after: args }),
+    execute: (s, args) => ({ paper: examSummary(s.exams.complete(args)) }),
+  }),
+
   tool({
     name: 'list_statuses',
     title: 'List statuses',

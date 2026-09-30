@@ -14,8 +14,7 @@ describe('renderer diagnostics', () => {
       code: 'INTERNAL_ERROR',
     })
     expect(JSON.stringify(report.mock.calls)).not.toContain('secret')
-    const ipcError = new Error('safe UI message')
-    ipcError.name = 'IpcClientError'
+    const ipcError = { name: 'IpcClientError', code: 'INTERNAL_ERROR', message: 'safe UI message' }
     reportRendererFault('update.check-ui', ipcError)
     expect(report).toHaveBeenCalledTimes(1)
   })

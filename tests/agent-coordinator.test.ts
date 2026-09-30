@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AgentEvent, AgentHistory } from '../src/shared/types'
 import type { AppPaths } from '../src/main/config'
 import type { AgentService } from '../src/main/agent/service'
+import type { ExamGrader } from '../src/main/agent/exam-grader'
 import { AgentCoordinator } from '../src/main/agent/coordinator'
 import type { AgentWorkerRequest } from '../src/main/agent/worker-protocol'
 
@@ -116,6 +117,7 @@ function fixture(failInit = false) {
     paths,
     () => ({ command: 'mcp', args: [] }),
     (event) => events.push(event),
+    { cancelInvalid: vi.fn(), suspend: vi.fn(), resume: vi.fn() } as unknown as ExamGrader,
   )
   return {
     coordinator,

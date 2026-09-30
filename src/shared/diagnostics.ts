@@ -17,6 +17,13 @@ export interface FaultRecord extends Omit<FaultInput, 'source'> {
 }
 
 const expectedCodes = new Set([
+  'EXAM_INVALID',
+  'EXAM_COUNTS_TOO_SMALL',
+  'EXAM_CONFLICT',
+  'EXAM_NOT_FOUND',
+  'EXAM_ALREADY_GRADING',
+  'EXAM_UNAVAILABLE',
+
   'VALIDATION_ERROR',
   'BACKUP_SOURCE_INVALID',
   'BACKUP_INVALID',
@@ -46,6 +53,13 @@ const expectedCodes = new Set([
 ])
 
 const faultCodes = new Set([
+  'AI_API_KEY_EMPTY',
+  'EXAM_GRADING_FAILED',
+  'PERSISTENCE_INVALID',
+  'PERSISTENCE_BUSY',
+  'PERSISTENCE_UNSUPPORTED',
+  'PERSISTENCE_FAILED',
+
   'BACKUP_FAILED',
   'FILE_IMPORT_FAILED',
   'FILE_OPEN_FAILED',
@@ -72,6 +86,7 @@ const faultCodes = new Set([
 ])
 
 const forwardedOperations = new Set([
+  'exam.grade-worker',
   'agent.bootstrap',
   'agent.initialize',
   'agent.run',

@@ -10,7 +10,7 @@ const AgentPartSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('opportunity'), id: z.number().int().positive(), name: z.string() }),
   z.object({ kind: z.literal('company'), id: z.number().int().positive(), name: z.string() }),
   z.object({ kind: z.literal('industry'), id: z.number().int().positive(), name: z.string() }),
-  z.object({ kind: z.literal('skill'), name: z.literal('resume-match') }),
+  z.object({ kind: z.literal('skill'), name: z.enum(['resume-match', 'study']) }),
   z.object({ kind: z.literal('command'), name: z.literal('compact') }),
 ])
 
@@ -72,13 +72,13 @@ export function prepareUserMessage(
   })
   const visibleText = parts
     .map((part) =>
-      part.kind === 'text' ? part.text : part.kind === 'skill' ? '/resume-match' : `@${part.name}`,
+      part.kind === 'text' ? part.text : part.kind === 'skill' ? `/${part.name}` : `@${part.name}`,
     )
     .join('')
   const prompt = parts
     .map((part) => {
       if (part.kind === 'text') return part.text
-      if (part.kind === 'skill') return '[Skill: resume-match]'
+      if (part.kind === 'skill') return `[Skill: ${part.name}]`
       if (part.kind === 'command')
         throw new AppServiceError('VALIDATION_ERROR', '压缩指令须单独执行')
       return `[${referenceTags[part.kind]} reference: ID ${part.id}; name ${part.name}]`

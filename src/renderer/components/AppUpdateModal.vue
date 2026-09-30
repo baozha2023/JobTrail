@@ -5,80 +5,137 @@ import { NAlert, NButton, NCard, NModal, NProgress, NSpace, NText } from 'naive-
 import type { AppUpdateProgress } from '../../shared/types'
 
 let nextAttemptId = 0
-// 0–12 rollback copy, 12–80 Velopack transfer/patch, 80–86 verification,
-// 86–98 backup, 98–99 handoff. Installation finishes after this process exits.
-const stageOrder = { preserve: 0, transfer: 1, verify: 2, backup: 3, handoff: 4 } as const
-const stageStart = { preserve: 0, transfer: 12, verify: 80, backup: 86, handoff: 98 } as const
-const simulatedLimit = { preserve: 11, verify: 85, backup: 97, handoff: 99 } as const
-type Stage = AppUpdateProgress['stage']
+const TICK_MS = 16
+const SIMULATION_MS = 350
+const phaseRange = {
+  preserve: [0, 11],
+  delta: [12, 49],
+  skipDelta: [12, 49],
+  full: [50, 79],
+  skipFull: [50, 79],
+  verify: [80, 85],
+  backup: [86, 97],
+  handoff: [98, 100],
+} as const
+type Phase = keyof typeof phaseRange
+const phaseOrder: Record<Phase, number> = {
+  preserve: 0,
+  delta: 1,
+  skipDelta: 1,
+  full: 2,
+  skipFull: 2,
+  verify: 3,
+  backup: 4,
+  handoff: 5,
+}
 
 defineProps<{ currentVersion: string; targetVersion: string }>()
 const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const installing = ref(false)
 const failed = ref(false)
-const stage = ref<Stage | null>(null)
-const transferMode = ref<'delta' | 'full'>('full')
+const stage = ref<Phase | null>(null)
 const percentage = ref(0)
-const stageLabel = computed(() =>
-  stage.value === 'transfer'
-    ? t(`settings.updatePhase.${transferMode.value}`)
-    : stage.value
-      ? t(`settings.updatePhase.${stage.value}`)
-      : '',
-)
+const stageLabel = computed(() => (stage.value ? t(`settings.updatePhase.${stage.value}`) : ''))
 let activeAttemptId = 0
-let transferFloor = 12
 let downloadReady = false
-let simulationTimer: number | undefined
+let animationTimer: number | undefined
+let lastSimulationTick = 0
+let deltaTarget = 12
+let fullTarget = 50
+let verifyComplete = false
+let handoffComplete = false
+let phaseQueue: Phase[] = []
+const progressWaiters: { value: number; resolve: () => void }[] = []
 let removeProgressListener: (() => void) | undefined
 
-function stopSimulation(): void {
-  if (simulationTimer !== undefined) window.clearInterval(simulationTimer)
-  simulationTimer = undefined
+function stopAnimation(): void {
+  if (animationTimer !== undefined) window.clearInterval(animationTimer)
+  animationTimer = undefined
 }
 
-function simulate(stageName: Exclude<Stage, 'transfer'>): void {
-  stopSimulation()
-  const limit = simulatedLimit[stageName]
-  simulationTimer = window.setInterval(() => {
-    percentage.value = Math.min(limit, percentage.value + 1)
-    if (percentage.value === limit) stopSimulation()
-  }, 350)
+function notifyProgress(): void {
+  for (let index = progressWaiters.length - 1; index >= 0; index--) {
+    const waiter = progressWaiters[index]
+    if (percentage.value >= waiter.value) {
+      progressWaiters.splice(index, 1)
+      waiter.resolve()
+    }
+  }
+}
+
+function waitForProgress(value: number): Promise<void> {
+  if (percentage.value >= value) return Promise.resolve()
+  return new Promise((resolve) => progressWaiters.push({ value, resolve }))
+}
+
+function animate(): void {
+  const current = stage.value
+  if (!current) return
+  if (phaseQueue.length > 0) {
+    if (percentage.value < phaseRange[current][1]) {
+      percentage.value++
+    } else {
+      stage.value = phaseQueue.shift()!
+      if (percentage.value < phaseRange[stage.value][0]) percentage.value++
+      lastSimulationTick = Date.now()
+    }
+    notifyProgress()
+    return
+  }
+  const target =
+    current === 'delta'
+      ? deltaTarget
+      : current === 'full'
+        ? fullTarget
+        : current === 'verify' && verifyComplete
+          ? 85
+          : current === 'handoff' && handoffComplete
+            ? 100
+            : percentage.value
+  if (percentage.value < target) {
+    percentage.value++
+  } else if (
+    current !== 'full' &&
+    current !== 'skipDelta' &&
+    current !== 'skipFull' &&
+    percentage.value <
+      (current === 'delta' ? 48 : current === 'handoff' ? 99 : phaseRange[current][1]) &&
+    Date.now() - lastSimulationTick >= SIMULATION_MS
+  ) {
+    percentage.value++
+    lastSimulationTick = Date.now()
+  }
+  notifyProgress()
+}
+
+function queuePhase(next: Phase): boolean {
+  const latest = phaseQueue.at(-1) ?? stage.value
+  if (!latest || phaseOrder[next] < phaseOrder[latest]) return false
+  if (phaseOrder[next] === phaseOrder[latest]) return next === latest
+  if (latest === 'preserve' && next === 'full') phaseQueue.push('skipDelta')
+  if (latest === 'preserve' && next === 'verify') phaseQueue.push('skipDelta', 'skipFull')
+  if (latest === 'delta' && next === 'verify') phaseQueue.push('skipFull')
+  phaseQueue.push(next)
+  return true
 }
 
 function receiveProgress(progress: AppUpdateProgress): void {
   if (!installing.value || progress.attemptId !== activeAttemptId) return
-  if (stage.value && stageOrder[progress.stage] < stageOrder[stage.value]) return
-  const previousStage = stage.value
-  stage.value = progress.stage
-  if (progress.stage === 'transfer') {
-    stopSimulation()
-    if (previousStage !== 'transfer') transferFloor = stageStart.transfer
-    if (transferMode.value === 'delta' && progress.mode === 'full' && previousStage === 'transfer')
-      transferFloor = percentage.value
-    transferMode.value = progress.mode ?? transferMode.value
-    if (typeof progress.percentage === 'number' && Number.isFinite(progress.percentage)) {
-      const actual = Math.max(0, Math.min(100, progress.percentage))
-      percentage.value = Math.max(
-        percentage.value,
-        Math.min(
-          stageStart.verify,
-          Math.floor(transferFloor + ((80 - transferFloor) * actual) / 100),
-        ),
-      )
-    }
-    return
+  const next = progress.stage === 'transfer' ? progress.mode : progress.stage
+  if (!next || !queuePhase(next)) return
+  if (progress.stage === 'transfer' && Number.isFinite(progress.percentage)) {
+    const actual = Math.max(0, Math.min(100, progress.percentage!))
+    if (next === 'delta') deltaTarget = Math.max(deltaTarget, 12 + Math.floor((36 * actual) / 100))
+    else fullTarget = Math.max(fullTarget, 50 + Math.floor((29 * actual) / 100))
   }
-  percentage.value = Math.max(percentage.value, stageStart[progress.stage])
-  simulate(progress.stage)
 }
 
 onMounted(() => {
   removeProgressListener = window.velopackApi.onProgress(receiveProgress)
 })
 onBeforeUnmount(() => {
-  stopSimulation()
+  stopAnimation()
   removeProgressListener?.()
 })
 
@@ -88,19 +145,31 @@ async function install(): Promise<void> {
   activeAttemptId = attemptId
   installing.value = true
   failed.value = false
-  stage.value = null
-  transferMode.value = 'full'
-  percentage.value = 0
-  receiveProgress({ attemptId, stage: downloadReady ? 'backup' : 'preserve' })
+  stage.value = downloadReady ? 'backup' : 'preserve'
+  percentage.value = downloadReady ? 86 : 0
+  phaseQueue = []
+  deltaTarget = 12
+  fullTarget = 50
+  verifyComplete = false
+  handoffComplete = false
+  lastSimulationTick = Date.now()
+  stopAnimation()
+  animationTimer = window.setInterval(animate, TICK_MS)
   try {
     if (!downloadReady) {
       await window.velopackApi.downloadUpdates(attemptId)
       downloadReady = true
+      queuePhase('verify')
+      verifyComplete = true
+      await waitForProgress(85)
     }
     await window.velopackApi.applyUpdates(attemptId)
-    receiveProgress({ attemptId, stage: 'handoff' })
+    queuePhase('backup')
+    queuePhase('handoff')
+    handoffComplete = true
+    await waitForProgress(100)
   } catch {
-    stopSimulation()
+    stopAnimation()
     failed.value = true
     installing.value = false
   }
@@ -144,12 +213,17 @@ async function install(): Promise<void> {
             <n-text depth="3" role="status">{{ stageLabel }}</n-text>
             <strong>{{ percentage }}%</strong>
           </div>
-          <n-progress
-            type="line"
-            :percentage="percentage"
-            :show-indicator="false"
-            :status="failed ? 'error' : 'default'"
-          />
+          <div
+            class="app-update-progress-rail"
+            :class="{ 'is-running': installing && percentage < 100 }"
+          >
+            <n-progress
+              type="line"
+              :percentage="percentage"
+              :show-indicator="false"
+              :status="failed ? 'error' : 'default'"
+            />
+          </div>
         </div>
       </div>
       <template #footer>
@@ -201,5 +275,28 @@ async function install(): Promise<void> {
 .app-update-progress-heading strong {
   color: var(--n-text-color);
   font-variant-numeric: tabular-nums;
+}
+.app-update-progress-rail {
+  position: relative;
+  overflow: hidden;
+}
+.app-update-progress-rail.is-running::after {
+  position: absolute;
+  inset: 0 auto 0 -30%;
+  width: 30%;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 35%), transparent);
+  animation: update-progress-sweep 1.2s linear infinite;
+}
+@keyframes update-progress-sweep {
+  to {
+    left: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-update-progress-rail.is-running::after {
+    animation: none;
+  }
 }
 </style>

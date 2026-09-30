@@ -76,6 +76,7 @@ export class DesktopUpdateService {
       deltaMilestones.set(70, 70).set(100, 100)
       let mode: 'delta' | 'full' = deltas.length > 0 ? 'delta' : 'full'
       let lastPercentage = 0
+      let sawDeltaZero = false
       let verifying = false
       report?.({ stage: 'transfer', mode, percentage: 0 })
       try {
@@ -89,8 +90,15 @@ export class DesktopUpdateService {
           }
           // Velopack reports completed Delta milestones, then patching progress.
           // A fallback to Full restarts its callback at zero and then reports bytes.
-          if (mode === 'delta' && (current < lastPercentage || !deltaMilestones.has(current)))
-            mode = 'full'
+          if (mode === 'delta') {
+            if (
+              (current === 0 && sawDeltaZero) ||
+              current < lastPercentage ||
+              !deltaMilestones.has(current)
+            )
+              mode = 'full'
+            else if (current === 0) sawDeltaZero = true
+          }
           lastPercentage = current
           report?.({
             stage: 'transfer',
@@ -126,8 +134,8 @@ export class DesktopUpdateService {
         throw error
       }
       try {
-        report?.({ stage: 'handoff' })
         this.backend.waitExitThenApplyUpdate(asset, false, true, ['--handoff-root'])
+        report?.({ stage: 'handoff' })
       } catch (error) {
         logFault('update.apply', error)
         try {

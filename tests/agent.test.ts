@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AgentService } from '../src/main/agent/service'
+import { createAgentModel } from '../src/main/agent/model'
 import { ConfigService, type AppPaths } from '../src/main/config'
 import { createServiceContainer } from '../src/main/service-container'
 import type { AgentEvent } from '../src/shared/types'
@@ -19,6 +20,62 @@ describe('built-in LangGraph agent', () => {
     )
     roots.splice(0).forEach((root) => fs.rmSync(root, { recursive: true, force: true }))
   })
+
+  it.each(['', '   '])(
+    'persists a cleared remote API key (%j) and requires it only for model use',
+    async (apiKey) => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jobtrail-agent-settings-'))
+      roots.push(root)
+      const paths: AppPaths = {
+        root,
+        config: path.join(root, 'config.json'),
+        data: path.join(root, 'data'),
+        database: path.join(root, 'data', 'zhiji.db'),
+        resumes: path.join(root, 'resumes'),
+        chatUploads: path.join(root, 'chat-uploads'),
+      }
+      const config = new ConfigService(paths)
+      config.update({ mcp: { enabled: false } })
+      const container = createServiceContainer(paths, false)
+      const events: AgentEvent[] = []
+      const agent = new AgentService(
+        paths,
+        container.database.db,
+        config,
+        container.services,
+        () => {
+          throw new Error('Saving model settings must not connect to MCP')
+        },
+        (event) => events.push(event),
+      )
+      try {
+        const ai = {
+          ...config.get().ai,
+          baseUrl: 'https://api.example.com/v1',
+          modelId: 'remote-model',
+          apiKey: 'sk-example',
+        }
+        expect(agent.saveSettings(ai).ai).toEqual(ai)
+        const cleared = { ...ai, apiKey: '' }
+        expect(agent.saveSettings({ ...ai, apiKey }).ai).toEqual(cleared)
+        const reloaded = new ConfigService(paths).get()
+        expect(reloaded.ai).toEqual(cleared)
+        expect(() => createAgentModel(reloaded.ai)).toThrow('当前 API Key 为空')
+        const conversation = agent.create()
+        await expect(
+          agent.send(conversation.id, [{ kind: 'text', text: '你好' }], []),
+        ).rejects.toMatchObject({ code: 'AI_API_KEY_EMPTY' })
+        expect(events).toContainEqual({
+          conversationId: conversation.id,
+          kind: 'error',
+          errorCode: 'AI_API_KEY_EMPTY',
+        })
+      } finally {
+        await agent.close()
+        container.database.close()
+      }
+    },
+  )
 
   it('persists multi-turn messages and managed attachments in the same SQLite database', async () => {
     const requests: Array<{ messages: Array<{ role: string; content: unknown }> }> = []
@@ -84,17 +141,6 @@ describe('built-in LangGraph agent', () => {
       },
       (event) => events.push(event),
     )
-    expect(() =>
-      agent.saveSettings({
-        baseUrl: 'https://api.example.com/v1',
-        modelId: 'remote-model',
-        apiKey: '',
-        multimodal: false,
-        contextWindowK: 256,
-        compactThresholdPercent: 80,
-      }),
-    ).toThrow('API Key')
-    expect(config.get().ai.modelId).toBe('mock')
     const conversation = agent.create()
     const source = path.join(root, 'notes.txt')
     fs.writeFileSync(source, '岗位要求：TypeScript。')

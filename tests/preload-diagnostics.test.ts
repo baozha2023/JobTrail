@@ -41,7 +41,11 @@ describe('preload diagnostic transport', () => {
       error: { code: 'INTERNAL_ERROR', message: '界面错误' },
     })
     const api = mocks.apis.get('velopackApi') as VelopackApi
-    await expect(api.checkForUpdates()).rejects.toThrow('界面错误')
+    await expect(api.checkForUpdates()).rejects.toEqual({
+      name: 'IpcClientError',
+      code: 'INTERNAL_ERROR',
+      message: '界面错误',
+    })
     expect(mocks.send).not.toHaveBeenCalled()
   })
 

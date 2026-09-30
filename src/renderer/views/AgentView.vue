@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import ExamPaperCard from '../components/ExamPaperCard.vue'
+import ExamPaperModal from '../components/ExamPaperModal.vue'
+import { useExamsStore } from '../stores/exams'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { NButton, NCard, NDropdown, NInput, NModal, NSpace } from 'naive-ui'
@@ -37,6 +40,7 @@ const props = defineProps<{
 }>()
 const { t } = useI18n()
 const agentStore = useAgentStore()
+const examsStore = useExamsStore()
 const { conversations, currentId } = storeToRefs(agentStore)
 const activeState = computed(() => agentStore.session(currentId.value ?? '__empty__'))
 const messages = computed({
@@ -494,12 +498,21 @@ onMounted(async () => {
     error.value = getErrorMessage(cause, t)
   }
 })
+watch(currentId, () => {
+  void examsStore.close().catch((e) => {
+    examsStore.failure(e)
+  })
+})
 onBeforeUnmount(() => {
+  void examsStore.close().catch((e) => {
+    examsStore.failure(e)
+  })
   saveDraft(currentId.value)
 })
 </script>
 
 <template>
+  <ExamPaperModal />
   <div class="agent-layout" :class="{ dark }">
     <main class="agent-main">
       <div class="agent-intro">
@@ -512,6 +525,11 @@ onBeforeUnmount(() => {
             v-if="entry.role === 'tool-group'"
             :tools="entry.tools"
             :auto-collapse="entry.autoCollapse"
+          />
+          <ExamPaperCard
+            v-else-if="entry.role === 'exam-paper'"
+            :paper-id="entry.paperId"
+            :conversation-id="currentId!"
           />
           <details v-else-if="entry.role === 'compact'" class="agent-compact-row">
             <summary>

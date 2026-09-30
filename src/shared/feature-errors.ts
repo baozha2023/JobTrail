@@ -1,0 +1,30 @@
+export const featureErrors = {
+  'zh-CN': {
+    EXAM_INVALID: '题目或答案格式无效，请检查后重试',
+    EXAM_COUNTS_TOO_SMALL: '各题型的目标数量不能少于已生成的题目数量',
+    EXAM_CONFLICT: '答案已变化，请刷新试卷后重试',
+    EXAM_NOT_FOUND: '试卷或题目不存在',
+    EXAM_ALREADY_GRADING: '该题正在判题，请稍候',
+    EXAM_UNAVAILABLE: '判题暂不可用，请稍后重试',
+    EXAM_GRADING_FAILED: 'AI 判题失败，请重试',
+    PERSISTENCE_INVALID: '数据结构或配置损坏，已保留原数据',
+    PERSISTENCE_BUSY: '数据维护正在进行，请稍后重试',
+    PERSISTENCE_UNSUPPORTED: '此数据版本不受支持，请使用兼容的新版客户端',
+    PERSISTENCE_FAILED: '数据检查或升级失败，请查看日志后重新启动',
+  },
+  'en-US': {
+    EXAM_INVALID: 'Invalid question or answer. Check your input and retry.',
+    EXAM_COUNTS_TOO_SMALL:
+      'The target count for each question type cannot be lower than the number already generated.',
+    EXAM_CONFLICT: 'The answer has changed. Refresh the paper and retry.',
+    EXAM_NOT_FOUND: 'The paper or question was not found.',
+    EXAM_ALREADY_GRADING: 'This answer is already being graded.',
+    EXAM_UNAVAILABLE: 'Grading is temporarily unavailable. Please retry later.',
+    EXAM_GRADING_FAILED: 'AI grading failed. Please retry.',
+    PERSISTENCE_INVALID:
+      'The database or configuration is invalid. Original data has been preserved.',
+    PERSISTENCE_BUSY: 'Data maintenance is in progress. Please retry later.',
+    PERSISTENCE_UNSUPPORTED: 'This data version is unsupported. Use a compatible newer client.',
+    PERSISTENCE_FAILED: 'Data validation or upgrade failed. Check the logs and restart.',
+  },
+} as const

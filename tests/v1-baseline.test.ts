@@ -1,3 +1,4 @@
+import { ensurePersistenceReady } from '../src/main/persistence-migrations'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -75,6 +76,7 @@ describe('immutable v1.0.0 persisted-data baseline', () => {
       } finally {
         raw.close()
       }
+      await ensurePersistenceReady(paths)
       const config = new ConfigService(paths)
       expect(config.get().configVersion).toBe(DEFAULT_CONFIG.configVersion)
       expect(config.get().ai.apiKey).toBe('')

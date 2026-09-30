@@ -3,8 +3,7 @@ import type { AgentDraftPart, AgentReference } from '../../shared/types'
 type Translate = (key: string) => string
 
 export function agentReferenceLabel(reference: AgentReference, t: Translate): string {
-  if (reference.kind === 'skill') return `/${t('agent.skillMatch')}`
-  if (reference.kind === 'command') return '/compact'
+  if (reference.kind === 'skill' || reference.kind === 'command') return reference.name
   const keys = {
     resume: 'agent.mentionResume',
     opportunity: 'agent.mentionOpportunity',

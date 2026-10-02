@@ -77,8 +77,8 @@ export class CalendarEventService {
     const timezone = input.timezone?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone
     try {
       new Intl.DateTimeFormat('en-US', { timeZone: timezone })
-    } catch {
-      throw new AppServiceError('VALIDATION_ERROR', '时区无效')
+    } catch (caughtError) {
+      throw new AppServiceError('VALIDATION_ERROR', '时区无效', undefined, { cause: caughtError })
     }
     const isAllDay = input.isAllDay ?? false
     return {

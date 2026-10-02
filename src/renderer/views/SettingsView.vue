@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { getErrorMessage } from '../utils/errors'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
@@ -46,6 +44,9 @@ const props = defineProps<{
   catalogError: string
   updateCompanyCatalog: () => void
   closeCatalogModal: () => void
+  backupBusy: boolean
+  backupStatus: string
+  backupAction: (kind: 'export' | 'import') => Promise<void>
 }>()
 const emit = defineEmits<{
   updateConfig: [input: AppConfigUpdate]
@@ -54,6 +55,35 @@ const emit = defineEmits<{
   closeBehavior: [value: CloseBehavior]
   launchAtStartup: [value: boolean]
 }>()
+
+const diagnosticStatus = ref<import('../../shared/diagnostics').DiagnosticsHealth | null>(null)
+const diagnosticBusy = ref(false)
+const diagnosticExported = ref(false)
+async function refreshDiagnostics() {
+  try {
+    diagnosticStatus.value = await window.zhijiApi.diagnostics.getStatus()
+  } catch (error) {
+    emit('error', error)
+  }
+}
+async function diagnosticAction(kind: 'open' | 'export') {
+  if (diagnosticBusy.value) return
+  diagnosticBusy.value = true
+  diagnosticExported.value = false
+  try {
+    if (kind === 'open') await window.zhijiApi.diagnostics.openDirectory()
+    else
+      diagnosticExported.value = (await window.zhijiApi.diagnostics.exportBundle()) === 'exported'
+    await refreshDiagnostics()
+  } catch (error) {
+    emit('error', error)
+  } finally {
+    diagnosticBusy.value = false
+  }
+}
+onMounted(() => {
+  void refreshDiagnostics()
+})
 
 const hostTabs = [
   { key: 'claude', label: 'Claude' },
@@ -71,28 +101,6 @@ const aiContextWindowK = ref<number | null>(256)
 const aiCompactThresholdPercent = ref<number | null>(80)
 const keyDraft = ref('')
 const aiSaving = ref(false)
-const { t } = useI18n()
-const backupBusy = ref(false)
-const backupStatus = ref('')
-const backupFailed = ref(false)
-async function backupAction(kind: 'export' | 'import'): Promise<void> {
-  if (backupBusy.value) return
-  backupBusy.value = true
-  backupFailed.value = false
-  backupStatus.value = t('settings.backupWorking')
-  try {
-    const result = await window.zhijiApi.backup[kind]()
-    backupStatus.value =
-      result === 'cancelled'
-        ? ''
-        : t(result === 'exported' ? 'settings.backupExported' : 'settings.backupRestarting')
-    if (result === 'restarting') return
-  } catch (error) {
-    backupFailed.value = true
-    backupStatus.value = getErrorMessage(error, t)
-  }
-  backupBusy.value = false
-}
 watch(
   () => props.config?.ai,
   (ai) => {
@@ -456,6 +464,44 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
         </div>
       </section>
 
+      <section class="settings-section" aria-labelledby="settings-diagnostics-title">
+        <header class="settings-section-header">
+          <span class="settings-section-number">LOG</span>
+          <div>
+            <h2 id="settings-diagnostics-title">{{ $t('settings.diagnosticsTitle') }}</h2>
+            <p>{{ $t('settings.diagnosticsDescription') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <n-space
+            ><n-button :disabled="diagnosticBusy" @click="diagnosticAction('open')">{{
+              $t('settings.diagnosticsOpen')
+            }}</n-button>
+            <n-button :loading="diagnosticBusy" @click="diagnosticAction('export')">{{
+              $t('settings.diagnosticsExport')
+            }}</n-button>
+            <n-button :disabled="diagnosticBusy" @click="refreshDiagnostics">{{
+              $t('settings.diagnosticsRefresh')
+            }}</n-button></n-space
+          >
+          <p role="status">
+            {{
+              $t(
+                !diagnosticStatus
+                  ? 'settings.diagnosticsUnknown'
+                  : diagnosticStatus.degraded ||
+                      diagnosticStatus.dropped ||
+                      diagnosticStatus.maintenanceFailures ||
+                      diagnosticStatus.overBudget
+                    ? 'settings.diagnosticsDegraded'
+                    : 'settings.diagnosticsHealthy',
+              )
+            }}
+          </p>
+          <p v-if="diagnosticExported" role="status">{{ $t('settings.diagnosticsExported') }}</p>
+        </div>
+      </section>
+
       <section class="settings-section" aria-labelledby="settings-backup-title">
         <header class="settings-section-header">
           <span class="settings-section-number">05</span>
@@ -473,7 +519,7 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
               $t('settings.backupImport')
             }}</n-button>
           </n-space>
-          <p v-if="backupStatus" role="status" :class="{ 'catalog-update-error': backupFailed }">
+          <p v-if="backupStatus" role="status">
             {{ backupStatus }}
           </p>
         </div>

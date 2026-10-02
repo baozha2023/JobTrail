@@ -87,6 +87,7 @@ export const useExamsStore = defineStore('exams', () => {
     if (subscriptions.length) return
     subscriptions = [
       window.zhijiApi.exams.onChanged((i) => {
+        if (i.error) failure(i.error)
         void refresh(i)
       }),
       window.zhijiApi.data.onExternalChange(() => {

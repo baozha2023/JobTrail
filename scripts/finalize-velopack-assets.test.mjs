@@ -82,16 +82,16 @@ test('does not change the feed or remove the baseline when a current package fai
   assert.deepEqual(await fs.readFile(path.join(output, previous.FileName)), previousBytes)
 })
 
-test('keeps a Full-only first release intact', async (t) => {
+test('keeps Full-only releases intact when no previous baseline is available', async (t) => {
   const bytes = Buffer.from('first full')
-  const full = asset('1.0.0', 'Full', bytes)
-  const output = await workspace(t, [[full, bytes]])
-
-  await finalizeVelopackAssets(output, '1.0.0', null)
-
-  const feed = JSON.parse(await fs.readFile(path.join(output, 'releases.win.json'), 'utf8'))
-  assert.deepEqual(feed.Assets, [full])
-  assert.deepEqual(await fs.readFile(path.join(output, full.FileName)), bytes)
+  for (const version of ['1.0.0', '1.4.0']) {
+    const full = asset(version, 'Full', bytes)
+    const output = await workspace(t, [[full, bytes]])
+    await finalizeVelopackAssets(output, version, null)
+    const feed = JSON.parse(await fs.readFile(path.join(output, 'releases.win.json'), 'utf8'))
+    assert.deepEqual(feed.Assets, [full])
+    assert.deepEqual(await fs.readFile(path.join(output, full.FileName)), bytes)
+  }
 })
 
 test('requires a Delta package when a baseline was used', async (t) => {

@@ -9,27 +9,38 @@ import type {
   IpcResult,
 } from '../../shared/ipc'
 import { AppServiceError, errorShape } from '../services/errors'
-import { logFault, reportFault } from '../diagnostics'
-import { validateFaultInput } from '../../shared/diagnostics'
+import {
+  captureError,
+  acceptDiagnosticInput,
+  withDiagnosticContext,
+  runOperation,
+} from '../diagnostics'
+import {
+  validateDiagnosticInput,
+  validDiagnosticContext,
+  newDiagnosticContext,
+  type DiagnosticContext,
+} from '../../shared/diagnostics'
 
 let trustedContents: WebContents | undefined
-let diagnosticWindowStart = 0
-let diagnosticCount = 0
 export function trustWindow(window: BrowserWindow): void {
   trustedContents = window.webContents
 }
 
 export function registerDiagnosticIpc(): void {
-  ipcMain.on('diagnostics:report', (event, payload: unknown) => {
-    if (event.sender !== trustedContents || event.senderFrame !== event.sender.mainFrame) return
-    const now = Date.now()
-    if (now - diagnosticWindowStart > 60_000) {
-      diagnosticWindowStart = now
-      diagnosticCount = 0
+  ipcMain.removeHandler('diagnostics:report')
+  ipcMain.handle('diagnostics:report', (event, payload: unknown) => {
+    if (event.sender !== trustedContents || event.senderFrame !== event.sender.mainFrame)
+      return { status: 'unavailable' }
+    const input = validateDiagnosticInput(payload)
+    if (!input || (input.source !== 'renderer' && input.source !== 'preload')) {
+      captureError(
+        { code: 'DIAGNOSTICS_TRANSPORT_FAILED', message: 'Invalid diagnostic IPC payload' },
+        { operation: 'diagnostics.ipc' },
+      )
+      return { status: 'unavailable' }
     }
-    if (++diagnosticCount > 30) return
-    const input = validateFaultInput(payload)
-    if (input) reportFault(input, event.sender.getOSProcessId())
+    return acceptDiagnosticInput(input, event.sender.getOSProcessId())
   })
 }
 
@@ -41,7 +52,7 @@ export function sendToTrustedWindow<K extends AppEventChannel>(
   try {
     trustedContents.send(channel, payload)
   } catch (error) {
-    logFault('ipc.send-event', error)
+    captureError(error, { operation: 'ipc.send-event' })
   }
 }
 
@@ -51,28 +62,33 @@ export function registerChannel<K extends IpcChannel>(channel: K, handler: Handl
   ipcMain.removeHandler(channel)
   ipcMain.handle(
     channel,
-    async (event, ...args: IpcArgs<K>): Promise<IpcResponse<IpcResult<K>>> => {
-      try {
-        if (
-          event.sender !== trustedContents ||
-          !event.senderFrame ||
-          event.senderFrame !== event.sender.mainFrame
-        ) {
-          throw new AppServiceError('VALIDATION_ERROR', '不允许从子框架调用应用接口')
+    async (
+      event,
+      envelope: { context?: DiagnosticContext; args?: IpcArgs<K> },
+    ): Promise<IpcResponse<IpcResult<K>>> => {
+      const operation = `ipc.${channel.replace(':', '.')}`
+      const context = validDiagnosticContext(envelope?.context)
+        ? envelope.context
+        : newDiagnosticContext()
+      return withDiagnosticContext(context, async () => {
+        try {
+          if (
+            event.sender !== trustedContents ||
+            !event.senderFrame ||
+            event.senderFrame !== event.sender.mainFrame
+          )
+            throw new AppServiceError('VALIDATION_ERROR', '不允许从子框架调用应用接口')
+          if (!validDiagnosticContext(envelope?.context) || !Array.isArray(envelope.args))
+            throw new AppServiceError('VALIDATION_ERROR', '无效的请求信封')
+          const execute = () => handler(...envelope.args!)
+          const keyOperation = /^(backup:|velopack:|diagnostics:export)/.test(channel)
+          const data = keyOperation ? await runOperation({ operation }, execute) : await execute()
+          return { ok: true, data }
+        } catch (error) {
+          const diagnostic = captureError(error, { operation })
+          return { ok: false, error: { ...errorShape(error), diagnostic } }
         }
-        return { ok: true, data: await handler(...args) }
-      } catch (error) {
-        const operation =
-          channel === 'velopack:check-for-update'
-            ? 'update.check'
-            : channel === 'velopack:download-update'
-              ? 'update.download'
-              : channel === 'velopack:apply-update'
-                ? 'update.apply'
-                : `ipc.${channel.replace(':', '.')}`
-        logFault(operation, error)
-        return { ok: false, error: errorShape(error) }
-      }
+      })
     },
   )
 }

@@ -3,54 +3,13 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
 export type Locale = 'zh-CN' | 'en-US'
 export type CloseBehavior = 'tray' | 'quit'
-export type AppErrorCode =
-  | 'EXAM_INVALID'
-  | 'EXAM_COUNTS_TOO_SMALL'
-  | 'EXAM_CONFLICT'
-  | 'EXAM_NOT_FOUND'
-  | 'EXAM_ALREADY_GRADING'
-  | 'EXAM_UNAVAILABLE'
-  | 'EXAM_GRADING_FAILED'
-  | 'PERSISTENCE_INVALID'
-  | 'PERSISTENCE_BUSY'
-  | 'PERSISTENCE_UNSUPPORTED'
-  | 'PERSISTENCE_FAILED'
-  | 'BACKUP_SOURCE_INVALID'
-  | 'BACKUP_INVALID'
-  | 'BACKUP_VERSION_UNSUPPORTED'
-  | 'BACKUP_FAILED'
-  | 'VALIDATION_ERROR'
-  | 'AI_API_KEY_EMPTY'
-  | 'NOT_FOUND'
-  | 'BUILTIN_DATA'
-  | 'STATUS_IN_USE'
-  | 'LAST_STATUS'
-  | 'RESUME_IN_USE'
-  | 'COMPANY_IN_USE'
-  | 'INDUSTRY_IN_USE'
-  | 'FILE_IMPORT_FAILED'
-  | 'FILE_OPEN_FAILED'
-  | 'DATABASE_ERROR'
-  | 'CATALOG_DOWNLOAD_FAILED'
-  | 'CATALOG_ASSET_MISSING'
-  | 'CATALOG_TOO_LARGE'
-  | 'CATALOG_HASH_MISMATCH'
-  | 'CATALOG_INVALID'
-  | 'CATALOG_VERSION_ROLLBACK'
-  | 'CATALOG_APP_UPDATE_REQUIRED'
-  | 'CATALOG_CONFLICT'
-  | 'CATALOG_UPDATE_IN_PROGRESS'
-  | 'WEB_INVALID_URL'
-  | 'WEB_BLOCKED'
-  | 'WEB_CANCELLED'
-  | 'WEB_TIMEOUT'
-  | 'WEB_TOO_LARGE'
-  | 'WEB_UNAVAILABLE'
-  | 'WEB_UNSUPPORTED'
-  | 'WEB_PARSE_FAILED'
-  | 'WEB_INVALID_CURSOR'
-  | 'WEB_CURSOR_EXPIRED'
-  | 'INTERNAL_ERROR'
+export interface BackupImportConfirmation {
+  requestId: string
+  appVersion: string
+  createdAt: string
+}
+export type { AppErrorCode } from './error-codes'
+import type { AppErrorCode } from './error-codes'
 
 export type McpErrorCode =
   | AppErrorCode
@@ -58,12 +17,7 @@ export type McpErrorCode =
   | 'CONFIRMATION_REQUIRED'
   | 'CONFIRMATION_UNSUPPORTED'
 
-export type AgentEventErrorCode =
-  | AppErrorCode
-  | 'AGENT_CANCELLED'
-  | 'AGENT_WORKER_UNAVAILABLE'
-  | 'AGENT_WORKER_EXITED'
-  | 'AGENT_WORKER_START_FAILED'
+export type AgentEventErrorCode = AppErrorCode
 
 export interface McpConnectionInfo {
   command: string
@@ -219,6 +173,7 @@ export type AgentPending =
   | { kind: 'confirmation'; message: string; fingerprint: string }
 
 export interface AgentEvent {
+  diagnostic?: import('./diagnostics').DiagnosticReference
   conversationId: string
   jobId?: string
   sequence?: number
@@ -455,23 +410,31 @@ export interface ResumeImportResult extends ResumeVersion {
 }
 
 export interface AppErrorShape {
+  diagnostic?: import('./diagnostics').DiagnosticReference
   code: AppErrorCode
   message: string
   details?: Record<string, unknown>
 }
 
 export interface ZhijiApi {
+  diagnostics: {
+    openDirectory(): Promise<void>
+    exportBundle(): Promise<'cancelled' | 'exported'>
+    getStatus(): Promise<import('./diagnostics').DiagnosticsHealth>
+  }
   exams: {
     get(input: ExamIdentity): Promise<ExamPaper>
     save(input: SaveExamAnswerInput): Promise<ExamPaper>
     submit(input: SaveExamAnswerInput): Promise<ExamPaper>
     grade(input: SaveExamAnswerInput): Promise<ExamPaper>
     reset(input: ExamIdentity): Promise<ExamPaper>
-    onChanged(listener: (identity: ExamIdentity) => void): () => void
+    onChanged(listener: (identity: ExamChangeEvent) => void): () => void
   }
   backup: {
     export(): Promise<'cancelled' | 'exported'>
     import(): Promise<'cancelled' | 'restarting'>
+    confirmImport(requestId: string, confirmed: boolean): Promise<void>
+    onImportConfirmation(listener: (confirmation: BackupImportConfirmation) => void): () => void
   }
   agent: {
     list(): Promise<AgentConversation[]>
@@ -596,3 +559,5 @@ export interface WindowControlsApi {
   toggleMaximize(): Promise<boolean>
   close(): Promise<void>
 }
+
+export type ExamChangeEvent = ExamIdentity & { error?: AppErrorShape }

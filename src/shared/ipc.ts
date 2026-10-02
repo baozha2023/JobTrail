@@ -1,5 +1,6 @@
 import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 import type {
+  ExamChangeEvent,
   AppConfig,
   AppConfigUpdate,
   CalendarEvent,
@@ -38,9 +39,13 @@ import type {
   AgentDraftPart,
   AgentJobReceipt,
   AppUpdateProgress,
+  BackupImportConfirmation,
 } from './types'
 
 export interface IpcChannelMap {
+  'diagnostics:open-directory': { args: []; result: void }
+  'diagnostics:export': { args: []; result: 'cancelled' | 'exported' }
+  'diagnostics:status': { args: []; result: import('./diagnostics').DiagnosticsHealth }
   'exams:get': { args: [input: ExamIdentity]; result: ExamPaper }
   'exams:save': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
   'exams:submit': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
@@ -48,6 +53,7 @@ export interface IpcChannelMap {
   'exams:grade': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
   'backup:export': { args: []; result: 'cancelled' | 'exported' }
   'backup:import': { args: []; result: 'cancelled' | 'restarting' }
+  'backup:confirm-import': { args: [requestId: string, confirmed: boolean]; result: void }
   'agent:list': { args: []; result: AgentConversation[] }
   'agent:create': { args: []; result: AgentConversation }
   'agent:history': { args: [id: string]; result: AgentHistory }
@@ -149,7 +155,8 @@ export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
 export interface AppEventMap {
-  'exams:changed': ExamIdentity
+  'backup:import-confirmation': BackupImportConfirmation
+  'exams:changed': ExamChangeEvent
   'company-catalog:progress': CompanyCatalogProgress
   'agent:event': AgentEvent
   'velopack:progress': AppUpdateProgress

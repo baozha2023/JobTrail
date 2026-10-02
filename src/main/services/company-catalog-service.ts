@@ -133,6 +133,8 @@ export class CompanyCatalogService {
         throw new AppServiceError(
           'CATALOG_CONFLICT',
           '本地公司或行业与新目录存在名称冲突，请检查后重试',
+          undefined,
+          { cause: error },
         )
       throw error
     }

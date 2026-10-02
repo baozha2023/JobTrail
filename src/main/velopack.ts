@@ -14,7 +14,7 @@ import type { DatabaseManager } from './database'
 import type { AgentCoordinator } from './agent/coordinator'
 import { createRollbackPoint, preserveRollbackPackage } from './update-rollback'
 import { waitForMcpSessions, updateFreezePath } from './update-freeze'
-import { logFault, reportFault } from './diagnostics'
+import { captureError, recordEvent } from './diagnostics'
 
 // Velopack detects GitHub sources and resolves release assets from the repository.
 export const UPDATE_REPOSITORY_URL = 'https://github.com/baozha2023/JobTrail'
@@ -92,10 +92,13 @@ export async function markApplicationHealthy(): Promise<void> {
     stdio: 'ignore',
     windowsHide: true,
   })
-  child.once('error', (error) => logFault('update.refresh-launcher', error))
+  child.once('error', (error) => captureError(error, { operation: 'update.refresh-launcher' }))
   child.once('exit', (code) => {
     if (code !== 0)
-      reportFault({ source: 'main', operation: 'update.refresh-launcher', code: 'PROCESS_EXITED' })
+      captureError(
+        { code: 'PROCESS_EXITED', message: 'Launcher refresh process exited unexpectedly' },
+        { operation: 'update.refresh-launcher' },
+      )
   })
   child.unref()
 }
@@ -155,15 +158,15 @@ export function registerVelopackIpc(
             createdAt: new Date().toISOString(),
           })
         } catch (error) {
-          logFault('update.prepare', error)
+          captureError(error, { operation: 'update.prepare' })
           try {
             await Promise.all([
               fsp.rm(pendingPath, { force: true }),
               fsp.rm(freezePath, { force: true }),
             ])
           } catch (cleanupError) {
-            logFault('update.rollback', cleanupError)
-            throw cleanupError
+            captureError(cleanupError, { operation: 'update.rollback' })
+            throw new AggregateError([error, cleanupError], 'Update preparation and cleanup failed')
           } finally {
             agent.resumeAfterUpdate()
           }
@@ -192,6 +195,7 @@ export function registerVelopackIpc(
       throw error
     })
     await healthCommit
+    recordEvent({ operation: 'startup.desktop', outcome: 'succeeded' })
     return true
   })
   registerChannel('velopack:check-for-update', () => getService().check())

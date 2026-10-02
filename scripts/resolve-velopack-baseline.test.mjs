@@ -29,12 +29,25 @@ async function harness(
     headStatus = 200,
     getStatus = 200,
     body = bytes,
+    disconnectAt,
+    truncateAt,
   } = {},
 ) {
   const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jobtrail-baseline-'))
   const requests = []
   const server = http.createServer((req, res) => {
     requests.push(`${req.method} ${req.url}`)
+    const stage = req.url.endsWith('releases.win.json')
+      ? 'feed'
+      : req.method === 'HEAD'
+        ? 'head'
+        : 'download'
+    if (stage === disconnectAt) return res.destroy()
+    if (stage === truncateAt) {
+      res.writeHead(200, { 'Content-Length': bytes.length + 100 })
+      res.write(bytes.subarray(0, 3))
+      return setImmediate(() => res.destroy())
+    }
     if (req.url.endsWith('releases.win.json'))
       res.writeHead(feedStatus).end(feedBody ?? JSON.stringify({ Assets: assets }))
     else if (req.method === 'HEAD') res.writeHead(headStatus).end()
@@ -111,21 +124,33 @@ test('equal and higher versions are never baselines', async (t) => {
   assert.equal(await h.run(), null)
   assert.equal(h.requests.length, 1)
 })
-test('invalid feeds, ambiguous baselines and source failures stop the build', async (t) => {
+test('unavailable sources warn and continue Full-only without leaving baseline files', async (t) => {
+  const warnings = t.mock.method(console, 'warn', () => {})
   for (const options of [
-    { feedBody: 'bad json' },
     { feedStatus: 500 },
     { feedStatus: 503 },
-    {
-      feedStatus: 503,
-      feedBody: JSON.stringify({ error: 'temporary_failure' }),
-    },
-    { assets: [asset(), asset()] },
-    { assets: [asset('4.0.0', { FileName: '../outside.nupkg' })] },
-    { assets: [asset('4.0.0', { SHA256: 'invalid' })] },
     { headStatus: 500 },
     { headStatus: 404 },
     { getStatus: 404 },
+    { disconnectAt: 'feed' },
+    { disconnectAt: 'head' },
+    { disconnectAt: 'download' },
+    { truncateAt: 'feed' },
+    { truncateAt: 'download' },
+  ]) {
+    const h = await harness(t, options)
+    assert.equal(await h.run(), null)
+    assert.deepEqual(await fs.readdir(h.outputDir), [])
+  }
+  assert.equal(warnings.mock.callCount(), 10)
+  for (const call of warnings.mock.calls) assert.match(call.arguments[0], /跳过 Delta.*完整包/)
+})
+test('invalid feeds and ambiguous baselines still stop the build', async (t) => {
+  for (const options of [
+    { feedBody: 'bad json' },
+    { assets: [asset(), asset()] },
+    { assets: [asset('4.0.0', { FileName: '../outside.nupkg' })] },
+    { assets: [asset('4.0.0', { SHA256: 'invalid' })] },
   ]) {
     const h = await harness(t, options)
     await assert.rejects(h.run(), /baseline/)
@@ -146,14 +171,14 @@ test('size and SHA-256 mismatch leave no package or temporary file', async (t) =
 test('existing output package is never overwritten', async (t) => {
   const h = await harness(t)
   await fs.writeFile(path.join(h.outputDir, asset().FileName), 'existing')
-  await assert.rejects(h.run(), /baseline_full_download_failed/)
+  await assert.rejects(h.run(), { code: 'EEXIST' })
   assert.equal(await fs.readFile(path.join(h.outputDir, asset().FileName), 'utf8'), 'existing')
   assert.deepEqual(await fs.readdir(h.outputDir), [asset().FileName])
 })
 test("feed publication failure removes only this attempt's new package", async (t) => {
   const h = await harness(t)
   await fs.writeFile(path.join(h.outputDir, 'releases.win.json'), 'existing')
-  await assert.rejects(h.run(), /baseline_full_download_failed/)
+  await assert.rejects(h.run(), { code: 'EEXIST' })
   assert.deepEqual(await fs.readdir(h.outputDir), ['releases.win.json'])
   assert.equal(await fs.readFile(path.join(h.outputDir, 'releases.win.json'), 'utf8'), 'existing')
 })

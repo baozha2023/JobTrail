@@ -8,7 +8,7 @@ import { createServiceContainer } from './service-container'
 import { DatabaseVersionError, INCOMPATIBLE_DATA_EXIT_CODE } from './database'
 import { mcpSessionDirectory, updateFreezePath } from './update-freeze'
 import { restoreDirectory } from './backup-restore'
-import { logFault } from './diagnostics'
+import { captureError, recordEvent } from './diagnostics'
 
 function requiredEnvironment(name: 'JOBTRAIL_MCP_ROOT' | 'JOBTRAIL_MCP_VERSION'): string {
   const value = process.env[name]?.trim()
@@ -39,7 +39,7 @@ process.once('exit', () => {
   try {
     fs.rmSync(leasePath, { force: true })
   } catch (error) {
-    logFault('mcp.lease-cleanup', error)
+    captureError(error, { operation: 'mcp.lease-cleanup' })
   }
 })
 if (fs.existsSync(freezePath) || fs.existsSync(restoreDirectory(paths.root))) process.exit(75)
@@ -50,7 +50,7 @@ try {
   container = createServiceContainer(paths, false)
 } catch (error) {
   if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
-    logFault('mcp.initialize', error)
+    captureError(error, { operation: 'mcp.initialize' })
     process.exit(INCOMPATIBLE_DATA_EXIT_CODE)
   }
   throw error
@@ -66,25 +66,25 @@ async function close(exitCode = 0): Promise<void> {
   try {
     await handle?.close()
   } catch (error) {
-    logFault('mcp.transport-close', error)
+    captureError(error, { operation: 'mcp.transport-close' })
     exitCode = 1
   }
   try {
     await container.services.web.dispose()
   } catch (error) {
-    logFault('mcp.web-close', error)
+    captureError(error, { operation: 'mcp.web-close' })
     exitCode = 1
   }
   try {
     container.database.close()
   } catch (error) {
-    logFault('mcp.database-close', error)
+    captureError(error, { operation: 'mcp.database-close' })
     exitCode = 1
   }
   try {
     fs.rmSync(leasePath, { force: true })
   } catch (error) {
-    logFault('mcp.lease-cleanup', error)
+    captureError(error, { operation: 'mcp.lease-cleanup' })
     exitCode = 1
   }
   process.exitCode = exitCode
@@ -101,7 +101,7 @@ try {
       }),
     {
       legacy: 'serve',
-      onerror: (error) => logFault('mcp.protocol', error),
+      onerror: (error) => captureError(error, { operation: 'mcp.protocol' }),
     },
   )
 } catch (error) {
@@ -113,15 +113,15 @@ process.stdin.once('end', () => void close(0))
 process.once('SIGINT', () => void close(0))
 process.once('SIGTERM', () => void close(0))
 process.once('uncaughtException', (error) => {
-  logFault('process.uncaught', error)
+  captureError(error, { operation: 'process.uncaught', level: 'fatal' })
   void close(1)
 })
 process.once('unhandledRejection', (error) => {
-  logFault('process.unhandled-rejection', error)
+  captureError(error, { operation: 'process.unhandled-rejection', level: 'fatal' })
   void close(1)
 })
 freezeTimer = setInterval(() => {
   if (fs.existsSync(freezePath)) void close(75)
 }, 500)
 freezeTimer.unref?.()
-console.error(`JobTrail MCP ${version} running on stdio`)
+recordEvent({ operation: 'startup.mcp', outcome: 'succeeded' })

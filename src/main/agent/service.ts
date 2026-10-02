@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { logFault } from '../diagnostics'
+import { captureError } from '../diagnostics'
 import { app } from 'electron'
 import type Database from 'better-sqlite3'
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
@@ -218,7 +218,7 @@ export class AgentService {
       await this.finishDeletion(id)
     } catch (error) {
       // The durable marker hides the conversation; startup will retry cleanup.
-      logFault('agent.conversation-cleanup', error)
+      captureError(error, { operation: 'agent.conversation-cleanup' })
     }
   }
 
@@ -245,7 +245,7 @@ export class AgentService {
       try {
         await this.finishDeletion(row.id)
       } catch (error) {
-        logFault('agent.conversation-recover', error)
+        captureError(error, { operation: 'agent.conversation-recover' })
       }
     }
     this.files.recoverPendingDeletes()
@@ -582,7 +582,7 @@ export class AgentService {
         try {
           await this.recordCancelledTools(id)
         } catch (checkpointError) {
-          logFault('agent.cancel-checkpoint', checkpointError)
+          captureError(checkpointError, { operation: 'agent.cancel-checkpoint' })
         }
       }
       this.emit({

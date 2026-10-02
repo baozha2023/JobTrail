@@ -1,5 +1,6 @@
-import { app, dialog } from 'electron'
-import { logFault } from '../diagnostics'
+import { app, dialog, type BrowserWindow } from 'electron'
+import { randomUUID } from 'node:crypto'
+import { captureError } from '../diagnostics'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { AppPaths, ConfigService } from '../config'
@@ -17,8 +18,22 @@ export function registerBackupIpc(
   config: ConfigService,
   agent: Pick<AgentCoordinator, 'suspendForUpdate' | 'resumeAfterUpdate'>,
   restart: () => void,
+  getWindow: () => BrowserWindow | undefined,
 ): void {
   let busy = false
+  let pendingConfirmation: { requestId: string; resolve: (confirmed: boolean) => void } | undefined
+  registerChannel('backup:confirm-import', (requestId, confirmed) => {
+    if (
+      typeof requestId !== 'string' ||
+      typeof confirmed !== 'boolean' ||
+      !pendingConfirmation ||
+      pendingConfirmation.requestId !== requestId
+    )
+      throw new AppServiceError('VALIDATION_ERROR', '备份导入确认已失效')
+    const pending = pendingConfirmation
+    pendingConfirmation = undefined
+    pending.resolve(confirmed)
+  })
   const english = () => config.get().locale === 'en-US'
   const run = async (
     kind: 'export' | 'import',
@@ -32,6 +47,16 @@ export function registerBackupIpc(
     let work: string | undefined
     let frozen = false
     let restarting = false
+    const contents = kind === 'import' ? getWindow()?.webContents : undefined
+    let cancelled = false
+    const cancelConfirmation = () => {
+      cancelled = true
+      pendingConfirmation?.resolve(false)
+      pendingConfirmation = undefined
+    }
+    contents?.once('destroyed', cancelConfirmation)
+    contents?.once('render-process-gone', cancelConfirmation)
+    contents?.once('did-start-navigation', cancelConfirmation)
     const freeze = updateFreezePath(paths.root)
     const pause = async () => {
       await fs.writeFile(backupSessionPath(paths.root), JSON.stringify({ pid: process.pid }), {
@@ -96,19 +121,22 @@ export function registerBackupIpc(
         return 'exported'
       }
       const prepared = await importBackup(picked, work)
-      const confirmation = await dialog.showMessageBox({
-        type: 'warning',
-        title: english() ? 'Replace all personal data?' : '确认替换全部个人数据？',
-        message: english()
-          ? 'Import will replace all current records, configuration, resumes and chat attachments, then restart the application.'
-          : '导入将替换当前全部记录、配置、简历和对话附件，并重新启动应用。',
-        detail: `${english() ? 'Backup' : '备份'}: ${prepared.manifest.appVersion} · ${prepared.manifest.createdAt}\n${english() ? 'Export your current data first if you want to keep it.' : '如需保留当前数据，请先取消并导出备份。'}`,
-        buttons: english() ? ['Cancel', 'Replace and restart'] : ['取消', '替换并重启'],
-        defaultId: 0,
-        cancelId: 0,
-        noLink: true,
+      if (cancelled || !contents || contents.isDestroyed()) return 'cancelled'
+      const confirmed = await new Promise<boolean>((resolve, reject) => {
+        const requestId = randomUUID()
+        pendingConfirmation = { requestId, resolve }
+        try {
+          contents.send('backup:import-confirmation', {
+            requestId,
+            appVersion: prepared.manifest.appVersion,
+            createdAt: prepared.manifest.createdAt,
+          })
+        } catch (error) {
+          pendingConfirmation = undefined
+          reject(error)
+        }
       })
-      if (confirmation.response !== 1) return 'cancelled'
+      if (!confirmed) return 'cancelled'
       await pause()
       stageRestore(paths, prepared.directory)
       restarting = true
@@ -120,15 +148,21 @@ export function registerBackupIpc(
         english()
           ? 'Backup operation failed. Current data has been preserved; check free disk space and file access.'
           : '备份操作失败，当前数据已保留；请检查磁盘空间、文件权限或是否正在更新',
+        undefined,
+        { cause: error },
       )
     } finally {
+      contents?.removeListener('destroyed', cancelConfirmation)
+      contents?.removeListener('render-process-gone', cancelConfirmation)
+      contents?.removeListener('did-start-navigation', cancelConfirmation)
+      pendingConfirmation = undefined
       try {
         if (work)
           await fs
             .rm(work, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
             .catch((error) => {
               // Startup retries cleanup; do not report a committed export/import as failed.
-              logFault('backup.temp-cleanup', error)
+              captureError(error, { operation: 'backup.temp-cleanup' })
             })
       } finally {
         if (frozen && !restarting) {

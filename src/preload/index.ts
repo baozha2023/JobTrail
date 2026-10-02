@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcArgs, IpcChannel, IpcResponse, IpcResult } from '../shared/ipc'
-import { faultInput, type FaultInput } from '../shared/diagnostics'
+import {
+  createErrorInput,
+  newDiagnosticContext,
+  validateDiagnosticInput,
+  type DiagnosticInput,
+  type DiagnosticReceipt,
+} from '../shared/diagnostics'
 import type {
   CalendarReminderNotification,
   ZhijiApi,
@@ -9,21 +15,38 @@ import type {
   AppUpdateProgress,
 } from '../shared/types'
 
-function sendDiagnostic(input: FaultInput | null): void {
-  if (!input) return
-  try {
-    ipcRenderer.send('diagnostics:report', input)
-  } catch {
-    // A broken diagnostic transport must not replace the original failure.
+let transportFailures = 0
+
+async function sendDiagnostic(input: DiagnosticInput): Promise<DiagnosticReceipt> {
+  const parsed = validateDiagnosticInput(input)
+  if (!parsed) return { eventId: input.eventId, status: 'unavailable' }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const receipt = await Promise.race([
+        ipcRenderer.invoke('diagnostics:report', parsed) as Promise<DiagnosticReceipt>,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Diagnostic IPC timeout')), 2000)
+        }),
+      ])
+      if (receipt?.eventId === input.eventId && receipt.status !== 'unavailable') return receipt
+    } catch {
+      /* One bounded retry preserves the original event ID. */
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
   }
+  transportFailures++
+  console.error(JSON.stringify({ ...parsed, transportDegraded: true }))
+  return { eventId: parsed.eventId, status: 'fallback' }
 }
 
 if (typeof window !== 'undefined') {
   const reportLocalFault = (operation: string, error: unknown) => {
     try {
-      const input = faultInput('preload', operation, error)
-      if (input?.stack?.some((frame) => /^(?:src|out)\/preload\//.test(frame)))
-        sendDiagnostic(input)
+      const input = createErrorInput('preload', operation, error)
+      if (input.error?.stack?.some((frame) => /(?:src|out)\/preload\//.test(frame)))
+        void sendDiagnostic(input)
     } catch {
       // The error handler must not fail while reporting its own error.
     }
@@ -38,12 +61,18 @@ const invoke = async <K extends IpcChannel>(
   channel: K,
   ...args: IpcArgs<K>
 ): Promise<IpcResult<K>> => {
+  const context = newDiagnosticContext()
   let response: IpcResponse<IpcResult<K>>
   try {
-    response = (await ipcRenderer.invoke(channel, ...args)) as IpcResponse<IpcResult<K>>
+    response = (await ipcRenderer.invoke(channel, { context, args })) as IpcResponse<IpcResult<K>>
   } catch (error) {
-    sendDiagnostic(faultInput('preload', 'ipc-transport', error))
-    throw error
+    const input = createErrorInput('preload', 'ipc.transport', error, context)
+    await sendDiagnostic(input)
+    throw {
+      name: 'IpcClientError',
+      code: 'INTERNAL_ERROR',
+      diagnostic: { eventId: input.eventId, ...context },
+    }
   }
   // contextBridge drops custom Error properties. Reject with cloneable data to preserve the code.
   if (!response.ok) throw { name: 'IpcClientError', ...response.error }
@@ -51,6 +80,18 @@ const invoke = async <K extends IpcChannel>(
 }
 
 const zhijiApi: ZhijiApi = {
+  diagnostics: {
+    openDirectory: () => invoke('diagnostics:open-directory'),
+    exportBundle: () => invoke('diagnostics:export'),
+    getStatus: async () => {
+      const health = await invoke('diagnostics:status')
+      return {
+        ...health,
+        transportFailures: health.transportFailures + transportFailures,
+        degraded: health.degraded || transportFailures > 0,
+      }
+    },
+  },
   exams: {
     get: (input) => invoke('exams:get', input),
     save: (input) => invoke('exams:save', input),
@@ -60,7 +101,7 @@ const zhijiApi: ZhijiApi = {
     onChanged(listener) {
       const handler = (
         _event: Electron.IpcRendererEvent,
-        input: import('../shared/exams').ExamIdentity,
+        input: import('../shared/types').ExamChangeEvent,
       ) => listener(input)
       ipcRenderer.on('exams:changed', handler)
       return () => ipcRenderer.removeListener('exams:changed', handler)
@@ -69,6 +110,15 @@ const zhijiApi: ZhijiApi = {
   backup: {
     export: () => invoke('backup:export'),
     import: () => invoke('backup:import'),
+    confirmImport: (requestId, confirmed) => invoke('backup:confirm-import', requestId, confirmed),
+    onImportConfirmation(listener) {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        confirmation: Parameters<typeof listener>[0],
+      ) => listener(confirmation)
+      ipcRenderer.on('backup:import-confirmation', handler)
+      return () => ipcRenderer.removeListener('backup:import-confirmation', handler)
+    },
   },
   agent: {
     list: () => invoke('agent:list'),
@@ -213,5 +263,5 @@ contextBridge.exposeInMainWorld('zhijiApi', zhijiApi)
 contextBridge.exposeInMainWorld('velopackApi', velopackApi)
 contextBridge.exposeInMainWorld('windowControlsApi', windowControlsApi)
 contextBridge.exposeInMainWorld('diagnosticsApi', {
-  report: (input: FaultInput) => sendDiagnostic(input),
+  report: (input: DiagnosticInput) => sendDiagnostic(input),
 })

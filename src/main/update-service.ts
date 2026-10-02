@@ -1,7 +1,7 @@
 import type { UpdateInfo, VelopackAsset } from 'velopack'
 import type { AppUpdateProgress } from '../shared/types'
 import { AppServiceError } from './services/errors'
-import { logFault, reportFault } from './diagnostics'
+import { captureError } from './diagnostics'
 
 export type UpdateProgressReporter = (progress: Omit<AppUpdateProgress, 'attemptId'>) => void
 
@@ -49,7 +49,7 @@ export class DesktopUpdateService {
       try {
         this.pending = await this.backend.checkForUpdatesAsync()
       } catch (error) {
-        logFault('update.check', error)
+        captureError(error, { operation: 'update.check' })
         throw error
       }
       return this.pending
@@ -63,7 +63,7 @@ export class DesktopUpdateService {
       try {
         await this.rollback.preserve(update.TargetFullRelease.Version)
       } catch (error) {
-        logFault('update.rollback-preserve', error)
+        captureError(error, { operation: 'update.rollback-preserve' })
         throw error
       }
       const deltas = update.BaseRelease ? update.DeltasToTarget : []
@@ -107,12 +107,15 @@ export class DesktopUpdateService {
           })
         })
       } catch (error) {
-        logFault('update.download', error)
+        captureError(error, { operation: 'update.download' })
         throw error
       }
       if (!verifying) report?.({ stage: 'verify' })
       if (this.backend.getUpdatePendingRestart()?.Version !== update.TargetFullRelease.Version) {
-        reportFault({ source: 'main', operation: 'update.verify', code: 'UPDATE_VERIFY_FAILED' })
+        captureError(
+          { code: 'UPDATE_VERIFY_FAILED', message: 'UPDATE_VERIFY_FAILED' },
+          { operation: 'update.verify' },
+        )
         throw new AppServiceError('VALIDATION_ERROR', '更新包校验未完成，请重新下载')
       }
       this.downloaded = true
@@ -130,19 +133,19 @@ export class DesktopUpdateService {
       try {
         await this.rollback.prepare(asset.Version)
       } catch (error) {
-        logFault('update.prepare', error)
+        captureError(error, { operation: 'update.prepare' })
         throw error
       }
       try {
         this.backend.waitExitThenApplyUpdate(asset, false, true, ['--handoff-root'])
         report?.({ stage: 'handoff' })
       } catch (error) {
-        logFault('update.apply', error)
+        captureError(error, { operation: 'update.apply' })
         try {
           await this.rollback.cancelPrepare()
         } catch (rollbackError) {
-          logFault('update.rollback', rollbackError)
-          throw rollbackError
+          captureError(rollbackError, { operation: 'update.rollback' })
+          throw new AggregateError([error, rollbackError], 'Update apply and rollback failed')
         }
         throw error
       }

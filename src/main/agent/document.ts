@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { logFault } from '../diagnostics'
+import { captureError } from '../diagnostics'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -123,7 +123,8 @@ async function extractDocxVisuals(filePath: string): Promise<{
             })
           }
           zipFile.readEntry()
-        } catch {
+        } catch (error) {
+          captureError(error, { operation: 'agent.document-visual' })
           omittedVisuals++
           zipFile.readEntry()
         }
@@ -156,7 +157,7 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
       totalPages = result.total
     } catch (error) {
       // A damaged text layer must not prevent visual understanding of readable pages.
-      logFault('agent.pdf-text', error)
+      captureError(error, { operation: 'agent.pdf-text' })
     }
     if (includeVisuals) {
       try {
@@ -181,7 +182,7 @@ async function extractPdf(filePath: string, includeVisuals: boolean): Promise<Ex
         }
       } catch (error) {
         // Preserve extracted text when page rendering is unavailable.
-        logFault('agent.pdf-render', error)
+        captureError(error, { operation: 'agent.pdf-render' })
       }
     }
   } finally {
@@ -225,7 +226,8 @@ function extractMarkdown(source: string, includeVisuals: boolean): ExtractedDocu
               mimeType,
             })
           } else omittedVisuals++
-        } catch {
+        } catch (error) {
+          captureError(error, { operation: 'agent.document-visual' })
           omittedVisuals++
         }
       } else if (includeVisuals) omittedVisuals++
@@ -246,7 +248,7 @@ async function extractDocumentUncached(
     try {
       text = (await new WordExtractor().extract(filePath)).getBody().trim()
     } catch (error) {
-      logFault('agent.doc-text', error)
+      captureError(error, { operation: 'agent.doc-text' })
       // A readable image can still make a DOCX useful when its text layer is damaged.
     }
     if (extension === '.docx' && includeVisuals) {
@@ -254,7 +256,7 @@ async function extractDocumentUncached(
         const result = await extractDocxVisuals(filePath)
         return { text, ...result }
       } catch (error) {
-        logFault('agent.docx-visuals', error)
+        captureError(error, { operation: 'agent.docx-visuals' })
         // Preserve extracted text when the Office media package is malformed.
       }
     }

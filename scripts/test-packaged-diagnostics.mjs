@@ -32,7 +32,9 @@ function run(entry, extraEnvironment) {
 function record(prefix, operation) {
   const files = fs
     .readdirSync(path.join(staging, 'logs'))
-    .filter((name) => new RegExp(`^${prefix}-\\d+\\.jsonl$`).test(name))
+    .filter((name) =>
+      new RegExp(`^${prefix}-[0-9]+-[0-9a-f-]{36}-[0-9]+\\.(active|closed)\\.jsonl$`).test(name),
+    )
   assert.ok(files.length > 0, `${prefix} log missing`)
   const lines = files.flatMap((name) =>
     fs
@@ -63,7 +65,7 @@ try {
   record('mcp', 'mcp.initialize')
   const firstRun = fs
     .readdirSync(path.join(staging, 'logs'))
-    .filter((name) => /^mcp-\d+\.jsonl$/.test(name))
+    .filter((name) => /^mcp-\d+-[0-9a-f-]{36}-\d+\.(active|closed)\.jsonl$/.test(name))
     .reduce(
       (count, name) =>
         count +
@@ -82,7 +84,7 @@ try {
   )
   const secondRun = fs
     .readdirSync(path.join(staging, 'logs'))
-    .filter((name) => /^mcp-\d+\.jsonl$/.test(name))
+    .filter((name) => /^mcp-\d+-[0-9a-f-]{36}-\d+\.(active|closed)\.jsonl$/.test(name))
     .reduce(
       (count, name) =>
         count +
@@ -92,7 +94,7 @@ try {
           .split('\n').length,
       0,
     )
-  assert.equal(secondRun, firstRun + 1, 'MCP logs did not persist across restarts')
+  assert.equal(secondRun, firstRun * 2, 'MCP process instances did not persist across restarts')
 
   assert.equal(
     run('agent-worker.js', {

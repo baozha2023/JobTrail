@@ -11,10 +11,14 @@ const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), '
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.agent-smoke-'))
 const runtime = path.join(staging, 'JobTrail', '.runtime', 'current')
 const fixturePdf = path.join(staging, 'stress-resume.pdf')
-// Cold Windows worker startup includes native module loading and prompt tokenization.
-const WORKER_START_TIMEOUT = 45_000
+// Cold Windows startup includes native modules, prompt tokenization and child MCP startup.
+const WORKER_START_TIMEOUT = 90_000
 let application
 let server
+let releaseInitialStreams
+const initialStreamGate = new Promise((resolve) => {
+  releaseInitialStreams = resolve
+})
 
 function linkProgram(from, to) {
   fs.mkdirSync(to, { recursive: true })
@@ -161,6 +165,8 @@ try {
     for (let index = 0; index < count; index++) {
       if (response.destroyed) return
       response.write(chunk(`slow-${label}`, { role: 'assistant', content: `${label}${index} ` }))
+      // Keep the initial workers active until queue and reload assertions finish.
+      if (index === 0 && ['A', 'B', 'C'].includes(label)) await initialStreamGate
       await new Promise((resolve) => setTimeout(resolve, 130))
     }
     if (response.destroyed) return
@@ -326,6 +332,7 @@ try {
     )
   }
 
+  releaseInitialStreams()
   await waitFor(
     async () => {
       const jobs = await page.evaluate(() => window.zhijiApi.agent.list())
@@ -398,6 +405,7 @@ try {
         console.error(name, fs.readFileSync(path.join(logs, name), 'utf8').slice(-4000))
   throw error
 } finally {
+  releaseInitialStreams()
   if (application) await application.close()
   if (server) await new Promise((resolve) => server.close(resolve))
   fs.rmSync(staging, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })

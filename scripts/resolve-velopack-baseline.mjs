@@ -35,26 +35,48 @@ async function sourceRequest(url, { timeout = 15_000, ...options }) {
 async function readFeed(response) {
   let size = 0
   const chunks = []
+  for await (const chunk of sourceChunks(response)) {
+    size += chunk.length
+    if (size > MAX_FEED_BYTES) throw new Error('invalid_baseline_feed')
+    chunks.push(chunk)
+  }
   try {
-    for await (const chunk of Readable.fromWeb(response.body)) {
-      size += chunk.length
-      if (size > MAX_FEED_BYTES) throw new Error('feed_too_large')
-      chunks.push(chunk)
-    }
     return JSON.parse(Buffer.concat(chunks).toString('utf8'))
   } catch {
     throw new Error('invalid_baseline_feed')
   }
 }
+async function* sourceChunks(response) {
+  try {
+    yield* Readable.fromWeb(response.body)
+  } catch {
+    throw new Error('baseline_source_request_failed')
+  }
+}
+
+export async function downloadPreviousVelopackFull(options) {
+  try {
+    return await downloadVerifiedPreviousFull(options)
+  } catch (error) {
+    if (
+      ![
+        'baseline_source_request_failed',
+        'baseline_feed_request_failed',
+        'baseline_full_request_failed',
+        'baseline_full_download_failed',
+      ].includes(error.message)
+    )
+      throw error
+    console.warn(
+      `[Velopack] 无法获取上一版完整包（${error.message}），跳过 Delta，继续构建完整包。`,
+    )
+    return null
+  }
+}
 
 // Selection, download and integrity verification share one feed snapshot. Never
 // delegate a second "latest" selection to vpk after choosing a lower baseline.
-export async function downloadPreviousVelopackFull({
-  feedUrl,
-  targetVersion,
-  outputDir,
-  dispatcher,
-}) {
+async function downloadVerifiedPreviousFull({ feedUrl, targetVersion, outputDir, dispatcher }) {
   if (!stableVersion(targetVersion)) throw new Error('invalid_baseline_target_version')
   if (semver.lte(targetVersion, FIRST_FORMAL_VERSION)) return null
   let baseUrl
@@ -74,6 +96,7 @@ export async function downloadPreviousVelopackFull({
   const response = await sourceRequest(sourceUrl(baseUrl, FEED_NAME), { dispatcher })
   if (response.status === 404) {
     await response.body?.cancel()
+    console.log('[Velopack] 未找到上一版 Feed，跳过 Delta，继续构建完整包。')
     return null
   }
   if (!response.ok) {
@@ -104,7 +127,10 @@ export async function downloadPreviousVelopackFull({
     )
     .sort((a, b) => semver.rcompare(a.Version, b.Version))
   const selected = candidates[0]
-  if (!selected) return null
+  if (!selected) {
+    console.log('[Velopack] 未找到合适的上一版完整包，跳过 Delta，继续构建完整包。')
+    return null
+  }
   if (candidates.filter((asset) => asset.Version === selected.Version).length !== 1)
     throw new Error('ambiguous_baseline_full')
   const packageUrl = sourceUrl(baseUrl, selected.FileName)
@@ -112,11 +138,10 @@ export async function downloadPreviousVelopackFull({
     method: 'HEAD',
     dispatcher,
   })
-  if (head.status === 404) {
+  if (!head.ok) {
     await head.body?.cancel()
     throw new Error('baseline_full_request_failed')
   }
-  if (!head.ok) throw new Error('baseline_full_request_failed')
   const download = await sourceRequest(packageUrl, {
     timeout: 30 * 60 * 1000,
     dispatcher,
@@ -134,7 +159,7 @@ export async function downloadPreviousVelopackFull({
   const sha1 = createHash('sha1')
   try {
     await pipeline(
-      Readable.fromWeb(download.body),
+      sourceChunks(download),
       new Transform({
         transform(chunk, _encoding, done) {
           size += chunk.length
@@ -164,8 +189,7 @@ export async function downloadPreviousVelopackFull({
     return { version: selected.Version, filename: selected.FileName, size }
   } catch (error) {
     if (publishedPackage) await fs.rm(path.join(root, selected.FileName), { force: true })
-    if (error.message?.startsWith('baseline_')) throw error
-    throw new Error('baseline_full_download_failed')
+    throw error
   } finally {
     await fs.rm(temporary, { force: true })
   }

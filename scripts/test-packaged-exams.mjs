@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
+import * as yauzl from 'yauzl'
 import { _electron as electron } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
 
@@ -394,6 +395,66 @@ try {
   assert.equal(restored.questions[1].answer.result.correct, true)
   assert.equal(restored.questions[2].answer.result.correct, false)
   assert.equal(restored.questions[0].answer.value, 'Promise 表示异步操作未来的结果。')
+  const diagnosticZip = path.join(staging, 'diagnostics.zip')
+  await application.evaluate(({ dialog }, file) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
+  }, diagnosticZip)
+  await page.getByText('设置', { exact: true }).click()
+  await page.getByRole('button', { name: '导出诊断包', exact: true }).click()
+  await page.getByText('诊断包已导出。', { exact: true }).waitFor()
+  const entries = await new Promise((resolve, reject) => {
+    const files = {}
+    yauzl.open(diagnosticZip, { lazyEntries: true }, (error, zip) => {
+      if (error || !zip) return reject(error)
+      zip.on('error', reject)
+      zip.on('entry', (entry) =>
+        zip.openReadStream(entry, (error, stream) => {
+          if (error || !stream) return reject(error)
+          const chunks = []
+          stream.on('data', (chunk) => chunks.push(chunk))
+          stream.on('error', reject)
+          stream.on('end', () => {
+            files[entry.fileName] = Buffer.concat(chunks).toString('utf8')
+            zip.readEntry()
+          })
+        }),
+      )
+      zip.on('end', () => resolve(files))
+      zip.readEntry()
+    })
+  })
+  const manifest = JSON.parse(entries['manifest.json'])
+  assert.equal(manifest.schemaVersion, 1)
+  assert.equal(manifest.environment.databaseVersion, 2)
+  assert.equal(manifest.health.degraded, false)
+  assert.ok(
+    Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),
+  )
+  const exportedEvents = Object.entries(entries)
+    .filter(([name]) => name.startsWith('logs/'))
+    .flatMap(([, content]) =>
+      content
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    )
+    .filter((event) => event.eventId)
+  const keyError = exportedEvents.find((event) => event.code === 'AI_API_KEY_EMPTY')
+  assert.ok(keyError?.error?.stack?.length, 'original preflight stack must be retained')
+  assert.ok(exportedEvents.some((event) => event.process === 'mcp' && event.traceId))
+  const gradeStart = exportedEvents.find(
+    (event) => event.operation === 'exam.grade' && event.outcome === 'started',
+  )
+  assert.ok(
+    exportedEvents.some(
+      (event) => event.operation === 'exam.grade-worker' && event.traceId === gradeStart?.traceId,
+    ),
+    'grade worker must retain the request trace',
+  )
+  assert.ok(
+    !JSON.stringify(entries).includes('Promise 表示异步操作未来的结果。'),
+    'answers must not enter diagnostics',
+  )
   const archive = path.join(staging, 'exam-v2.jobtrail-backup')
   await application.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
@@ -402,11 +463,22 @@ try {
   await page.evaluate((id) => window.zhijiApi.agent.delete(id), conversationId)
   await application.evaluate(({ app, dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
-    dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
     app.relaunch = () => {}
   }, archive)
   const closed = application.waitForEvent('close')
-  assert.equal(await page.evaluate(() => window.zhijiApi.backup.import()), 'restarting')
+  assert.equal(
+    await page.evaluate(async () => {
+      const remove = window.zhijiApi.backup.onImportConfirmation((request) => {
+        void window.zhijiApi.backup.confirmImport(request.requestId, true)
+      })
+      try {
+        return await window.zhijiApi.backup.import()
+      } finally {
+        remove()
+      }
+    }),
+    'restarting',
+  )
   await closed
   application = await launch()
   page = await application.firstWindow()

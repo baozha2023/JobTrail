@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { logFault } from './diagnostics'
+import { captureError } from './diagnostics'
 import fs from 'node:fs'
 import path from 'node:path'
 import type Database from 'better-sqlite3'
@@ -99,9 +99,19 @@ export class FileStorageService {
         sha256: destinationHash,
         originalExtension: extension,
       }
-    } catch {
-      if (copied && fs.existsSync(destination)) fs.unlinkSync(destination)
-      throw new AppServiceError('FILE_IMPORT_FAILED', '简历文件导入失败')
+    } catch (caughtError) {
+      if (copied)
+        try {
+          fs.rmSync(destination, { force: true })
+        } catch (cleanupError) {
+          caughtError = new AggregateError(
+            [caughtError, cleanupError],
+            'Resume import and cleanup failed',
+          )
+        }
+      throw new AppServiceError('FILE_IMPORT_FAILED', '简历文件导入失败', undefined, {
+        cause: caughtError,
+      })
     }
   }
 
@@ -158,7 +168,7 @@ export class FileStorageService {
       fs.unlinkSync(staged.temporaryPath)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-        logFault('file.recycle-cleanup', error)
+        captureError(error, { operation: 'file.recycle-cleanup' })
     }
   }
 

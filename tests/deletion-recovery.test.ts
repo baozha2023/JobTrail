@@ -1,3 +1,4 @@
+import { diagnosticRecords } from './helpers/diagnostics'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -6,7 +7,7 @@ import { AgentService } from '../src/main/agent/service'
 import { ConfigService, type AppPaths } from '../src/main/config'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServiceContainer } from '../src/main/service-container'
-import { initializeFaultLogger } from '../src/main/diagnostics'
+import { initializeDiagnostics, closeDiagnostics } from '../src/main/diagnostics'
 import { updateFreezePath } from '../src/main/update-freeze'
 
 const roots: string[] = []
@@ -41,6 +42,7 @@ function createAgent(paths: AppPaths, config: ConfigService) {
 }
 
 afterEach(() => {
+  closeDiagnostics()
   vi.restoreAllMocks()
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
 })
@@ -139,7 +141,7 @@ describe('crash recovery for managed files and agent cleanup', () => {
 
   it('retries a conversation deletion after an interrupted attachment cleanup', async () => {
     const { paths, config } = fixture()
-    initializeFaultLogger('main', '1.1.0', true, paths.root)
+    initializeDiagnostics('main', '1.1.0', true, paths.root)
     const first = createAgent(paths, config)
     const conversation = first.agent.create()
     const attachment = first.agent.uploadBytes(
@@ -161,7 +163,9 @@ describe('crash recovery for managed files and agent cleanup', () => {
         .get(conversation.id),
     ).toEqual({ deleting: 1 })
     expect(
-      JSON.parse(fs.readFileSync(path.join(paths.root, 'logs', 'app.jsonl'), 'utf8')),
+      diagnosticRecords(paths.root).find(
+        (record) => record.operation === 'agent.conversation-cleanup',
+      ),
     ).toMatchObject({
       operation: 'agent.conversation-cleanup',
       code: 'INTERNAL_ERROR',

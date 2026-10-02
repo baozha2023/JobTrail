@@ -5,14 +5,16 @@ import type { ExamService } from '../src/main/services/exam-service'
 import type { ConfigService } from '../src/main/config'
 import { AppServiceError } from '../src/main/services/errors'
 import type { SaveExamAnswerInput, GradeJob } from '../src/shared/exams'
-const mocks = vi.hoisted(() => ({ fork: vi.fn(), model: vi.fn(), logFault: vi.fn() }))
+const mocks = vi.hoisted(() => ({ fork: vi.fn(), model: vi.fn(), captureError: vi.fn() }))
 vi.mock('electron', () => ({
   app: { getAppPath: () => '/app', getVersion: () => '1.3.0', isPackaged: false },
   utilityProcess: { fork: mocks.fork },
 }))
 vi.mock('../src/main/agent/model', () => ({ createAgentModel: mocks.model }))
-vi.mock('../src/main/diagnostics', () => ({
-  logFault: mocks.logFault,
+vi.mock('../src/main/diagnostics', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/main/diagnostics')>()),
+  captureError: mocks.captureError.mockImplementation(() => ({ eventId: 'diagnostic-id' })),
+  recordEvent: vi.fn(),
   forwardDiagnosticStderr: vi.fn(),
 }))
 import { ExamGrader } from '../src/main/agent/exam-grader'
@@ -68,13 +70,14 @@ function fixture() {
     recordGradeUsage: vi.fn(),
   }
   const config = { reload: vi.fn(() => ({ ai: {} })) }
+  const emit = vi.fn()
   const grader = new ExamGrader(
     exams as unknown as ExamService,
     config as unknown as ConfigService,
-    vi.fn(),
+    emit,
     '/synthetic',
   )
-  return { grader, exams, children, input, paper, config }
+  return { grader, exams, children, input, paper, config, emit }
 }
 it('limits grading to two workers and advances the separate queue after completion', () => {
   const f = fixture()
@@ -186,7 +189,24 @@ it('cancels invalidated answers without failure logs and ignores late worker rep
     f.children[0].emit('exit', 1)
     expect(f.exams.finishGrade).not.toHaveBeenCalled()
     expect(f.exams.gradeStatus).not.toHaveBeenCalledWith(expect.anything(), 'error')
-    expect(mocks.logFault).not.toHaveBeenCalled()
+    expect(mocks.captureError).not.toHaveBeenCalled()
+  } finally {
+    f.grader.suspend()
+  }
+})
+
+it('forwards the worker diagnostic to the global message path without recording a second exception', () => {
+  const f = fixture()
+  try {
+    f.grader.submit(f.input)
+    const diagnostic = { eventId: randomUUID(), traceId: randomUUID(), spanId: randomUUID() }
+    f.children[0].emit('message', { ok: false, diagnostic })
+    expect(f.emit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        error: { code: 'EXAM_GRADING_FAILED', message: 'EXAM_GRADING_FAILED', diagnostic },
+      }),
+    )
+    expect(mocks.captureError).not.toHaveBeenCalled()
   } finally {
     f.grader.suspend()
   }

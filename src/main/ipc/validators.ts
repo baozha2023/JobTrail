@@ -347,8 +347,8 @@ export function parseUrl(value: unknown): string {
   let parsed: URL
   try {
     parsed = new URL(url)
-  } catch {
-    throw new AppServiceError('VALIDATION_ERROR', '链接格式无效')
+  } catch (caughtError) {
+    throw new AppServiceError('VALIDATION_ERROR', '链接格式无效', undefined, { cause: caughtError })
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')
     throw new AppServiceError('VALIDATION_ERROR', '仅允许打开 HTTP(S) 链接')

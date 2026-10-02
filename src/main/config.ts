@@ -1,3 +1,4 @@
+import { registerDiagnosticSecrets } from '../shared/diagnostics'
 import { CONFIG_V1_DEFAULTS, CONFIG_V1_SCHEMA } from './persistence/config-v1'
 import { TARGET_CONFIG_VERSION } from './persistence/versions'
 import fs from 'node:fs'
@@ -15,8 +16,8 @@ export const DEFAULT_CONFIG: AppConfig = CONFIG_V1_DEFAULTS
 export class ConfigLoadError extends Error {
   readonly code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED'
 
-  constructor(code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED') {
-    super(code)
+  constructor(code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED', options?: ErrorOptions) {
+    super(code, options)
     this.name = 'ConfigLoadError'
     this.code = code
   }
@@ -76,7 +77,7 @@ export function validateConfig(value: unknown): AppConfig {
   if (version.success && version.data.configVersion !== TARGET_CONFIG_VERSION)
     throw new ConfigLoadError('CONFIG_VERSION_UNSUPPORTED')
   const parsed = CONFIG_V1_SCHEMA.safeParse(value)
-  if (!parsed.success) throw new ConfigLoadError('CONFIG_INVALID')
+  if (!parsed.success) throw new ConfigLoadError('CONFIG_INVALID', { cause: parsed.error })
   return parsed.data
 }
 
@@ -90,6 +91,7 @@ export class ConfigService {
   }
 
   get(): AppConfig {
+    registerDiagnosticSecrets([this.config.ai.apiKey])
     return structuredClone(this.config)
   }
 
@@ -128,7 +130,7 @@ export class ConfigService {
       return validateConfig(decryptConfig(contents))
     } catch (error) {
       if (error instanceof ConfigLoadError) throw error
-      throw new ConfigLoadError('CONFIG_INVALID')
+      throw new ConfigLoadError('CONFIG_INVALID', { cause: error })
     }
   }
 

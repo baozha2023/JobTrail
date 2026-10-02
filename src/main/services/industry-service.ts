@@ -48,7 +48,9 @@ export class IndustryService {
       })
     } catch (error) {
       if (uniqueError(error))
-        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在')
+        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在', undefined, {
+          cause: error,
+        })
       throw error
     }
   }
@@ -73,7 +75,9 @@ export class IndustryService {
       })
     } catch (error) {
       if (uniqueError(error))
-        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在')
+        throw new AppServiceError('VALIDATION_ERROR', '同一分类下的行业名称已存在', undefined, {
+          cause: error,
+        })
       throw error
     }
   }

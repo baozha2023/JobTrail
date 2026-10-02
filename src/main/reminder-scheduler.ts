@@ -1,5 +1,5 @@
 import { BrowserWindow, Notification } from 'electron'
-import { logFault } from './diagnostics'
+import { captureError } from './diagnostics'
 import type { Locale } from '../shared/types'
 import { CalendarReminderService } from './services/calendar-reminder-service'
 
@@ -64,23 +64,23 @@ export class ReminderScheduler {
             try {
               this.reminders.markSent(reminder.eventId, reminder.reminderAt)
             } catch (error) {
-              logFault('reminder.persist', error)
+              captureError(error, { operation: 'reminder.persist' })
             }
           })
           notification.once('failed', (_event, error) => {
             this.active.delete(key)
-            logFault('reminder.notification', error)
+            captureError(error, { operation: 'reminder.notification' })
           })
           notification.once('close', () => this.active.delete(key))
           notification.on('click', () => this.openEvent(reminder.eventId, reminder.startAt))
           notification.show()
         } catch (error) {
           this.active.delete(key)
-          logFault('reminder.send', error)
+          captureError(error, { operation: 'reminder.send' })
         }
       }
     } catch (error) {
-      logFault('reminder.check', error)
+      captureError(error, { operation: 'reminder.check' })
     } finally {
       this.checking = false
     }

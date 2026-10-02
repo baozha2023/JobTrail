@@ -1,3 +1,4 @@
+import { registerDiagnosticsIpc } from './ipc/diagnostics'
 import { featureErrors } from '../shared/feature-errors'
 import { AppServiceError } from './services/errors'
 import { ExamGrader } from './agent/exam-grader'
@@ -24,33 +25,40 @@ import { AgentCoordinator } from './agent/coordinator'
 import { getMcpConnectionInfo } from './ipc/mcp'
 import { registerBackupIpc } from './ipc/backup'
 import { sendToTrustedWindow } from './ipc/register-channel'
-import { initializeFaultLogger, logFault, reportFault } from './diagnostics'
+import { initializeDiagnostics, captureError, recordEvent, flushDiagnostics } from './diagnostics'
 
 // Velopack must run before Electron startup work.
 try {
   VelopackApp.build().setAutoApplyOnStartup(false).run()
 } catch (error) {
-  initializeFaultLogger('main', app.getVersion(), app.isPackaged, getStorageRoot())
-  logFault('startup.velopack', error)
+  initializeDiagnostics('main', app.getVersion(), app.isPackaged, getStorageRoot())
+  captureError(error, { operation: 'startup.velopack' })
   throw error
 }
 
-initializeFaultLogger('main', app.getVersion(), app.isPackaged, getStorageRoot())
+initializeDiagnostics('main', app.getVersion(), app.isPackaged, getStorageRoot())
 registerDiagnosticIpc()
-process.on('uncaughtExceptionMonitor', (error) => logFault('process.uncaught', error))
+registerDiagnosticsIpc()
+recordEvent({ operation: 'startup.desktop', outcome: 'started' })
+process.on('uncaughtExceptionMonitor', (error) =>
+  captureError(error, { operation: 'process.uncaught', level: 'fatal' }),
+)
 process.on('unhandledRejection', (error) => {
-  logFault('process.unhandled-rejection', error)
+  captureError(error, { operation: 'process.unhandled-rejection', level: 'fatal' })
   setImmediate(() => {
     throw error
   })
 })
 app.on('render-process-gone', (_event, _contents, details) => {
   if (details.reason !== 'clean-exit')
-    reportFault({ source: 'main', operation: 'renderer.exit', code: 'PROCESS_EXITED' })
+    captureError(
+      { code: 'PROCESS_EXITED', message: 'PROCESS_EXITED' },
+      { operation: 'renderer.exit' },
+    )
 })
 app.on('child-process-gone', (_event, details) => {
   if (details.reason !== 'clean-exit' && details.serviceName !== 'JobTrail Agent')
-    reportFault({ source: 'main', operation: 'child.exit', code: 'PROCESS_EXITED' })
+    captureError({ code: 'PROCESS_EXITED', message: 'PROCESS_EXITED' }, { operation: 'child.exit' })
 })
 
 const APP_DISPLAY_NAME = '职迹'
@@ -81,7 +89,7 @@ if (handoff) {
     windowsHide: true,
   })
   child.once('error', (error) => {
-    logFault('update.handoff', error)
+    captureError(error, { operation: 'update.handoff' })
     dialog.showErrorBox('职迹启动失败', error.message)
     app.exit(1)
   })
@@ -206,7 +214,9 @@ function createWindow(config: ConfigService): void {
   window.webContents.on('will-navigate', (event, target) => {
     if (!isTrustedRendererNavigation(target, rendererUrl)) event.preventDefault()
   })
-  window.webContents.on('preload-error', (_event, _path, error) => logFault('preload.load', error))
+  window.webContents.on('preload-error', (_event, _path, error) =>
+    captureError(error, { operation: 'preload.load' }),
+  )
 
   if (process.platform === 'win32') {
     window.setAppDetails({
@@ -238,7 +248,7 @@ function createWindow(config: ConfigService): void {
       ? window.loadURL(rendererUrl)
       : window.loadFile(rendererFile)
   void loadRenderer.catch((error: unknown) => {
-    logFault('renderer.load', error)
+    captureError(error, { operation: 'renderer.load' })
     const message = error instanceof Error ? error.message : String(error)
     dialog.showErrorBox('职迹界面加载失败', message)
     app.quit()
@@ -277,10 +287,17 @@ async function initializeApplication(): Promise<void> {
   registerExamIpc(container.services.exams, grader)
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
   registerVelopackIpc(container.database, agent)
-  registerBackupIpc(paths, container.database, config, agent, () => {
-    app.relaunch()
-    app.quit()
-  })
+  registerBackupIpc(
+    paths,
+    container.database,
+    config,
+    agent,
+    () => {
+      app.relaunch()
+      app.quit()
+    },
+    () => mainWindow,
+  )
   if (installed)
     app.setLoginItemSettings({
       name: 'JobTrail',
@@ -312,7 +329,7 @@ app
     try {
       await initializeApplication()
     } catch (error) {
-      logFault('startup.initialize', error)
+      const diagnostic = captureError(error, { operation: 'startup.initialize', level: 'fatal' })
       if (error instanceof ConfigLoadError || error instanceof DatabaseVersionError) {
         // A root launch owns the final error message after any update rollback.
         // Direct development/runtime launches have no parent to report the failure.
@@ -333,7 +350,7 @@ app
             featureErrors['en-US'][error.code as keyof (typeof featureErrors)['en-US']]
           : '职迹启动失败，请查看日志。 / Startup failed. Please check the logs.'
       if (!process.env.JOBTRAIL_LAUNCH_TOKEN)
-        dialog.showErrorBox('职迹启动失败 / Startup failed', message)
+        dialog.showErrorBox('职迹启动失败 / Startup failed', `${message}\n[${diagnostic.eventId}]`)
       setImmediate(() =>
         app.exit(
           error instanceof AppServiceError &&
@@ -345,9 +362,11 @@ app
     }
   })
   .catch((error: unknown) => {
-    logFault('startup.ready', error)
-    const message = error instanceof Error ? error.message : String(error)
-    dialog.showErrorBox('职迹启动失败', message)
+    const diagnostic = captureError(error, { operation: 'startup.ready', level: 'fatal' })
+    dialog.showErrorBox(
+      '职迹启动失败 / Startup failed',
+      `职迹启动失败，请查看日志。 / Startup failed. Please check the logs.\n[INTERNAL_ERROR · ${diagnostic.eventId}]`,
+    )
     app.quit()
   })
 
@@ -355,6 +374,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
+app.on('before-quit', () => flushDiagnostics())
 app.on('before-quit', (event) => {
   if (shutdownComplete) return
   event.preventDefault()
@@ -368,7 +388,7 @@ app.on('before-quit', (event) => {
     try {
       await agent?.close()
     } catch (error) {
-      logFault('agent.close', error)
+      captureError(error, { operation: 'agent.close' })
     } finally {
       try {
         database?.close()

@@ -1,14 +1,16 @@
-import { initializeFaultLogger, logFault } from '../diagnostics'
+import { initializeDiagnostics, captureError } from '../diagnostics'
 
-initializeFaultLogger(
+initializeDiagnostics(
   'agent',
   process.env.JOBTRAIL_LOG_VERSION ?? 'unknown',
   process.env.JOBTRAIL_LOG_PACKAGED === '1',
   process.env.JOBTRAIL_LOG_ROOT ?? process.cwd(),
 )
-process.on('uncaughtExceptionMonitor', (error) => logFault('process.uncaught', error))
+process.on('uncaughtExceptionMonitor', (error) =>
+  captureError(error, { operation: 'process.uncaught', level: 'fatal' }),
+)
 process.on('unhandledRejection', (error) => {
-  logFault('process.unhandled-rejection', error)
+  captureError(error, { operation: 'process.unhandled-rejection', level: 'fatal' })
   process.exit(1)
 })
 
@@ -20,6 +22,6 @@ void import('@napi-rs/canvas')
     return import('./worker')
   })
   .catch((error: unknown) => {
-    logFault('agent.bootstrap', error)
+    captureError(error, { operation: 'agent.bootstrap' })
     process.exit(1)
   })

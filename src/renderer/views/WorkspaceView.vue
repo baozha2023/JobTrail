@@ -53,6 +53,7 @@ import ResumesView from './ResumesView.vue'
 import CompaniesView from './CompaniesView.vue'
 import SettingsView from './SettingsView.vue'
 import AppUpdateModal from '../components/AppUpdateModal.vue'
+import BackupImportModal from '../components/BackupImportModal.vue'
 import AgentView from './AgentView.vue'
 import Sidebar from '../layout/Sidebar.vue'
 import Titlebar from '../layout/Titlebar.vue'
@@ -69,6 +70,7 @@ import { useExamsStore } from '../stores/exams'
 import { useCalendarWorkspace } from '../composables/useCalendarWorkspace'
 import { useOpportunityWorkspace } from '../composables/useOpportunityWorkspace'
 import { useManagementWorkspace } from '../composables/useManagementWorkspace'
+import { useBackupWorkspace } from '../composables/useBackupWorkspace'
 import type { ViewKey } from '../types'
 
 const { t, locale } = useI18n()
@@ -185,6 +187,15 @@ const naiveLocale = computed(() => (locale.value === 'zh-CN' ? zhCN : enUS))
 const { message } = createDiscreteApi(['message'], {
   configProviderProps: computed(() => ({ theme: theme.value, locale: naiveLocale.value })),
 })
+const {
+  backupBusy,
+  backupStatus,
+  backupConfirmation,
+  backupDeciding,
+  backupRestoring,
+  backupAction,
+  decideBackupImport,
+} = useBackupWorkspace({ showError })
 onBeforeUnmount(
   useExamsStore().onError((text) => {
     message.error(text)
@@ -793,6 +804,7 @@ function errorMessage(error: unknown): string {
 }
 
 function showError(error: unknown): void {
+  reportRendererFault('ui.operation', error)
   message.error(errorMessage(error))
 }
 
@@ -1270,6 +1282,9 @@ onBeforeUnmount(() => {
               :catalog-error="catalogError"
               :update-company-catalog="updateCompanyCatalog"
               :close-catalog-modal="closeCatalogModal"
+              :backup-busy="backupBusy"
+              :backup-status="backupStatus"
+              :backup-action="backupAction"
               @update-config="saveConfig"
               @ai-saved="onAiSaved"
               @error="showError"
@@ -1648,5 +1663,14 @@ onBeforeUnmount(() => {
         >
       </n-card>
     </n-modal>
+    <BackupImportModal
+      v-if="backupConfirmation"
+      :confirmation="backupConfirmation"
+      :current-version="currentVersion"
+      :deciding="backupDeciding"
+      :restoring="backupRestoring"
+      @confirm="decideBackupImport(true)"
+      @cancel="decideBackupImport(false)"
+    />
   </n-config-provider>
 </template>

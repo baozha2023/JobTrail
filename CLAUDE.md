@@ -21,6 +21,7 @@
 2. `docs/database.md`：SQLite 完整结构、字段、索引和初始化规则。
 3. `src/shared/types.ts`：跨进程 DTO 和公开类型。
 4. `src/shared/ipc.ts`：Renderer 与 Main 的 IPC 契约。
+   `docs/diagnostics.md` 与 `src/shared/error-codes.ts` 定义诊断接入、隐私边界和唯一错误码策略。
 5. `package.json`、`native/bootstrap/Cargo.toml`、`scripts/pack-velopack.mjs`、`scripts/resolve-velopack-baseline.mjs`、`scripts/release-proxy.mjs`：工具链、版本与发布流程。
 6. `README.md`：面向用户和贡献者的公开说明。
 
@@ -138,7 +139,8 @@ Built-in agent
 ```text
 src/main/
 ├─ desktop.ts                  Electron 生命周期与窗口入口
-├─ diagnostics.ts              进程故障日志、轮转与子进程诊断转发
+├─ diagnostics.ts              诊断入口、异步上下文与子进程诊断转发
+├─ diagnostics/                日志写入、维护与脱敏诊断包导出
 ├─ mcp-bootstrap.ts            MCP 诊断初始化与进程入口
 ├─ mcp-node.ts                 独立 MCP stdio 进程入口
 ├─ agent/                      执行协调器、utility process、LangGraph、MCP 客户端、归档、附件、文档解析和技能
@@ -176,6 +178,7 @@ src/shared/
 ├─ types.ts                   JSON 可序列化 DTO 与公开接口
 ├─ ipc.ts                     IPC 通道映射
 ├─ diagnostics.ts             跨进程故障字段校验与脱敏
+├─ error-codes.ts              错误码、默认诊断策略与 UI 文案键注册表
 └─ calendar.ts                跨层日历纯函数
 
 native/bootstrap/             Windows 启动器、安装器、卸载器和更新回滚
@@ -211,6 +214,7 @@ docs/                         数据库声明与未来规划
 - Renderer/Main 通道必须登记在 `src/shared/ipc.ts` 的 `IpcChannelMap`，声明完整参数元组与返回类型。
 - Preload API 与通道一一对应，不向 Renderer 暴露通用 `invoke`。
 - IPC 统一返回 `{ ok: true, data }` 或 `{ ok: false, error }`。
+- Preload 为每次请求生成诊断上下文，以 `{ context, args }` 信封调用已登记通道；Main 在验证调用来源后校验信封。诊断上下文只用于关联日志，不参与授权；失败响应携带稳定错误码及诊断引用，原始异常留在脱敏日志中。
 - IPC 边界校验对象形状、允许字段、类型、安全整数、正 ID、空白字符串和空更新。
 - 业务 DTO 和配置对象拒绝未知字段；配置更新使用 `AppConfigUpdate`，允许提交已知设置字段的局部更新，不允许修改 `configVersion`。
 - Renderer 校验只负责交互反馈，不能代替 Main 或 Service 校验。
@@ -327,6 +331,7 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 - 导入先认证解密，再校验大小、文件名白名单、重复路径、链接、清单、SQLite 结构和引用，不接受无清单额外文件、任意路径或不支持的格式。导出使用相同的大小、元数据与文件数量上限，计入清单本身及最终加密文件大小，防止生成自身无法导入的文件。
 - 应用版本不同但持久化格式相同可以导入。当前支持数据库 v1/v2、配置 v1 的正式备份；旧结构复用正式持久化迁移步骤，在临时副本上完成迁移后再恢复；更高格式和缺少迁移路径的旧格式拒绝导入，不重置或降级原数据。
 - 用户确认覆盖后暂存恢复集，重启时在打开配置/SQLite 之前替换四个固定数据项。恢复日志保证中断时回退旧数据；未完成恢复时 MCP 不得启动。
+- 导入覆盖确认使用随客户端主题与语言切换的应用内弹窗，展示备份来源版本及本地时间；不使用系统原生消息框。Main 校验备份后发送不含路径的确认信息，Renderer 仅通过一次性请求 ID 回复是否覆盖；确认前不冻结写入、不暂存恢复集。取消、窗口关闭或 Renderer 重载/退出时清理本次临时文件。
 - 原地升级与旧正式版备份导入共用同一套持久化迁移规则；迁移成功并完成校验后才能提交，不能仅修改版本号或靠缺字段默认值冒充迁移。
 - 临时解密文件仅存于受控维护目录，正常完成清理；进程崩溃后下次启动重试清理。恢复错误必须保留可回退数据，不得把部分恢复标记为成功。
 - 检查待恢复状态时，仅 `ENOENT` 表示不存在；权限或 I/O 错误必须保留写入冻结与恢复状态，不得吞掉错误后恢复写入。
@@ -575,7 +580,7 @@ sandbox: true
 
 历史包请求优先使用 `HTTPS_PROXY`，未设置时使用 Windows 当前用户启用的 HTTP(S) 系统代理；没有代理时直连。代理仅用于发布基线下载，不改变包大小和 SHA-256 校验。
 
-只有 Feed 为 404、为空或没有合适历史版本时允许 Full-only。网络错误、无效 Feed、歧义基线或校验失败必须终止构建。
+Feed 为 404、为空、没有合适历史版本或历史 Feed/Full 包因网络、超时、HTTP 错误不可获取时，控制台告知原因并跳过 Delta，继续构建 Full-only；中断下载不得遗留临时基线文件。无效 Feed、歧义基线、大小或 SHA-256 校验失败以及本地文件写入失败仍须终止构建。
 
 公开资产限于：
 
@@ -592,21 +597,19 @@ sandbox: true
 
 ## 12. 错误处理、日志与代码质量
 
-- 预期业务失败使用 `AppServiceError` 和稳定错误码。
-- 缺少远程模型 API Key 导致请求失败时，`AI_API_KEY_EMPTY` 必须进入故障日志，不按普通输入校验过滤；开发版输出到主进程控制台，安装版写入日志文件，Renderer 不重复记录已由 Main 处理的 IPC 错误。
-- `NOT_FOUND`、`BUILTIN_DATA`、`*_IN_USE`、`LAST_STATUS` 等语义不得退化为通用异常。
-- SQLite、文件和网络异常在边界转换，不向用户暴露内部实现。
-- catch 后必须处理、转换、恢复或记录；禁止无说明吞掉异常。
-- 清理失败不得反向报告已经提交的业务操作失败，但必须安全记录并允许后续恢复或重试。
-- 日志不得包含简历正文、完整 JD、密钥、令牌或不必要的绝对路径。
-- 开发版故障输出到控制台；安装版写入安装根目录 `logs/` 的 JSON Lines 文件，随版本更新保留，并由卸载流程清理。主进程使用 `app.jsonl`（5 MiB，保留 3 份），智能体与 MCP 进程分别按 PID 写入 1 MiB 文件；启动时仅清理本应用命名的超过 14 天或使目录超过 50 MiB 的旧日志。同步写入不依赖退出时冲刷，日志失败不得影响业务。
-- 发布输入 `dist/win-unpacked/` 不得包含验收生成的 `logs/`；打包前清理测试日志，验收时使用隔离目录，避免把旧故障记录带入 `.runtime/current/`。
-- 日志覆盖 Main、Renderer、Preload、智能体执行进程和 MCP 进程可观测的故障，包括更新检查、下载、准备、应用、回滚及启动失败。Velopack 与 Rust 原生程序日志独立，不并入应用日志；正常取消、无更新、输入校验和未找到等预期结果不记为故障。
-- 故障记录只含时间、进程、PID、版本、操作阶段、稳定错误码、HTTP 状态或系统错误码、清理后的应用内相对堆栈位置。严禁写原始请求、异常消息、子进程 stderr、用户内容、密钥、令牌和绝对路径。Renderer 与 Preload 只能通过受信任且严格校验的诊断 IPC 上报有限字段。
-- 开发版子进程只向控制台转发通过诊断字段及操作白名单校验的 JSON 行；原始 stderr 不转发，也不保存。
-- 优先使用小型纯函数、明确类型和早返回。
-- 不保留无用参数、死代码、注释掉的实现、重复判断或未使用的兼容分支。
-- 不复制大段校验、映射或业务逻辑；优先复用已有公共能力。
+日志架构与接入契约以 `docs/diagnostics.md` 为准。旧日志保留、旧事件转换和操作名称白名单方案已废止。
+
+- 错误码、默认级别、分类和国际化键仅在 `src/shared/error-codes.ts` 定义。业务校验失败也必须记录；取消使用操作结果。
+- Node 使用 `captureError`、`recordEvent`、`runOperation`、`flushDiagnostics`、`getDiagnosticsHealth`。Renderer 使用统一上报和国际化 message，已带诊断引用的后端错误不重复记录。
+- 原样抛出的异常由最终边界记录；恢复、降级和重试由当前层记录。包装异常通过标准 `cause` 保留原始原因，事务和回滚同时失败使用 `AggregateError`。
+- 未知异常保留脱敏的类型、message、堆栈及原因链；UI 仅显示国际化文案、错误码及诊断编号，不显示原始异常。
+- 不得传入请求响应正文、配置对象、简历、聊天、作答和任意业务对象。共享协议仅接收受限的类型化属性。自动脱敏不能保证识别自由文本中的所有隐私。
+- 日志独立于数据库、配置和备份结构版本。只安全清除可确认归属的旧结构日志，不迁移、不转换；未来版本、未知文件及活跃文件保留。正式业务数据迁移继续保留。
+- 所有 Node 进程独立写文件；开发版同时输出控制台，安装版默认写文件，MCP stdout 仅用于协议。分片 5 MiB、保留 14 天、目录软上限 50 MiB。
+- 普通事件缓冲不超过 1 MiB、100 ms；错误优先写入。写入、清理、传输失败通过健康状态、备用输出和计数暴露，不递归记录或改变业务结果。退出和导出前刷写。
+- 设置页仅提供日志目录、最近 24 小时脱敏 ZIP 和健康状态，不自动上传。日志不进入业务备份或安装载荷，安装包验收使用隔离目录。
+- 进程间显式传递 trace/span 和诊断引用，不用于授权。重传复用 eventId；同一 Error 在不同请求中分别记录。
+- 优先小型纯函数、明确类型和早返回。不保留旧日志接口、临时适配、无用参数、调试分支、空泛 catch 或重复业务白名单。
 
 ## 13. 测试与验证
 
@@ -622,7 +625,9 @@ pnpm build
 pnpm audit --audit-level=low
 ```
 
-依赖审计不覆盖随包分发的 Chromium 二进制。网页读取浏览器的版本、上游安全修复和 sandbox 设置须单独审查；依赖审计无告警不得表述为应用绝对零漏洞。1.3.0 本轮保留 Playwright 1.58.2 携带的 Chromium 145.0.7632.6，网页读取尚未显式启用 Chromium sandbox；这两项是已确认保留的发布限制，不能视为安全验收已覆盖。
+依赖审计不覆盖随包分发的 Chromium 二进制。网页读取浏览器的版本、上游安全修复和 sandbox 设置须单独审查；依赖审计无告警不得表述为应用绝对零漏洞。
+
+v1.4.0 最终审查中，维护者明确确认继续保留 Playwright 1.58.2 携带的 Chromium 145.0.7632.6，网页读取尚未显式启用 Chromium sandbox。该版本早于 [Chrome 官方公告中 CVE-2026-2441 的修复版本 145.0.7632.75/76](https://chromereleases.googleblog.com/2026/02/stable-channel-update-for-desktop_13.html)；官方已确认该漏洞存在在野利用。根据版本与修复公告，本项目随包浏览器存在已知安全风险，不能宣称“零漏洞”或安全验收完全通过。[Playwright 的 Chromium sandbox 默认关闭](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-option-chromium-sandbox)，现有 URL/DNS/请求校验不能替代浏览器漏洞修复或进程隔离。后续升级浏览器运行环境和启用 sandbox 时必须重新验证动态网页读取及 Windows 打包。
 
 Rust 标准检查：
 

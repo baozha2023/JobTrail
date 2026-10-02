@@ -197,7 +197,6 @@ try {
   await application.evaluate(({ dialog, app }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
-    dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
     app.relaunch = () => {}
   }, backupPath)
   await page.getByRole('button', { name: '导出备份', exact: true }).click()
@@ -213,6 +212,10 @@ try {
   )
   const closed = application.waitForEvent('close')
   await page.getByRole('button', { name: '导入备份', exact: true }).click()
+  await page
+    .locator('.backup-import-modal')
+    .getByRole('button', { name: '替换并重启', exact: true })
+    .click()
   await closed
   application = undefined
   page = await launch()

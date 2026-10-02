@@ -51,8 +51,10 @@ export type CompanyCatalogEntry = z.infer<typeof catalogEntrySchema>
 export type CompanyCatalogDocument = z.infer<typeof catalogSchema>
 export type CompanyCatalogManifest = z.infer<typeof manifestSchema>
 
-function invalidCatalog(): AppServiceError {
-  return new AppServiceError('CATALOG_INVALID', '获取的内置公司数据有误，请稍后重试')
+function invalidCatalog(cause?: unknown): AppServiceError {
+  return new AppServiceError('CATALOG_INVALID', '获取的内置公司数据有误，请稍后重试', undefined, {
+    cause,
+  })
 }
 
 export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
@@ -96,8 +98,8 @@ export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
       let url: URL
       try {
         url = new URL(company.careerUrl)
-      } catch {
-        throw invalidCatalog()
+      } catch (error) {
+        throw invalidCatalog(error)
       }
       if (url.protocol !== 'http:' && url.protocol !== 'https:') throw invalidCatalog()
     }
@@ -112,8 +114,8 @@ export function parseCompanyCatalogText(
   let parsed: unknown
   try {
     parsed = JSON.parse(value)
-  } catch {
-    throw invalidCatalog()
+  } catch (error) {
+    throw invalidCatalog(error)
   }
   if (appVersion !== undefined && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
     const minimumAppVersion = (parsed as Record<string, unknown>).minimumAppVersion
@@ -133,8 +135,8 @@ export function parseCompanyCatalogManifest(value: string): CompanyCatalogManife
   let parsed: unknown
   try {
     parsed = JSON.parse(value)
-  } catch {
-    throw invalidCatalog()
+  } catch (error) {
+    throw invalidCatalog(error)
   }
   const result = manifestSchema.safeParse(parsed)
   if (!result.success) throw invalidCatalog()

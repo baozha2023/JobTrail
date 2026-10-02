@@ -435,7 +435,10 @@ export const useAgentStore = defineStore('agent', () => {
       state.compacting = false
       state.messages.push(event.compact)
     } else if (event.kind === 'error') {
-      state.error = i18n.global.t(`error.${event.errorCode ?? 'generic'}`)
+      state.error = getErrorMessage(
+        { code: event.errorCode, diagnostic: event.diagnostic },
+        i18n.global.t,
+      )
       if (event.submissionState === 'not-saved' && state.submitted)
         restoreSubmission(event.conversationId, state.submitted)
       else if (event.submissionState === 'unknown') state.unverified = true

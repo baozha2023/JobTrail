@@ -137,10 +137,12 @@ export async function exportBackup(
       manifest.databaseVersion,
       new Set(manifest.files.map((item) => item.path.toLowerCase())),
     )
-  } catch {
+  } catch (caughtError) {
     throw new AppServiceError(
       'BACKUP_SOURCE_INVALID',
       '当前数据结构不受支持、文件缺失或超出备份限制，未生成备份',
+      undefined,
+      { cause: caughtError },
     )
   }
   const zip = new ZipFile()
@@ -338,10 +340,12 @@ export async function importBackup(
     )
     try {
       planPersistenceUpgrade(manifest.databaseVersion, manifest.configVersion)
-    } catch {
+    } catch (caughtError) {
       throw new AppServiceError(
         'BACKUP_VERSION_UNSUPPORTED',
         '备份的数据格式版本不受当前客户端支持',
+        undefined,
+        { cause: caughtError },
       )
     }
     const declared = new Set<string>()

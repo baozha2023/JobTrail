@@ -1,3 +1,4 @@
+import type { DiagnosticContext, DiagnosticReference } from '../../shared/diagnostics'
 import type {
   AgentDraftPart,
   AgentEvent,
@@ -16,6 +17,7 @@ export type AgentWorkerRequest =
     }
   | {
       kind: 'run'
+      context: DiagnosticContext
       jobId: string
       conversationId: string
       operation: 'send' | 'compact' | 'resume'
@@ -29,6 +31,11 @@ export type AgentWorkerRequest =
 export type AgentWorkerResponse =
   | { kind: 'ready' }
   | { kind: 'event'; jobId: string; event: AgentEvent }
-  | { kind: 'finished'; jobId: string; errorCode?: AgentEventErrorCode }
-  | { kind: 'init-error'; errorCode: AgentEventErrorCode }
+  | {
+      kind: 'finished'
+      jobId: string
+      errorCode?: AgentEventErrorCode
+      diagnostic?: DiagnosticReference
+    }
+  | { kind: 'init-error'; errorCode: AgentEventErrorCode; diagnostic?: DiagnosticReference }
   | { kind: 'closed' }

@@ -1,3 +1,8 @@
+import {
+  newDiagnosticContext,
+  type DiagnosticContext,
+  type DiagnosticReference,
+} from '../../shared/diagnostics'
 import path from 'node:path'
 import { app, utilityProcess, type UtilityProcess } from 'electron'
 import type {
@@ -18,10 +23,17 @@ import { AgentService } from './service'
 import type { ExamGrader } from './exam-grader'
 import type { AgentRuntimeInfo } from './runtime'
 import type { AgentWorkerRequest, AgentWorkerResponse } from './worker-protocol'
-import { forwardDiagnosticStderr, logFault, reportFault } from '../diagnostics'
+import {
+  forwardDiagnosticStderr,
+  captureError,
+  recordEvent,
+  currentDiagnosticContext,
+} from '../diagnostics'
 
 type JobOperation = 'send' | 'compact' | 'resume'
 interface Job {
+  context: DiagnosticContext
+  diagnostic?: DiagnosticReference
   jobId: string
   conversationId: string
   operation: JobOperation
@@ -205,6 +217,7 @@ export class AgentCoordinator {
       if (this.jobsByConversation.has(conversationId))
         throw new AppServiceError('VALIDATION_ERROR', '对话正在回复或排队中')
       const job: Job = {
+        context: newDiagnosticContext(currentDiagnosticContext()),
         jobId,
         conversationId,
         operation,
@@ -308,7 +321,7 @@ export class AgentCoordinator {
         try {
           idle.process.postMessage(this.runRequest(job))
         } catch (cause) {
-          logFault('agent.submit', cause)
+          job.diagnostic = captureError(cause, { operation: 'agent.submit', ...job.context })
           idle.reportedFailure = true
           idle.process.kill()
         }
@@ -322,7 +335,7 @@ export class AgentCoordinator {
           this.createSlot()
         } catch (cause) {
           this.workerStartFailures = MAX_WORKER_START_FAILURES
-          logFault('agent.spawn', cause)
+          captureError(cause, { operation: 'agent.spawn' })
           this.pump()
           return
         }
@@ -335,6 +348,7 @@ export class AgentCoordinator {
   private runRequest(job: Job): AgentWorkerRequest {
     return {
       kind: 'run',
+      context: job.context,
       jobId: job.jobId,
       conversationId: job.conversationId,
       operation: job.operation,
@@ -373,7 +387,7 @@ export class AgentCoordinator {
           mcpConnection: this.mcpConnection(),
         } satisfies AgentWorkerRequest)
       } catch (cause) {
-        logFault('agent.initialize', cause)
+        captureError(cause, { operation: 'agent.initialize' })
         slot.reportedFailure = true
         process.kill()
       }
@@ -385,15 +399,27 @@ export class AgentCoordinator {
       const slotIndex = this.slots.indexOf(slot)
       if (slotIndex >= 0) this.slots.splice(slotIndex, 1)
       if (!slot.ready && !this.closing && !this.suspended) this.workerStartFailures++
-      if (!this.closing && !this.suspended && !slot.reportedFailure)
-        reportFault({ source: 'main', operation: 'agent.exit', code: 'PROCESS_EXITED' })
+      if (!this.closing && !this.suspended && !slot.reportedFailure) {
+        const diagnostic = captureError(
+          {
+            code: job ? 'AGENT_WORKER_EXITED' : 'PROCESS_EXITED',
+            message: 'Agent process exited unexpectedly',
+          },
+          { operation: 'agent.exit', ...job?.context },
+        )
+        if (job) job.diagnostic = diagnostic
+      }
       if (job) {
         void this.finishJob(job, 'AGENT_WORKER_EXITED', true)
       } else this.pump()
     })
-    process.on('error', () => {
+    process.on('error', (cause) => {
       slot.reportedFailure = true
-      reportFault({ source: 'main', operation: 'agent.process-error', code: 'PROCESS_ERROR' })
+      const diagnostic = captureError(
+        { code: 'PROCESS_ERROR', message: 'Agent process failed', cause },
+        { operation: 'agent.process-error', ...slot.job?.context },
+      )
+      if (slot.job) slot.job.diagnostic = diagnostic
     })
     forwardDiagnosticStderr(process.stderr)
   }
@@ -405,12 +431,19 @@ export class AgentCoordinator {
       this.pump()
     } else if (message.kind === 'init-error') {
       slot.reportedFailure = true
-      reportFault({ source: 'main', operation: 'agent.startup', code: message.errorCode })
+      recordEvent({
+        operation: 'agent.startup',
+        outcome: 'failed',
+        attributes: message.diagnostic ? { relatedEventId: message.diagnostic.eventId } : undefined,
+      })
       slot.process.kill()
     } else if (message.kind === 'event') {
       if (slot.job?.jobId === message.jobId) this.receiveWorkerEvent(slot.job, message.event)
     } else if (message.kind === 'finished') {
-      if (slot.job?.jobId === message.jobId) void this.finishJob(slot.job, message.errorCode, false)
+      if (slot.job?.jobId === message.jobId) {
+        slot.job.diagnostic = message.diagnostic
+        void this.finishJob(slot.job, message.errorCode, false)
+      }
     }
   }
 
@@ -459,7 +492,7 @@ export class AgentCoordinator {
       try {
         await this.agent.recoverInterruptedRun(job.conversationId, job.liveText)
       } catch (cause) {
-        logFault('agent.recover', cause)
+        captureError(cause, { operation: 'agent.recover' })
       }
     }
     let submissionState: AgentEvent['submissionState']
@@ -471,17 +504,23 @@ export class AgentCoordinator {
             ? 'saved'
             : 'not-saved'
         } catch (error) {
-          logFault('agent.submission-state', error)
+          captureError(error, { operation: 'agent.submission-state' })
           submissionState = 'unknown'
         }
       }
     }
     const finalErrorCode = errorCode ?? job.workerErrorCode
+    if (finalErrorCode && finalErrorCode !== 'AGENT_CANCELLED' && !job.diagnostic)
+      job.diagnostic = captureError(
+        { code: finalErrorCode, message: 'Agent task failed' },
+        { operation: 'agent.task', ...job.context },
+      )
     if (finalErrorCode)
       this.sendEvent(job, {
         conversationId: job.conversationId,
         kind: 'error',
         errorCode: finalErrorCode,
+        diagnostic: job.diagnostic,
         submissionState,
       })
     this.jobsByConversation.delete(job.conversationId)
@@ -522,7 +561,7 @@ export class AgentCoordinator {
         jobId: job.jobId,
       } satisfies AgentWorkerRequest)
     } catch (cause) {
-      logFault('agent.cancel', cause)
+      captureError(cause, { operation: 'agent.cancel' })
       job.slot?.process.kill()
     }
     if (!job.cancelTimer)
@@ -547,7 +586,7 @@ export class AgentCoordinator {
         try {
           slot.process.postMessage({ kind: 'close' } satisfies AgentWorkerRequest)
         } catch (error) {
-          logFault('agent.worker-close', error)
+          captureError(error, { operation: 'agent.worker-close' })
           slot.process.kill()
         }
     }

@@ -65,6 +65,8 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
     } finally {
       fs.writeFileSync(configPath, originalConfig)
     }
+    if (diagnostics.trim())
+      throw new Error(`${name}: packaged MCP emitted stderr despite an available file sink`)
   } catch (error) {
     if (diagnostics.trim()) process.stderr.write(diagnostics)
     throw error
@@ -118,20 +120,64 @@ function smokeInvalidConfig(name, transportOptions, configRoot) {
   }
 }
 
-async function smokeUpdateFreeze(transportOptions, root) {
-  const within = async (promise, message) => {
-    let timer
-    try {
-      return await Promise.race([
-        promise,
-        new Promise((_, reject) => {
-          timer = setTimeout(() => reject(new Error(message)), 10_000)
-        }),
-      ])
-    } finally {
-      clearTimeout(timer)
-    }
+async function within(promise, message) {
+  let timer
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), 10_000)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
   }
+}
+
+function observeMcpStartup(child) {
+  let running = false
+  let pending = ''
+  const started = new Promise((resolve, reject) => {
+    child.once('error', reject)
+    child.stdin.once('error', reject)
+    const onData = (chunk) => {
+      pending += chunk.toString()
+      const newline = pending.indexOf('\n')
+      if (newline < 0) return
+      child.stdout.off('data', onData)
+      try {
+        const response = JSON.parse(pending.slice(0, newline))
+        if (response.id !== 1 || response.result?.serverInfo?.version !== packageVersion)
+          throw new Error('MCP initialize did not return the packaged server version')
+        running = true
+        child.stdin.write(
+          JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n',
+        )
+        resolve()
+      } catch (error) {
+        reject(error)
+      }
+    }
+    child.stdout.on('data', onData)
+    child.stdin.write(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2026-07-28',
+          capabilities: {},
+          clientInfo: { name: 'jobtrail-update-smoke', version: packageVersion },
+        },
+      }) + '\n',
+    )
+  })
+  // A blocked launch may fail before the test reaches its bounded await.
+  started.catch(() => {})
+  return { started, isRunning: () => running }
+}
+
+async function smokeUpdateFreeze(transportOptions, root) {
   const freeze = path.join(root, '.runtime', 'state', 'update-freeze')
   fs.mkdirSync(path.dirname(freeze), { recursive: true })
   const child = spawn(transportOptions.command, transportOptions.args, {
@@ -140,25 +186,13 @@ async function smokeUpdateFreeze(transportOptions, root) {
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
   })
-  let running = false
-  let ready
-  const started = new Promise((resolve, reject) => {
-    ready = resolve
-    child.once('error', reject)
-  })
   const exited = new Promise((resolve, reject) => {
     child.once('error', reject)
     child.once('exit', (code) => resolve(code))
   })
-  child.stderr.on('data', (chunk) => {
-    if (chunk.toString().includes('running on stdio')) {
-      running = true
-      ready()
-    }
-  })
+  const startup = observeMcpStartup(child)
   try {
-    await within(started, 'MCP did not start')
-    if (!running) throw new Error('MCP did not start')
+    await within(startup.started, 'MCP did not start')
     fs.writeFileSync(freeze, '')
     const exitCode = await within(exited, 'MCP did not close for update')
     if (exitCode !== 75) throw new Error(`MCP update freeze exit status=${exitCode}`)
@@ -181,33 +215,19 @@ async function smokeRootUpdateGate(transportOptions, root) {
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
   })
-  let diagnostics = ''
-  child.stderr.on('data', (chunk) => {
-    diagnostics += chunk.toString()
+  const exited = new Promise((resolve, reject) => {
+    child.once('error', reject)
+    child.once('exit', resolve)
   })
+  const startup = observeMcpStartup(child)
   try {
     await new Promise((resolve) => setTimeout(resolve, 500))
-    if (child.exitCode !== null || diagnostics.includes('running on stdio'))
+    if (child.exitCode !== null || startup.isRunning())
       throw new Error('Root launcher started MCP while update freeze was active')
     fs.rmSync(freeze)
-    const exitCode = await new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new Error('Root MCP did not resume after update')),
-        10_000,
-      )
-      child.once('error', (error) => {
-        clearTimeout(timer)
-        reject(error)
-      })
-      const ready = (chunk) => {
-        if (!chunk.toString().includes('running on stdio')) return
-        child.stderr.off('data', ready)
-        clearTimeout(timer)
-        child.stdin.end()
-        child.once('exit', resolve)
-      }
-      child.stderr.on('data', ready)
-    })
+    await within(startup.started, 'Root MCP did not resume after update')
+    child.stdin.end()
+    const exitCode = await within(exited, 'Root MCP did not exit after stdin closed')
     if (exitCode !== 0) throw new Error(`Root MCP update gate exit status=${exitCode}`)
   } finally {
     fs.rmSync(freeze, { force: true })

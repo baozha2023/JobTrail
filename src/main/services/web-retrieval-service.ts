@@ -1,5 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises'
-import { logFault } from '../diagnostics'
+import { captureError } from '../diagnostics'
 import { AppServiceError } from './errors'
 import { BrowserReader } from './web-browser'
 import {
@@ -83,11 +83,16 @@ function budgetFor(
 function parsePage(html: string, url: string): ParsedWebPage {
   try {
     return parseWebPage(html, url)
-  } catch {
-    throw new AppServiceError('WEB_PARSE_FAILED', '网页解析失败，未能可靠提取内容', {
-      stage: 'parse',
-      retryable: false,
-    })
+  } catch (caughtError) {
+    throw new AppServiceError(
+      'WEB_PARSE_FAILED',
+      '网页解析失败，未能可靠提取内容',
+      {
+        stage: 'parse',
+        retryable: false,
+      },
+      { cause: caughtError },
+    )
   }
 }
 
@@ -107,14 +112,20 @@ async function retryTransient<T>(
         (error.details?.retryable === true ||
           ['WEB_UNAVAILABLE', 'WEB_TIMEOUT'].includes(error.code))
       if (!retryable || attempt === 2) {
-        throw new AppServiceError(error.code, error.message, {
-          ...error.details,
-          stage: error.details?.stage ?? stage,
-          attempts: attempt,
-          retryable: false,
-          ...(retryable ? { retryExhausted: true, transient: true } : {}),
-        })
+        throw new AppServiceError(
+          error.code,
+          error.message,
+          {
+            ...error.details,
+            stage: error.details?.stage ?? stage,
+            attempts: attempt,
+            retryable: false,
+            ...(retryable ? { retryExhausted: true, transient: true } : {}),
+          },
+          { cause: error },
+        )
       }
+      captureError(error, { operation: 'web.retry-attempt' })
       try {
         await delay(error.details?.httpStatus === 429 ? 1_500 : 300 * attempt, undefined, {
           signal: budget.signal,
@@ -451,7 +462,7 @@ export class WebRetrievalService {
       try {
         this.cache.update(id, snapshot)
       } catch (cacheError) {
-        logFault('web.cache-update', cacheError)
+        captureError(cacheError, { operation: 'web.cache-update' })
         resultId = null
       }
     }

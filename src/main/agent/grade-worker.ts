@@ -1,24 +1,39 @@
+import { registerDiagnosticSecrets, type DiagnosticContext } from '../../shared/diagnostics'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { createAgentModel } from './model'
 import { gradeResultSchema, type GradeJob } from '../../shared/exams'
 import type { AppConfig } from '../../shared/types'
-import { initializeFaultLogger, logFault } from '../diagnostics'
-initializeFaultLogger(
+import {
+  initializeDiagnostics,
+  captureError,
+  withDiagnosticContext,
+  recordEvent,
+  flushDiagnostics,
+} from '../diagnostics'
+initializeDiagnostics(
   'agent',
   process.env.JOBTRAIL_LOG_VERSION ?? 'unknown',
   process.env.JOBTRAIL_LOG_PACKAGED === '1',
   process.env.JOBTRAIL_LOG_ROOT ?? process.cwd(),
 )
-process.on('uncaughtExceptionMonitor', (error) => logFault('process.uncaught', error))
+process.on('uncaughtExceptionMonitor', (error) =>
+  captureError(error, { operation: 'process.uncaught', level: 'fatal' }),
+)
 process.on('unhandledRejection', (error) => {
-  logFault('process.unhandled-rejection', error)
+  captureError(error, { operation: 'process.unhandled-rejection', level: 'fatal' })
   process.exit(1)
 })
 const port = process.parentPort
 if (!port) throw new Error('Missing parent port')
 port.on('message', (event) => {
-  const { job, ai } = event.data as { job: GradeJob; ai: AppConfig['ai'] }
-  void (async () => {
+  const { job, ai, context } = event.data as {
+    job: GradeJob
+    ai: AppConfig['ai']
+    context: DiagnosticContext
+  }
+  registerDiagnosticSecrets([ai.apiKey])
+  void withDiagnosticContext(context, async () => {
+    recordEvent({ operation: 'exam.grade-worker', outcome: 'started' })
     let usage: unknown
     try {
       const response = await createAgentModel(ai).invoke([
@@ -44,12 +59,15 @@ port.on('message', (event) => {
             .replace(/\s*```$/, ''),
         ),
       )
+      recordEvent({ operation: 'exam.grade-worker', outcome: 'succeeded' })
+      flushDiagnostics()
       port.postMessage({ ok: true, result, usage: response.usage_metadata })
     } catch (error) {
-      logFault('exam.grade-worker', error)
-      port.postMessage({ ok: false, usage })
+      const diagnostic = captureError(error, { operation: 'exam.grade-worker' })
+      flushDiagnostics()
+      port.postMessage({ ok: false, usage, diagnostic })
     }
-  })()
+  })
 })
 
 port.postMessage({ kind: 'ready' })

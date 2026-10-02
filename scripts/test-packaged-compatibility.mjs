@@ -142,13 +142,23 @@ async function verify(root, expected) {
 async function importAndRestart(root, archive) {
   await application.evaluate(({ app, dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
-    dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
     // Let production IPC quit; Playwright starts the new process so it remains observable.
     app.relaunch = () => {}
   }, archive)
   const closed = application.waitForEvent('close')
   assert.equal(
-    await (await application.firstWindow()).evaluate(() => window.zhijiApi.backup.import()),
+    await (
+      await application.firstWindow()
+    ).evaluate(async () => {
+      const remove = window.zhijiApi.backup.onImportConfirmation((request) => {
+        void window.zhijiApi.backup.confirmImport(request.requestId, true)
+      })
+      try {
+        return await window.zhijiApi.backup.import()
+      } finally {
+        remove()
+      }
+    }),
     'restarting',
   )
   await closed

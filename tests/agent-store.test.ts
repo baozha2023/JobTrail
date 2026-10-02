@@ -238,6 +238,13 @@ describe('agent session store', () => {
     expect(store.session('chat-a').draftParts).toEqual(parts)
     expect(store.session('chat-a').uploads).toEqual([])
     expect(store.session('chat-a').messages).toEqual([])
+    expect(store.session('chat-a').error).toBe(i18n.global.t('error.AGENT_CANCELLED'))
+    expect(getErrorMessage({ code: 'AGENT_CANCELLED' }, (key) => key)).toBe('error.AGENT_CANCELLED')
+    expect(
+      getErrorMessage({ code: 'AGENT_CANCELLED' }, (key) =>
+        i18n.global.t(key, {}, { locale: 'en-US' }),
+      ),
+    ).toBe('The agent task was stopped')
     store.stop()
   })
 

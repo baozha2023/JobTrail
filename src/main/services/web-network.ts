@@ -1,3 +1,4 @@
+import { captureError } from '../diagnostics'
 import dns from 'node:dns/promises'
 import http from 'node:http'
 import https from 'node:https'
@@ -68,7 +69,8 @@ export function decodeWebText(response: WebResponse): string {
     response.charset ?? /<meta[^>]+charset\s*=\s*["']?([a-z0-9_-]+)/i.exec(prefix)?.[1]
   try {
     return new TextDecoder(charset ?? 'utf-8').decode(response.body)
-  } catch {
+  } catch (caughtError) {
+    captureError(caughtError, { operation: 'web.decode-fallback', level: 'warn' })
     return response.body.toString('utf8')
   }
 }
@@ -90,8 +92,8 @@ export function validateWebUrl(value: string): URL {
   let url: URL
   try {
     url = new URL(value)
-  } catch {
-    throw new AppServiceError('WEB_INVALID_URL', '网页地址无效')
+  } catch (caughtError) {
+    throw new AppServiceError('WEB_INVALID_URL', '网页地址无效', undefined, { cause: caughtError })
   }
   if (
     !['https:', 'http:'].includes(url.protocol) ||
@@ -220,7 +222,7 @@ export class WebNetwork {
       } catch (error) {
         if (budget.signal.aborted) throw webAbortError(budget.signal)
         if (error instanceof AppServiceError) throw error
-        throw new AppServiceError('WEB_UNAVAILABLE', '网页连接失败')
+        throw new AppServiceError('WEB_UNAVAILABLE', '网页连接失败', undefined, { cause: error })
       }
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         if (method === 'POST')
@@ -255,9 +257,11 @@ export class WebNetwork {
     let addresses: Array<{ address: string; family: number }>
     try {
       addresses = await abortable(this.resolve(hostname), budget.signal)
-    } catch {
+    } catch (caughtError) {
       if (budget.signal.aborted) throw webAbortError(budget.signal)
-      throw new AppServiceError('WEB_UNAVAILABLE', '无法解析网页域名')
+      throw new AppServiceError('WEB_UNAVAILABLE', '无法解析网页域名', undefined, {
+        cause: caughtError,
+      })
     }
     if (
       addresses.length > 0 &&
@@ -314,15 +318,22 @@ export class WebNetwork {
       } catch (error) {
         if (budget.signal.aborted) throw webAbortError(budget.signal)
         if (error instanceof AppServiceError) throw error
-        throw new AppServiceError('WEB_UNAVAILABLE', '系统 DNS 返回代理地址，公网解析失败')
+        throw new AppServiceError(
+          'WEB_UNAVAILABLE',
+          '系统 DNS 返回代理地址，公网解析失败',
+          undefined,
+          { cause: error },
+        )
       }
       if (response.status !== 200)
         throw new AppServiceError('WEB_UNAVAILABLE', '系统 DNS 返回代理地址，公网解析失败')
       let answer: { Status?: number; Answer?: unknown }
       try {
         answer = JSON.parse(response.body.toString('utf8'))
-      } catch {
-        throw new AppServiceError('WEB_UNAVAILABLE', '公网 DNS 响应无效')
+      } catch (caughtError) {
+        throw new AppServiceError('WEB_UNAVAILABLE', '公网 DNS 响应无效', undefined, {
+          cause: caughtError,
+        })
       }
       if (!answer || (answer.Status !== 0 && answer.Status !== 3))
         throw new AppServiceError('WEB_UNAVAILABLE', '公网 DNS 无法解析网页域名')
@@ -415,7 +426,9 @@ export class WebNetwork {
               reject(
                 error instanceof AppServiceError
                   ? error
-                  : new AppServiceError('WEB_TOO_LARGE', '网页解压失败或超过大小上限'),
+                  : new AppServiceError('WEB_TOO_LARGE', '网页解压失败或超过大小上限', undefined, {
+                      cause: error,
+                    }),
               )
             }
           })

@@ -26,6 +26,9 @@ const baseProps = {
   catalogError: '',
   updateCompanyCatalog: vi.fn(),
   closeCatalogModal: vi.fn(),
+  backupBusy: false,
+  backupStatus: '',
+  backupAction: vi.fn(),
 }
 
 const global = {
@@ -41,6 +44,11 @@ class ResizeObserverStub {
 Object.defineProperty(globalThis, 'ResizeObserver', { value: ResizeObserverStub })
 Object.defineProperty(window, 'zhijiApi', {
   value: {
+    diagnostics: {
+      getStatus: async () => ({ degraded: false }),
+      openDirectory: async () => {},
+      exportBundle: async () => 'exported',
+    },
     agent: {
       saveSettings: async () => null,
     },
@@ -124,7 +132,10 @@ describe('设置页', () => {
       .mockResolvedValueOnce(config)
       .mockResolvedValueOnce(clearedConfig)
     Object.defineProperty(window, 'zhijiApi', {
-      value: { agent: { saveSettings } },
+      value: {
+        agent: { saveSettings },
+        diagnostics: { getStatus: async () => ({ degraded: false }) },
+      },
       configurable: true,
     })
     const wrapper = mount(SettingsView, {

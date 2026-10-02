@@ -86,7 +86,8 @@ export class CompanyService {
         return this.get(id)
       })
     } catch (error) {
-      if (uniqueError(error)) throw new AppServiceError('VALIDATION_ERROR', '公司名称已存在')
+      if (uniqueError(error))
+        throw new AppServiceError('VALIDATION_ERROR', '公司名称已存在', undefined, { cause: error })
       throw error
     }
   }
@@ -127,7 +128,8 @@ export class CompanyService {
         return this.get(id)
       })
     } catch (error) {
-      if (uniqueError(error)) throw new AppServiceError('VALIDATION_ERROR', '公司名称已存在')
+      if (uniqueError(error))
+        throw new AppServiceError('VALIDATION_ERROR', '公司名称已存在', undefined, { cause: error })
       throw error
     }
   }

@@ -276,6 +276,17 @@ const messages = {
       queued: '排队中',
     },
     settings: {
+      diagnosticsTitle: '日志与诊断',
+      diagnosticsDescription:
+        '导出最近 24 小时的脱敏日志和运行环境信息，不包含业务备份，不会自动上传。',
+      diagnosticsOpen: '打开日志目录',
+      diagnosticsExport: '导出诊断包',
+      diagnosticsRefresh: '刷新日志状态',
+      diagnosticsHealthy: '日志记录正常',
+      diagnosticsUnknown: '尚未获取日志状态',
+      diagnosticsDegraded: '日志记录不完整或维护失败，请导出诊断包排查。',
+      diagnosticsExported: '诊断包已导出。',
+
       title: '设置',
       intro: '按自己的习惯安排日常使用、AI 连接与应用维护。',
       backupTitle: '数据备份与恢复',
@@ -286,6 +297,16 @@ const messages = {
       backupWorking: '正在处理备份，请勿关闭应用…',
       backupExported: '备份已导出，请妥善保存。',
       backupRestarting: '备份校验通过，正在重启并恢复数据…',
+      backupConfirmTitle: '确认导入备份',
+      backupConfirmDescription: '备份已校验通过，请确认是否替换当前数据。',
+      backupReplaceTitle: '将替换全部当前数据',
+      backupReplaceDescription:
+        '当前求职记录、配置、简历、聊天历史及附件将被备份中的数据替换，完成后应用会自动重启。',
+      backupKeepCurrent: '如需保留当前数据，请先取消并导出备份。',
+      backupSourceVersion: '备份来源版本',
+      backupCreatedAt: '备份时间',
+      backupReplaceConfirm: '替换并重启',
+      backupRestoring: '正在准备恢复数据，请勿关闭应用…',
       preferencesTitle: '使用偏好',
       preferencesDescription: '调整界面显示、窗口行为和日常数据的有效期。',
       appearance: '外观',
@@ -407,6 +428,8 @@ const messages = {
       saveSuccess: '保存成功',
     },
     error: {
+      DIAGNOSTICS_FAILED: '日志操作失败，请检查文件权限后重试。',
+      DIAGNOSTICS_EXPORT_FAILED: '诊断包导出失败，请检查磁盘空间及文件权限。',
       ...featureErrors['zh-CN'],
       generic: '操作失败',
       BACKUP_INVALID: '备份损坏、加密密钥不匹配或包含无效数据，当前数据未被替换。',
@@ -732,6 +755,18 @@ const messages = {
       queued: 'Queued',
     },
     settings: {
+      diagnosticsTitle: 'Logs and diagnostics',
+      diagnosticsDescription:
+        'Export sanitized logs from the last 24 hours and runtime details. Business backups are excluded; nothing is uploaded automatically.',
+      diagnosticsOpen: 'Open log directory',
+      diagnosticsExport: 'Export diagnostics',
+      diagnosticsRefresh: 'Refresh log status',
+      diagnosticsHealthy: 'Logging is healthy',
+      diagnosticsUnknown: 'Log status is not available yet',
+      diagnosticsDegraded:
+        'Logging is incomplete or maintenance failed. Export diagnostics to investigate.',
+      diagnosticsExported: 'Diagnostic bundle exported.',
+
       title: 'Settings',
       intro: 'Set up daily use, AI connections, and app maintenance your way.',
       backupTitle: 'Backup and restore',
@@ -742,6 +777,17 @@ const messages = {
       backupWorking: 'Processing backup. Keep the application open…',
       backupExported: 'Backup exported. Store it securely.',
       backupRestarting: 'Backup verified. Restarting to restore your data…',
+      backupConfirmTitle: 'Confirm backup import',
+      backupConfirmDescription:
+        'The backup has been verified. Confirm whether to replace your current data.',
+      backupReplaceTitle: 'All current data will be replaced',
+      backupReplaceDescription:
+        'Your current records, settings, resumes, chat history and attachments will be replaced by the backup. The app will restart automatically.',
+      backupKeepCurrent: 'To keep your current data, cancel and export a backup first.',
+      backupSourceVersion: 'Backup source version',
+      backupCreatedAt: 'Backup created',
+      backupReplaceConfirm: 'Replace and restart',
+      backupRestoring: 'Preparing to restore your data. Keep the application open…',
       preferencesTitle: 'Preferences',
       preferencesDescription: 'Choose how the app looks, behaves, and handles read links.',
       appearance: 'Appearance',
@@ -868,6 +914,8 @@ const messages = {
       saveSuccess: 'Saved successfully',
     },
     error: {
+      DIAGNOSTICS_FAILED: 'The diagnostic operation failed. Check file permissions and retry.',
+      DIAGNOSTICS_EXPORT_FAILED: 'Diagnostic export failed. Check disk space and file permissions.',
       ...featureErrors['en-US'],
       generic: 'Operation failed',
       BACKUP_INVALID:

@@ -14,8 +14,10 @@ export function getMcpConnectionInfo(): McpConnectionInfo {
     try {
       const metadata = fs.lstatSync(launcher)
       if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error('invalid launcher')
-    } catch {
-      throw new AppServiceError('INTERNAL_ERROR', 'MCP 根启动器不可用')
+    } catch (caughtError) {
+      throw new AppServiceError('INTERNAL_ERROR', 'MCP 根启动器不可用', undefined, {
+        cause: caughtError,
+      })
     }
     return { command: launcher, args: ['--mcp'] }
   }

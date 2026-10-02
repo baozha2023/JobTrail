@@ -1,3 +1,4 @@
+import { findDiagnosticReference } from '../diagnostics'
 import type { AppErrorCode, AppErrorShape, PageQuery } from '../../shared/types'
 
 export class AppServiceError extends Error {
@@ -6,8 +7,9 @@ export class AppServiceError extends Error {
     readonly code: AppErrorCode,
     message: string,
     readonly details?: Record<string, unknown>,
+    options?: ErrorOptions,
   ) {
-    super(message)
+    super(message, options)
   }
 }
 
@@ -46,19 +48,20 @@ export function toAppError(error: unknown): AppServiceError {
   if (error instanceof AppServiceError) return error
   if (error instanceof Error) {
     if (/SQLITE|database/i.test(error.message))
-      return new AppServiceError('DATABASE_ERROR', '数据库操作失败')
+      return new AppServiceError('DATABASE_ERROR', '数据库操作失败', undefined, { cause: error })
     if (/ENOENT|EACCES|EPERM|EISDIR/i.test(error.message))
-      return new AppServiceError('FILE_IMPORT_FAILED', '文件操作失败')
-    return new AppServiceError('INTERNAL_ERROR', '内部操作失败')
+      return new AppServiceError('FILE_IMPORT_FAILED', '文件操作失败', undefined, { cause: error })
+    return new AppServiceError('INTERNAL_ERROR', '内部操作失败', undefined, { cause: error })
   }
-  return new AppServiceError('INTERNAL_ERROR', '发生未知错误')
+  return new AppServiceError('INTERNAL_ERROR', '发生未知错误', undefined, { cause: error })
 }
 
 export function errorShape(error: unknown): AppErrorShape {
   const appError = toAppError(error)
   return {
+    diagnostic: findDiagnosticReference(error),
     code: appError.code,
-    message: appError.message,
+    message: appError.code,
     ...(appError.details ? { details: appError.details } : {}),
   }
 }

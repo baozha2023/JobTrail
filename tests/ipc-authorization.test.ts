@@ -1,3 +1,4 @@
+import { newDiagnosticContext } from '../src/shared/diagnostics'
 import { describe, expect, it, vi } from 'vitest'
 import type { BrowserWindow, IpcMainInvokeEvent, WebContents } from 'electron'
 const mocks = vi.hoisted(() => ({ handle: vi.fn(), removeHandler: vi.fn() }))
@@ -12,9 +13,15 @@ describe('IPC sender authorization', () => {
     registerChannel('system:is-development', handler)
     const invoke = mocks.handle.mock.calls[0][1] as (
       event: Partial<IpcMainInvokeEvent>,
+      envelope?: unknown,
     ) => Promise<{ ok: boolean }>
     expect(
-      (await invoke({ sender: contents, senderFrame: frame as Electron.WebFrameMain })).ok,
+      (
+        await invoke(
+          { sender: contents, senderFrame: frame as Electron.WebFrameMain },
+          { context: newDiagnosticContext(), args: [] },
+        )
+      ).ok,
     ).toBe(true)
     expect((await invoke({ sender: contents, senderFrame: {} as Electron.WebFrameMain })).ok).toBe(
       false,

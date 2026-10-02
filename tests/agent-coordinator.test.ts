@@ -6,6 +6,8 @@ import type { AgentService } from '../src/main/agent/service'
 import type { ExamGrader } from '../src/main/agent/exam-grader'
 import { AgentCoordinator } from '../src/main/agent/coordinator'
 import type { AgentWorkerRequest } from '../src/main/agent/worker-protocol'
+import { newDiagnosticContext } from '../src/shared/diagnostics'
+import { findDiagnosticReference, withDiagnosticContext } from '../src/main/diagnostics'
 
 const mocks = vi.hoisted(() => ({ fork: vi.fn() }))
 vi.mock('electron', () => ({
@@ -136,6 +138,32 @@ async function tick(): Promise<void> {
 beforeEach(() => mocks.fork.mockReset())
 
 describe('agent coordinator', () => {
+  it('returns the original diagnostic reference when submitting a worker job fails', async () => {
+    const cause = new Error('Worker channel unavailable')
+    const original = FakeWorker.prototype.postMessage
+    const post = vi.spyOn(FakeWorker.prototype, 'postMessage').mockImplementation(function (
+      this: FakeWorker,
+      request,
+    ) {
+      if (request.kind === 'run') throw cause
+      original.call(this, request)
+    })
+    const { coordinator, events } = fixture()
+    const context = newDiagnosticContext()
+    try {
+      await withDiagnosticContext(context, () =>
+        coordinator.send(ids[0], [{ kind: 'text', text: 'first' }], [], jobIds[0]),
+      )
+      await tick()
+      const diagnostic = withDiagnosticContext(context, () => findDiagnosticReference(cause))
+      expect(diagnostic).toBeDefined()
+      expect(events.find((event) => event.kind === 'error')?.diagnostic).toEqual(diagnostic)
+      expect(diagnostic?.traceId).toBe(context.traceId)
+    } finally {
+      post.mockRestore()
+      await coordinator.close()
+    }
+  })
   it('rejects a job ID reused by another conversation during acceptance', async () => {
     const { coordinator, workers } = fixture()
     try {

@@ -7,7 +7,7 @@ import {
 } from '../../shared/exams'
 import { isExamTool, type ExamToolName } from '../../shared/exam-tools'
 import fs from 'node:fs'
-import { logFault } from '../diagnostics'
+import { captureError } from '../diagnostics'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { ChatOpenAI } from '@langchain/openai'
@@ -646,7 +646,7 @@ class AgentGraphFactory {
           } else if (this.config.get().ai.multimodal)
             visuals.push({ type: 'image_url', image_url: { url: content.dataUrl } })
         } catch (error) {
-          logFault('agent.attachment-read', error)
+          captureError(error, { operation: 'agent.attachment-read' })
           text += `\n[附件 ${id} 未提取到可用内容，请勿猜测其内容]`
         }
       }

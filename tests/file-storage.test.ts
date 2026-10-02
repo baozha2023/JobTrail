@@ -1,13 +1,15 @@
+import { diagnosticRecords } from './helpers/diagnostics'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FileStorageService } from '../src/main/file-storage'
 import { resolveStorageRoot } from '../src/main/installation-paths'
-import { initializeFaultLogger } from '../src/main/diagnostics'
+import { initializeDiagnostics, closeDiagnostics } from '../src/main/diagnostics'
 
 const roots: string[] = []
 afterEach(() => {
+  closeDiagnostics()
   vi.restoreAllMocks()
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
 })
@@ -56,17 +58,17 @@ describe('installation and resume storage', () => {
     service.restore(staged)
     expect(fs.readFileSync(service.resolve(imported.relativePath), 'utf8')).toBe('sample')
     const deleted = service.stageRemove(imported.relativePath)
-    initializeFaultLogger('main', '1.1.0', true, root)
+    initializeDiagnostics('main', '1.1.0', true, root)
     vi.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
       throw new Error('locked')
     })
     expect(() => service.finalizeRemove(deleted)).not.toThrow()
-    expect(JSON.parse(fs.readFileSync(path.join(root, 'logs', 'app.jsonl'), 'utf8'))).toMatchObject(
-      {
-        operation: 'file.recycle-cleanup',
-        code: 'INTERNAL_ERROR',
-      },
-    )
+    expect(
+      diagnosticRecords(root).find((record) => record.operation === 'file.recycle-cleanup'),
+    ).toMatchObject({
+      operation: 'file.recycle-cleanup',
+      code: 'INTERNAL_ERROR',
+    })
     expect(fs.existsSync(deleted.temporaryPath)).toBe(true)
   })
   it('rejects a resume source that changes while it is copied', () => {
@@ -79,5 +81,29 @@ describe('installation and resume storage', () => {
 
     expect(() => service.importResume(source)).toThrow('导入失败')
     expect(fs.readdirSync(paths.resumes)).toEqual([])
+  })
+  it('preserves the import failure and cleanup failure under the stable file error code', () => {
+    const { root, paths, service } = fixture()
+    const source = path.join(root, 'resume.pdf')
+    fs.writeFileSync(source, 'approved')
+    vi.spyOn(fs, 'copyFileSync').mockImplementationOnce((_source, destination) => {
+      fs.writeFileSync(destination, 'changed')
+    })
+    const cleanupError = Object.assign(new Error('cleanup denied'), { code: 'EACCES' })
+    vi.spyOn(fs, 'rmSync').mockImplementationOnce(() => {
+      throw cleanupError
+    })
+
+    let failure: unknown
+    try {
+      service.importResume(source)
+    } catch (error) {
+      failure = error
+    }
+    expect(failure).toMatchObject({
+      code: 'FILE_IMPORT_FAILED',
+      cause: { errors: [expect.objectContaining({ code: 'FILE_IMPORT_FAILED' }), cleanupError] },
+    })
+    expect(fs.readdirSync(paths.resumes)).toHaveLength(1)
   })
 })

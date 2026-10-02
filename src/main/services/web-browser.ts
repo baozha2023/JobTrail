@@ -187,10 +187,15 @@ export class BrowserReader {
       }
       if (budget.signal.aborted) throw webAbortError(budget.signal)
       if (error instanceof AppServiceError) throw error
-      throw new AppServiceError('WEB_UNAVAILABLE', '动态网页渲染失败', {
-        stage: 'render',
-        retryable: false,
-      })
+      throw new AppServiceError(
+        'WEB_UNAVAILABLE',
+        '动态网页渲染失败',
+        {
+          stage: 'render',
+          retryable: false,
+        },
+        { cause: error },
+      )
     }
   }
 
@@ -371,10 +376,15 @@ export class BrowserReader {
       const failure =
         error instanceof AppServiceError
           ? error
-          : new AppServiceError('WEB_UNAVAILABLE', '部分动态资源加载失败', {
-              stage: 'resource',
-              retryable: false,
-            })
+          : new AppServiceError(
+              'WEB_UNAVAILABLE',
+              '部分动态资源加载失败',
+              {
+                stage: 'resource',
+                retryable: false,
+              },
+              { cause: error },
+            )
       this.resourceError ??= failure
       if (query?.requiredForContent) this.queryFailures.set(queryKey(query), failure)
       await route.abort().catch(() => undefined)

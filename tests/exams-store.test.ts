@@ -1,3 +1,4 @@
+import { newDiagnosticContext } from '../src/shared/diagnostics'
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
@@ -195,31 +196,79 @@ it.each([
   const unsubscribe = store.onError(notify)
   try {
     i18n.global.locale.value = 'en-US'
-    store.failure({ name: 'IpcClientError', code, message: 'secret answer' })
-    expect(notify).toHaveBeenLastCalledWith(english)
+    store.failure({
+      name: 'IpcClientError',
+      code,
+      message: 'secret answer',
+      diagnostic: { ...newDiagnosticContext(), eventId: crypto.randomUUID() },
+    })
+    expect(notify).toHaveBeenLastCalledWith(expect.stringContaining(english))
     i18n.global.locale.value = 'zh-CN'
-    store.failure({ name: 'IpcClientError', code, message: 'secret answer' })
-    expect(notify).toHaveBeenLastCalledWith(chinese)
+    store.failure({
+      name: 'IpcClientError',
+      code,
+      message: 'secret answer',
+      diagnostic: { ...newDiagnosticContext(), eventId: crypto.randomUUID() },
+    })
+    expect(notify).toHaveBeenLastCalledWith(expect.stringContaining(chinese))
   } finally {
     unsubscribe()
     i18n.global.locale.value = locale
   }
 })
 it('reports unexpected failures through diagnostics and unsubscribes message listeners', () => {
-  const report = vi.fn()
+  const report = vi.fn().mockResolvedValue({ status: 'written' })
   window.diagnosticsApi = { report }
   const store = useExamsStore()
   const notify = vi.fn()
   const unsubscribe = store.onError(notify)
   store.failure(new Error('private answer'))
-  expect(notify).toHaveBeenCalledWith(i18n.global.t('error.generic'))
-  expect(report).toHaveBeenCalledWith({
-    source: 'renderer',
-    operation: 'exam.request',
-    code: 'INTERNAL_ERROR',
-  })
+  expect(notify).toHaveBeenCalledWith(expect.stringContaining(i18n.global.t('error.generic')))
+  expect(report).toHaveBeenCalledWith(
+    expect.objectContaining({
+      source: 'renderer',
+      operation: 'exam.request',
+      code: 'INTERNAL_ERROR',
+    }),
+  )
   unsubscribe()
-  store.failure({ name: 'IpcClientError', code: 'AI_API_KEY_EMPTY' })
+  store.failure({
+    name: 'IpcClientError',
+    code: 'AI_API_KEY_EMPTY',
+    diagnostic: { ...newDiagnosticContext(), eventId: crypto.randomUUID() },
+  })
   expect(notify).toHaveBeenCalledTimes(1)
   expect(report).toHaveBeenCalledTimes(1)
+})
+
+it('shows asynchronous grading failures through global message listeners with the existing diagnostic', async () => {
+  let changed!: (event: import('../src/shared/types').ExamChangeEvent) => void
+  const report = vi.fn()
+  window.diagnosticsApi = { report }
+  Object.defineProperty(window, 'zhijiApi', {
+    configurable: true,
+    value: {
+      exams: {
+        onChanged: (callback: typeof changed) => {
+          changed = callback
+          return () => {}
+        },
+        get: async () => structuredClone(paper),
+      },
+      data: { onExternalChange: () => () => {} },
+    },
+  })
+  const store = useExamsStore(),
+    show = vi.fn()
+  store.onError(show)
+  await store.open({ paperId: 'paper', conversationId: 'chat' })
+  const diagnostic = { ...newDiagnosticContext(), eventId: crypto.randomUUID() }
+  changed({
+    paperId: 'paper',
+    conversationId: 'chat',
+    error: { code: 'EXAM_GRADING_FAILED', message: 'EXAM_GRADING_FAILED', diagnostic },
+  })
+  expect(show).toHaveBeenCalledWith(expect.stringContaining(diagnostic.eventId))
+  expect(show).toHaveBeenCalledWith(expect.stringContaining('EXAM_GRADING_FAILED'))
+  expect(report).not.toHaveBeenCalled()
 })

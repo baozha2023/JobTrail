@@ -1,3 +1,4 @@
+import { runOperation } from './diagnostics'
 import { ExamRepository } from './repositories/exam-repository'
 import { CONFIG_V1_SCHEMA } from './persistence/config-v1'
 import { validateDatabaseVersion } from './persistence/validation'
@@ -106,8 +107,8 @@ export function preparePersistenceUpgrade(databaseFile: string, configuration: u
 function readConfiguration(file: string): unknown {
   try {
     return decryptConfig(fs.readFileSync(file, 'utf8'))
-  } catch {
-    throw new ConfigLoadError('CONFIG_INVALID')
+  } catch (error) {
+    throw new ConfigLoadError('CONFIG_INVALID', { cause: error })
   }
 }
 function recoverExamRuntime(paths: AppPaths): void {
@@ -153,7 +154,9 @@ function recoverMigration(paths: AppPaths, work: string): void {
 
 export async function ensurePersistenceReady(paths: AppPaths, supervised = false): Promise<void> {
   try {
-    await ensureReady(paths, supervised)
+    await runOperation({ operation: 'persistence.initialize' }, () =>
+      ensureReady(paths, supervised),
+    )
   } catch (error) {
     if (
       error instanceof AppServiceError ||
@@ -161,7 +164,9 @@ export async function ensurePersistenceReady(paths: AppPaths, supervised = false
       error instanceof ConfigLoadError
     )
       throw error
-    throw new AppServiceError('PERSISTENCE_FAILED', 'Persistence upgrade failed')
+    throw new AppServiceError('PERSISTENCE_FAILED', 'Persistence upgrade failed', undefined, {
+      cause: error,
+    })
   }
 }
 async function ensureReady(paths: AppPaths, supervised: boolean): Promise<void> {

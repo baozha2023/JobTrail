@@ -1,66 +1,15 @@
 import type { AppErrorCode } from '../../shared/types'
-
+import { ERROR_CODES, knownErrorCode } from '../../shared/error-codes'
+import { errorField } from '../../shared/diagnostics'
+import { rendererDiagnosticReference } from '../diagnostics'
 type Translator = (key: string) => string
-
 export function errorCode(error: unknown): AppErrorCode | null {
-  if (typeof error !== 'object' || error === null) return null
-  const code = (error as { code?: unknown }).code
-  if (typeof code !== 'string') return null
-  const known: AppErrorCode[] = [
-    'EXAM_INVALID',
-    'EXAM_COUNTS_TOO_SMALL',
-    'EXAM_CONFLICT',
-    'EXAM_NOT_FOUND',
-    'EXAM_ALREADY_GRADING',
-    'EXAM_UNAVAILABLE',
-    'EXAM_GRADING_FAILED',
-    'PERSISTENCE_INVALID',
-    'PERSISTENCE_BUSY',
-    'PERSISTENCE_UNSUPPORTED',
-    'PERSISTENCE_FAILED',
-
-    'BACKUP_INVALID',
-    'BACKUP_SOURCE_INVALID',
-    'BACKUP_VERSION_UNSUPPORTED',
-    'BACKUP_FAILED',
-    'VALIDATION_ERROR',
-    'AI_API_KEY_EMPTY',
-    'NOT_FOUND',
-    'BUILTIN_DATA',
-    'STATUS_IN_USE',
-    'LAST_STATUS',
-    'RESUME_IN_USE',
-    'COMPANY_IN_USE',
-    'INDUSTRY_IN_USE',
-    'FILE_IMPORT_FAILED',
-    'FILE_OPEN_FAILED',
-    'DATABASE_ERROR',
-    'CATALOG_DOWNLOAD_FAILED',
-    'CATALOG_ASSET_MISSING',
-    'CATALOG_TOO_LARGE',
-    'CATALOG_HASH_MISMATCH',
-    'CATALOG_INVALID',
-    'CATALOG_VERSION_ROLLBACK',
-    'CATALOG_APP_UPDATE_REQUIRED',
-    'CATALOG_CONFLICT',
-    'CATALOG_UPDATE_IN_PROGRESS',
-    'WEB_INVALID_URL',
-    'WEB_BLOCKED',
-    'WEB_CANCELLED',
-    'WEB_TIMEOUT',
-    'WEB_TOO_LARGE',
-    'WEB_UNAVAILABLE',
-    'WEB_UNSUPPORTED',
-    'WEB_PARSE_FAILED',
-    'WEB_INVALID_CURSOR',
-    'WEB_CURSOR_EXPIRED',
-    'INTERNAL_ERROR',
-  ]
-  return known.includes(code as AppErrorCode) ? (code as AppErrorCode) : null
+  const code = errorField(error, 'code')
+  return knownErrorCode(code) && ERROR_CODES[code].ui ? (code as AppErrorCode) : null
 }
-
 export function getErrorMessage(error: unknown, translate: Translator): string {
   const code = errorCode(error)
-  if (code) return translate(`error.${code}`)
-  return translate('error.generic')
+  const text = translate(code ? ERROR_CODES[code].translationKey : 'error.generic')
+  const diagnostic = rendererDiagnosticReference(error)
+  return diagnostic ? `${text} [${code ?? 'INTERNAL_ERROR'} · ${diagnostic.eventId}]` : text
 }

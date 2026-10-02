@@ -4,7 +4,7 @@ import { StdioClientTransport, getDefaultEnvironment } from '@modelcontextprotoc
 import { interrupt } from '@langchain/langgraph'
 import type { McpConnectionInfo } from '../../shared/types'
 import type { ConfigService } from '../config'
-import { forwardDiagnosticStderr, logFault } from '../diagnostics'
+import { forwardDiagnosticStderr, captureError, currentDiagnosticContext } from '../diagnostics'
 
 function previewFingerprint(message: string): string {
   return crypto.createHash('sha256').update(message).digest('hex')
@@ -52,8 +52,10 @@ export class AgentMcpClient {
       await client.connect(transport)
       await client.listTools()
     } catch (error) {
-      logFault('mcp.connect', error)
-      await client.close().catch((closeError) => logFault('mcp.connect-cleanup', closeError))
+      captureError(error, { operation: 'mcp.connect' })
+      await client
+        .close()
+        .catch((closeError) => captureError(closeError, { operation: 'mcp.connect-cleanup' }))
       throw error
     }
     client.onclose = () => {
@@ -89,8 +91,10 @@ export async function callMcpWithConfirmation(
   confirmationEnabled: () => boolean,
   signal?: AbortSignal,
 ): Promise<string> {
+  const context = currentDiagnosticContext()
+  const _meta = context ? { 'jobtrail/diagnostics': { ...context } } : undefined
   let result: CallToolResult | Awaited<ReturnType<typeof client.callTool>> = await client.callTool(
-    { name, arguments: args },
+    { name, arguments: args, _meta },
     { allowInputRequired: true, signal },
   )
   for (let round = 0; isInputRequiredResult(result) && round < 8; round++) {
@@ -117,7 +121,7 @@ export async function callMcpWithConfirmation(
     // and never use approval for a different preview.
     if (!confirmationEnabled()) throw new Error('写入确认设置已更改，请重新发起操作')
     const fresh = await client.callTool(
-      { name, arguments: args },
+      { name, arguments: args, _meta },
       { allowInputRequired: true, signal },
     )
     if (!isInputRequiredResult(fresh)) throw new Error('MCP 未返回新的写入预览，已停止操作')
@@ -136,6 +140,7 @@ export async function callMcpWithConfirmation(
       {
         name,
         arguments: args,
+        _meta,
         requestState: fresh.requestState,
         inputResponses: { confirm: { action: 'accept', content: {} } },
       } as Parameters<Client['callTool']>[0],

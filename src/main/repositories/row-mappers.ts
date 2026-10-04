@@ -1,6 +1,6 @@
 import type {
   CalendarEvent,
-  Company,
+  CompanySummary,
   Industry,
   Opportunity,
   OpportunityStatusEvent,
@@ -133,7 +133,11 @@ export function mapIndustry(row: IndustryRow): Industry {
   }
 }
 
-export function mapCompany(row: CompanyRow, aliases: string[], industryIds: number[]): Company {
+export function mapCompany(
+  row: CompanyRow,
+  aliases: string[],
+  industryIds: number[],
+): CompanySummary {
   return {
     id: row.id,
     name: row.name,

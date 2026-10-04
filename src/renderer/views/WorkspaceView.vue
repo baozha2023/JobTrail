@@ -51,6 +51,7 @@ import StatusesView from './StatusesView.vue'
 import IndustriesView from './IndustriesView.vue'
 import ResumesView from './ResumesView.vue'
 import CompaniesView from './CompaniesView.vue'
+import CompanyLocationSelect from '../components/CompanyLocationSelect.vue'
 import SettingsView from './SettingsView.vue'
 import AppUpdateModal from '../components/AppUpdateModal.vue'
 import BackupImportModal from '../components/BackupImportModal.vue'
@@ -79,6 +80,7 @@ const statusesStore = useStatusesStore()
 const industriesStore = useIndustriesStore()
 const resumesStore = useResumesStore()
 const companiesStore = useCompaniesStore()
+const companyLocationOptionsRevision = ref(0)
 const settingsStore = useSettingsStore()
 const agentStore = useAgentStore()
 const { items: statuses } = storeToRefs(statusesStore)
@@ -292,6 +294,7 @@ const {
   editingCompanyId,
   companyManagementSearch,
   selectedCompanyIndustryId,
+  selectedCompanyLocations,
   companyAliasInput,
   companyForm,
   showIndustryModal,
@@ -329,7 +332,6 @@ const {
   statuses,
   industries,
   resumes,
-  companies,
   loadCompanies,
   loadOpportunities,
   loadAllOpportunities,
@@ -614,17 +616,41 @@ const resumeColumns = computed<DataTableColumns<ResumeVersion>>(() => [
 ])
 
 const companyColumns = computed<DataTableColumns<Company>>(() => [
-  { title: t('management.companyName'), key: 'name', width: '18%', ellipsis: { tooltip: true } },
+  { title: t('management.companyName'), key: 'name', width: 200, ellipsis: { tooltip: true } },
+  {
+    title: t('management.companyLocations'),
+    key: 'locations',
+    width: 210,
+    render: (row) =>
+      row.locations.length
+        ? h('span', { title: row.locations.join(' · ') }, [
+            ...row.locations.slice(0, 2).map((location) =>
+              h(
+                NTag,
+                {
+                  size: 'small',
+                  bordered: false,
+                  style:
+                    'margin-right: 4px; max-width: 80px; overflow: hidden; text-overflow: ellipsis;',
+                },
+                { default: () => location },
+              ),
+            ),
+            row.locations.length > 2 ? `+${row.locations.length - 2}` : '',
+          ])
+        : '—',
+  },
   {
     title: t('management.companyIndustry'),
     key: 'industryName',
+    width: 180,
     ellipsis: { tooltip: true },
     render: (row) => row.industryName ?? '—',
   },
   {
     title: t('management.companyCareerUrl'),
     key: 'careerUrl',
-    width: '30%',
+    width: 248,
     ellipsis: { tooltip: true },
     render: (row) => {
       const url = row.careerUrl
@@ -825,7 +851,11 @@ async function openCompanyCareerLink(company: Company): Promise<void> {
   try {
     await window.zhijiApi.system.openExternal(normalizeExternalUrl(company.careerUrl))
     const updated = await window.zhijiApi.companies.markRead(company.id)
-    companies.value = companies.value.map((item) => (item.id === updated.id ? updated : item))
+    companies.value = companies.value.map((item) =>
+      item.id === updated.id
+        ? { ...item, lastReadAt: updated.lastReadAt, updatedAt: updated.updatedAt }
+        : item,
+    )
     managedCompanies.value = managedCompanies.value.map((item) =>
       item.id === updated.id ? updated : item,
     )
@@ -860,7 +890,7 @@ async function loadAll(): Promise<void> {
     statusesStore.load(),
     industriesStore.load(),
     resumesStore.load(),
-    companiesStore.load(),
+    loadCompanies(),
     loadManagedCompanies(),
     loadAllOpportunities(),
     window.zhijiApi.system.isDevelopment(),
@@ -922,7 +952,7 @@ async function refreshExternalData(): Promise<void> {
         statusesStore.load(),
         industriesStore.load(),
         resumesStore.load(),
-        companiesStore.load(),
+        loadCompanies(),
         loadAllOpportunities(),
       ])
       baseResults.forEach((result) => {
@@ -945,6 +975,7 @@ async function refreshExternalData(): Promise<void> {
 
 async function loadCompanies(): Promise<void> {
   await companiesStore.load()
+  companyLocationOptionsRevision.value++
 }
 
 function receiveCatalogProgress(progress: CompanyCatalogProgress): void {
@@ -971,7 +1002,7 @@ async function updateCompanyCatalog(): Promise<void> {
     catalogResult.value = result
     catalogProgress.value = 100
     const refreshResults = await Promise.allSettled([
-      companiesStore.load(),
+      loadCompanies(),
       industriesStore.load().then(loadManagedCompanies),
       loadAllOpportunities(),
       loadOpportunities(),
@@ -1259,9 +1290,12 @@ onBeforeUnmount(() => {
               :pagination="companyPagination"
               :search="companyManagementSearch"
               :selected-industry-id="selectedCompanyIndustryId"
+              :selected-locations="selectedCompanyLocations"
+              :location-options-revision="companyLocationOptionsRevision"
               :industry-options="industryOptions"
               @update:search="companyManagementSearch = $event"
               @update:selected-industry-id="selectedCompanyIndustryId = $event"
+              @update:selected-locations="selectedCompanyLocations = $event"
             />
             <SettingsView
               v-if="activeView === 'settings'"
@@ -1650,6 +1684,13 @@ onBeforeUnmount(() => {
             <n-input
               v-model:value="companyForm.careerUrl"
               :placeholder="t('management.companyCareerUrlPlaceholder')"
+            />
+          </n-form-item>
+          <n-form-item :label="t('management.companyLocations')">
+            <company-location-select
+              v-model:value="companyForm.locations"
+              allow-create
+              :revision="companyLocationOptionsRevision"
             />
           </n-form-item>
         </n-form>

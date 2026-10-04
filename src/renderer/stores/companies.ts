@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Company } from '../../shared/types'
+import type { CompanySummary } from '../../shared/types'
 
 export const useCompaniesStore = defineStore('companies', () => {
-  const items = ref<Company[]>([])
+  const items = ref<CompanySummary[]>([])
   const load = async () => {
     items.value = await window.zhijiApi.companies.list()
   }

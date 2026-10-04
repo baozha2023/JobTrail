@@ -1,12 +1,15 @@
 import type Database from 'better-sqlite3'
 import type {
   Company,
+  CompanySummary,
+  CompanyLocationQuery,
   CompanyQuery,
   CreateCompanyInput,
   UpdateCompanyInput,
 } from '../../shared/types'
 import { mapCompany, type CompanyAliasRow, type CompanyRow } from './row-mappers'
 import { containsLikePattern } from './sql'
+import type { CompanyLocationRepository } from './company-location-repository'
 
 type SqliteDatabase = InstanceType<typeof Database>
 
@@ -19,11 +22,25 @@ interface CompanyIndustryRow {
 }
 
 export class CompanyRepository {
-  constructor(private readonly db: SqliteDatabase) {}
+  constructor(
+    private readonly db: SqliteDatabase,
+    private readonly locations: CompanyLocationRepository,
+  ) {}
+
+  searchLocations(query: CompanyLocationQuery) {
+    return this.locations.search(query)
+  }
 
   search(query: CompanyQuery): { items: Company[]; total: number } {
     const clauses: string[] = []
     const params: Array<string | number> = []
+    if (query.locations?.length) {
+      clauses.push(`EXISTS (SELECT 1 FROM company_locations cl
+        WHERE cl.company_id = c.id AND cl.location_id IN (
+          SELECT id FROM locations WHERE name IN (SELECT value FROM json_each(?))
+        ))`)
+      params.push(JSON.stringify(query.locations))
+    }
     if (query.keyword) {
       const value = containsLikePattern(query.keyword)
       clauses.push(
@@ -97,6 +114,14 @@ export class CompanyRepository {
   }
 
   mapMany(rows: CompanyRow[]): Company[] {
+    const locations = this.locations.forCompanies(rows.map((row) => row.id))
+    return this.mapSummaries(rows).map((company) => ({
+      ...company,
+      locations: locations.get(company.id) ?? [],
+    }))
+  }
+
+  mapSummaries(rows: CompanyRow[]): CompanySummary[] {
     if (rows.length === 0) return []
     const companyIds = JSON.stringify(rows.map((row) => row.id))
     const aliases = this.db
@@ -159,6 +184,7 @@ export class CompanyRepository {
       const id = result.lastInsertRowid as number
       this.replaceIndustries(id, input.industryIds ?? [], timestamp)
       this.replaceAliases(id, input.aliases ?? [], timestamp)
+      this.locations.synchronize(id, input.locations ?? [], timestamp)
       return id
     })()
   }
@@ -174,6 +200,8 @@ export class CompanyRepository {
         .run(input.name, input.careerUrl ?? null, input.isFavorite ? 1 : 0, timestamp, id)
       if (input.industryIds !== undefined) this.replaceIndustries(id, input.industryIds, timestamp)
       if (input.aliases !== undefined) this.replaceAliases(id, input.aliases, timestamp)
+      if (input.locations !== undefined)
+        this.locations.deleteUnused(this.locations.synchronize(id, input.locations, timestamp))
     })()
   }
 
@@ -188,6 +216,7 @@ export class CompanyRepository {
 
   delete(id: number): number {
     return this.db.transaction(() => {
+      this.locations.deleteUnused(this.locations.synchronize(id, [], Date.now()))
       this.db.prepare('DELETE FROM company_industries WHERE company_id = ?').run(id)
       this.db.prepare('DELETE FROM company_aliases WHERE company_id = ?').run(id)
       return this.db.prepare('DELETE FROM companies WHERE id = ?').run(id).changes
@@ -220,13 +249,16 @@ export class CompanyRepository {
 
   map(row: CompanyRow) {
     const industries = this.industries(row.id)
-    return mapCompany(
-      {
-        ...row,
-        industry_name: industries.map((industry) => industry.industry_name).join(', ') || null,
-      },
-      this.aliases(row.id).map((alias) => alias.alias),
-      industries.map((industry) => industry.industry_id),
-    )
+    return {
+      ...mapCompany(
+        {
+          ...row,
+          industry_name: industries.map((industry) => industry.industry_name).join(', ') || null,
+        },
+        this.aliases(row.id).map((alias) => alias.alias),
+        industries.map((industry) => industry.industry_id),
+      ),
+      locations: this.locations.forCompanies([row.id]).get(row.id) ?? [],
+    }
   }
 }

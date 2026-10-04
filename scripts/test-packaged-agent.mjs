@@ -4,6 +4,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { _electron as electron } from 'playwright'
+import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -19,18 +20,6 @@ let releaseInitialStreams
 const initialStreamGate = new Promise((resolve) => {
   releaseInitialStreams = resolve
 })
-
-function linkProgram(from, to) {
-  fs.mkdirSync(to, { recursive: true })
-  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
-    if (['config.json', 'data', 'resumes', 'chat-uploads', '.runtime'].includes(entry.name))
-      continue
-    assert.ok(!entry.isSymbolicLink(), 'Packaged program must not contain links')
-    const target = path.join(to, entry.name)
-    if (entry.isDirectory()) linkProgram(path.join(from, entry.name), target)
-    else fs.linkSync(path.join(from, entry.name), target)
-  }
-}
 
 function manyPagePdf(pageCount) {
   const fontId = 3 + pageCount * 2
@@ -83,7 +72,7 @@ async function waitFor(predicate, description, timeout = 15_000) {
 try {
   assert.ok(fs.existsSync(path.join(source, 'zhiji.exe')), 'Run pnpm package:win first')
   fs.writeFileSync(fixturePdf, manyPagePdf(10_000))
-  linkProgram(source, runtime)
+  linkPackagedProgram(source, runtime)
   fs.copyFileSync(
     path.join(project, 'native', 'bootstrap', 'target', 'debug', 'launcher.exe'),
     path.join(staging, 'JobTrail', 'JobTrail.exe'),
@@ -192,6 +181,7 @@ try {
   let page = await application.firstWindow()
   page.setDefaultTimeout(15_000)
   await page.locator('.sidebar').waitFor()
+  assert.equal(await page.evaluate(() => window.velopackApi.getVersion()), version)
   await application.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
   }, fixturePdf)

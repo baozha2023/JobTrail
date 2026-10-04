@@ -11,6 +11,7 @@ import Database from 'better-sqlite3'
 import { ConfigLoadError, ConfigService, validateConfig, type AppPaths } from './config'
 import { decryptConfig, encryptConfig } from './config-crypto'
 import { MIGRATE_V1_V2 } from './persistence/schema-v2'
+import { MIGRATE_V2_V3 } from './persistence/schema-v3'
 import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from './persistence/versions'
 import { updateFreezePath, waitForMcpSessions } from './update-freeze'
 import { DatabaseManager, DatabaseVersionError } from './database'
@@ -29,6 +30,15 @@ export const DATABASE_MIGRATIONS: MigrationStep<Db>[] = [
     apply: (db) => {
       validateDatabaseVersion(db, 1)
       db.exec(MIGRATE_V1_V2)
+      return db
+    },
+  },
+  {
+    from: 2,
+    to: 3,
+    apply: (db) => {
+      validateDatabaseVersion(db, 2)
+      db.exec(MIGRATE_V2_V3)
       return db
     },
   },

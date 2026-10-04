@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type {
   AgentDraftPart,
   AgentReference,
-  Company,
+  CompanySummary,
   Industry,
   Opportunity,
   ResumeVersion,
@@ -34,7 +34,7 @@ const props = defineProps<{
   mcpEnabled: boolean
   resumes: ResumeVersion[]
   opportunities: Opportunity[]
-  companies: Company[]
+  companies: CompanySummary[]
   industries: Industry[]
   dark: boolean
 }>()

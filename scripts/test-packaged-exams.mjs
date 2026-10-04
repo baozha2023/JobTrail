@@ -5,8 +5,10 @@ import http from 'node:http'
 import * as yauzl from 'yauzl'
 import { _electron as electron } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
+import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
+const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')).version
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.exam-smoke-'))
 const root = path.join(staging, 'JobTrail'),
   runtime = path.join(root, '.runtime', 'current')
@@ -14,17 +16,6 @@ let application, server, releaseGeneration
 const generationGate = new Promise((resolve) => {
   releaseGeneration = resolve
 })
-function linkProgram(from, to) {
-  fs.mkdirSync(to, { recursive: true })
-  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
-    if (['data', 'config.json', 'resumes', 'chat-uploads', '.runtime', 'logs'].includes(entry.name))
-      continue
-    const source = path.join(from, entry.name),
-      target = path.join(to, entry.name)
-    if (entry.isDirectory()) linkProgram(source, target)
-    else fs.linkSync(source, target)
-  }
-}
 function chunk(id, delta, finish_reason = null) {
   return `data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created: 1, model: 'mock', choices: [{ index: 0, delta, finish_reason }] })}\n\n`
 }
@@ -37,7 +28,7 @@ async function until(predicate, label) {
   throw new Error(`Timed out: ${label}`)
 }
 try {
-  linkProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
+  linkPackagedProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
   fs.copyFileSync(
     path.join(project, 'native/bootstrap/target/debug/launcher.exe'),
     path.join(root, 'JobTrail.exe'),
@@ -198,10 +189,11 @@ try {
   let page = await application.firstWindow()
   page.setDefaultTimeout(60000)
   await page.locator('.sidebar').waitFor()
+  assert.equal(await page.evaluate(() => window.velopackApi.getVersion()), version)
   fs.writeFileSync(path.join(root, '.jobtrail-root'), 'jobtrail-root-v1\n')
   fs.writeFileSync(
     path.join(runtime, 'sq.version'),
-    `<package><version>${JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')).version}</version></package>`,
+    `<package><version>${version}</version></package>`,
   )
   const conversationId = await page.evaluate(async () => {
     const c = await window.zhijiApi.agent.create()
@@ -425,7 +417,7 @@ try {
   })
   const manifest = JSON.parse(entries['manifest.json'])
   assert.equal(manifest.schemaVersion, 1)
-  assert.equal(manifest.environment.databaseVersion, 2)
+  assert.equal(manifest.environment.databaseVersion, 3)
   assert.equal(manifest.health.degraded, false)
   assert.ok(
     Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),
@@ -455,7 +447,7 @@ try {
     !JSON.stringify(entries).includes('Promise 表示异步操作未来的结果。'),
     'answers must not enter diagnostics',
   )
-  const archive = path.join(staging, 'exam-v2.jobtrail-backup')
+  const archive = path.join(staging, 'exam-v3.jobtrail-backup')
   await application.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
   }, archive)
@@ -493,7 +485,7 @@ try {
   assert.equal(reset.questions.length, 3)
   assert.ok(reset.questions.every((q) => q.answer.value === null && q.answer.result === null))
   console.log(
-    'PASS: packaged v1 startup migration, /study, MCP paper updates, fixed 70% × 90% modal with persistent mask, incremental card/modal, concurrent AI grading, objective submissions, restart persistence, v2 backup/export/import/restart and reset',
+    'PASS: packaged v1 startup migration, /study, MCP paper updates, fixed 70% × 90% modal with persistent mask, incremental card/modal, concurrent AI grading, objective submissions, restart persistence, v3 backup/export/import/restart and reset',
   )
 } catch (error) {
   if (application) {

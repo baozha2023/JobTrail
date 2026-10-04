@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import type { CompanyCatalogEntry } from '../company-catalog'
+import type { CompanyLocationRepository } from './company-location-repository'
 
 export type ResolvedCatalogCompany = Omit<CompanyCatalogEntry, 'industryKeys'> & {
   industryIds: number[]
@@ -21,6 +22,7 @@ export interface CatalogCompanySnapshot {
   careerUrl: string | null
   industryIds: number[]
   aliases: string[]
+  locations: string[]
 }
 
 interface CatalogCompanyRow {
@@ -40,7 +42,14 @@ function changedValues<T extends number | string>(current: T[], next: T[]) {
 }
 
 export class CompanyCatalogRepository {
-  constructor(private readonly db: SqliteDatabase) {}
+  constructor(
+    private readonly db: SqliteDatabase,
+    private readonly locations: CompanyLocationRepository,
+  ) {}
+
+  deleteUnusedLocations(ids: number[]): void {
+    this.locations.deleteUnused(ids)
+  }
 
   state(): CompanyCatalogStateRow {
     return this.db
@@ -77,6 +86,7 @@ export class CompanyCatalogRepository {
     }
     this.syncIndustries(row.id, [], entry.industryIds, timestamp)
     this.syncAliases(row.id, [], entry.aliases, timestamp)
+    this.locations.synchronize(row.id, entry.locations, timestamp)
     return row.id
   }
 
@@ -84,7 +94,7 @@ export class CompanyCatalogRepository {
     current: CatalogCompanySnapshot,
     entry: ResolvedCatalogCompany,
     timestamp: number,
-  ): void {
+  ): number[] {
     this.db
       .prepare(
         'UPDATE companies SET name = ?, builtin_key = ?, career_url = ?, updated_at = ? WHERE id = ?',
@@ -92,6 +102,7 @@ export class CompanyCatalogRepository {
       .run(entry.name, entry.builtinKey, entry.careerUrl, timestamp, current.id)
     this.syncIndustries(current.id, current.industryIds, entry.industryIds, timestamp)
     this.syncAliases(current.id, current.aliases, entry.aliases, timestamp)
+    return this.locations.synchronize(current.id, entry.locations, timestamp)
   }
 
   convertOmittedToCustom(builtinKeys: string[], timestamp: number): number {
@@ -134,6 +145,7 @@ export class CompanyCatalogRepository {
       careerUrl: row.career_url,
       industryIds: industryIds.map((item) => item.industryId),
       aliases: aliases.map((item) => item.alias),
+      locations: this.locations.forCompanies([row.id]).get(row.id) ?? [],
     }
   }
 

@@ -11,7 +11,7 @@ import type {
   AgentMessage,
   AgentPending,
   AgentUsage,
-  Company,
+  CompanySummary,
   Industry,
   Opportunity,
   ResumeVersion,
@@ -34,7 +34,7 @@ const props = defineProps<{
   multimodal: boolean
   resumes: ResumeVersion[]
   opportunities: Opportunity[]
-  companies: Company[]
+  companies: CompanySummary[]
   industries: Industry[]
   dark: boolean
 }>()

@@ -1,5 +1,7 @@
 import type {
   Company,
+  CompanySummary,
+  CompanyLocationQuery,
   CompanyQuery,
   CreateCompanyInput,
   PageResult,
@@ -16,6 +18,7 @@ import {
   uniqueError,
 } from './errors'
 import type { UnitOfWork } from './unit-of-work'
+import { companyLocationPrefix, companyLocationsInput } from './company-location-input'
 
 const builtinMessage = '该数据为内置，无法删除/修改'
 
@@ -46,7 +49,11 @@ export class CompanyService {
       if (!this.industries.get(query.industryId))
         throw new AppServiceError('NOT_FOUND', '行业分类不存在')
     }
-    const result = this.repository.search({ ...query, keyword: query.keyword?.trim() })
+    const result = this.repository.search({
+      ...query,
+      keyword: query.keyword?.trim(),
+      locations: query.locations === undefined ? undefined : companyLocationsInput(query.locations),
+    })
     return {
       items: result.items,
       total: result.total,
@@ -54,8 +61,15 @@ export class CompanyService {
       pageSize: query.pageSize,
     }
   }
-  list(): Company[] {
-    return this.repository.mapMany(this.repository.list())
+  searchLocations(query: CompanyLocationQuery): PageResult<string> {
+    assertPageQuery(query)
+    return this.repository.searchLocations({
+      ...query,
+      prefix: query.prefix === undefined ? undefined : companyLocationPrefix(query.prefix),
+    })
+  }
+  list(): CompanySummary[] {
+    return this.repository.mapSummaries(this.repository.list())
   }
   get(id: number): Company {
     assertPositiveId(id, '公司 ID')
@@ -80,7 +94,13 @@ export class CompanyService {
         this.validateIndustries(industryIds)
         const aliases = normalizeAliases(input.aliases) ?? []
         const id = this.repository.create(
-          { name, industryIds, careerUrl: nullableText(input.careerUrl), aliases },
+          {
+            name,
+            industryIds,
+            careerUrl: nullableText(input.careerUrl),
+            aliases,
+            locations: companyLocationsInput(input.locations === undefined ? [] : input.locations),
+          },
           Date.now(),
         )
         return this.get(id)
@@ -97,6 +117,7 @@ export class CompanyService {
         assertNonEmptyUpdate(input, '公司')
         const current = this.get(id)
         const changesCompanyData =
+          input.locations !== undefined ||
           input.name !== undefined ||
           input.industryIds !== undefined ||
           input.careerUrl !== undefined ||
@@ -117,6 +138,9 @@ export class CompanyService {
           id,
           {
             name,
+            ...(input.locations === undefined
+              ? {}
+              : { locations: companyLocationsInput(input.locations) }),
             industryIds,
             careerUrl:
               input.careerUrl === undefined ? current.careerUrl : nullableText(input.careerUrl),

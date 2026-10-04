@@ -7,17 +7,19 @@ import { i18n } from '../src/renderer/i18n'
 import { getErrorMessage } from '../src/renderer/utils/errors'
 import SettingsView from '../src/renderer/views/SettingsView.vue'
 import type { AppConfig } from '../src/shared/types'
+import { version as currentVersion } from '../package.json'
+import { formatVersion, catalogVersion } from '../resource/jobtrail-company-catalog.json'
 
 const baseProps = {
   config: null,
   dark: false,
   mcpConnectionInfo: null,
-  currentVersion: '0.5.0',
+  currentVersion,
   checkingForUpdates: false,
   uninstalling: false,
   checkForUpdates: vi.fn(),
   uninstallApp: vi.fn(),
-  catalogStatus: { formatVersion: 1, catalogVersion: 1, appliedAt: 1 },
+  catalogStatus: { formatVersion, catalogVersion, appliedAt: 1 },
   catalogModalVisible: true,
   catalogUpdating: true,
   catalogPhase: 'sync' as const,

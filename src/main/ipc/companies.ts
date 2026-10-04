@@ -1,8 +1,16 @@
 import type { Services } from '../service-container'
 import { registerChannel } from './register-channel'
-import { numberValue, parseCompany, parseCompanyQuery } from './validators'
+import {
+  numberValue,
+  parseCompany,
+  parseCompanyQuery,
+  parseCompanyLocationQuery,
+} from './validators'
 
 export function registerCompanyIpc(services: Services): void {
+  registerChannel('companies:search-locations', (query) =>
+    services.companies.searchLocations(parseCompanyLocationQuery(query)),
+  )
   registerChannel('companies:search', (query) =>
     services.companies.search(parseCompanyQuery(query)),
   )

@@ -43,6 +43,8 @@ describe('remote table pagination', () => {
         search: '',
         selectedIndustryId: null,
         industryOptions: [],
+        selectedLocations: [],
+        locationOptionsRevision: 0,
       },
       global,
     })

@@ -1,8 +1,10 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { Services } from '../src/main/service-container'
+import { version as currentVersion } from '../package.json'
+import { formatVersion, catalogVersion } from '../resource/jobtrail-company-catalog.json'
 
 const mocks = vi.hoisted(() => ({
-  app: { isPackaged: false, getVersion: () => '1.0.0' },
+  app: { isPackaged: false, getVersion: () => currentVersion },
   handlers: new Map<string, () => unknown>(),
   update: vi.fn(),
 }))
@@ -28,7 +30,7 @@ beforeEach(() => {
 })
 
 it('allows reading development catalog status but blocks updates before any download or write', () => {
-  const status = { formatVersion: 1, catalogVersion: 1, appliedAt: 1 }
+  const status = { formatVersion, catalogVersion, appliedAt: 1 }
   registerCompanyCatalogIpc({ companyCatalog: { status: () => status } } as Services)
   expect(mocks.handlers.get('company-catalog:get-status')!()).toEqual(status)
   expect(() => mocks.handlers.get('company-catalog:update')!()).toThrow(

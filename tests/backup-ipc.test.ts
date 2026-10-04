@@ -13,6 +13,7 @@ import { createServiceContainer } from '../src/main/service-container'
 import { updateFreezePath } from '../src/main/update-freeze'
 import { exportBackup } from '../src/main/backup-archive'
 import type { BackupImportConfirmation } from '../src/shared/types'
+import { version as currentVersion } from '../package.json'
 
 const mocks = vi.hoisted(() => ({
   save: vi.fn(),
@@ -20,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),
 }))
 vi.mock('electron', () => ({
-  app: { getVersion: () => '1.0.0' },
+  app: { getVersion: () => currentVersion },
   dialog: { showSaveDialog: mocks.save, showOpenDialog: mocks.open },
 }))
 vi.mock('../src/main/ipc/register-channel', () => ({
@@ -59,7 +60,14 @@ async function importFixture() {
   const archive = path.join(directory, 'verified.jobtrail-backup')
   const work = path.join(directory, 'export-work')
   fs.mkdirSync(work)
-  const manifest = await exportBackup(paths, container.database, config, '1.2.0', archive, work)
+  const manifest = await exportBackup(
+    paths,
+    container.database,
+    config,
+    currentVersion,
+    archive,
+    work,
+  )
   const contents = Object.assign(new EventEmitter(), { isDestroyed: () => false, send: vi.fn() })
   const window = { webContents: contents } as unknown as BrowserWindow
   const restart = vi.fn()
@@ -76,7 +84,7 @@ async function importFixture() {
     const info = contents.send.mock.calls[0][1] as BackupImportConfirmation
     expect(info).toEqual({
       requestId: expect.any(String),
-      appVersion: '1.2.0',
+      appVersion: currentVersion,
       createdAt: manifest.createdAt,
     })
     expect(suspend).not.toHaveBeenCalled()

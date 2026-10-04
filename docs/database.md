@@ -1,6 +1,6 @@
-# 职迹 SQLite 数据库（v2）
+# 职迹 SQLite 数据库（v3）
 
-本文记录当前代码定义的数据库结构与持久化规则。应用表的建表定义位于 `src/main/persistence/schema-v2.ts`，由 `src/main/database.ts` 初始化；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v2 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
+本文记录当前代码定义的数据库结构与持久化规则。应用表的建表定义位于 `src/main/persistence/schema-v3.ts`，由 `src/main/database.ts` 初始化；业务写入规则由 `src/main/repositories/`、`src/main/services/` 和 `src/main/agent/` 实现。下文用表格列出应用自身管理的 v3 表和显式索引，不包含 SQLite 内部表或 LangGraph 依赖自行创建的 checkpoint 表。
 
 正式发布后的结构变更、配置迁移、跨版本升级和回滚要求，见 [数据库与配置文件长期维护和升级指南](persistence-upgrade-guide.md)。
 
@@ -15,13 +15,13 @@
 
 数据库使用 `better-sqlite3`。连接设置为 `journal_mode=WAL`、`busy_timeout=5000`；运行时可能出现 `zhiji.db-wal` 和 `zhiji.db-shm`。更新前的数据库快照通过 SQLite 在线备份取得，包含已提交的 WAL 内容。`PRAGMA data_version` 仅用于检测其他连接的改动，不是结构版本。
 
-结构版本使用 SQLite 内置 `PRAGMA user_version`，当前为 **2**；配置 `configVersion` 仍为 **1**。客户端自带的目标版本统一定义在 `src/main/persistence/versions.ts`，客户端发布版本不参与数据迁移路径判断。
+结构版本使用 SQLite 内置 `PRAGMA user_version`，当前为 **3**；配置 `configVersion` 仍为 **1**。客户端自带的目标版本统一定义在 `src/main/persistence/versions.ts`，客户端发布版本不参与数据迁移路径判断。
 
-桌面每次启动先调用 `ensurePersistenceReady`，在业务连接打开前检查版本；正式 v1 数据经过白名单 `1 → 2` 迁移。迁移在数据库副本中执行，校验后借助恢复日志协调数据库和加密配置替换。中断时恢复两者，失败不重置用户数据。等于目标版本不重复迁移，高于目标或缺少路径时拒绝业务写入。MCP 与 worker 只接受当前结构，不自行迁移。
+桌面每次启动先调用 `ensurePersistenceReady`，在业务连接打开前检查版本；正式 v1/v2 数据经过白名单 `1 → 2 → 3` 或 `2 → 3` 迁移。迁移在数据库副本中执行，校验后借助恢复日志协调数据库和加密配置替换。中断时恢复两者，失败不重置用户数据。等于目标版本不重复迁移，高于目标或缺少路径时拒绝业务写入。MCP 与 worker 只接受当前结构，不自行迁移。
 
-全新空库直接初始化 v2（18 张应用表、17 个显式索引）。v1 建表定义冻结在 `src/main/persistence/schema-v1.ts`；v2 增加试卷三张表，并扩展聊天事件和用量类型。迁移保留既有业务数据、聊天序号、工具问答及 LangGraph checkpoint。非空未知 v0 库不能当作空库初始化。
+全新空库直接初始化 v3（20 张应用表、19 个显式索引）。v1/v2 建表定义冻结在各自的 `schema-vN.ts`；v2 增加试卷三张表，并扩展聊天事件和用量类型。固定 `MIGRATE_V2_V3` 仅创建两张空地点表和索引，不 seed、不更新目录状态或既有时间字段。迁移保留既有业务数据、试卷、聊天序号、工具问答及 LangGraph checkpoint。非空未知 v0 库不能当作空库初始化。
 
-旧备份按其来源版本校验，再在导入临时目录中执行同一迁移链；导入不会修改原备份。新版导出记录数据库版本 2、配置版本 1，备份封装版本仍为 1。配置结构版本、加密封装版本及公司目录版本均独立管理。
+旧备份按其来源版本校验，再在导入临时目录中执行同一迁移链；导入不会修改原备份。新版导出记录数据库版本 3、配置版本 1，备份封装版本仍为 1。配置结构版本、加密封装版本及公司目录版本均独立管理。v2/v3 均执行试卷校验；v3 额外检查地点文本、关联有效性及无孤立地点。
 
 配置只接受完整、严格的当前结构，包含 `configVersion`、`themeMode`、`statusFlowTheme`、`locale`、`closeBehavior`、`launchAtStartup`、`companyReadValidityMonths`、`mcp`、`ai`。嵌套字段以 `AppConfig` 为准，所有层级均拒绝缺失或未知字段；不保留 `velopack` 配置。默认值仅在整个配置文件不存在时创建，设置的局部更新须合并为完整配置后保存。无效或不支持的配置保留原文件并拒绝启动，备份导入先按来源配置版本校验，再转换并校验目标版本。
 
@@ -130,6 +130,25 @@
 | `created_at` | INTEGER | 非空                           | 创建时间    |
 
 `builtin_company_catalog_state` 固定使用 `id=1`，记录已应用目录的格式版本、内容版本、原始 JSON 的 SHA-256 和应用时间。目录版本变化是数据内容更新，不递增数据库 `user_version`。公司被求职记录引用时不能删除；删除公司时同步清除行业关联和别名。生产环境禁止编辑或删除内置公司的主体数据，但允许调整收藏和记录招聘链接的访问时间。
+
+#### `locations` 与 `company_locations`
+
+| 表                  | 字段          | 类型    | 约束与含义                               |
+| ------------------- | ------------- | ------- | ---------------------------------------- |
+| `locations`         | `id`          | INTEGER | 自增主键，仅内部使用                     |
+| `locations`         | `name`        | TEXT    | 非空、原文精确唯一（BINARY），规范化标签 |
+| `locations`         | `created_at`  | INTEGER | 非空，创建时间                           |
+| `company_locations` | `company_id`  | INTEGER | 非空，与 `location_id` 联合主键          |
+| `company_locations` | `location_id` | INTEGER | 非空，逻辑关联地点 ID                    |
+| `company_locations` | `created_at`  | INTEGER | 非空，关联创建时间                       |
+
+显式索引 `idx_locations_search ON locations(name COLLATE NOCASE)` 支持候选前缀查询；`idx_company_locations_location ON company_locations(location_id, company_id)` 支持筛选及剩余引用检查。公司维度查询使用联合主键索引。无触发器、物理外键或引用计数。
+
+地点标签 trim 后精确去重，每家公司最多 100 项、每项最多 200 字符，拒绝空白、非字符串和 null。公司与岗位地点独立。新增可省略；更新省略表示保留，`[]` 表示清空。共享地点 Repository 只增删本公司的关联，不重命名公共地点；删除公司先通过既有保护，再解除关联，仅删除本次受影响且 `NOT EXISTS` 剩余引用的地点。公司 Service 的 `UnitOfWork` 保证所有变化在一个 `IMMEDIATE` 事务内完成；目录批量操作最后统一清理。
+
+`CompanySummary` 保留旧公司字段，用于公司选择器和智能体引用，摘要 SQL 不访问地点表。`Company` 在摘要基础上增加 `locations: string[]`，只为当前分页或目标公司批量读取。`CompanyQuery.locations` 使用完整标签精确筛选，多个地点为 OR，与关键词、行业为 AND，通过参数化 `EXISTS` 避免重复公司。
+
+`companies:search-locations` / Preload `searchLocations({ prefix?, page, pageSize })` 返回 `PageResult<string>`。后端每页上限 100，UI 每页 50、展开加载、滚动翻页、200 毫秒防抖。前缀采用 SQLite LIKE（ASCII 大小写不敏感），转义 `%`、`_`、`\` 后仅在末尾加通配符；稳定排序 `name COLLATE NOCASE, id`。编辑可创建草稿标签，筛选只选择已有标签。候选缓存随公司写入、目录同步和外部变化失效，保留选择及编辑草稿；已删除标签的筛选值仍生效，不自动放宽。MCP 既有公司工具同步支持地点字段，不提供字典维护工具。
 
 ### 简历、求职记录与状态历史
 
@@ -275,7 +294,7 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 
 ## 显式索引
 
-以下是 `DatabaseManager.initialize()` 创建的全部 12 个显式索引。主键与唯一约束由 SQLite 自身维护，不重复列在此表中。
+以下是 `DatabaseManager.initialize()` 创建的全部 19 个显式索引。主键与唯一约束由 SQLite 自身维护，不重复列在此表中。
 
 | 索引名                                    | 表                          | 键                                                    |
 | ----------------------------------------- | --------------------------- | ----------------------------------------------------- |
@@ -294,12 +313,18 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 | `idx_agent_chat_events_conversation`      | `agent_chat_events`         | `conversation_id, seq`                                |
 | `idx_agent_model_usage_conversation`      | `agent_model_usage`         | `conversation_id, created_at`                         |
 | `idx_chat_attachments_conversation_id`    | `chat_attachments`          | `conversation_id`                                     |
+| `idx_exam_papers_conversation`            | `exam_papers`               | `conversation_id, created_at`                         |
+| `idx_exam_answers_paper`                  | `exam_answers`              | `paper_id`                                            |
+| `idx_locations_search`                    | `locations`                 | `name COLLATE NOCASE`                                 |
+| `idx_company_locations_location`          | `company_locations`         | `location_id, company_id`                             |
 
 ## 逻辑关联与写入边界
 
 | 保存方字段                                                                                                   | 目标                     | 维护方式                         |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------ | -------------------------------- |
 | `company_industries.company_id`、`company_aliases.company_id`                                                | `companies.id`           | 公司服务在删除公司时清理关联     |
+| `company_locations.company_id`                                                                               | `companies.id`           | 公司服务在删除保护通过后清理关联 |
+| `company_locations.location_id`                                                                              | `locations.id`           | 清理本次受影响且无引用的地点     |
 | `industries.parent_id`                                                                                       | `industries.id`          | 只可引用一级，有子节点时禁止删除 |
 | `company_industries.industry_id`                                                                             | `industries.id`          | 行业被公司使用时禁止删除         |
 | `opportunities.company_id`                                                                                   | `companies.id`           | 公司被求职记录使用时禁止删除     |
@@ -329,7 +354,9 @@ Service 验证时区和时间范围：普通日程允许 `end_at=start_at` 表�
 
 `@行业` 仅提供二级候选，Main 校验层级并重新解析完整的“一级 / 二级”路径。MCP 与 IPC 共用行业业务服务。备份导出、导入还校验父子关系、公司二级引用及内置公司的非空行业关联。
 
-首个正式版之前的开发数据不在迁移支持范围内；应用和发布流程不包含一次性开发库转换。正式 v1 基线保持冻结，v2 通过已注册的正式迁移步骤升级，保留公司、行业、聊天及其他业务记录。
+首个正式版之前的开发数据不在迁移支持范围内；应用和发布流程不包含一次性开发库转换。正式 v1 基线保持冻结，新增可追溯合成 v2 样本。v1/v2 通过已注册的正式迁移步骤升级至 v3，保留公司、行业、试卷、聊天及其他业务记录。
+
+目录格式 v2 的每个公司条目必须包含 `locations`；当前内容 v4 要求客户端至少为 1.5.0，所有既有条目地点为 `[]`。旧客户端在严格解析新格式前收到升级提示。首次 seed 使用共享地点 Repository；已有安装的软件升级不自动同步目录。主动同步按集合比较地点，顺序变化不写入；全部公司处理后统一清理失去引用的地点，和目录状态同事务提交。同名自定义公司收编时采用目录地点（包括空集合）；退出目录时保留地点。
 
 ## 笔试练习（数据库版本 2）
 

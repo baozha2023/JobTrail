@@ -1,5 +1,6 @@
 import { validateDatabaseVersion } from './persistence/validation'
-import { SCHEMA_V2 } from './persistence/schema-v2'
+import { SCHEMA_V3 } from './persistence/schema-v3'
+import { CompanyLocationRepository } from './repositories/company-location-repository'
 import fs from 'node:fs'
 import path from 'node:path'
 import Database from 'better-sqlite3'
@@ -70,13 +71,14 @@ export class DatabaseManager {
     if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1").get())
       throw new DatabaseVersionError(0)
 
-    this.db.exec(SCHEMA_V2)
+    this.db.exec(SCHEMA_V3)
 
     this.seed()
   }
 
   private seed(): void {
     const now = Date.now()
+    const locations = new CompanyLocationRepository(this.db)
     const insertCompany = this.db.prepare(`
       INSERT INTO companies (name, builtin_key, career_url, is_favorite, created_at, updated_at)
       VALUES (?, ?, ?, 0, ?, ?)
@@ -104,6 +106,7 @@ export class DatabaseManager {
       for (const companySeed of BUNDLED_COMPANY_CATALOG.companies) {
         insertCompany.run(companySeed.name, companySeed.builtinKey, companySeed.careerUrl, now, now)
         const { id: companyId } = getCompanyId.get(companySeed.name) as { id: number }
+        locations.synchronize(companyId, companySeed.locations, now)
         for (const industryKey of companySeed.industryKeys)
           addIndustry.run(companyId, industryIds.get(industryKey)!, now)
         for (const alias of companySeed.aliases) addAlias.run(companyId, alias, now)

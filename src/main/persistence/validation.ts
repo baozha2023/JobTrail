@@ -1,13 +1,15 @@
 import Database from 'better-sqlite3'
 import { SCHEMA_V1 } from './schema-v1'
 import { SCHEMA_V2 } from './schema-v2'
+import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
 import { examQuestionSchema, examCountsSchema, gradeResultSchema } from '../../shared/exams'
 import { z } from 'zod'
 type Db = InstanceType<typeof Database>
 export function validateDatabaseVersion(db: Db, version: number): void {
-  const sql = version === 1 ? SCHEMA_V1 : version === 2 ? SCHEMA_V2 : null
+  const sql =
+    version === 1 ? SCHEMA_V1 : version === 2 ? SCHEMA_V2 : version === 3 ? SCHEMA_V3 : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -44,10 +46,48 @@ export function validateDatabaseVersion(db: Db, version: number): void {
     }
     if (db.prepare("SELECT 1 FROM sqlite_master WHERE type IN ('trigger','view') LIMIT 1").get())
       throw new Error('Unexpected persistent schema')
-    if (version === 2) validateExamData(db)
+    if (version === 2 || version === 3) validateExamData(db)
+    if (version === 3) validateCompanyLocations(db)
   } finally {
     expected.close()
   }
+}
+
+function validateCompanyLocations(db: Db): void {
+  const rows = db.prepare('SELECT name, created_at FROM locations').all() as {
+    name: string
+    created_at: number
+  }[]
+  if (
+    rows.some(
+      (row) =>
+        typeof row.name !== 'string' ||
+        row.name !== row.name.trim() ||
+        !row.name.length ||
+        row.name.length > 200 ||
+        !Number.isSafeInteger(row.created_at) ||
+        row.created_at < 0,
+    )
+  )
+    throw new Error('Invalid company location')
+  if (
+    db
+      .prepare(
+        `SELECT 1 FROM company_locations cl LEFT JOIN companies c ON c.id = cl.company_id
+      LEFT JOIN locations l ON l.id = cl.location_id
+      WHERE c.id IS NULL OR l.id IS NULL OR typeof(cl.created_at) <> 'integer' OR cl.created_at < 0 LIMIT 1`,
+      )
+      .get() ||
+    db
+      .prepare(
+        'SELECT 1 FROM locations l WHERE NOT EXISTS (SELECT 1 FROM company_locations cl WHERE cl.location_id = l.id) LIMIT 1',
+      )
+      .get() ||
+    db
+      .prepare('SELECT 1 FROM company_locations GROUP BY company_id HAVING COUNT(*) > 100 LIMIT 1')
+      .get()
+  )
+    throw new Error('Invalid company location references')
 }
 
 export function validateExamData(db: Db): void {

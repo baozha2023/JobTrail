@@ -67,14 +67,14 @@ describe('职迹最终数据库结构和业务服务', () => {
       expect(
         (saved.prepare('SELECT value FROM snapshot_probe').get() as { value: string }).value,
       ).toBe('before-update')
-      expect(saved.pragma('user_version', { simple: true })).toBe(2)
+      expect(saved.pragma('user_version', { simple: true })).toBe(3)
     } finally {
       saved.close()
     }
     database!.db.prepare('INSERT INTO snapshot_probe(value) VALUES (?)').run('after-update')
   })
 
-  it('creates schema v2 before seeding and has no physical foreign key', () => {
+  it('creates schema v3 before seeding and has no physical foreign key', () => {
     const names = (
       database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
         name: string
@@ -184,7 +184,7 @@ describe('职迹最终数据库结构和业务服务', () => {
           .get() as { count: number }
       ).count,
     ).toBe(0)
-    expect(database!.db.pragma('user_version', { simple: true })).toBe(2)
+    expect(database!.db.pragma('user_version', { simple: true })).toBe(3)
     expect(
       database!.db.prepare('SELECT * FROM builtin_company_catalog_state WHERE id = 1').get(),
     ).toEqual({
@@ -270,7 +270,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     const unsupportedDatabasePath = path.join(unsupportedRoot, 'data', 'zhiji.db')
     fs.mkdirSync(path.dirname(unsupportedDatabasePath), { recursive: true })
     const rawDatabase = new Database(unsupportedDatabasePath)
-    rawDatabase.pragma('user_version = 3')
+    rawDatabase.pragma('user_version = 4')
     rawDatabase.close()
     const originalHash = createHash('sha256')
       .update(fs.readFileSync(unsupportedDatabasePath))

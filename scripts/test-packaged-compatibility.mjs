@@ -1,17 +1,20 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { build } from 'vite'
 import { _electron as electron } from 'playwright'
 import { decodeTestConfig, encodeTestConfig, privateTestKey } from './config-test-helpers.mjs'
+import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 // Use the original release exporters, never relabel an archive produced by the new exporter.
 const releases = [
-  { version: '1.0.0', commit: '3acb686' },
-  { version: '1.1.0', commit: 'd277149' },
-  { version: '1.2.0', commit: 'a430f37' },
+  { version: '1.0.0', commit: '3acb686', databaseVersion: 1 },
+  { version: '1.1.0', commit: 'd277149', databaseVersion: 1 },
+  { version: '1.2.0', commit: 'a430f37', databaseVersion: 1 },
+  { version: '1.3.0', commit: '466709b', databaseVersion: 2 },
+  { version: '1.4.0', commit: '4fd2727', databaseVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -19,27 +22,14 @@ const clientVersion = JSON.parse(
 ).version
 const work = fs.mkdtempSync(path.join(project, 'dist', '.compatibility-'))
 const artifacts = path.join(project, 'dist', 'compatibility')
-const baseline = path.join(project, 'tests', 'fixtures', 'v1')
 const evidence = []
 let application
 fs.mkdirSync(artifacts, { recursive: true })
 
-function linkProgram(from, to) {
-  fs.mkdirSync(to, { recursive: true })
-  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
-    if (['config.json', 'data', 'resumes', 'chat-uploads', '.runtime', 'logs'].includes(entry.name))
-      continue
-    assert.ok(!entry.isSymbolicLink())
-    const target = path.join(to, entry.name)
-    if (entry.isDirectory()) linkProgram(path.join(from, entry.name), target)
-    else fs.linkSync(path.join(from, entry.name), target)
-  }
-}
-
 async function launch(root, supervisedUpgrade = false) {
   const runtime = path.join(root, '.runtime', 'current')
   if (!fs.existsSync(runtime)) {
-    linkProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
+    linkPackagedProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
     fs.copyFileSync(
       path.join(project, 'native/bootstrap/target/debug/launcher.exe'),
       path.join(root, 'JobTrail.exe'),
@@ -72,46 +62,30 @@ async function launch(root, supervisedUpgrade = false) {
 }
 
 async function verify(root, expected) {
-  const actual = await application.evaluate(({ app }, root) => {
-    const require = process
-      .getBuiltinModule('module')
-      .createRequire(app.getAppPath() + '/package.json')
-    const path = require('node:path')
-    const Database = require(path.join(app.getAppPath(), 'node_modules/better-sqlite3'))
-    const db = new Database(path.join(root, 'data/zhiji.db'), { readonly: true })
-    try {
-      const tables = [
-        'builtin_company_catalog_state',
-        'opportunity_status_events',
-        'calendar_events',
-        'calendar_event_reminders',
-        'statuses',
-        'industries',
-        'companies',
-        'company_industries',
-        'company_aliases',
-        'resume_versions',
-        'opportunities',
-        'agent_conversations',
-        'agent_chat_events',
-        'agent_model_usage',
-        'chat_attachments',
-        'checkpoints',
-        'writes',
-      ]
-      return JSON.parse(
-        JSON.stringify({
-          version: db.pragma('user_version', { simple: true }),
-          rows: Object.fromEntries(
-            tables.map((t) => [t, db.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()]),
-          ),
-        }),
-      )
-    } finally {
-      db.close()
-    }
-  }, root)
-  assert.equal(actual.version, 2)
+  const actual = await application.evaluate(
+    ({ app }, { root, tables }) => {
+      const require = process
+        .getBuiltinModule('module')
+        .createRequire(app.getAppPath() + '/package.json')
+      const path = require('node:path')
+      const Database = require(path.join(app.getAppPath(), 'node_modules/better-sqlite3'))
+      const db = new Database(path.join(root, 'data/zhiji.db'), { readonly: true })
+      try {
+        return JSON.parse(
+          JSON.stringify({
+            version: db.pragma('user_version', { simple: true }),
+            rows: Object.fromEntries(
+              tables.map((t) => [t, db.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()]),
+            ),
+          }),
+        )
+      } finally {
+        db.close()
+      }
+    },
+    { root, tables: Object.keys(expected.rows) },
+  )
+  assert.equal(actual.version, 3)
   assert.deepEqual(actual.rows, expected.rows)
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
@@ -178,6 +152,7 @@ try {
     const historicalPackage = JSON.parse(fs.readFileSync(path.join(source, 'package.json'), 'utf8'))
     assert.equal(historicalPackage.version, release.version)
     const root = path.join(work, `historical-${release.version}`, 'JobTrail')
+    const baseline = path.join(project, 'tests', 'fixtures', `v${release.databaseVersion}`)
     fs.cpSync(baseline, root, { recursive: true })
     const configuration = decodeTestConfig(
       fs.readFileSync(path.join(root, 'config.json'), 'utf8'),
@@ -198,9 +173,10 @@ async function main() {
  const paths = {root,config:path.join(root,'config.json'),data:path.join(root,'data'),database:path.join(root,'data/zhiji.db'),resumes:path.join(root,'resumes'),chatUploads:path.join(root,'chat-uploads')};
  const config=new ConfigService(paths); const database=new DatabaseManager(paths);
  try {
-  if(database.db.pragma('user_version',{simple:true})!==1 || config.get().configVersion!==1) throw new Error('Historical version mismatch');
+  if(database.db.pragma('user_version',{simple:true})!==${release.databaseVersion} || config.get().configVersion!==1) throw new Error('Historical version mismatch');
   database.db.prepare('UPDATE companies SET name=? WHERE name=?').run('Compatibility '+version, 'V1 基线样例公司');
   const tables=['builtin_company_catalog_state', 'opportunity_status_events', 'calendar_events', 'calendar_event_reminders', 'statuses','industries','companies','company_industries','company_aliases','resume_versions','opportunities','agent_conversations','agent_chat_events','agent_model_usage','chat_attachments','checkpoints','writes'];
+  if (${release.databaseVersion} === 2) tables.push('exam_papers', 'exam_questions', 'exam_answers');
   const files={}; for(const dir of ['resumes','chat-uploads']) for(const file of fs.readdirSync(path.join(root,dir))) files[dir+'/'+file]=createHash('sha256').update(fs.readFileSync(path.join(root,dir,file))).digest('hex');
   fs.writeFileSync(archive+'.expected.json',JSON.stringify({config:config.get(),rows:Object.fromEntries(tables.map(t=>[t,database.db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()])),files}));
   const work=fs.mkdtempSync(path.join(root,'export-')); const manifest=await exportBackup(paths,database,config,version,archive,work);
@@ -230,8 +206,39 @@ main().catch(()=>{console.error('Historical exporter failed');process.exitCode=1
     )
     const expected = JSON.parse(fs.readFileSync(archive + '.expected.json', 'utf8'))
     const manifest = JSON.parse(fs.readFileSync(archive + '.manifest.json', 'utf8'))
-    assert.equal(manifest.databaseVersion, 1)
+    assert.equal(manifest.databaseVersion, release.databaseVersion)
     assert.equal(manifest.configVersion, 1)
+    const beforeMcp = fs.readFileSync(path.join(root, 'data/zhiji.db'))
+    const beforeConfig = fs.readFileSync(path.join(root, 'config.json'))
+    const prematureMcp = spawnSync(
+      path.join(project, 'dist/win-unpacked/zhiji.exe'),
+      [path.join(project, 'dist/win-unpacked/resources/app.asar/out/main/mcp-node.js')],
+      {
+        env: {
+          ...process.env,
+          ELECTRON_RUN_AS_NODE: '1',
+          JOBTRAIL_MCP_ROOT: root,
+          JOBTRAIL_MCP_VERSION: clientVersion,
+        },
+        timeout: 15000,
+        windowsHide: true,
+        encoding: 'utf8',
+      },
+    )
+    assert.equal(prematureMcp.status, 78, 'MCP must refuse old data before desktop migration')
+    assert.equal(prematureMcp.stdout, '')
+    assert.equal(prematureMcp.stderr, '')
+    assert.deepEqual(fs.readFileSync(path.join(root, 'data/zhiji.db')), beforeMcp)
+    assert.deepEqual(fs.readFileSync(path.join(root, 'config.json')), beforeConfig)
+    // v3 adds no data during migration; v1 also starts with empty exam tables.
+    for (const table of [
+      'locations',
+      'company_locations',
+      'exam_papers',
+      'exam_questions',
+      'exam_answers',
+    ])
+      expected.rows[table] ??= []
     if (release.version !== '1.0.0') {
       await launch(root, true)
       await verify(root, expected)
@@ -245,7 +252,7 @@ main().catch(()=>{console.error('Historical exporter failed');process.exitCode=1
         version: release.version,
         commit: release.commit,
         scenario: 'supervised-startup-upgrade-and-second-launch',
-        databaseVersion: 2,
+        databaseVersion: 3,
         configVersion: 1,
         result: 'PASS',
       })
@@ -273,7 +280,7 @@ main().catch(()=>{console.error('Historical exporter failed');process.exitCode=1
       version: release.version,
       commit: release.commit,
       scenario: 'historical-export-import-restart-reexport-reimport-restart',
-      databaseVersion: 2,
+      databaseVersion: 3,
       configVersion: 1,
       result: 'PASS',
     })

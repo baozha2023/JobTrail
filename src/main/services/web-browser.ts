@@ -142,6 +142,7 @@ export class BrowserReader {
     try {
       browser = await chromium.launch({
         headless: true,
+        chromiumSandbox: true,
         executablePath: executablePath(),
         args: [
           '--disable-quic',

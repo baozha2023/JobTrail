@@ -8,19 +8,21 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { Diagnostics } from '../src/main/diagnostics'
 import { createErrorInput } from '../src/shared/diagnostics'
 import { exportDiagnosticBundle } from '../src/main/diagnostics/export'
+import { version as currentVersion } from '../package.json'
+import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from '../src/main/persistence/versions'
 const roots: string[] = []
 const runtimes: Diagnostics[] = []
 const environment = {
-  appVersion: '1.3.0',
-  electronVersion: '43',
-  nodeVersion: '22',
-  databaseVersion: 2,
-  configVersion: 1,
+  appVersion: currentVersion,
+  electronVersion: process.versions.electron,
+  nodeVersion: process.versions.node,
+  databaseVersion: TARGET_DATABASE_VERSION,
+  configVersion: TARGET_CONFIG_VERSION,
 }
 function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jobtrail-export-diagnostics-'))
   roots.push(root)
-  const runtime = new Diagnostics('main', '1.3.0', true, root)
+  const runtime = new Diagnostics('main', currentVersion, true, root)
   runtimes.push(runtime)
   return { root, runtime, target: path.join(root, 'diagnostics.zip') }
 }
@@ -75,7 +77,7 @@ it('exports only current, sanitized records from the last 24 hours with hashes a
     schemaVersion: 1,
     invalidRecords: 1,
     partialLines: 1,
-    environment: { appVersion: '1.3.0', databaseVersion: 2, configVersion: 1 },
+    environment,
   })
   expect(Object.keys(result)).not.toContain('config.json')
   const content = Object.entries(result)

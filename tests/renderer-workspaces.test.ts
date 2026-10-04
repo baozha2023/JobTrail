@@ -95,6 +95,7 @@ function opportunity(overrides: Partial<Opportunity> = {}): Opportunity {
 
 function company(overrides: Partial<Company> = {}): Company {
   return {
+    locations: [],
     id: 1,
     name: '公司',
     industryIds: [],
@@ -295,7 +296,6 @@ describe('renderer domain workspaces', () => {
         statuses: ref([]),
         industries: ref([]),
         resumes: ref([]),
-        companies: ref([]),
         loadCompanies,
         loadOpportunities,
         loadAllOpportunities,
@@ -308,12 +308,17 @@ describe('renderer domain workspaces', () => {
 
     workspace.openCompanyEditor()
     workspace.companyForm.value.name = '新公司'
+    workspace.companyForm.value.locations = ['北京', '上海']
     workspace.companyAliasInput.value = ' 简称,简称，第二简称 '
     workspace.commitCompanyAliasInput()
     await workspace.saveCompany()
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ name: '新公司', aliases: ['简称', '第二简称'] }),
+      expect.objectContaining({
+        name: '新公司',
+        aliases: ['简称', '第二简称'],
+        locations: ['北京', '上海'],
+      }),
     )
     expect(loadCompanies).toHaveBeenCalledOnce()
     expect(loadOpportunities).toHaveBeenCalledOnce()
@@ -355,7 +360,6 @@ describe('renderer domain workspaces', () => {
         statuses: ref([]),
         industries: ref([industry(1), industry(2)]),
         resumes: ref([]),
-        companies: ref(companies),
         loadCompanies: vi.fn(async () => undefined),
         loadOpportunities: vi.fn(async () => undefined),
         loadAllOpportunities: vi.fn(async () => undefined),
@@ -379,11 +383,26 @@ describe('renderer domain workspaces', () => {
     await flushPromises()
     expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
     expect(search).toHaveBeenLastCalledWith({
+      locations: [],
       page: 1,
       pageSize: 10,
       keyword: '',
       industryId: 1,
     })
+    workspace.managedCompanyPage.value = 3
+    workspace.selectedCompanyLocations.value = ['已被清理的地点']
+    await flushPromises()
+    expect(search).toHaveBeenLastCalledWith({
+      page: 1,
+      pageSize: 10,
+      keyword: '',
+      industryId: 1,
+      locations: ['已被清理的地点'],
+    })
+    workspace.openCompanyEditor(company({ locations: ['草稿地点'] }))
+    await workspace.loadManagedCompanies()
+    expect(workspace.selectedCompanyLocations.value).toEqual(['已被清理的地点'])
+    expect(workspace.companyForm.value.locations).toEqual(['草稿地点'])
     wrapper.unmount()
   })
 
@@ -409,7 +428,6 @@ describe('renderer domain workspaces', () => {
           statuses: ref([]),
           industries,
           resumes: ref([]),
-          companies: ref([]),
           loadCompanies: vi.fn(async () => undefined),
           loadOpportunities: vi.fn(async () => undefined),
           loadAllOpportunities: vi.fn(async () => undefined),
@@ -433,6 +451,7 @@ describe('renderer domain workspaces', () => {
       expect(workspace.selectedCompanyIndustryId.value).toBeNull()
       expect(workspace.managedCompanyPage.value).toBe(1)
       expect(search).toHaveBeenCalledExactlyOnceWith({
+        locations: [],
         page: 1,
         pageSize: 10,
         keyword: '',

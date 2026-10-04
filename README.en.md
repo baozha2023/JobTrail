@@ -7,7 +7,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 ## Features
 
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
-- **Company management**: Find companies, browse career websites, filter by industry, and save favorites.
+- **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
 - **AI assistant**: Connect a model of your choice to discuss resumes and job opportunities, or connect external AI tools through MCP.

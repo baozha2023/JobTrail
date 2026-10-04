@@ -9,16 +9,16 @@ import type {
   UpdateResumeVersionInput,
 } from '../../shared/types'
 
-type CompanyForm = Omit<CreateCompanyInput, 'aliases' | 'industryIds'> & {
+type CompanyForm = Omit<CreateCompanyInput, 'aliases' | 'industryIds' | 'locations'> & {
   industryIds: number[]
   aliases: string[]
+  locations: string[]
 }
 
 interface ManagementWorkspaceOptions {
   statuses: Ref<Status[]>
   industries: Ref<Industry[]>
   resumes: Ref<ResumeVersion[]>
-  companies: Ref<Company[]>
   loadCompanies: () => Promise<void>
   loadOpportunities: () => Promise<void>
   loadAllOpportunities: () => Promise<void>
@@ -40,6 +40,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const editingCompanyId = ref<number | null>(null)
   const companyManagementSearch = ref('')
   const selectedCompanyIndustryId = ref<number | null>(null)
+  const selectedCompanyLocations = ref<string[]>([])
   const managedCompanies = ref<Company[]>([])
   const managedCompaniesLoading = ref(false)
   const managedCompanyTotal = ref(0)
@@ -47,7 +48,13 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const managedCompanyPageSize = ref(10)
   let managedCompanyRequest = 0
   const companyAliasInput = ref('')
-  const companyForm = ref<CompanyForm>({ name: '', industryIds: [], careerUrl: null, aliases: [] })
+  const companyForm = ref<CompanyForm>({
+    name: '',
+    industryIds: [],
+    careerUrl: null,
+    aliases: [],
+    locations: [],
+  })
   const showIndustryModal = ref(false)
   const editingIndustryId = ref<number | null>(null)
   const industryForm = ref<{ name: string; parentId: number | null }>({ name: '', parentId: null })
@@ -70,6 +77,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
         pageSize: managedCompanyPageSize.value,
         keyword: companyManagementSearch.value,
         industryId: selectedCompanyIndustryId.value,
+        locations: [...selectedCompanyLocations.value],
       })
       if (request !== managedCompanyRequest) return
       managedCompanies.value = result.items
@@ -279,6 +287,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
       industryIds: company?.industryIds ? [...company.industryIds] : [],
       careerUrl: company?.careerUrl ?? null,
       aliases: company?.aliases ? [...company.aliases] : [],
+      locations: company ? [...company.locations] : [],
     }
     companyAliasInput.value = ''
     showCompanyModal.value = true
@@ -306,6 +315,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
       industryIds: [...companyForm.value.industryIds],
       careerUrl: companyForm.value.careerUrl,
       aliases: normalizeAliases(companyForm.value.aliases),
+      locations: [...companyForm.value.locations],
     }
     try {
       const isEditing = editingCompanyId.value !== null
@@ -352,19 +362,23 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     }
   }
 
-  watch([companyManagementSearch, selectedCompanyIndustryId], (_value, previous) => {
-    managedCompanyPage.value = 1
-    // Clearing a deleted reference happens inside loadManagedCompanies, which
-    // already performs the query. Do not issue a second identical request.
-    if (
-      previous[0] === companyManagementSearch.value &&
-      selectedCompanyIndustryId.value === null &&
-      previous[1] !== null &&
-      !options.industries.value.some((item) => item.id === previous[1])
-    )
-      return
-    void loadManagedCompanies().catch(options.showError)
-  })
+  watch(
+    [companyManagementSearch, selectedCompanyIndustryId, selectedCompanyLocations],
+    (_value, previous) => {
+      managedCompanyPage.value = 1
+      // Clearing a deleted reference happens inside loadManagedCompanies, which
+      // already performs the query. Do not issue a second identical request.
+      if (
+        previous[0] === companyManagementSearch.value &&
+        previous[2] === selectedCompanyLocations.value &&
+        selectedCompanyIndustryId.value === null &&
+        previous[1] !== null &&
+        !options.industries.value.some((item) => item.id === previous[1])
+      )
+        return
+      void loadManagedCompanies().catch(options.showError)
+    },
+  )
 
   return {
     showStatusModal,
@@ -377,6 +391,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     editingCompanyId,
     companyManagementSearch,
     selectedCompanyIndustryId,
+    selectedCompanyLocations,
     companyAliasInput,
     companyForm,
     showIndustryModal,

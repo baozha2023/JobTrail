@@ -7,6 +7,7 @@ import {
   updateExamSchema,
 } from '../shared/exams'
 import { z } from 'zod'
+import { companyLocationsInputSchema } from '../shared/company-locations'
 import type { Services } from './service-container'
 import {
   calendarEventSchema,
@@ -164,6 +165,7 @@ const updateIndustryArgs = z.strictObject({
   input: updateIndustryInputSchema,
 })
 const companySearchArgs = z.strictObject({
+  locations: companyLocationsInputSchema.optional(),
   keyword: z.string().optional(),
   industryId: positiveIdSchema.nullable().optional(),
   page: pageSchema,
@@ -443,7 +445,8 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'search_companies',
     title: 'Search companies',
-    description: 'Search companies by name, industry, or alias.',
+    description:
+      'Search companies by name or alias, industry, and exact office location labels. Multiple locations match any selected label; combine with other filters using AND.',
     readOnly: true,
     inputSchema: companySearchArgs,
     outputSchema: pageOutput(companySchema),
@@ -495,7 +498,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'create_company',
     title: 'Create company',
-    description: 'Create a company with industries and aliases.',
+    description: 'Create a company with industries, aliases, and office location labels.',
     readOnly: false,
     inputSchema: createCompanyArgs,
     outputSchema: itemOutput(companySchema),
@@ -505,7 +508,8 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'update_company',
     title: 'Update company',
-    description: 'Update a company, its industries, aliases, or favorite state.',
+    description:
+      'Update a company, its industries, aliases, office locations, or favorite state. Omit locations to preserve them; an empty array clears them.',
     readOnly: false,
     idempotent: true,
     inputSchema: updateCompanyArgs,

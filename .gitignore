@@ -37,6 +37,13 @@ chat-uploads/
 !tests/fixtures/v1/resumes/*
 !tests/fixtures/v1/chat-uploads/
 !tests/fixtures/v1/chat-uploads/*
+!tests/fixtures/v2/config.json
+!tests/fixtures/v2/data/
+!tests/fixtures/v2/data/zhiji.db
+!tests/fixtures/v2/resumes/
+!tests/fixtures/v2/resumes/*
+!tests/fixtures/v2/chat-uploads/
+!tests/fixtures/v2/chat-uploads/*
 
 # Operating-system files
 .DS_Store
@@ -45,3 +52,7 @@ Thumbs.db
 # Rust build outputs
 native/bootstrap/target/
 tools/
+bz-personal-showcase/
+jobtrail-website/
+/.jobtrail-company-catalog.lock
+/resource/jobtrail-company-catalog.json.*.bak

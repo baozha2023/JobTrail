@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
+import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -12,19 +13,6 @@ const runtime = path.join(dataRoot, '.runtime', 'current')
 const screenshots = path.join(project, 'dist', 'qa')
 const errors = []
 let application
-
-// Link immutable program files only. All writes use a new, unregistered data root.
-function linkProgram(from, to) {
-  fs.mkdirSync(to, { recursive: true })
-  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
-    if (['config.json', 'data', 'resumes', 'chat-uploads', '.runtime'].includes(entry.name))
-      continue
-    assert.ok(!entry.isSymbolicLink(), 'Packaged program must not contain links')
-    const target = path.join(to, entry.name)
-    if (entry.isDirectory()) linkProgram(path.join(from, entry.name), target)
-    else fs.linkSync(path.join(from, entry.name), target)
-  }
-}
 
 async function launch() {
   const env = { ...process.env, APPDATA: staging, LOCALAPPDATA: staging }
@@ -46,7 +34,7 @@ async function launch() {
 }
 
 try {
-  linkProgram(source, runtime)
+  linkPackagedProgram(source, runtime)
   // Provide the real launcher without registering this synthetic installation.
   fs.copyFileSync(
     path.join(project, 'native', 'bootstrap', 'target', 'debug', 'launcher.exe'),
@@ -57,7 +45,10 @@ try {
   const created = await page.evaluate(async () => {
     const api = window.zhijiApi
     const statuses = await api.statuses.list()
-    const company = await api.companies.create({ name: '正式版验收合成公司' })
+    const company = await api.companies.create({
+      name: '正式版验收合成公司',
+      locations: ['北京', '上海', '杭州'],
+    })
     const opportunity = await api.opportunities.create({
       companyId: company.id,
       title: '正式版验收合成岗位',
@@ -77,6 +68,13 @@ try {
   )
   assert.equal(persisted.companyId, created.companyId)
   assert.equal(persisted.title, '正式版验收合成岗位')
+  assert.deepEqual(
+    await page.evaluate(
+      async (id) => (await window.zhijiApi.companies.get(id)).locations,
+      created.companyId,
+    ),
+    ['上海', '北京', '杭州'],
+  )
   await page.getByText('正式版验收合成岗位', { exact: true }).waitFor()
   await page.screenshot({ path: path.join(screenshots, 'desktop-opportunities.png') })
   for (const name of ['日历', '公司管理', '状态管理', '行业分类', '简历版本', '智能体', '设置']) {
@@ -125,6 +123,29 @@ try {
   await dropdown.getByText('树形验收二级', { exact: true }).click()
   assert.equal(await modal.locator('.n-cascader .n-tag:visible').innerText(), '树形验收二级')
   await modal.getByPlaceholder('请输入公司名称').click()
+  const locationInput = modal.locator('.company-location-select input')
+  await modal.locator('.company-location-select .n-select').click()
+  await locationInput.fill('北京')
+  await page.locator('.n-base-select-menu:visible').getByText('北京', { exact: true }).click()
+  const customLocation = '苏州·桌面验收地点'
+  await locationInput.fill(customLocation)
+  await page
+    .locator('.n-base-select-menu:visible')
+    .getByText(customLocation, { exact: true })
+    .waitFor()
+  await locationInput.press('Enter')
+  await modal.getByPlaceholder('请输入公司名称').click()
+  await page.screenshot({ path: path.join(screenshots, 'desktop-company-location-editor.png') })
+  assert.equal(
+    await modal.locator('.company-location-select [role="alert"]').count(),
+    0,
+    await modal.innerText(),
+  )
+  assert.equal(
+    await modal.locator('.company-location-select .n-tag:visible').count(),
+    2,
+    await modal.innerText(),
+  )
   await modal.getByRole('button', { name: '保存', exact: true }).click()
   await modal.waitFor({ state: 'hidden' })
   const treeCompany = await page.evaluate(async () =>
@@ -132,6 +153,18 @@ try {
   )
   assert.equal(treeCompany.industryIds.length, 1)
   assert.equal(treeCompany.industryName, '农、林、牧、渔业 / 树形验收二级')
+  assert.equal(
+    Object.hasOwn(treeCompany, 'locations'),
+    false,
+    'association lists contain summaries only',
+  )
+  assert.deepEqual(
+    await page.evaluate(
+      async (id) => (await window.zhijiApi.companies.get(id)).locations,
+      treeCompany.id,
+    ),
+    ['北京', customLocation],
+  )
   await page.locator('.company-industry-filter').click()
   assert.equal(await dropdown.locator('.n-checkbox').count(), 0)
   await dropdown.getByText('农、林、牧、渔业', { exact: true }).click()
@@ -147,6 +180,20 @@ try {
     '树形验收二级',
   )
   await page.screenshot({ path: path.join(screenshots, 'desktop-company-cascader-filter.png') })
+  await page.getByRole('heading', { name: '公司管理', exact: true }).click()
+  const locationFilter = page.locator('.company-location-select').first()
+  await locationFilter.locator('.n-select').click()
+  await locationFilter.locator('input').fill('苏州·桌面验收')
+  await page
+    .locator('.n-base-select-menu:visible')
+    .getByText(customLocation, { exact: true })
+    .click()
+  await page.getByRole('heading', { name: '公司管理', exact: true }).click()
+  await page.getByText('树形验收公司', { exact: true }).waitFor()
+  assert.equal(await page.locator('.n-data-table-tbody tr').count(), 1)
+  await page.screenshot({ path: path.join(screenshots, 'desktop-company-locations.png') })
+  await locationFilter.hover()
+  await locationFilter.locator('.n-base-clear').click()
   await page.evaluate(async ({ id, industryIds }) => {
     await window.zhijiApi.companies.delete(id)
     await window.zhijiApi.industries.delete(industryIds[0])
@@ -230,11 +277,17 @@ try {
         title: opportunity.title,
         months: config.companyReadValidityMonths,
         conversationExists: conversations.some((c) => c.id === conversationId),
+        locations: (await window.zhijiApi.companies.get(opportunity.companyId)).locations,
       }
     },
     { ...created, ...attachment },
   )
-  assert.deepEqual(recovered, { title: '正式版验收合成岗位', months: 7, conversationExists: true })
+  assert.deepEqual(recovered, {
+    title: '正式版验收合成岗位',
+    months: 7,
+    conversationExists: true,
+    locations: ['上海', '北京', '杭州'],
+  })
   await page.locator('.sidebar').getByText('设置', { exact: true }).click()
   await page.getByRole('button', { name: '导出备份', exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: path.join(screenshots, 'desktop-backup.png') })

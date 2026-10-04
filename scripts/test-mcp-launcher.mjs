@@ -11,7 +11,7 @@ const homeCargo = process.env.USERPROFILE
 const cargo = process.env.CARGO ?? (homeCargo && fs.existsSync(homeCargo) ? homeCargo : 'cargo')
 const build = spawnSync(
   cargo,
-  ['build', '--manifest-path', 'native/bootstrap/Cargo.toml', '--bin', 'launcher'],
+  ['build', '--locked', '--manifest-path', 'native/bootstrap/Cargo.toml', '--bin', 'launcher'],
   { stdio: 'inherit', shell: false },
 )
 if (build.error) throw build.error

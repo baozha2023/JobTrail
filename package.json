@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -13,7 +13,7 @@
     "dev": "electron-vite dev",
     "build": "pnpm typecheck && electron-vite build",
     "typecheck": "vue-tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
-    "test": "node --test scripts/resolve-velopack-baseline.test.mjs scripts/release-proxy.test.mjs scripts/company-catalog-assets.test.mjs scripts/finalize-velopack-assets.test.mjs && node scripts/run-vitest-electron.mjs --maxWorkers=1 --testTimeout=30000",
+    "test": "node --test \"scripts/*.test.mjs\" && node scripts/run-vitest-electron.mjs --maxWorkers=1 --testTimeout=30000",
     "test:watch": "node scripts/run-vitest-electron.mjs --watch",
     "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
@@ -41,7 +41,7 @@
     "dompurify": "^3.4.16",
     "marked": "^18.0.13",
     "pdf-parse": "2.4.5",
-    "playwright": "1.58.2",
+    "playwright": "1.63.0",
     "velopack": "1.2.0",
     "word-extractor": "1.0.4",
     "yauzl": "3.4.0",

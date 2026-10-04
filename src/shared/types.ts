@@ -212,7 +212,7 @@ export interface Status {
   updatedAt: number
 }
 
-export interface Company {
+export interface CompanySummary {
   id: number
   name: string
   industryIds: number[]
@@ -224,6 +224,10 @@ export interface Company {
   isFavorite: boolean
   createdAt: number
   updatedAt: number
+}
+
+export interface Company extends CompanySummary {
+  locations: string[]
 }
 
 export interface Industry {
@@ -314,6 +318,7 @@ export interface CalendarReminderNotification {
 
 export interface CreateCompanyInput {
   name: string
+  locations?: string[]
   industryIds?: number[]
   careerUrl?: string | null
   aliases?: string[]
@@ -377,6 +382,11 @@ export interface PageResult<T> extends PageQuery {
 export interface CompanyQuery extends PageQuery {
   keyword?: string
   industryId?: number | null
+  locations?: string[]
+}
+
+export interface CompanyLocationQuery extends PageQuery {
+  prefix?: string
 }
 
 export interface OpportunityQuery extends PageQuery {
@@ -492,7 +502,8 @@ export interface ZhijiApi {
   }
   companies: {
     search(query: CompanyQuery): Promise<PageResult<Company>>
-    list(): Promise<Company[]>
+    searchLocations(query: CompanyLocationQuery): Promise<PageResult<string>>
+    list(): Promise<CompanySummary[]>
     get(id: number): Promise<Company>
     markRead(id: number): Promise<Company>
     create(input: CreateCompanyInput): Promise<Company>

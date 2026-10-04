@@ -80,7 +80,7 @@ describe('JobTrail MCP server', () => {
       { name: 'jobtrail-test', version: '1.0.0' },
       {
         capabilities: supportsConfirmation ? { elicitation: {} } : {},
-        ...(modern ? { versionNegotiation: { mode: { pin: '2026-07-28' as const } } } : {}),
+        versionNegotiation: { mode: modern ? { pin: '2026-07-28' } : 'legacy' },
       },
     )
     if (supportsConfirmation) {
@@ -90,6 +90,8 @@ describe('JobTrail MCP server', () => {
       })
     }
     await client.connect(clientTransport)
+    expect(client.getProtocolEra()).toBe(modern ? 'modern' : 'legacy')
+    expect(client.getNegotiatedProtocolVersion()).toBe(modern ? '2026-07-28' : '2025-11-25')
     clients.push(client)
     return client
   }
@@ -263,6 +265,50 @@ describe('JobTrail MCP server', () => {
       expect(JSON.parse(serializeMcpResult(result.structuredContent))).toMatchObject({
         error: { code: 'WEB_UNAVAILABLE', details: { retryExhausted: true } },
       })
+    },
+  )
+
+  it.each([false, true])(
+    'round-trips company locations with confirmation (modern=%s)',
+    async (modern) => {
+      const confirmation = vi.fn()
+      const locations = ['McpLocationFixture 上海', 'McpLocationFixture 北京']
+      const locationQuery = { page: 1, pageSize: 50, prefix: 'McpLocationFixture' }
+      const client = await connect(modern, 'accept', confirmation)
+      const created = (
+        await call(client, 'create_company', {
+          input: {
+            name: 'Locations MCP',
+            locations: [` ${locations[1]} `, locations[0], locations[1]],
+          },
+        })
+      ).item as { id: number; locations: string[] }
+      expect(created.locations).toEqual(locations)
+      expect(confirmation).toHaveBeenCalledOnce()
+      expect(
+        await call(client, 'search_companies', {
+          locations,
+          page: 1,
+          pageSize: 10,
+        }),
+      ).toMatchObject({ total: 1, items: [created] })
+      expect(
+        await call(client, 'update_company', { id: created.id, input: { isFavorite: true } }),
+      ).toMatchObject({ item: { locations: created.locations } })
+      const declined = await connect(modern, 'decline')
+      expect(
+        (
+          await declined.callTool({
+            name: 'update_company',
+            arguments: { id: created.id, input: { locations: ['McpLocationFixture 杭州'] } },
+          })
+        ).isError,
+      ).toBe(true)
+      expect(container!.services.companies.searchLocations(locationQuery).items).toEqual(locations)
+      expect(
+        await call(client, 'update_company', { id: created.id, input: { locations: [] } }),
+      ).toMatchObject({ item: { locations: [] } })
+      expect(container!.services.companies.searchLocations(locationQuery).items).toEqual([])
     },
   )
 

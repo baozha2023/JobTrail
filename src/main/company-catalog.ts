@@ -3,7 +3,7 @@ import { z } from 'zod'
 import bundledCatalogText from '../../resource/jobtrail-company-catalog.json?raw'
 import { AppServiceError } from './services/errors'
 
-export const COMPANY_CATALOG_FORMAT_VERSION = 1
+export const COMPANY_CATALOG_FORMAT_VERSION = 2
 export const MAX_COMPANY_CATALOG_BYTES = 2 * 1024 * 1024
 export const COMPANY_CATALOG_ASSET_NAME = 'jobtrail-company-catalog.json'
 export const COMPANY_CATALOG_MANIFEST_ASSET_NAME = 'jobtrail-company-catalog.manifest.json'
@@ -24,6 +24,7 @@ const catalogEntrySchema = z.strictObject({
   industryKeys: z.array(z.string().regex(UUID_V4)).min(1).max(1_000),
   careerUrl: z.string().max(2048).nullable(),
   aliases: z.array(normalizedText(200)).max(100),
+  locations: z.array(normalizedText(200)).max(100),
 })
 
 const catalogIndustrySchema = z.strictObject({
@@ -93,6 +94,7 @@ export function parseCompanyCatalog(value: unknown): CompanyCatalogDocument {
     )
       throw invalidCatalog()
     if (new Set(company.aliases).size !== company.aliases.length) throw invalidCatalog()
+    if (new Set(company.locations).size !== company.locations.length) throw invalidCatalog()
     if (company.aliases.includes(company.name)) throw invalidCatalog()
     if (company.careerUrl !== null) {
       let url: URL

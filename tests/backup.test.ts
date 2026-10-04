@@ -19,6 +19,7 @@ import {
   recoverBackupWork,
 } from '../src/main/backup-restore'
 import { updateFreezePath } from '../src/main/update-freeze'
+import { version as currentVersion } from '../package.json'
 
 const roots: string[] = []
 const containers: ReturnType<typeof createServiceContainer>[] = []
@@ -45,7 +46,7 @@ function fixture() {
 function importWork(root: string) {
   return fs.mkdtempSync(path.join(root, 'import-'))
 }
-async function backup(f: ReturnType<typeof fixture>, version = '1.0.0') {
+async function backup(f: ReturnType<typeof fixture>, version = currentVersion) {
   return exportBackup(f.paths, f.container.database, f.config, version, f.archive, f.work)
 }
 
@@ -104,58 +105,77 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
   )
 }
 
-it('imports an authentic v1 payload, migrates it, exports v2 and restores again', async () => {
-  const f = fixture()
-  await backup(f)
-  await rewrite(f.archive, (entries) => {
-    entries.set('data/zhiji.db', fs.readFileSync('tests/fixtures/v1/data/zhiji.db'))
-    entries.set(
-      'config.json',
-      Buffer.from(
-        JSON.stringify(decryptConfig(fs.readFileSync('tests/fixtures/v1/config.json', 'utf8'))),
-      ),
+it.each([1, 2])(
+  'imports an authentic v%i payload, migrates it, exports v3 and restores again',
+  async (version) => {
+    const f = fixture()
+    await backup(f)
+    await rewrite(f.archive, (entries) => {
+      entries.set('data/zhiji.db', fs.readFileSync(`tests/fixtures/v${version}/data/zhiji.db`))
+      entries.set(
+        'config.json',
+        Buffer.from(
+          JSON.stringify(
+            decryptConfig(fs.readFileSync(`tests/fixtures/v${version}/config.json`, 'utf8')),
+          ),
+        ),
+      )
+      const manifest = JSON.parse(entries.get('manifest.json')!.toString())
+      manifest.databaseVersion = version
+      manifest.configVersion = 1
+      manifest.appVersion = version === 1 ? '1.0.0' : '1.4.0'
+      for (const item of manifest.files) {
+        const data = entries.get(item.path)!
+        item.size = data.length
+        item.sha256 = createHash('sha256').update(data).digest('hex')
+      }
+      entries.set('manifest.json', Buffer.from(JSON.stringify(manifest)))
+    })
+    const original = fs.readFileSync(f.archive)
+    const prepared = await importBackup(f.archive, importWork(f.paths.root))
+    expect(fs.readFileSync(f.archive)).toEqual(original)
+    f.container.database.close()
+    fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
+    stageRestore(f.paths, prepared.directory)
+    recoverRestore(f.paths)
+    const restored = createServiceContainer(f.paths, false)
+    containers.push(restored)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(3)
+    expect(restored.database.db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(
+      0,
     )
-    const manifest = JSON.parse(entries.get('manifest.json')!.toString())
-    manifest.databaseVersion = 1
-    manifest.configVersion = 1
-    manifest.appVersion = '1.0.0'
-    for (const item of manifest.files) {
-      const data = entries.get(item.path)!
-      item.size = data.length
-      item.sha256 = createHash('sha256').update(data).digest('hex')
-    }
-    entries.set('manifest.json', Buffer.from(JSON.stringify(manifest)))
-  })
-  const original = fs.readFileSync(f.archive)
-  const prepared = await importBackup(f.archive, importWork(f.paths.root))
-  expect(fs.readFileSync(f.archive)).toEqual(original)
-  f.container.database.close()
-  fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
-  stageRestore(f.paths, prepared.directory)
-  recoverRestore(f.paths)
-  const restored = createServiceContainer(f.paths, false)
-  containers.push(restored)
-  expect(restored.database.db.pragma('user_version', { simple: true })).toBe(2)
-  expect(restored.database.db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
-  const chats = restored.database.db.prepare('SELECT * FROM agent_chat_events').all()
-  const secondArchive = path.join(f.paths.root, 'upgraded.jobtrail-backup')
-  const manifest = await exportBackup(
-    f.paths,
-    restored.database,
-    new ConfigService(f.paths),
-    '1.3.0',
-    secondArchive,
-    importWork(f.paths.root),
-  )
-  expect(manifest.databaseVersion).toBe(2)
-  const second = await importBackup(secondArchive, importWork(f.paths.root))
-  restored.database.close()
-  stageRestore(f.paths, second.directory)
-  recoverRestore(f.paths)
-  const final = createServiceContainer(f.paths, false)
-  containers.push(final)
-  expect(final.database.db.prepare('SELECT * FROM agent_chat_events').all()).toEqual(chats)
-})
+    const chats = restored.database.db.prepare('SELECT * FROM agent_chat_events').all()
+    const answers = restored.database.db
+      .prepare('SELECT * FROM exam_answers ORDER BY question_id')
+      .all()
+    expect(answers).toHaveLength(version === 2 ? 3 : 0)
+    const located = restored.services.companies.create({
+      name: 'Location backup',
+      locations: ['上海', '北京'],
+    })
+    const secondArchive = path.join(f.paths.root, 'upgraded.jobtrail-backup')
+    const manifest = await exportBackup(
+      f.paths,
+      restored.database,
+      new ConfigService(f.paths),
+      currentVersion,
+      secondArchive,
+      importWork(f.paths.root),
+    )
+    expect(manifest.databaseVersion).toBe(3)
+    const second = await importBackup(secondArchive, importWork(f.paths.root))
+    restored.database.close()
+    stageRestore(f.paths, second.directory)
+    recoverRestore(f.paths)
+    const final = createServiceContainer(f.paths, false)
+    containers.push(final)
+    expect(final.database.db.prepare('SELECT * FROM agent_chat_events').all()).toEqual(chats)
+    expect(
+      final.database.db.prepare('SELECT * FROM exam_answers ORDER BY question_id').all(),
+    ).toEqual(answers)
+    expect(final.services.companies.get(located.id)).toEqual(located)
+  },
+)
 
 it('round-trips all exam types, draft answers, scores and interrupted jobs into a fresh installation', async () => {
   const f = fixture(),
@@ -467,6 +487,26 @@ describe('complete backup and restore', () => {
         db.prepare('INSERT INTO company_industries VALUES(1,?,0)').run(root)
       if (kind === 'empty-builtin')
         db.prepare('DELETE FROM company_industries WHERE company_id=1').run()
+      await expect(backup(f)).rejects.toMatchObject({ code: 'BACKUP_SOURCE_INVALID' })
+    },
+  )
+
+  it.each(['orphan-location', 'missing-company', 'blank-location'])(
+    'rejects invalid v3 location data in exports: %s',
+    async (kind) => {
+      const f = fixture()
+      const company = f.container.services.companies.create({
+        name: 'Invalid locations',
+        locations: ['北京'],
+      })
+      const db = f.container.database.db
+      if (kind === 'orphan-location')
+        db.prepare('DELETE FROM company_locations WHERE company_id=?').run(company.id)
+      if (kind === 'missing-company')
+        db.prepare('UPDATE company_locations SET company_id=999999 WHERE company_id=?').run(
+          company.id,
+        )
+      if (kind === 'blank-location') db.prepare('UPDATE locations SET name=?').run(' ')
       await expect(backup(f)).rejects.toMatchObject({ code: 'BACKUP_SOURCE_INVALID' })
     },
   )

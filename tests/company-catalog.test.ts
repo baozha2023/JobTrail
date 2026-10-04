@@ -10,6 +10,7 @@ import {
   companyCatalogHash,
   parseCompanyCatalog,
   rawSha256,
+  parseCompanyCatalogText,
   type CompanyCatalogDocument,
 } from '../src/main/company-catalog'
 import { CompanyCatalogUpdater } from '../src/main/company-catalog-updater'
@@ -19,6 +20,7 @@ import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
 import { CompanyCatalogRepository } from '../src/main/repositories/company-catalog-repository'
+import { version as currentVersion } from '../package.json'
 
 function response(bytes: Uint8Array) {
   return new Response(new Uint8Array(bytes).buffer)
@@ -58,6 +60,30 @@ function nextCatalog(): CompanyCatalogDocument {
 }
 
 describe('内置公司目录更新', () => {
+  it('requires normalized unique locations and checks minimum client before format parsing', () => {
+    for (const locations of [
+      undefined,
+      null,
+      [' '],
+      [' 上海'],
+      ['上海', '上海'],
+      [1],
+      ['x'.repeat(201)],
+      Array(101).fill('上海'),
+    ]) {
+      const source = structuredClone(BUNDLED_COMPANY_CATALOG)
+      Object.assign(source.companies[0], { locations })
+      expect(() => parseCompanyCatalog(source)).toThrowError(
+        expect.objectContaining({ code: 'CATALOG_INVALID' }),
+      )
+    }
+    expect(() =>
+      parseCompanyCatalogText(JSON.stringify(BUNDLED_COMPANY_CATALOG), '1.4.0'),
+    ).toThrowError(expect.objectContaining({ code: 'CATALOG_APP_UPDATE_REQUIRED' }))
+    expect(
+      parseCompanyCatalogText(JSON.stringify(BUNDLED_COMPANY_CATALOG), '1.5.0').formatVersion,
+    ).toBe(2)
+  })
   let root: string
   let database: DatabaseManager
   let services: Services
@@ -109,6 +135,27 @@ describe('内置公司目录更新', () => {
         .all(companyId) as Array<{ id: number; alias: string; createdAt: number }>,
     }
   }
+
+  it('seeds every bundled company location and shares dictionary entries across companies', () => {
+    const rows = database.db.prepare('SELECT id, builtin_key FROM companies').all() as Array<{
+      id: number
+      builtin_key: string
+    }>
+    const ids = new Map(rows.map((row) => [row.builtin_key, row.id]))
+    for (const company of BUNDLED_COMPANY_CATALOG.companies) {
+      expect(new Set(services.companies.get(ids.get(company.builtinKey)!).locations)).toEqual(
+        new Set(company.locations),
+      )
+    }
+    const locations = database.db.prepare('SELECT name FROM locations').all() as Array<{
+      name: string
+    }>
+    const expected = new Set(
+      BUNDLED_COMPANY_CATALOG.companies.flatMap((company) => company.locations),
+    )
+    expect(locations).toHaveLength(expected.size)
+    expect(new Set(locations.map((location) => location.name))).toEqual(expected)
+  })
 
   it('keeps industry and alias rows when only a company field changes', () => {
     const company = services.companies.get(1)
@@ -188,6 +235,7 @@ describe('内置公司目录更新', () => {
     const before = relationRows(custom.id)
     const source = nextCatalog()
     source.companies.push({
+      locations: [],
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
       industryKeys: [leafKeys[1]!, leafKeys[2]!],
@@ -234,6 +282,7 @@ describe('内置公司目录更新', () => {
     }
     source.companies.splice(1, 1)
     source.companies.push({
+      locations: [],
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
       industryKeys: [leafKeys[2]!],
@@ -455,7 +504,7 @@ describe('内置公司目录更新', () => {
     const updater = new CompanyCatalogUpdater(
       services.companyCatalog,
       async () => responses.shift()!,
-      () => '0.5.0',
+      () => currentVersion,
     )
     await expect(updater.update(() => undefined)).rejects.toMatchObject({
       code: 'CATALOG_HASH_MISMATCH',
@@ -471,7 +520,7 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => missingResponse,
-        () => '0.5.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({
       code: 'CATALOG_ASSET_MISSING',
@@ -484,7 +533,7 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => responses.shift()!,
-        () => '0.5.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_ASSET_MISSING' })
     expect(services.companyCatalog.status().catalogVersion).toBe(
@@ -498,7 +547,7 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => failedResponse,
-        () => '0.5.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({
       code: 'CATALOG_DOWNLOAD_FAILED',
@@ -517,7 +566,7 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => oversizedResponses.shift()!,
-        () => '0.5.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_TOO_LARGE' })
 
@@ -527,7 +576,7 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => malformedResponses.shift()!,
-        () => '0.5.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_INVALID' })
 
@@ -538,18 +587,18 @@ describe('内置公司目录更新', () => {
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => newerResponses.shift()!,
-        () => '1.0.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
 
-    const future = { ...newer, formatVersion: 2, companies: [{ unsupportedField: true }] }
+    const future = { ...newer, formatVersion: 3, companies: [{ unsupportedField: true }] }
     const futureBytes = new TextEncoder().encode(JSON.stringify(future))
     const futureResponses = [response(manifest(futureBytes)), response(futureBytes)]
     await expect(
       new CompanyCatalogUpdater(
         services.companyCatalog,
         async () => futureResponses.shift()!,
-        () => '1.0.0',
+        () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
   })
@@ -561,7 +610,7 @@ describe('内置公司目录更新', () => {
         new Promise<Response>((_resolve, reject) => {
           signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
         }),
-      () => '0.5.0',
+      () => currentVersion,
     )
     const active = updater.update(() => undefined)
     await expect(updater.update(() => undefined)).rejects.toMatchObject({
@@ -580,7 +629,7 @@ describe('内置公司目录更新', () => {
           new Promise<Response>((_resolve, reject) => {
             signal.addEventListener('abort', () => reject(new Error('timeout')), { once: true })
           }),
-        () => '0.5.0',
+        () => currentVersion,
       )
       const update = updater.update(() => undefined)
       const rejection = expect(update).rejects.toMatchObject({

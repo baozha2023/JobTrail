@@ -1,6 +1,7 @@
 import type {
   CalendarRange,
   CompanyQuery,
+  CompanyLocationQuery,
   CreateCalendarEventInput,
   CreateCompanyInput,
   CreateIndustryInput,
@@ -16,6 +17,7 @@ import type {
   UpdateStatusInput,
 } from '../../shared/types'
 import { AppServiceError, assertNonEmptyUpdate } from '../services/errors'
+import { companyLocationsInput, companyLocationPrefix } from '../services/company-location-input'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -152,13 +154,20 @@ export function parseCompany(
   partial: boolean,
 ): CreateCompanyInput | UpdateCompanyInput {
   const source = record(value, '公司')
-  assertOnlyKeys(source, ['name', 'industryIds', 'careerUrl', 'aliases', 'isFavorite'], '公司')
+  assertOnlyKeys(
+    source,
+    ['name', 'industryIds', 'careerUrl', 'aliases', 'isFavorite', 'locations'],
+    '公司',
+  )
   const name = stringValue(source.name, '公司名称', !partial)
   const industryIds =
     source.industryIds === undefined ? undefined : ids(source.industryIds, '行业分类 ID')
   const careerUrl = nullableString(source.careerUrl, '招聘官网')
   const companyAliases = aliases(source.aliases)
   const input: UpdateCompanyInput = {
+    ...(source.locations === undefined
+      ? {}
+      : { locations: companyLocationsInput(source.locations) }),
     ...(name === undefined ? {} : { name }),
     ...(industryIds === undefined ? {} : { industryIds }),
     ...(careerUrl === undefined ? {} : { careerUrl }),
@@ -308,7 +317,7 @@ export function parseOpportunityQuery(value: unknown): OpportunityQuery {
 
 export function parseCompanyQuery(value: unknown): CompanyQuery {
   const source = record(value, '公司查询')
-  assertOnlyKeys(source, ['page', 'pageSize', 'keyword', 'industryId'], '公司查询')
+  assertOnlyKeys(source, ['page', 'pageSize', 'keyword', 'industryId', 'locations'], '公司查询')
   const query: CompanyQuery = {
     page: numberValue(source.page, '页码'),
     pageSize: numberValue(source.pageSize, '每页数量'),
@@ -317,7 +326,18 @@ export function parseCompanyQuery(value: unknown): CompanyQuery {
   const industryId = nullableInteger(source.industryId, '行业分类 ID')
   if (keyword !== undefined) query.keyword = keyword
   if (industryId !== undefined) query.industryId = industryId
+  if (source.locations !== undefined) query.locations = companyLocationsInput(source.locations)
   return query
+}
+
+export function parseCompanyLocationQuery(value: unknown): CompanyLocationQuery {
+  const source = record(value, '地点查询')
+  assertOnlyKeys(source, ['page', 'pageSize', 'prefix'], '地点查询')
+  return {
+    page: numberValue(source.page, '页码'),
+    pageSize: numberValue(source.pageSize, '每页数量'),
+    ...(source.prefix === undefined ? {} : { prefix: companyLocationPrefix(source.prefix) }),
+  }
 }
 
 export function parseResumeUpdate(value: unknown): UpdateResumeVersionInput {

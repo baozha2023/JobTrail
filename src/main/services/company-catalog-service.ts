@@ -21,6 +21,7 @@ function matchesCatalog(current: CatalogCompanySnapshot, entry: ResolvedCatalogC
     current.name === entry.name &&
     current.builtinKey === entry.builtinKey &&
     current.careerUrl === entry.careerUrl &&
+    sameValues(current.locations, entry.locations) &&
     sameValues(current.industryIds, entry.industryIds) &&
     sameValues(current.aliases, entry.aliases)
   )
@@ -68,6 +69,7 @@ export class CompanyCatalogService {
         let updated = 0
         let adopted = 0
         let unchanged = 0
+        const removedLocationIds: number[] = []
 
         const industryIds = this.industries.synchronize(catalog.industries, timestamp)
         for (const source of catalog.companies) {
@@ -91,7 +93,7 @@ export class CompanyCatalogService {
               )
             if (matchesCatalog(keyed, entry)) unchanged += 1
             else {
-              this.repository.updateCatalogData(keyed, entry, timestamp)
+              removedLocationIds.push(...this.repository.updateCatalogData(keyed, entry, timestamp))
               updated += 1
             }
             continue
@@ -104,7 +106,9 @@ export class CompanyCatalogService {
                 'CATALOG_CONFLICT',
                 '本地公司或行业与新目录存在名称冲突，请检查后重试',
               )
-            this.repository.updateCatalogData(sameName, entry, timestamp)
+            removedLocationIds.push(
+              ...this.repository.updateCatalogData(sameName, entry, timestamp),
+            )
             adopted += 1
           } else {
             this.repository.insert(entry, timestamp)
@@ -112,6 +116,7 @@ export class CompanyCatalogService {
           }
         }
 
+        this.repository.deleteUnusedLocations(removedLocationIds)
         const convertedToCustom = this.repository.convertOmittedToCustom(
           catalog.companies.map((company) => company.builtinKey),
           timestamp,

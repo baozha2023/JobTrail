@@ -1,4 +1,6 @@
 import fs from 'node:fs'
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
@@ -7,6 +9,7 @@ import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { chromium } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
+import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const packageVersion = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')).version
 const inheritedEnvironment = Object.fromEntries(
@@ -24,10 +27,18 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
   })
   const client = new Client(
     { name: `jobtrail-packaged-smoke-${name}`, version: packageVersion },
-    clientOptions,
+    { versionNegotiation: { mode: 'legacy' }, ...clientOptions },
   )
   try {
     await client.connect(transport)
+    const modernVersion = clientOptions.versionNegotiation?.mode?.pin
+    assert.equal(client.getProtocolEra(), modernVersion ? 'modern' : 'legacy')
+    assert.equal(client.getNegotiatedProtocolVersion(), modernVersion ?? '2025-11-25')
+    assert.equal(
+      client.getServerVersion()?.version,
+      packageVersion,
+      'Rebuild the stale packaged MCP server',
+    )
     const tools = await client.listTools()
     if (tools.tools.length !== 42 || new Set(tools.tools.map((tool) => tool.name)).size !== 42) {
       throw new Error(`${name}: expected 42 unique tools, received ${tools.tools.length}`)
@@ -62,6 +73,35 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       if (!expired.isError || expired.structuredContent?.error?.code !== 'WEB_CURSOR_EXPIRED') {
         throw new Error(`${name}: packaged web cursor call did not return WEB_CURSOR_EXPIRED`)
       }
+      config.mcp.requireWriteConfirmation = false
+      fs.writeFileSync(configPath, encodeTestConfig(config))
+      const call = async (tool, args) => {
+        const result = await client.callTool({ name: tool, arguments: args })
+        assert.notEqual(result.isError, true, `${name}: ${tool} failed`)
+        return result.structuredContent
+      }
+      const company = (
+        await call('create_company', {
+          input: { name: `Location smoke ${name}`, locations: [' 北京 ', '上海', '北京'] },
+        })
+      ).item
+      assert.deepEqual(company.locations, ['上海', '北京'])
+      assert.equal(
+        (
+          await call('search_companies', {
+            keyword: company.name,
+            locations: ['北京', '上海'],
+            page: 1,
+            pageSize: 50,
+          })
+        ).items.filter((item) => item.id === company.id).length,
+        1,
+      )
+      assert.deepEqual(
+        (await call('update_company', { id: company.id, input: { locations: [] } })).item.locations,
+        [],
+      )
+      await call('delete_company', { id: company.id })
     } finally {
       fs.writeFileSync(configPath, originalConfig)
     }
@@ -83,8 +123,28 @@ export async function smokeBrowser(executable) {
     'chrome-headless-shell.exe',
   )
   if (!fs.existsSync(browserPath)) throw new Error(`Packaged browser not found: ${browserPath}`)
-  const browser = await chromium.launch({ executablePath: browserPath, headless: true })
+  const browser = await chromium.launch({
+    executablePath: browserPath,
+    headless: true,
+    chromiumSandbox: true,
+    // Chromium exposes its command line only when this diagnostic flag is set.
+    args: ['--enable-automation'],
+  })
   try {
+    const playwrightRequire = createRequire(import.meta.resolve('playwright'))
+    const metadataPath = path.join(
+      path.dirname(playwrightRequire.resolve('playwright-core/package.json')),
+      'browsers.json',
+    )
+    const { browsers } = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+    assert.equal(
+      browser.version(),
+      browsers.find((entry) => entry.name === 'chromium-headless-shell')?.browserVersion,
+      'Rebuild the stale packaged browser',
+    )
+    const session = await browser.newBrowserCDPSession()
+    const { arguments: args } = await session.send('Browser.getBrowserCommandLine')
+    assert.ok(!args.includes('--no-sandbox'), 'Packaged browser sandbox must remain enabled')
     const page = await browser.newPage()
     await page.setContent('<h1>JobTrail browser smoke</h1>')
     if ((await page.locator('h1').textContent()) !== 'JobTrail browser smoke')
@@ -281,17 +341,6 @@ async function smokeRootConfigDialog(transportOptions, root) {
   }
 }
 
-function linkTree(source, destination) {
-  fs.mkdirSync(destination, { recursive: true })
-  for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
-    if (entry.name === 'logs') continue
-    const from = path.join(source, entry.name)
-    const to = path.join(destination, entry.name)
-    if (entry.isDirectory()) linkTree(from, to)
-    else fs.linkSync(from, to)
-  }
-}
-
 export async function smokeLauncher(executable, launcherSource) {
   if (!fs.existsSync(executable)) throw new Error(`Packaged executable not found: ${executable}`)
   if (!fs.existsSync(launcherSource)) throw new Error(`Root launcher not found: ${launcherSource}`)
@@ -300,7 +349,7 @@ export async function smokeLauncher(executable, launcherSource) {
   const root = path.join(staging, 'JobTrail')
   const runtime = path.join(root, '.runtime/current')
   try {
-    linkTree(path.dirname(executable), runtime)
+    linkPackagedProgram(path.dirname(executable), runtime)
     fs.copyFileSync(launcherSource, path.join(root, 'JobTrail.exe'))
     fs.writeFileSync(path.join(root, '.jobtrail-root'), 'jobtrail-root-v1\n')
     fs.writeFileSync(
@@ -360,7 +409,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     }
     delete desktopEnvironment.ELECTRON_RUN_AS_NODE
     const desktopRoot = path.join(root, 'desktop')
-    linkTree(path.dirname(executable), desktopRoot)
+    linkPackagedProgram(path.dirname(executable), desktopRoot)
     smokeInvalidConfig(
       'packaged-desktop-root-supervised',
       {

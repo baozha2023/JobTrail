@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { companyLocationsInputSchema } from '../../shared/company-locations'
 
 export const positiveIdSchema = z.number().int().positive()
 export const pageSchema = z.number().int().positive()
@@ -57,6 +58,7 @@ export const industrySchema = z.strictObject({
 })
 
 export const companySchema = z.strictObject({
+  locations: z.array(z.string()),
   id: positiveIdSchema,
   name: z.string(),
   industryIds: idList,
@@ -138,6 +140,7 @@ export const updateIndustryInputSchema = nonEmptyUpdate({
 })
 
 const companyInputShape = {
+  locations: companyLocationsInputSchema.optional(),
   name: requiredText,
   industryIds: idList.optional(),
   careerUrl: nullableText.optional(),
@@ -145,6 +148,7 @@ const companyInputShape = {
 }
 export const createCompanyInputSchema = z.strictObject(companyInputShape)
 export const updateCompanyInputSchema = nonEmptyUpdate({
+  locations: companyLocationsInputSchema.optional(),
   name: requiredText.optional(),
   industryIds: idList.optional(),
   careerUrl: nullableText.optional(),

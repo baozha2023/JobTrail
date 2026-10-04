@@ -6,6 +6,7 @@ import { FileStorageService } from './file-storage'
 import { CalendarEventRepository } from './repositories/calendar-event-repository'
 import { CompanyCatalogRepository } from './repositories/company-catalog-repository'
 import { CompanyRepository } from './repositories/company-repository'
+import { CompanyLocationRepository } from './repositories/company-location-repository'
 import { IndustryRepository } from './repositories/industry-repository'
 import { OpportunityRepository } from './repositories/opportunity-repository'
 import { OpportunityStatusEventRepository } from './repositories/opportunity-status-event-repository'
@@ -69,8 +70,9 @@ export function createServices(
 ): Services {
   const statusRepository = new StatusRepository(database.db)
   const industryRepository = new IndustryRepository(database.db)
-  const companyRepository = new CompanyRepository(database.db)
-  const companyCatalogRepository = new CompanyCatalogRepository(database.db)
+  const companyLocations = new CompanyLocationRepository(database.db)
+  const companyRepository = new CompanyRepository(database.db, companyLocations)
+  const companyCatalogRepository = new CompanyCatalogRepository(database.db, companyLocations)
   const resumeRepository = new ResumeRepository(database.db)
   const opportunityRepository = new OpportunityRepository(database.db)
   const opportunityStatusEvents = new OpportunityStatusEventRepository(database.db)

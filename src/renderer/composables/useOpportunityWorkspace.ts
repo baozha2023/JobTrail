@@ -2,7 +2,7 @@ import { ref, toRaw, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import type {
-  Company,
+  CompanySummary,
   CreateOpportunityInput,
   Opportunity,
   OpportunityStatusFlow,
@@ -11,7 +11,7 @@ import type {
 import { useOpportunitiesStore } from '../stores/opportunities'
 
 interface OpportunityWorkspaceOptions {
-  companies: Ref<Company[]>
+  companies: Ref<CompanySummary[]>
   statuses: Ref<Status[]>
   loadCalendar: () => Promise<void>
   showError: (error: unknown) => void

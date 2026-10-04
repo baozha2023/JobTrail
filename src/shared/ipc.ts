@@ -6,6 +6,8 @@ import type {
   CalendarEvent,
   CalendarRange,
   Company,
+  CompanySummary,
+  CompanyLocationQuery,
   CompanyQuery,
   CreateCalendarEventInput,
   CreateCompanyInput,
@@ -100,7 +102,8 @@ export interface IpcChannelMap {
   'industries:reorder': { args: [input: ReorderIndustriesInput]; result: Industry[] }
 
   'companies:search': { args: [query: CompanyQuery]; result: PageResult<Company> }
-  'companies:list': { args: []; result: Company[] }
+  'companies:list': { args: []; result: CompanySummary[] }
+  'companies:search-locations': { args: [query: CompanyLocationQuery]; result: PageResult<string> }
   'companies:get': { args: [id: number]; result: Company }
   'companies:mark-read': { args: [id: number]; result: Company }
   'companies:create': { args: [input: CreateCompanyInput]; result: Company }

@@ -25,7 +25,7 @@ function validateReleaseCatalog(value) {
   if (JSON.stringify(keys) !== JSON.stringify(expected))
     throw new Error('Company catalog has invalid root fields')
   if (
-    value.formatVersion !== 1 ||
+    value.formatVersion !== 2 ||
     !Number.isSafeInteger(value.catalogVersion) ||
     value.catalogVersion < 1
   )
@@ -91,6 +91,7 @@ function validateReleaseCatalog(value) {
       'builtinKey',
       'careerUrl',
       'industryKeys',
+      'locations',
       'name',
     ].sort()
     if (JSON.stringify(companyKeys) !== JSON.stringify(expectedCompanyKeys))
@@ -127,6 +128,19 @@ function validateReleaseCatalog(value) {
       if (!['http:', 'https:'].includes(url.protocol))
         throw new Error('Company catalog contains an invalid career URL')
     }
+    if (
+      !Array.isArray(company.locations) ||
+      company.locations.length > 100 ||
+      new Set(company.locations).size !== company.locations.length ||
+      company.locations.some(
+        (location) =>
+          typeof location !== 'string' ||
+          !location.length ||
+          location.length > 200 ||
+          location !== location.trim(),
+      )
+    )
+      throw new Error('Company catalog contains invalid locations')
     if (
       !Array.isArray(company.aliases) ||
       company.aliases.length > 100 ||

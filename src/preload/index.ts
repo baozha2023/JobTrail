@@ -178,6 +178,7 @@ const zhijiApi: ZhijiApi = {
     reorder: (input) => invoke('industries:reorder', input),
   },
   companies: {
+    searchLocations: (query) => invoke('companies:search-locations', query),
     search: (query) => invoke('companies:search', query),
     list: () => invoke('companies:list'),
     get: (id) => invoke('companies:get', id),

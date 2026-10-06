@@ -430,7 +430,6 @@ export interface ZhijiApi {
   diagnostics: {
     openDirectory(): Promise<void>
     exportBundle(): Promise<'cancelled' | 'exported'>
-    getStatus(): Promise<import('./diagnostics').DiagnosticsHealth>
   }
   exams: {
     get(input: ExamIdentity): Promise<ExamPaper>

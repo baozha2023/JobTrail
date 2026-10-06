@@ -1,7 +1,6 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { chromium, type Browser, type BrowserContext, type Page, type Route } from 'playwright'
+import { featureErrors } from '../../shared/feature-errors'
 import { AppServiceError } from './errors'
 import { captureWebScroll, scrollWebPage, type WebScrollCapture } from './web-scroll'
 import type { WebBudget } from './web-network'
@@ -47,16 +46,6 @@ async function acquire(signal: AbortSignal): Promise<() => void> {
     if (next) next()
     else activeBrowsers--
   }
-}
-
-function executablePath(): string | undefined {
-  const packaged = path.join(
-    path.dirname(process.execPath),
-    'resources',
-    'browser',
-    'chrome-headless-shell.exe',
-  )
-  return fs.existsSync(packaged) ? packaged : undefined
 }
 
 function responseCookies(
@@ -140,16 +129,25 @@ export class BrowserReader {
     }
     let browser: Browser | undefined
     try {
-      browser = await chromium.launch({
-        headless: true,
-        chromiumSandbox: true,
-        executablePath: executablePath(),
-        args: [
-          '--disable-quic',
-          '--disable-background-networking',
-          '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
-        ],
-      })
+      try {
+        browser = await chromium.launch({
+          channel: 'msedge',
+          headless: true,
+          chromiumSandbox: true,
+          args: [
+            '--disable-quic',
+            '--disable-background-networking',
+            '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+          ],
+        })
+      } catch (cause) {
+        throw new AppServiceError(
+          'WEB_BROWSER_UNAVAILABLE',
+          featureErrors['zh-CN'].WEB_BROWSER_UNAVAILABLE,
+          { stage: 'render', retryable: false },
+          { cause },
+        )
+      }
       const context = await browser.newContext({
         serviceWorkers: 'block',
         acceptDownloads: false,

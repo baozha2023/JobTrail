@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createErrorInput } from '../src/shared/diagnostics'
-import type { VelopackApi, ZhijiApi } from '../src/shared/types'
+import type { VelopackApi } from '../src/shared/types'
 
 const mocks = vi.hoisted(() => ({
   apis: new Map<string, unknown>(),
@@ -84,7 +84,7 @@ describe('preload diagnostic transport', () => {
   })
 })
 
-it('retries a diagnostic once with the same event ID and exposes transport degradation', async () => {
+it('retries a diagnostic once with the same event ID and emits a sanitized fallback', async () => {
   const report = mocks.apis.get('diagnosticsApi') as Window['diagnosticsApi']
   const input = createErrorInput('renderer', 'ui.failure', new Error('password=secret'))
   mocks.invoke.mockRejectedValue(new Error('transport down'))
@@ -95,12 +95,6 @@ it('retries a diagnostic once with the same event ID and exposes transport degra
     expect(mocks.invoke.mock.calls[0][1].eventId).toBe(mocks.invoke.mock.calls[1][1].eventId)
     expect(fallback).toHaveBeenCalledOnce()
     expect(JSON.stringify(fallback.mock.calls)).not.toContain('secret')
-    mocks.invoke.mockResolvedValue({ ok: true, data: { degraded: false, transportFailures: 0 } })
-    const api = mocks.apis.get('zhijiApi') as ZhijiApi
-    expect(await api.diagnostics.getStatus()).toMatchObject({
-      degraded: true,
-      transportFailures: 1,
-    })
   } finally {
     fallback.mockRestore()
   }

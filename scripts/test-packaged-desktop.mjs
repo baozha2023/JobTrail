@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { linkPackagedProgram, withoutSystemEdge } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -15,7 +15,7 @@ const errors = []
 let application
 
 async function launch() {
-  const env = { ...process.env, APPDATA: staging, LOCALAPPDATA: staging }
+  const env = withoutSystemEdge({ ...process.env, APPDATA: staging }, staging)
   delete env.ELECTRON_RUN_AS_NODE
   application = await electron.launch({
     executablePath: path.join(runtime, 'zhiji.exe'),
@@ -128,6 +128,8 @@ try {
   await locationInput.fill('北京')
   await page.locator('.n-base-select-menu:visible').getByText('北京', { exact: true }).click()
   const customLocation = '苏州·桌面验收地点'
+  // Keep the pointer off the menu so Enter cannot rely on mouse hover.
+  await modal.getByPlaceholder('请输入公司名称').hover()
   await locationInput.fill(customLocation)
   await page
     .locator('.n-base-select-menu:visible')

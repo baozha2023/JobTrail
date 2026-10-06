@@ -1,7 +1,10 @@
 import http from 'node:http'
 import zlib from 'node:zlib'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { chromium } from 'playwright'
+import * as diagnostics from '../src/main/diagnostics'
+import { featureErrors } from '../src/shared/feature-errors'
+import { normalizeDiagnosticError } from '../src/shared/diagnostics'
 import { AppServiceError } from '../src/main/services/errors'
 import { BrowserReader } from '../src/main/services/web-browser'
 import {
@@ -34,8 +37,109 @@ async function readBrowser(url: string, network: WebNetwork) {
   }
 }
 
+describe('system Edge availability', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  const url = 'https://example.test/edge'
+  const failure = () => new Error('spawn C:\\Users\\private-user\\Edge\\msedge.exe ENOENT')
+  function network() {
+    const value = new WebNetwork()
+    vi.spyOn(value, 'request').mockResolvedValue(
+      htmlResponse(url, '<main>已核实的静态内容</main><script>/* dynamic shell */</script>'),
+    )
+    return value
+  }
+
+  it('preserves the launch cause, hides machine paths, and releases failed launch slots', async () => {
+    const cause = failure()
+    const launch = vi.spyOn(chromium, 'launch').mockRejectedValue(cause)
+    const requestNetwork = network()
+    // More than two failed launches must complete without exhausting the browser slots.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const error = await BrowserReader.open(url, requestNetwork, budget()).catch(
+        (error: unknown) => error,
+      )
+      expect(error).toMatchObject({
+        code: 'WEB_BROWSER_UNAVAILABLE',
+        message: featureErrors['zh-CN'].WEB_BROWSER_UNAVAILABLE,
+        details: { stage: 'render', retryable: false },
+        cause,
+      })
+      expect(JSON.stringify(normalizeDiagnosticError(error))).not.toContain('private-user')
+    }
+    expect(launch).toHaveBeenCalledTimes(3)
+    launch.mockRestore()
+    expect((await readBrowser(url, requestNetwork)).html).toContain('已核实的静态内容')
+  })
+
+  it.each([{ render: 'dynamic' as const }, { render: 'auto' as const, scroll: true }])(
+    'reports an unavailable browser without retry for %j',
+    async (input) => {
+      const launch = vi.spyOn(chromium, 'launch').mockRejectedValue(failure())
+      const service = new WebRetrievalService(network())
+      try {
+        await expect(
+          service.read({ url, ...input }, new AbortController().signal),
+        ).rejects.toMatchObject({
+          code: 'WEB_BROWSER_UNAVAILABLE',
+          details: { stage: 'render', attempts: 1, retryable: false },
+        })
+        expect(launch).toHaveBeenCalledOnce()
+      } finally {
+        await service.dispose()
+      }
+    },
+  )
+
+  it('keeps static reads browser-free and marks auto fallback as incomplete', async () => {
+    const launch = vi.spyOn(chromium, 'launch').mockRejectedValue(failure())
+    const capture = vi.spyOn(diagnostics, 'captureError')
+    const service = new WebRetrievalService(network())
+    try {
+      const staticPage = await service.read({ url, render: 'static' }, new AbortController().signal)
+      expect(staticPage.text).toContain('已核实的静态内容')
+      expect(staticPage.incompleteReason).toBeNull()
+      expect(launch).not.toHaveBeenCalled()
+      const autoPage = await service.read({ url, render: 'auto' }, new AbortController().signal)
+      expect(autoPage.text).toContain('已核实的静态内容')
+      expect(autoPage.incompleteReason).toBe(featureErrors['zh-CN'].WEB_BROWSER_UNAVAILABLE)
+      expect(autoPage.warnings.join(' ')).toContain('Microsoft Edge')
+      expect(JSON.stringify(autoPage)).not.toContain('private-user')
+      expect(launch).toHaveBeenCalledOnce()
+      expect(capture).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ code: 'WEB_BROWSER_UNAVAILABLE' }),
+        { operation: 'web.render-fallback' },
+      )
+    } finally {
+      await service.dispose()
+    }
+  })
+
+  it('preserves cancellation when Edge startup fails during an aborted request', async () => {
+    const controller = new AbortController()
+    const launch = vi.spyOn(chromium, 'launch').mockImplementation(async () => {
+      controller.abort()
+      throw failure()
+    })
+    await expect(
+      BrowserReader.open(url, network(), { ...budget(), signal: controller.signal }),
+    ).rejects.toMatchObject({ code: 'WEB_CANCELLED' })
+    expect(launch).toHaveBeenCalledOnce()
+  })
+
+  it('does not classify navigation failures as Edge startup failures', async () => {
+    const requestNetwork = new WebNetwork()
+    vi.spyOn(requestNetwork, 'request').mockRejectedValue(
+      new AppServiceError('WEB_BLOCKED', '网页拒绝访问'),
+    )
+    await expect(BrowserReader.open(url, requestNetwork, budget())).rejects.toMatchObject({
+      code: 'WEB_BLOCKED',
+    })
+  })
+})
+
 describe('public web reader', () => {
-  it('launches dynamic pages with the Chromium sandbox enabled', async () => {
+  it('launches system Edge with the Chromium sandbox enabled', async () => {
     const url = 'https://example.test/sandbox'
     const network = new WebNetwork()
     vi.spyOn(network, 'request').mockResolvedValue(htmlResponse(url, '<main>Sandbox</main>'))
@@ -44,8 +148,9 @@ describe('public web reader', () => {
     try {
       reader = await BrowserReader.open(url, network, budget())
       expect(launch).toHaveBeenCalledExactlyOnceWith(
-        expect.objectContaining({ chromiumSandbox: true }),
+        expect.objectContaining({ channel: 'msedge', headless: true, chromiumSandbox: true }),
       )
+      expect(launch.mock.calls[0]![0]).not.toHaveProperty('executablePath')
       expect(await reader.page.locator('main').textContent()).toBe('Sandbox')
     } finally {
       launch.mockRestore()

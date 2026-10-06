@@ -15,6 +15,7 @@ const releases = [
   { version: '1.2.0', commit: 'a430f37', databaseVersion: 1 },
   { version: '1.3.0', commit: '466709b', databaseVersion: 2 },
   { version: '1.4.0', commit: '4fd2727', databaseVersion: 2 },
+  { version: '1.5.0', commit: 'e4b6551', databaseVersion: 3 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -152,7 +153,13 @@ try {
     const historicalPackage = JSON.parse(fs.readFileSync(path.join(source, 'package.json'), 'utf8'))
     assert.equal(historicalPackage.version, release.version)
     const root = path.join(work, `historical-${release.version}`, 'JobTrail')
-    const baseline = path.join(project, 'tests', 'fixtures', `v${release.databaseVersion}`)
+    // The original 1.5.0 code upgrades the frozen v2 fixture to v3 itself.
+    const baseline = path.join(
+      project,
+      'tests',
+      'fixtures',
+      `v${Math.min(release.databaseVersion, 2)}`,
+    )
     fs.cpSync(baseline, root, { recursive: true })
     const configuration = decodeTestConfig(
       fs.readFileSync(path.join(root, 'config.json'), 'utf8'),
@@ -168,22 +175,27 @@ try {
 import fs from 'node:fs'; import path from 'node:path'; import { createHash } from 'node:crypto';
 import { ConfigService } from './src/main/config'; import { DatabaseManager } from './src/main/database';
 import { exportBackup } from './src/main/backup-archive';
+${release.databaseVersion >= 3 ? "import { CompanyLocationRepository } from './src/main/repositories/company-location-repository'; import { preparePersistenceUpgrade } from './src/main/persistence-migrations';" : ''}
 async function main() {
  const [root, archive, version] = process.argv.slice(2);
  const paths = {root,config:path.join(root,'config.json'),data:path.join(root,'data'),database:path.join(root,'data/zhiji.db'),resumes:path.join(root,'resumes'),chatUploads:path.join(root,'chat-uploads')};
- const config=new ConfigService(paths); const database=new DatabaseManager(paths);
+ const config=new ConfigService(paths);
+ ${release.databaseVersion >= 3 ? 'preparePersistenceUpgrade(paths.database, config.get());' : ''}
+ const database=new DatabaseManager(paths);
  try {
   if(database.db.pragma('user_version',{simple:true})!==${release.databaseVersion} || config.get().configVersion!==1) throw new Error('Historical version mismatch');
   database.db.prepare('UPDATE companies SET name=? WHERE name=?').run('Compatibility '+version, 'V1 基线样例公司');
+  ${release.databaseVersion >= 3 ? "const company=database.db.prepare('SELECT id FROM companies ORDER BY id LIMIT 1').get(); database.db.transaction(()=>new CompanyLocationRepository(database.db).synchronize(company.id,['升级验收地点甲','升级验收地点乙'],1))();" : ''}
   const tables=['builtin_company_catalog_state', 'opportunity_status_events', 'calendar_events', 'calendar_event_reminders', 'statuses','industries','companies','company_industries','company_aliases','resume_versions','opportunities','agent_conversations','agent_chat_events','agent_model_usage','chat_attachments','checkpoints','writes'];
-  if (${release.databaseVersion} === 2) tables.push('exam_papers', 'exam_questions', 'exam_answers');
+  if (${release.databaseVersion} >= 2) tables.push('exam_papers', 'exam_questions', 'exam_answers');
+  if (${release.databaseVersion} >= 3) tables.push('locations', 'company_locations');
   const files={}; for(const dir of ['resumes','chat-uploads']) for(const file of fs.readdirSync(path.join(root,dir))) files[dir+'/'+file]=createHash('sha256').update(fs.readFileSync(path.join(root,dir,file))).digest('hex');
   fs.writeFileSync(archive+'.expected.json',JSON.stringify({config:config.get(),rows:Object.fromEntries(tables.map(t=>[t,database.db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()])),files}));
   const work=fs.mkdtempSync(path.join(root,'export-')); const manifest=await exportBackup(paths,database,config,version,archive,work);
   fs.writeFileSync(archive+'.manifest.json',JSON.stringify(manifest));
  } finally {database.close()}
 }
-main().catch(()=>{console.error('Historical exporter failed');process.exitCode=1});
+main().catch((error)=>{console.error('Historical exporter failed', error);process.exitCode=1});
 `,
     )
     const output = path.join(work, `bundle-${release.version}`)
@@ -208,28 +220,30 @@ main().catch(()=>{console.error('Historical exporter failed');process.exitCode=1
     const manifest = JSON.parse(fs.readFileSync(archive + '.manifest.json', 'utf8'))
     assert.equal(manifest.databaseVersion, release.databaseVersion)
     assert.equal(manifest.configVersion, 1)
-    const beforeMcp = fs.readFileSync(path.join(root, 'data/zhiji.db'))
-    const beforeConfig = fs.readFileSync(path.join(root, 'config.json'))
-    const prematureMcp = spawnSync(
-      path.join(project, 'dist/win-unpacked/zhiji.exe'),
-      [path.join(project, 'dist/win-unpacked/resources/app.asar/out/main/mcp-node.js')],
-      {
-        env: {
-          ...process.env,
-          ELECTRON_RUN_AS_NODE: '1',
-          JOBTRAIL_MCP_ROOT: root,
-          JOBTRAIL_MCP_VERSION: clientVersion,
+    if (release.databaseVersion < 3) {
+      const beforeMcp = fs.readFileSync(path.join(root, 'data/zhiji.db'))
+      const beforeConfig = fs.readFileSync(path.join(root, 'config.json'))
+      const prematureMcp = spawnSync(
+        path.join(project, 'dist/win-unpacked/zhiji.exe'),
+        [path.join(project, 'dist/win-unpacked/resources/app.asar/out/main/mcp-node.js')],
+        {
+          env: {
+            ...process.env,
+            ELECTRON_RUN_AS_NODE: '1',
+            JOBTRAIL_MCP_ROOT: root,
+            JOBTRAIL_MCP_VERSION: clientVersion,
+          },
+          timeout: 15000,
+          windowsHide: true,
+          encoding: 'utf8',
         },
-        timeout: 15000,
-        windowsHide: true,
-        encoding: 'utf8',
-      },
-    )
-    assert.equal(prematureMcp.status, 78, 'MCP must refuse old data before desktop migration')
-    assert.equal(prematureMcp.stdout, '')
-    assert.equal(prematureMcp.stderr, '')
-    assert.deepEqual(fs.readFileSync(path.join(root, 'data/zhiji.db')), beforeMcp)
-    assert.deepEqual(fs.readFileSync(path.join(root, 'config.json')), beforeConfig)
+      )
+      assert.equal(prematureMcp.status, 78, 'MCP must refuse old data before desktop migration')
+      assert.equal(prematureMcp.stdout, '')
+      assert.equal(prematureMcp.stderr, '')
+      assert.deepEqual(fs.readFileSync(path.join(root, 'data/zhiji.db')), beforeMcp)
+      assert.deepEqual(fs.readFileSync(path.join(root, 'config.json')), beforeConfig)
+    }
     // v3 adds no data during migration; v1 also starts with empty exam tables.
     for (const table of [
       'locations',

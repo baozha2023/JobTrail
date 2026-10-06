@@ -9,7 +9,6 @@ import { AppServiceError } from '../services/errors'
 
 export function registerDiagnosticsIpc(): void {
   let exporting = false
-  registerChannel('diagnostics:status', () => getDiagnosticsHealth())
   registerChannel('diagnostics:open-directory', async () => {
     const failure = await shell.openPath(ensureLogDirectory(getStorageRoot()))
     if (failure)

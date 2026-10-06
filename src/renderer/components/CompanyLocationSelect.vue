@@ -15,7 +15,7 @@ const items = ref<string[]>([])
 const loading = ref(false)
 const error = ref('')
 const total = ref(0)
-let page = 0
+const page = ref(0)
 const prefix = ref('')
 let open = false
 let request = 0
@@ -47,24 +47,24 @@ function invalidate(): void {
   loading.value = false
   items.value = []
   total.value = 0
-  page = 0
+  page.value = 0
 }
 
 async function loadNext(): Promise<void> {
-  if (!open || loading.value || (page > 0 && page * 50 >= total.value)) return
+  if (!open || loading.value || (page.value > 0 && page.value * 50 >= total.value)) return
   const current = ++request
   loading.value = true
   error.value = ''
   try {
     const result = await window.zhijiApi.companies.searchLocations({
       prefix: prefix.value,
-      page: page + 1,
+      page: page.value + 1,
       pageSize: 50,
     })
     if (request !== current) return
     items.value = [...new Set([...items.value, ...result.items])]
     total.value = result.total
-    page = result.page
+    page.value = result.page
   } catch (cause) {
     if (request === current) error.value = getErrorMessage(cause, t)
   } finally {
@@ -131,7 +131,7 @@ onBeforeUnmount(invalidate)
       clearable
       remote
       max-tag-count="responsive"
-      :reset-menu-on-options-change="false"
+      :reset-menu-on-options-change="page <= 1"
       @update:value="update"
       @update:show="changeOpen"
       @search="search"

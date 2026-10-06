@@ -14,6 +14,7 @@ import {
   type CompanyCatalogDocument,
 } from '../src/main/company-catalog'
 import { CompanyCatalogUpdater } from '../src/main/company-catalog-updater'
+import { localCompanyCatalogSource } from '../src/main/company-catalog-local'
 import { DatabaseManager } from '../src/main/database'
 import { FileStorageService } from '../src/main/file-storage'
 import { createServices, type Services } from '../src/main/service-container'
@@ -111,6 +112,74 @@ describe('内置公司目录更新', () => {
     vi.restoreAllMocks()
     database.close()
     fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  function localUpdater() {
+    const source = localCompanyCatalogSource(root)
+    return new CompanyCatalogUpdater(
+      services.companyCatalog,
+      source.fetcher,
+      () => currentVersion,
+      source,
+    )
+  }
+
+  function writeLocalCatalog(value: unknown) {
+    fs.mkdirSync(path.join(root, 'resource'), { recursive: true })
+    fs.writeFileSync(path.join(root, 'resource', COMPANY_CATALOG_ASSET_NAME), JSON.stringify(value))
+  }
+
+  it('reloads the local JSON on each update and applies the shared synchronization and version rules', async () => {
+    const updater = localUpdater()
+    const source = nextCatalog()
+    const omitted = source.companies.shift()!
+    source.companies[0]!.locations = ['本地更新地点']
+    writeLocalCatalog(source)
+    const progress = vi.fn()
+    await expect(updater.update(progress)).resolves.toMatchObject({
+      status: 'updated',
+      convertedToCustom: 1,
+    })
+    expect(
+      database.db.prepare('SELECT builtin_key FROM companies WHERE name = ?').get(omitted.name),
+    ).toEqual({ builtin_key: null })
+    const updatedCompany = services.companies
+      .list()
+      .find((company) => company.name === source.companies[0]!.name)!
+    expect(services.companies.get(updatedCompany.id).locations).toEqual(['本地更新地点'])
+    expect(progress).toHaveBeenCalledWith({ phase: 'sync', progress: 72 })
+    await expect(updater.update(() => undefined)).resolves.toMatchObject({ status: 'up-to-date' })
+    source.companies[0]!.locations = ['再次更新地点']
+    writeLocalCatalog(source)
+    await expect(updater.update(() => undefined)).rejects.toMatchObject({ code: 'CATALOG_INVALID' })
+    source.catalogVersion += 1
+    writeLocalCatalog(source)
+    await expect(updater.update(() => undefined)).resolves.toMatchObject({
+      status: 'updated',
+      updated: 1,
+    })
+    source.catalogVersion -= 1
+    writeLocalCatalog(source)
+    await expect(updater.update(() => undefined)).rejects.toMatchObject({
+      code: 'CATALOG_VERSION_ROLLBACK',
+    })
+  })
+
+  it('rejects missing, invalid, oversized and incompatible local catalogs without database changes', async () => {
+    const updater = localUpdater()
+    const initial = services.companyCatalog.status()
+    await expect(updater.update(() => undefined)).rejects.toMatchObject({
+      code: 'CATALOG_ASSET_MISSING',
+    })
+    for (const [value, code] of [
+      [{ invalid: true }, 'CATALOG_INVALID'],
+      ['x'.repeat(2 * 1024 * 1024), 'CATALOG_TOO_LARGE'],
+      [{ ...nextCatalog(), minimumAppVersion: '99.0.0' }, 'CATALOG_APP_UPDATE_REQUIRED'],
+    ] as const) {
+      writeLocalCatalog(value)
+      await expect(updater.update(() => undefined)).rejects.toMatchObject({ code })
+      expect(services.companyCatalog.status()).toEqual(initial)
+    }
   })
 
   function leafId(index: number): number {
@@ -601,6 +670,24 @@ describe('内置公司目录更新', () => {
         () => currentVersion,
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
+  })
+
+  it('preserves fetch failures for diagnostics without changing the database', async () => {
+    const cause = new Error('catalog source unavailable')
+    const initial = services.companyCatalog.status()
+    const updater = new CompanyCatalogUpdater(
+      services.companyCatalog,
+      async () => {
+        throw cause
+      },
+      () => currentVersion,
+    )
+    await expect(updater.update(() => undefined)).rejects.toMatchObject({
+      code: 'CATALOG_DOWNLOAD_FAILED',
+      message: '暂时无法获取内置公司数据，请稍后重试',
+      cause,
+    })
+    expect(services.companyCatalog.status()).toEqual(initial)
   })
 
   it('prevents concurrent updates and aborts the active download', async () => {

@@ -16,7 +16,7 @@
 | `main/diagnostics/writer.ts`                  | 每进程文件、缓冲、轮转、聚合、备用 stderr、健康计数                   |
 | `main/diagnostics/storage.ts`                 | 文件归属、维护锁、旧文件清除、保留期限和空间预算                      |
 | `main/diagnostics/export.ts`                  | 文件边界快照、二次脱敏、ZIP 与哈希验证、原子替换                      |
-| `main/ipc/diagnostics.ts`                     | 设置页三个诊断接口                                                    |
+| `main/ipc/diagnostics.ts`                     | 设置页的日志目录与诊断包导出接口                                      |
 | `preload/index.ts`、`renderer/diagnostics.ts` | IPC 确认与重试、前端异常上报、安全错误引用                            |
 
 业务服务不创建日志文件、不负责 JSON 序列化、不维护错误过滤名单。Velopack 和 Rust 启动器日志属于独立原生运行时，不转换成应用日志。
@@ -65,15 +65,15 @@ try {
 
 写盘失败转向脱敏 stderr，并计入 writeFailures；安装版主进程接收子进程备用记录时保留原 eventId 和 trace，并在独立文件中保存、计入传输降级；备用输出也失败时计入 dropped。部分写入的分片停止追加，恢复后开启新分片，记录 `diagnostics.recovered`。早期初始化之前有界缓冲并输出 stderr。关闭、更新退出和导出前刷写。强杀、断电、所有输出设备失效可能丢失记录，不承诺零丢失。
 
-回执区分 written、buffered、fallback、unavailable、duplicate；buffered 仅表示已接收。Preload 等待确认，最多重试一次，每次最多 2 秒。失败会产生脱敏备用记录；设置页查询包含 Preload 传输失败计数。日志内部失败不得反向改变已经成功的业务结果。
+回执区分 written、buffered、fallback、unavailable、duplicate；buffered 仅表示已接收。Preload 等待确认，最多重试一次，每次最多 2 秒。失败会产生带传输降级标记的脱敏备用记录。日志内部失败不得反向改变已经成功的业务结果。
 
 维护在启动、定时和导出前进行，使用独占锁。仅处理日志目录内符合应用命名规则的普通文件；拒绝链接和目录外路径。确认的旧无版本文件删除，当前文件正常保留，未来版本和未知/损坏文件跳过。仍存活进程的活跃文件延期清理。仅关闭或已退出进程的分片参与保留清理；活跃文件导致超额时暴露 overBudget，不强删。
 
-健康状态提供 degraded、writeFailures、transportFailures、dropped、aggregated、deletedFiles、maintenanceFailures、skippedFiles、overBudget。跳过、失败和累计缺失均为可查询证据；不要把“没有异常提示”当作日志完整的证明。
+内部健康状态提供 degraded、writeFailures、transportFailures、dropped、aggregated、deletedFiles、maintenanceFailures、skippedFiles、overBudget，并写入诊断包清单供排查。跳过、失败和累计缺失均为诊断证据；不要把“没有异常提示”当作日志完整的证明。
 
 ## 设置页和诊断包
 
-`diagnostics.openDirectory()` 打开日志目录；`getStatus()` 查询健康状态；`exportBundle()` 让用户选择 ZIP 目标，仅导出最近 24 小时的当前结构记录。取消不产生失败提示。
+设置页提供 `diagnostics.openDirectory()` 打开日志目录，以及 `exportBundle()` 让用户选择 ZIP 目标，仅导出最近 24 小时的当前结构记录。页面不显示或查询日志健康状态，也不提供刷新日志状态按钮。取消不产生失败提示。
 
 ZIP 包含日志及 manifest：应用/Electron/Node/系统/架构版本、数据库/配置结构号、健康状态、清理与跳过统计、损坏/半行计数、文件大小及 SHA-256。不包含业务数据库、配置、附件、环境变量，不自动上传。
 

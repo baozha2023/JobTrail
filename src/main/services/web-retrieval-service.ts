@@ -552,6 +552,7 @@ export class WebRetrievalService {
       } catch (error) {
         if (budget.signal.aborted) throw webAbortError(budget.signal)
         if (render === 'dynamic') throw error
+        captureError(error, { operation: 'web.render-fallback' })
         warnings.push(
           `动态页面渲染失败，结果仅依据服务器返回的 HTML：${error instanceof AppServiceError ? error.message : '浏览器无法加载页面'}。`,
         )

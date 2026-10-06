@@ -47,7 +47,6 @@ Object.defineProperty(globalThis, 'ResizeObserver', { value: ResizeObserverStub 
 Object.defineProperty(window, 'zhijiApi', {
   value: {
     diagnostics: {
-      getStatus: async () => ({ degraded: false }),
       openDirectory: async () => {},
       exportBundle: async () => 'exported',
     },
@@ -136,7 +135,6 @@ describe('设置页', () => {
     Object.defineProperty(window, 'zhijiApi', {
       value: {
         agent: { saveSettings },
-        diagnostics: { getStatus: async () => ({ degraded: false }) },
       },
       configurable: true,
     })

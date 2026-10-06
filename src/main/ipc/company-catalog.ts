@@ -3,18 +3,20 @@ import { app } from 'electron'
 import type { Services } from '../service-container'
 import { CompanyCatalogUpdater } from '../company-catalog-updater'
 import { fetchCompanyCatalog } from '../company-catalog-fetch'
-import { AppServiceError } from '../services/errors'
+import { localCompanyCatalogSource } from '../company-catalog-local'
 import { registerChannel, sendToTrustedWindow } from './register-channel'
 
 export function registerCompanyCatalogIpc(services: Services): () => void {
-  const updater = new CompanyCatalogUpdater(services.companyCatalog, fetchCompanyCatalog, () =>
-    app.getVersion(),
+  const localSource = app.isPackaged ? undefined : localCompanyCatalogSource(app.getAppPath())
+  const updater = new CompanyCatalogUpdater(
+    services.companyCatalog,
+    localSource?.fetcher ?? fetchCompanyCatalog,
+    () => app.getVersion(),
+    localSource,
   )
 
   registerChannel('company-catalog:get-status', () => services.companyCatalog.status())
   registerChannel('company-catalog:update', () => {
-    if (!app.isPackaged)
-      throw new AppServiceError('VALIDATION_ERROR', '开发版无法更新，请使用已安装版本。')
     return updater.update((progress) => sendToTrustedWindow('company-catalog:progress', progress))
   })
 

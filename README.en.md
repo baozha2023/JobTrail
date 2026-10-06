@@ -45,6 +45,8 @@ Download the Windows installer from [GitHub Releases](https://github.com/baozha2
 
 You can start managing applications right away. To use the AI assistant, enter your model service URL, model name, and API key in Settings. To connect an external AI tool, copy the corresponding MCP configuration from Settings. MCP is enabled by default and can be turned off in Settings.
 
+Starting with v1.6.0, dynamic web reading uses the installed **Microsoft Edge Stable** instead of bundling a separate Chromium browser. Install Edge and keep it updated. If Edge cannot start, JobTrail reports the problem; local features and static web reading remain available. Automatic mode may return static content with an incomplete-result warning.
+
 Local reminders require the app to remain running. You can hide the window in the system tray.
 
 ## Data and privacy
@@ -55,7 +57,7 @@ Export a complete backup from Settings and save it outside the installation fold
 
 ## Local development
 
-Set up Windows, Node.js, and pnpm, then follow the [configuration guide](CLAUDE.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
+Set up Windows, Node.js, pnpm, and Microsoft Edge Stable, then follow the [configuration guide](CLAUDE.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
 
 ```powershell
 pnpm install --frozen-lockfile

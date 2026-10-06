@@ -15,8 +15,6 @@ import type {
   AppUpdateProgress,
 } from '../shared/types'
 
-let transportFailures = 0
-
 async function sendDiagnostic(input: DiagnosticInput): Promise<DiagnosticReceipt> {
   const parsed = validateDiagnosticInput(input)
   if (!parsed) return { eventId: input.eventId, status: 'unavailable' }
@@ -36,7 +34,6 @@ async function sendDiagnostic(input: DiagnosticInput): Promise<DiagnosticReceipt
       if (timer) clearTimeout(timer)
     }
   }
-  transportFailures++
   console.error(JSON.stringify({ ...parsed, transportDegraded: true }))
   return { eventId: parsed.eventId, status: 'fallback' }
 }
@@ -83,14 +80,6 @@ const zhijiApi: ZhijiApi = {
   diagnostics: {
     openDirectory: () => invoke('diagnostics:open-directory'),
     exportBundle: () => invoke('diagnostics:export'),
-    getStatus: async () => {
-      const health = await invoke('diagnostics:status')
-      return {
-        ...health,
-        transportFailures: health.transportFailures + transportFailures,
-        degraded: health.degraded || transportFailures > 0,
-      }
-    },
   },
   exams: {
     get: (input) => invoke('exams:get', input),

@@ -62,7 +62,7 @@ const emit = defineEmits<{
           :placeholder="$t('opportunity.company')"
           @update:value="emit('update:selectedCompanyId', $event as number | null)"
         />
-        <n-button quaternary @click="emit('refresh')">{{ $t('common.refresh') }}</n-button>
+        <n-button @click="emit('refresh')">{{ $t('common.refresh') }}</n-button>
       </n-space>
     </n-card>
     <n-card bordered class="table-card">

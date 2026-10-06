@@ -2,6 +2,17 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
+// Redirect discovery only in test child processes; never modify the installed Edge.
+export function withoutSystemEdge(environment, root) {
+  const redirected = new Set(['LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)', 'HOMEDRIVE'])
+  const env = Object.fromEntries(
+    Object.entries(environment).filter(([key]) => !redirected.has(key.toUpperCase())),
+  )
+  for (const key of redirected) env[key] = root
+  env.PLAYWRIGHT_BROWSERS_PATH = path.join(root, 'empty-browser-cache')
+  return env
+}
+
 // Only immutable program files may be shared with an isolated installation.
 // These names are excluded at the installation root, not inside dependencies.
 const MUTABLE_ROOT_ENTRIES = new Set([

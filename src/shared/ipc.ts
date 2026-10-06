@@ -47,7 +47,6 @@ import type {
 export interface IpcChannelMap {
   'diagnostics:open-directory': { args: []; result: void }
   'diagnostics:export': { args: []; result: 'cancelled' | 'exported' }
-  'diagnostics:status': { args: []; result: import('./diagnostics').DiagnosticsHealth }
   'exams:get': { args: [input: ExamIdentity]; result: ExamPaper }
   'exams:save': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
   'exams:submit': { args: [input: SaveExamAnswerInput]; result: ExamPaper }

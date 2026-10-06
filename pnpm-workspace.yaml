@@ -5,8 +5,9 @@ allowBuilds:
   esbuild: true
 
 minimumReleaseAgeExclude:
-  # Only the pinned security fix is exempt from the dependency age gate.
+  # Only pinned security fixes are exempt from the dependency age gate.
   - http-cache-semantics@4.3.0
+  - source-map-js@1.2.2
 
 overrides:
   'node-gyp>undici': 6.28.1
@@ -16,3 +17,7 @@ overrides:
   'brace-expansion@>=2 <2.1.7': 2.1.7
   'brace-expansion@>=5 <5.0.12': 5.0.12
   'http-cache-semantics@<=4.2.0': 4.3.0
+  # GHSA-68fv-2mgg-jv7q: reject malicious indexed source-map offsets.
+  'source-map-js@>=1 <1.2.2': 1.2.2
+  # GHSA-hp3w-g68c-fv3c: remove the vulnerable roarr/sprintf-js chain.
+  '@electron/get@3.1.0>global-agent': 4.1.3

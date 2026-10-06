@@ -1,5 +1,7 @@
 export const featureErrors = {
   'zh-CN': {
+    WEB_BROWSER_UNAVAILABLE:
+      '无法启动 Microsoft Edge，动态网页读取不可用。请确认已安装并更新 Edge；若仍失败，请修复安装或检查组织的浏览器策略。',
     EXAM_INVALID: '题目或答案格式无效，请检查后重试',
     EXAM_COUNTS_TOO_SMALL: '各题型的目标数量不能少于已生成的题目数量',
     EXAM_CONFLICT: '答案已变化，请刷新试卷后重试',
@@ -13,6 +15,8 @@ export const featureErrors = {
     PERSISTENCE_FAILED: '数据检查或升级失败，请查看日志后重新启动',
   },
   'en-US': {
+    WEB_BROWSER_UNAVAILABLE:
+      'Microsoft Edge could not start, so dynamic web reading is unavailable. Install or update Edge; if the problem persists, repair the installation or check your organization’s browser policies.',
     EXAM_INVALID: 'Invalid question or answer. Check your input and retry.',
     EXAM_COUNTS_TOO_SMALL:
       'The target count for each question type cannot be lower than the number already generated.',

@@ -46,6 +46,8 @@
 安装后即可管理求职记录。如需使用智能体，在设置中填写模型服务地址、模型名称和 API Key；如需连接外部 AI 工具，在 MCP
 设置中复制对应配置。MCP 默认开启，可在设置中关闭。
 
+v1.6.0 起，动态网页读取使用系统已安装的 **Microsoft Edge Stable**，安装包不再附带独立 Chromium。请安装并保持 Edge 更新；无法启动 Edge 时会提示修复，本地管理和静态网页读取仍可使用，自动模式可能返回带有不完整提示的静态内容。
+
 本地提醒需要应用保持运行，可以将窗口隐藏到托盘。
 
 ## 数据与隐私
@@ -56,7 +58,7 @@
 
 ## 本地开发
 
-准备 Windows、Node.js 和 pnpm，并按[配置说明](CLAUDE.md)创建本地私有构建配置 `private-build.config.json`
+准备 Windows、Node.js、pnpm 和 Microsoft Edge Stable，并按[配置说明](CLAUDE.md)创建本地私有构建配置 `private-build.config.json`
 。该文件不应提交到 Git，使用已有数据时请保留原构建密钥。
 
 ```powershell

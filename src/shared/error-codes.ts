@@ -288,6 +288,12 @@ export const ERROR_CODES = {
     ui: true,
     translationKey: 'error.WEB_UNAVAILABLE',
   },
+  WEB_BROWSER_UNAVAILABLE: {
+    category: 'network',
+    level: 'error',
+    ui: true,
+    translationKey: 'error.WEB_BROWSER_UNAVAILABLE',
+  },
   WEB_PARSE_FAILED: {
     category: 'network',
     level: 'error',

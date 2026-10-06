@@ -43,7 +43,7 @@
 - 行业通过 `parent_id` 表达层级、`builtin_key` 推导内置属性，名称同级唯一；禁止自定义一级、第三层和层级转换。一级有子节点不可删除，二级被公司引用不可删除。
 - 公司与二级行业是多对多关系，自定义公司可不选行业，内置公司至少关联一个二级。公司别名只参与搜索。
 - 公司支持多个地点，与岗位工作地点独立。地点 trim 后精确去重，最多 100 项、每项最多 200 字符；更新省略保留、空数组清空，不接受空白项或 null。地点多选为 OR，与关键词、行业为 AND。
-- 地点候选从 `locations` 按前缀索引分页查询，禁止从公司全量列表汇总。编辑允许新标签，筛选只选已有标签；候选按需加载、200 毫秒防抖并隔离过期响应，刷新不得丢弃选择或草稿。
+- 地点候选从 `locations` 按前缀索引分页查询，禁止从公司全量列表汇总。编辑允许新标签，筛选只选已有标签；候选按需加载、200 毫秒防抖并隔离过期响应，刷新不得丢弃选择或草稿。新搜索及首屏结果恢复候选焦点以支持 Enter，追加分页保留菜单位置；安装包键盘验收须将鼠标移出候选菜单。
 - 关联选择器及智能体引用使用不含地点的 `CompanySummary[]`；摘要 SQL 不读取地点关系，完整公司详情及当前分页才批量读取地点。局部更新不得将完整对象写入摘要 Store。
 - 地点和 `company_locations` 由共享 Repository 在公司或目录 Service 的 `IMMEDIATE` 事务内维护。删除保护通过后才移除关联，只清理本次受影响且已无引用的地点；目录同步在全部公司处理完后统一清理。不使用触发器、引用计数或物理外键。
 - 行业页使用树形表格及同级排序，不做平铺分页；公司使用级联选择，筛选允许一级汇总、二级精确筛选，编辑只选二级，空一级也不可选。二级选项及已选标签只显示自身名称，搜索匹配一级和二级名称；智能体引用保留完整路径，共用树数据与路径逻辑。
@@ -156,6 +156,7 @@ src/main/
 ├─ database.ts                SQLite 初始化与生命周期
 ├─ company-catalog.ts         公司目录格式、校验与读取
 ├─ company-catalog-updater.ts 公司目录下载与完整性校验
+├─ company-catalog-local.ts   开发环境本地目录数据源与内存 manifest
 ├─ company-catalog-fetch.ts   Chromium 下载流与重定向地址校验
 ├─ file-storage.ts            受控简历文件存储
 ├─ config.ts                  配置读取、校验和原子写入
@@ -281,7 +282,7 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 
 - 内置公司通过 `companies.builtin_key` 是否为空判定；key 为稳定的小写 UUID v4。
 - `resource/jobtrail-company-catalog.json` 是首次 seed 和 Release 使用的唯一全量目录。
-- 当前目录格式为 2、内容版本为 4、最低客户端为 1.5.0。公司条目必须显式包含 `locations: string[]`，允许空集合；新库 seed 使用目录地点，既有数据库升级仅建表，地点由用户主动更新目录后同步。
+- 当前目录格式为 2、内容版本为 5、最低客户端为 1.5.0。公司条目必须显式包含 `locations: string[]`，允许空集合；新库 seed 使用目录地点，既有数据库升级仅建表，地点由用户主动更新目录后同步。
 - 公司目录状态存储在 `builtin_company_catalog_state` 单行表中。
 - 目录、公司、行业关系、别名和地点更新在同一 `IMMEDIATE` 事务提交；地点按集合比较，顺序不影响是否更新。
 - 目录更新从固定 GitHub Release 资产直链下载，使用 Electron `net.request`，在发起请求及每次跟随重定向前校验 HTTPS 和 GitHub 资产域名，限制重定向次数、总超时和下载大小；不得依赖 Electron `net.fetch` 不可靠的 `Response.url`。
@@ -291,7 +292,7 @@ Service 写操作纳入共享 `UnitOfWork`：根工作单元使用 SQLite `IMMED
 - 目录更新按差异维护行业关联与别名；未变化的记录不写入，值替换使用更新，只有实际增减时才插入或删除。
 - 同名用户公司转为内置公司时保留本地 ID、创建时间、用户偏好和业务关联，主体字段采用目录数据，地点包括目录给出的空集合。
 - 新版本目录缺少的既有内置公司清除 `builtin_key` 转为自定义公司，保留 ID、主体数据、收藏、已读时间及所有关联；更新结果单独统计“转为自定义”。该操作与目录同步共用事务，任何冲突使整个事务回滚。目录同版本同哈希不写入，行业不随公司退出目录而转换或删除。
-- 开发环境点击“更新内置公司”时，与软件更新共用“开发版无法更新，请使用已安装版本”提示，不打开更新弹窗；Main IPC 同时拒绝开发环境的目录更新请求，避免修改开发数据。
+- 开发环境点击“更新内置公司”时，实时读取项目根目录下的 `resource/jobtrail-company-catalog.json`，从文件原始字节生成内存 manifest；仅数据来源与安装版不同，共用更新弹窗、大小与 SHA-256 校验、格式与版本校验和事务同步。修改本地目录内容仍须递增 `catalogVersion`，不绕过同版本不同哈希或版本回退检查。软件更新仍仅支持安装版。
 
 ### 6.3 配置与路径
 
@@ -506,7 +507,7 @@ sandbox: true
 - 使用本地 stdio；stdout 只输出协议内容，诊断信息写入 stderr。
 - 安装版只允许唯一且精确的 `--mcp` 参数进入 MCP 模式，混入其他参数必须拒绝。
 - Tool 调用现有 Application Service，不访问 Repository，不直接执行 SQL，也不绕过文件服务。
-- `read_web_page` 是唯一的网页 MCP 工具，读取公开页面正文、标题层级和链接，不提取或保存职位；岗位整理由智能体基于已读取内容完成。`scroll: true` 用于自动滚动加载的列表，覆盖页面、嵌套滚动容器、可访问 iframe 和开放 Shadow DOM，不点击按钮。`cursor`/`nextCursor` 是唯一续读协议：同一游标先读取当前批次剩余正文与链接，再推进滚动；续读必须使用相同网址、渲染模式和 `scroll`。正文每次最多 20,000 个 UTF-16 单位、链接最多 50 条，多出的内容不得直接丢弃。快照仅在 MCP 进程内缓存，不落盘；普通快照空闲 10 分钟过期，滚动会话空闲 5 分钟或最长存活 15 分钟后关闭，最多 8 个会话、合计 32 MiB，游标失效从 0 重新读取。最多 2 个活动浏览器滚动会话，单次最多 45 秒及 12 次滚动、单会话最多 200 次滚动。到达可观察末尾不能证明网站数据完整，资源限制、阻断和故障须写入 `incompleteReason`。网页工具不检查 robots.txt。一般请求使用 GET/HEAD；POST 仅允许同站请求命中白名单：北森的三个已知查询接口、以 search/query/list/filter/lookup/find/posts/count/results/items/details/suggestions 结尾的 JSON 接口，以及公开页面的 `/csrf/token` 初始化接口。其他 POST 被拦截。接口白名单无法证明网站端无副作用，须标记 MCP `readOnlyHint: false` 并在结果中提示。POST 请求体限定为不超过 16 KiB 的 JSON 对象，不跟随 POST 重定向；仅转发必要的同站请求头（包括 Cookie 和 X-CSRF-Token），不转发 Authorization。所有目标网页访问必须校验并固定公网 IP，最多 100 次请求，单响应最多 16 MiB、单读取会话累计最多 32 MiB。系统 DNS 仅返回 `198.18.0.0/15` 代理保留地址时，通过固定公网 IP 的 Cloudflare DNS over HTTPS 查询目标域名，校验全部返回地址后固定连接；不得直接放行代理保留地址，解析结果仅短时缓存。动态页面在禁用 Service Worker、拦截子请求的隔离浏览器中渲染，浏览器二进制随 Windows 包分发。
+- `read_web_page` 是唯一的网页 MCP 工具，读取公开页面正文、标题层级和链接，不提取或保存职位；岗位整理由智能体基于已读取内容完成。`scroll: true` 用于自动滚动加载的列表，覆盖页面、嵌套滚动容器、可访问 iframe 和开放 Shadow DOM，不点击按钮。`cursor`/`nextCursor` 是唯一续读协议：同一游标先读取当前批次剩余正文与链接，再推进滚动；续读必须使用相同网址、渲染模式和 `scroll`。正文每次最多 20,000 个 UTF-16 单位、链接最多 50 条，多出的内容不得直接丢弃。快照仅在 MCP 进程内缓存，不落盘；普通快照空闲 10 分钟过期，滚动会话空闲 5 分钟或最长存活 15 分钟后关闭，最多 8 个会话、合计 32 MiB，游标失效从 0 重新读取。最多 2 个活动浏览器滚动会话，单次最多 45 秒及 12 次滚动、单会话最多 200 次滚动。到达可观察末尾不能证明网站数据完整，资源限制、阻断和故障须写入 `incompleteReason`。网页工具不检查 robots.txt。一般请求使用 GET/HEAD；POST 仅允许同站请求命中白名单：北森的三个已知查询接口、以 search/query/list/filter/lookup/find/posts/count/results/items/details/suggestions 结尾的 JSON 接口，以及公开页面的 `/csrf/token` 初始化接口。其他 POST 被拦截。接口白名单无法证明网站端无副作用，须标记 MCP `readOnlyHint: false` 并在结果中提示。POST 请求体限定为不超过 16 KiB 的 JSON 对象，不跟随 POST 重定向；仅转发必要的同站请求头（包括 Cookie 和 X-CSRF-Token），不转发 Authorization。所有目标网页访问必须校验并固定公网 IP，最多 100 次请求，单响应最多 16 MiB、单读取会话累计最多 32 MiB。系统 DNS 仅返回 `198.18.0.0/15` 代理保留地址时，通过固定公网 IP 的 Cloudflare DNS over HTTPS 查询目标域名，校验全部返回地址后固定连接；不得直接放行代理保留地址，解析结果仅短时缓存。动态页面使用系统已安装的 Edge Stable，在禁用 Service Worker、拦截子请求的独立临时浏览器上下文中渲染；不读取个人浏览器配置，不随 Windows 包分发浏览器。
 - 网页工具仅对暂时性网络或服务故障在原有总预算内自动重试一次；取消、权限拒绝、安全限制、无效地址和解析失败不重试。错误以结构化代码和阶段返回；分页后续页失败时保留已核实岗位并说明不完整原因，不得把提取失败视为无岗位。智能体不应对已耗尽重试的相同请求再循环调用，应说明无法核验并建议稍后重试。
 - 通用 POST 白名单还须拒绝路径中明确表示写入动作的段，包括 create、update、delete、remove、save、submit 和 upload；这项拦截不能证明其他白名单接口没有副作用。
 - 输入与输出使用严格 schema，拒绝未知字段，并与共享 DTO 语义一致。
@@ -612,7 +613,7 @@ Feed 为 404、为空、没有合适历史版本或历史 Feed/Full 包因网络
 - 日志独立于数据库、配置和备份结构版本。只安全清除可确认归属的旧结构日志，不迁移、不转换；未来版本、未知文件及活跃文件保留。正式业务数据迁移继续保留。
 - 所有 Node 进程独立写文件；开发版同时输出控制台，安装版默认写文件，MCP stdout 仅用于协议。分片 5 MiB、保留 14 天、目录软上限 50 MiB。
 - 普通事件缓冲不超过 1 MiB、100 ms；错误优先写入。写入、清理、传输失败通过健康状态、备用输出和计数暴露，不递归记录或改变业务结果。退出和导出前刷写。
-- 设置页仅提供日志目录、最近 24 小时脱敏 ZIP 和健康状态，不自动上传。日志不进入业务备份或安装载荷，安装包验收使用隔离目录。
+- 设置页仅提供日志目录和最近 24 小时脱敏 ZIP，不显示或查询日志健康状态，不自动上传。内部健康计数保留在诊断包清单中。日志不进入业务备份或安装载荷，安装包验收使用隔离目录。
 - 进程间显式传递 trace/span 和诊断引用，不用于授权。重传复用 eventId；同一 Error 在不同请求中分别记录。
 - 优先小型纯函数、明确类型和早返回。不保留旧日志接口、临时适配、无用参数、调试分支、空泛 catch 或重复业务白名单。
 
@@ -630,9 +631,11 @@ pnpm build
 pnpm audit --audit-level=low
 ```
 
-依赖审计不覆盖随包分发的 Chromium 二进制。网页读取浏览器的版本、上游安全修复和 sandbox 设置须单独审查；依赖审计无告警不得表述为应用绝对零漏洞。
+依赖审计不覆盖系统 Edge 和 Electron 内置的浏览器二进制。网页读取浏览器及 Electron 所用稳定分支的上游安全修复和 sandbox 设置须单独审查；Electron 可以在不改变 Chromium 版本号时回补安全修复，不能只比较内嵌 Chromium 的版本号。发布验收须记录实际 Edge/Electron 版本，在旧浏览器上通过功能测试不能替代安全更新。依赖审计无告警不得表述为应用绝对零漏洞。
 
-当前网页读取使用 Playwright 1.63.0 携带的 Chromium 153.0.8010.12，必须显式设置 `chromiumSandbox: true`；不得在启动失败时关闭 sandbox 或回退旧浏览器。[Playwright 的 Chromium sandbox 默认关闭](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-option-chromium-sandbox)，URL/DNS/请求校验与浏览器进程隔离须同时保留。升级 Playwright 时同步更新 lockfile、安装并暂存匹配版本的 headless shell，重新验证真实动态网页读取及 Windows 打包；安装包验收须按 Playwright 元数据核对随包浏览器版本，并检查实际启动参数不含 `--no-sandbox`。
+v1.6.0 的 Electron 固定为 `43.7.7`，升级后重建 `better-sqlite3` 并执行完整发布验收。`pnpm-workspace.yaml` 仅对构建链中的 `@electron/get@3.1.0>global-agent` 固定为 `4.1.3`，移除有漏洞的 `roarr/sprintf-js` 链；不扩大 override 到其他下载器版本。`scripts/electron-download-proxy.test.mjs` 通过实际下载和 HTTPS CONNECT 验证代理初始化，避免下载器捕获 bootstrap 异常后静默失去代理支持。更新构建依赖时重新检查该链，移除已无必要的 override，不屏蔽安全告警。
+
+从 v1.6.0 起，网页读取使用 Playwright 的 `channel: msedge` 启动系统 Edge Stable，开发、测试和安装版规则一致；保留 `headless: true`、`chromiumSandbox: true` 和 URL/DNS/请求校验。不得自动安装浏览器、复用个人配置或在失败时关闭 sandbox、回退其他浏览器。仅动态读取时启动 Edge；启动失败返回 `WEB_BROWSER_UNAVAILABLE`，不重试。非滚动 auto 模式降级至静态内容，并记录诊断及不完整原因；显式 dynamic 和首次滚动读取返回错误。开发和验收机器须安装并更新 Edge。升级 Playwright 或发布前重新验证动态网页和 Windows 打包，记录 Playwright/Edge 版本，检查启动参数不含 `--no-sandbox`，并断言包内没有独立浏览器及 Playwright 浏览器缓存；不要求 Edge 版本与 Playwright Chromium 元数据相等。
 
 Rust 标准检查：
 

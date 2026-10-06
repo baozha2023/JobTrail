@@ -20,12 +20,19 @@ export type CompanyCatalogFetcher = (
 
 export type CompanyCatalogProgressReporter = (progress: CompanyCatalogProgress) => void
 
+export interface CompanyCatalogUrls {
+  manifestUrl: string
+  catalogUrl: string
+}
+
 const catalogUnavailableMessage = '暂时无法获取内置公司数据，请稍后重试'
 const catalogMissingMessage = '缺少内置公司数据，无法更新'
 const catalogInvalidMessage = '获取的内置公司数据有误，请稍后重试'
 
-function catalogDownloadError(): AppServiceError {
-  return new AppServiceError('CATALOG_DOWNLOAD_FAILED', catalogUnavailableMessage)
+function catalogDownloadError(cause?: unknown): AppServiceError {
+  return new AppServiceError('CATALOG_DOWNLOAD_FAILED', catalogUnavailableMessage, undefined, {
+    cause,
+  })
 }
 
 function catalogMissingError(): AppServiceError {
@@ -78,6 +85,10 @@ export class CompanyCatalogUpdater {
     private readonly catalogService: CompanyCatalogService,
     private readonly fetcher: CompanyCatalogFetcher,
     private readonly appVersion: () => string,
+    private readonly urls: CompanyCatalogUrls = {
+      manifestUrl: COMPANY_CATALOG_MANIFEST_URL,
+      catalogUrl: COMPANY_CATALOG_ASSET_URL,
+    },
   ) {}
 
   cancel(): void {
@@ -95,7 +106,7 @@ export class CompanyCatalogUpdater {
     this.activeController = controller
     try {
       report({ phase: 'metadata', progress: 0 })
-      const manifestResponse = await this.fetcher(COMPANY_CATALOG_MANIFEST_URL, {
+      const manifestResponse = await this.fetcher(this.urls.manifestUrl, {
         signal: controller.signal,
       })
       const manifestBytes = await readResponse(manifestResponse, MANIFEST_MAX_BYTES)
@@ -103,7 +114,7 @@ export class CompanyCatalogUpdater {
       report({ phase: 'metadata', progress: 8 })
       report({ phase: 'download', progress: 8 })
 
-      const catalogResponse = await this.fetcher(COMPANY_CATALOG_ASSET_URL, {
+      const catalogResponse = await this.fetcher(this.urls.catalogUrl, {
         signal: controller.signal,
       })
       const catalogBytes = await readResponse(
@@ -132,8 +143,7 @@ export class CompanyCatalogUpdater {
       return result
     } catch (error) {
       if (error instanceof AppServiceError) throw error
-      if (controller.signal.aborted) throw catalogDownloadError()
-      throw catalogDownloadError()
+      throw catalogDownloadError(error)
     } finally {
       if (timeout !== undefined) clearTimeout(timeout)
       this.activeController = undefined

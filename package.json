@@ -1,7 +1,7 @@
 {
   "name": "zhiji",
   "productName": "职迹",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "职迹：本地优先的求职管理工具",
   "main": "out/main/desktop.js",
   "author": {
@@ -17,7 +17,7 @@
     "test:watch": "node scripts/run-vitest-electron.mjs --watch",
     "rebuild:native": "electron-builder install-app-deps",
     "postinstall": "electron-builder install-app-deps",
-    "package:win": "pnpm build && pnpm exec playwright install --only-shell chromium && node scripts/stage-browser.mjs && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
+    "package:win": "pnpm build && electron-builder --win dir --config.electronDist=node_modules/electron/dist",
     "test:mcp:package": "node scripts/test-packaged-mcp.mjs",
     "test:mcp:launcher": "node scripts/test-mcp-launcher.mjs",
     "test:exams:package": "node scripts/test-packaged-exams.mjs",
@@ -59,7 +59,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/test-utils": "^2.5.0",
     "@vue/tsconfig": "^0.7.0",
-    "electron": "43.5.0",
+    "electron": "43.7.7",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
     "jsdom": "^30.0.1",
@@ -92,10 +92,6 @@
       {
         "from": "resource/icon.ico",
         "to": "icon.ico"
-      },
-      {
-        "from": "dist/browser-stage",
-        "to": "browser"
       },
       {
         "from": "src/main/agent/skills/study/SKILL.md",

@@ -13,6 +13,8 @@ import { ConfigService } from '../src/main/config'
 import { createJobTrailMcpServer } from '../src/main/mcp/server'
 import { createServiceContainer } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
+import { chromium } from 'playwright'
+import { featureErrors } from '../src/shared/feature-errors'
 
 describe('JobTrail MCP server', () => {
   let root: string
@@ -175,6 +177,35 @@ describe('JobTrail MCP server', () => {
     })
     expect(confirm).toHaveBeenCalled()
   })
+
+  it.each(['zh-CN', 'en-US'] as const)(
+    'returns a localized Edge startup error through MCP (%s)',
+    async (locale) => {
+      config.update({ locale })
+      const launch = vi
+        .spyOn(chromium, 'launch')
+        .mockRejectedValue(new Error('spawn C:\\Users\\private-user\\Edge\\msedge.exe ENOENT'))
+      try {
+        const client = await connect()
+        const result = await client.callTool({
+          name: 'read_web_page',
+          arguments: { url: 'https://example.com/', scroll: true },
+        })
+        expect(result.isError).toBe(true)
+        expect(result.structuredContent).toMatchObject({
+          error: {
+            code: 'WEB_BROWSER_UNAVAILABLE',
+            message: featureErrors[locale].WEB_BROWSER_UNAVAILABLE,
+            details: { stage: 'render', retryable: false, attempts: 1 },
+          },
+        })
+        expect(JSON.stringify(result)).not.toMatch(/private-user|ENOENT/)
+        expect(launch).toHaveBeenCalledOnce()
+      } finally {
+        launch.mockRestore()
+      }
+    },
+  )
 
   it('allows reads by default, gates access when disabled, and advertises exactly 42 tools', async () => {
     const client = await connect()

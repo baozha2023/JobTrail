@@ -281,14 +281,9 @@ const messages = {
     },
     settings: {
       diagnosticsTitle: '日志与诊断',
-      diagnosticsDescription:
-        '导出最近 24 小时的脱敏日志和运行环境信息，不包含业务备份，不会自动上传。',
+      diagnosticsDescription: '导出最近 24 小时的脱敏日志和运行环境信息。',
       diagnosticsOpen: '打开日志目录',
       diagnosticsExport: '导出诊断包',
-      diagnosticsRefresh: '刷新日志状态',
-      diagnosticsHealthy: '日志记录正常',
-      diagnosticsUnknown: '尚未获取日志状态',
-      diagnosticsDegraded: '日志记录不完整或维护失败，请导出诊断包排查。',
       diagnosticsExported: '诊断包已导出。',
 
       title: '设置',
@@ -764,15 +759,9 @@ const messages = {
     },
     settings: {
       diagnosticsTitle: 'Logs and diagnostics',
-      diagnosticsDescription:
-        'Export sanitized logs from the last 24 hours and runtime details. Business backups are excluded; nothing is uploaded automatically.',
+      diagnosticsDescription: 'Export sanitized logs from the last 24 hours and runtime details.',
       diagnosticsOpen: 'Open log directory',
       diagnosticsExport: 'Export diagnostics',
-      diagnosticsRefresh: 'Refresh log status',
-      diagnosticsHealthy: 'Logging is healthy',
-      diagnosticsUnknown: 'Log status is not available yet',
-      diagnosticsDegraded:
-        'Logging is incomplete or maintenance failed. Export diagnostics to investigate.',
       diagnosticsExported: 'Diagnostic bundle exported.',
 
       title: 'Settings',

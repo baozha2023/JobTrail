@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
   NButton,
   NCard,
@@ -56,16 +56,8 @@ const emit = defineEmits<{
   launchAtStartup: [value: boolean]
 }>()
 
-const diagnosticStatus = ref<import('../../shared/diagnostics').DiagnosticsHealth | null>(null)
 const diagnosticBusy = ref(false)
 const diagnosticExported = ref(false)
-async function refreshDiagnostics() {
-  try {
-    diagnosticStatus.value = await window.zhijiApi.diagnostics.getStatus()
-  } catch (error) {
-    emit('error', error)
-  }
-}
 async function diagnosticAction(kind: 'open' | 'export') {
   if (diagnosticBusy.value) return
   diagnosticBusy.value = true
@@ -74,16 +66,12 @@ async function diagnosticAction(kind: 'open' | 'export') {
     if (kind === 'open') await window.zhijiApi.diagnostics.openDirectory()
     else
       diagnosticExported.value = (await window.zhijiApi.diagnostics.exportBundle()) === 'exported'
-    await refreshDiagnostics()
   } catch (error) {
     emit('error', error)
   } finally {
     diagnosticBusy.value = false
   }
 }
-onMounted(() => {
-  void refreshDiagnostics()
-})
 
 const hostTabs = [
   { key: 'claude', label: 'Claude' },
@@ -473,31 +461,14 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
           </div>
         </header>
         <div class="settings-section-body">
-          <n-space
-            ><n-button :disabled="diagnosticBusy" @click="diagnosticAction('open')">{{
+          <n-space>
+            <n-button :disabled="diagnosticBusy" @click="diagnosticAction('open')">{{
               $t('settings.diagnosticsOpen')
             }}</n-button>
             <n-button :loading="diagnosticBusy" @click="diagnosticAction('export')">{{
               $t('settings.diagnosticsExport')
             }}</n-button>
-            <n-button :disabled="diagnosticBusy" @click="refreshDiagnostics">{{
-              $t('settings.diagnosticsRefresh')
-            }}</n-button></n-space
-          >
-          <p role="status">
-            {{
-              $t(
-                !diagnosticStatus
-                  ? 'settings.diagnosticsUnknown'
-                  : diagnosticStatus.degraded ||
-                      diagnosticStatus.dropped ||
-                      diagnosticStatus.maintenanceFailures ||
-                      diagnosticStatus.overBudget
-                    ? 'settings.diagnosticsDegraded'
-                    : 'settings.diagnosticsHealthy',
-              )
-            }}
-          </p>
+          </n-space>
           <p v-if="diagnosticExported" role="status">{{ $t('settings.diagnosticsExported') }}</p>
         </div>
       </section>

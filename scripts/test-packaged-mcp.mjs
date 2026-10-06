@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
@@ -9,7 +8,7 @@ import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { chromium } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { linkPackagedProgram, withoutSystemEdge } from './packaged-test-helpers.mjs'
 
 const packageVersion = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')).version
 const inheritedEnvironment = Object.fromEntries(
@@ -73,6 +72,13 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       if (!expired.isError || expired.structuredContent?.error?.code !== 'WEB_CURSOR_EXPIRED') {
         throw new Error(`${name}: packaged web cursor call did not return WEB_CURSOR_EXPIRED`)
       }
+      const dynamic = await client.callTool({
+        name: 'read_web_page',
+        arguments: { url: 'https://playwright.dev/', render: 'dynamic' },
+      })
+      assert.notEqual(dynamic.isError, true, `${name}: ${JSON.stringify(dynamic.content)}`)
+      assert.match(dynamic.structuredContent.text, /Playwright/)
+      assert.equal(dynamic.structuredContent.incompleteReason, null)
       config.mcp.requireWriteConfirmation = false
       fs.writeFileSync(configPath, encodeTestConfig(config))
       const call = async (tool, args) => {
@@ -116,41 +122,112 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
 }
 
 export async function smokeBrowser(executable) {
-  const browserPath = path.join(
-    path.dirname(executable),
-    'resources',
-    'browser',
-    'chrome-headless-shell.exe',
+  const resources = path.join(path.dirname(executable), 'resources')
+  assert.ok(!fs.existsSync(path.join(resources, 'browser')), 'Remove the stale bundled browser')
+  const forbidden =
+    /^(?:\.local-browsers|ms-playwright|chrome-headless-shell(?:\.exe|-.*)?|chromium(?:[_-]headless[_-]shell)?-\d+)$/i
+  for (const entry of fs.readdirSync(resources, { recursive: true })) {
+    assert.ok(!forbidden.test(path.basename(entry)), `Bundled browser cache: ${entry}`)
+  }
+  // Hermetic Playwright installs can also place browser binaries inside app.asar.
+  const archiveCheck = spawnSync(
+    executable,
+    [
+      '-e',
+      `
+    const fs = require('fs'), path = require('path');
+    const archive = process.argv[1], forbidden = new RegExp(process.argv[2], 'i');
+    for (const entry of fs.readdirSync(archive, { recursive: true })) {
+      if (forbidden.test(path.basename(entry))) throw new Error('Bundled browser cache: ' + entry);
+    }
+  `,
+      path.join(resources, 'app.asar'),
+      forbidden.source,
+    ],
+    {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 30000,
+    },
   )
-  if (!fs.existsSync(browserPath)) throw new Error(`Packaged browser not found: ${browserPath}`)
+  if (archiveCheck.error) throw archiveCheck.error
+  assert.equal(archiveCheck.status, 0, archiveCheck.stderr)
   const browser = await chromium.launch({
-    executablePath: browserPath,
+    channel: 'msedge',
     headless: true,
     chromiumSandbox: true,
     // Chromium exposes its command line only when this diagnostic flag is set.
     args: ['--enable-automation'],
   })
   try {
-    const playwrightRequire = createRequire(import.meta.resolve('playwright'))
-    const metadataPath = path.join(
-      path.dirname(playwrightRequire.resolve('playwright-core/package.json')),
-      'browsers.json',
-    )
-    const { browsers } = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
-    assert.equal(
-      browser.version(),
-      browsers.find((entry) => entry.name === 'chromium-headless-shell')?.browserVersion,
-      'Rebuild the stale packaged browser',
-    )
+    const playwrightVersion = JSON.parse(
+      fs.readFileSync(new URL('../node_modules/playwright/package.json', import.meta.url), 'utf8'),
+    ).version
+    console.log(`Browser smoke: Playwright ${playwrightVersion}, Edge ${browser.version()}`)
     const session = await browser.newBrowserCDPSession()
     const { arguments: args } = await session.send('Browser.getBrowserCommandLine')
     assert.ok(!args.includes('--no-sandbox'), 'Packaged browser sandbox must remain enabled')
-    const page = await browser.newPage()
-    await page.setContent('<h1>JobTrail browser smoke</h1>')
-    if ((await page.locator('h1').textContent()) !== 'JobTrail browser smoke')
-      throw new Error('Packaged browser did not render HTML')
+    assert.ok(args.some((arg) => arg.includes('playwright_chromiumdev_profile-')))
+    const context = await browser.newContext({ serviceWorkers: 'block', acceptDownloads: false })
+    const requests = []
+    await context.routeWebSocket('**/*', (socket) => socket.close())
+    await context.route('**/*', async (route) => {
+      requests.push(route.request().url())
+      if (route.request().url().endsWith('/api'))
+        return route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ text: 'JobTrail Edge smoke' }),
+        })
+      await route.fulfill({
+        contentType: 'text/html',
+        body: '<main>Loading</main><script>fetch("/api").then(r=>r.json()).then(d=>document.querySelector("main").textContent=d.text)</script>',
+      })
+    })
+    const page = await context.newPage()
+    await page.goto('https://edge-smoke.test/', { waitUntil: 'networkidle' })
+    assert.equal(await page.locator('main').textContent(), 'JobTrail Edge smoke')
+    assert.deepEqual(requests, ['https://edge-smoke.test/', 'https://edge-smoke.test/api'])
   } finally {
     await browser.close()
+  }
+}
+
+async function smokeWithoutEdge(transportOptions, root) {
+  const client = new Client({ name: 'jobtrail-no-edge', version: packageVersion })
+  try {
+    await client.connect(
+      new StdioClientTransport({
+        ...transportOptions,
+        env: withoutSystemEdge(
+          transportOptions.env ?? inheritedEnvironment,
+          path.join(root, 'no-edge'),
+        ),
+        stderr: 'pipe',
+      }),
+    )
+    assert.notEqual((await client.callTool({ name: 'list_statuses', arguments: {} })).isError, true)
+    const staticPage = await client.callTool({
+      name: 'read_web_page',
+      arguments: { url: 'https://playwright.dev/', render: 'static' },
+    })
+    assert.notEqual(staticPage.isError, true, JSON.stringify(staticPage.content))
+    assert.match(staticPage.structuredContent.text, /Playwright/)
+    // scroll starts the browser before fetching: this failure must not depend on network access.
+    const dynamic = await client.callTool({
+      name: 'read_web_page',
+      arguments: { url: 'https://example.com/', scroll: true },
+    })
+    assert.equal(dynamic.isError, true)
+    assert.equal(dynamic.structuredContent.error.code, 'WEB_BROWSER_UNAVAILABLE')
+    assert.match(dynamic.structuredContent.error.message, /Microsoft Edge/)
+    assert.equal(dynamic.structuredContent.error.details.attempts, 1)
+    assert.ok(!JSON.stringify(dynamic).includes(root))
+    console.log(
+      'Packaged MCP: static/local reads work with Edge discovery isolated; dynamic read reports WEB_BROWSER_UNAVAILABLE',
+    )
+  } finally {
+    await client.close()
   }
 }
 
@@ -360,6 +437,10 @@ export async function smokeLauncher(executable, launcherSource) {
       command: path.join(root, 'JobTrail.exe'),
       args: ['--mcp'],
       cwd: root,
+      env: {
+        ...inheritedEnvironment,
+        PLAYWRIGHT_BROWSERS_PATH: path.join(staging, 'empty-browser-cache'),
+      },
     }
     await smoke('root-launcher-legacy', transportOptions)
     await smoke('root-launcher-modern', transportOptions, {
@@ -390,6 +471,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       ELECTRON_RUN_AS_NODE: '1',
       JOBTRAIL_MCP_ROOT: root,
       JOBTRAIL_MCP_VERSION: packageVersion,
+      PLAYWRIGHT_BROWSERS_PATH: path.join(root, 'empty-browser-cache'),
     },
   }
   try {
@@ -397,6 +479,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     await smoke('modern', transportOptions, {
       versionNegotiation: { mode: { pin: '2026-07-28' } },
     })
+    await smokeWithoutEdge(transportOptions, root)
     smokeInvalidConfig('packaged-mcp', transportOptions, root)
     await smokeUpdateFreeze(transportOptions, root)
     const desktopEnvironment = {

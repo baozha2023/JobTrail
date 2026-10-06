@@ -986,10 +986,6 @@ function receiveCatalogProgress(progress: CompanyCatalogProgress): void {
 
 async function updateCompanyCatalog(): Promise<void> {
   if (catalogUpdating.value) return
-  if (isDevelopment.value) {
-    message.info(t('settings.updateUnavailableDevelopment'))
-    return
-  }
   catalogModalVisible.value = true
   catalogUpdating.value = true
   catalogPhase.value = 'metadata'

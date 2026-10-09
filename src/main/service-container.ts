@@ -1,3 +1,5 @@
+import { JobDiscoveryService } from './discovery/service'
+import { DiscoveryRepository } from './discovery/repository'
 import { ExamService } from './services/exam-service'
 import { ExamRepository } from './repositories/exam-repository'
 import type { AppPaths } from './config'
@@ -25,6 +27,7 @@ import { WebRetrievalService } from './services/web-retrieval-service'
 import { isUpdateFrozen } from './update-freeze'
 
 export interface Services {
+  discovery: JobDiscoveryService
   statuses: StatusService
   industries: IndustryService
   companies: CompanyService
@@ -77,7 +80,7 @@ export function createServices(
   const opportunityRepository = new OpportunityRepository(database.db)
   const opportunityStatusEvents = new OpportunityStatusEventRepository(database.db)
   const calendarRepository = new CalendarEventRepository(database.db)
-  return {
+  const services = {
     statuses: new StatusService(unitOfWork, statusRepository),
     industries: new IndustryService(unitOfWork, industryRepository, allowBuiltinEdit),
     companies: new CompanyService(
@@ -104,5 +107,14 @@ export function createServices(
     reminders: new CalendarReminderService(unitOfWork, calendarRepository),
     exams: new ExamService(unitOfWork, new ExamRepository(database.db)),
     web: new WebRetrievalService(),
+  }
+  return {
+    ...services,
+    discovery: new JobDiscoveryService(
+      new DiscoveryRepository(database.db),
+      unitOfWork,
+      services.companies,
+      services.opportunities,
+    ),
   }
 }

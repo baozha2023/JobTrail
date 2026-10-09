@@ -137,9 +137,11 @@ export function registerVelopackIpc(
         const pendingPath = path.join(stateRoot, 'pending-update.json')
         if (fs.existsSync(pendingPath)) throw new Error('pending_update_already_exists')
         const freezePath = updateFreezePath(dataRoot)
-        await fsp.writeFile(freezePath, '', { flag: 'wx' })
+        let freezeCreated = false
         try {
           await agent.suspendForUpdate()
+          await fsp.writeFile(freezePath, '', { flag: 'wx' })
+          freezeCreated = true
           await waitForMcpSessions(dataRoot)
           // All built-in agent operations have drained; this waits for any
           // remaining business transaction that began before the freeze.
@@ -162,7 +164,7 @@ export function registerVelopackIpc(
           try {
             await Promise.all([
               fsp.rm(pendingPath, { force: true }),
-              fsp.rm(freezePath, { force: true }),
+              freezeCreated ? fsp.rm(freezePath, { force: true }) : Promise.resolve(),
             ])
           } catch (cleanupError) {
             captureError(cleanupError, { operation: 'update.rollback' })

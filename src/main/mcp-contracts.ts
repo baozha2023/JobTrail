@@ -7,6 +7,15 @@ import {
   updateExamSchema,
 } from '../shared/exams'
 import { z } from 'zod'
+import {
+  startSearchSchema,
+  jobListSchema,
+  jobDetailSchema,
+  saveJobSchema,
+  discoveryJobOutputSchema,
+  discoveryRunOutputSchema,
+  discoveryStatusOutputSchema,
+} from '../shared/job-discovery'
 import { companyLocationsInputSchema } from '../shared/company-locations'
 import type { Services } from './service-container'
 import {
@@ -194,6 +203,118 @@ const updateCalendarArgs = z.strictObject({
 })
 
 export const MCP_TOOLS: readonly McpToolDescriptor[] = [
+  tool({
+    name: 'get_job_platform_status',
+    title: '招聘平台状态',
+    description:
+      '读取四个平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
+    readOnly: true,
+    readOnlyHint: false,
+    openWorld: true,
+    inputSchema: z.strictObject({ check: z.boolean().default(false) }),
+    outputSchema: z.strictObject({ items: z.array(discoveryStatusOutputSchema) }),
+    execute: async (s, a) => ({ items: await s.discovery.status(a.check) }),
+  }),
+  tool({
+    name: 'start_job_search',
+    title: '开始岗位搜索',
+    description:
+      '通过指定平台的官方主搜索框和地点控件搜索；city 可省略或为空，此时沿用网站默认地点并返回实际条件。不按岗位文字再次筛选关键词。指定城市时，猎聘和前程无忧在各自适配器内过滤异地及城市无法确认的岗位，BOSS和智联信任平台城市结果；不选城市则不做城市过滤。单条解析失败静默跳过并记录日志，不影响其他岗位。返回 runId 后用 get_job_search 查询；requestId 用于幂等重试。每轮最多 90 秒、每平台 3 批，200 条按整批边界停止。部分来源失败不代表全网无结果。薪资条件单位为人民币元/月，在入库前按区间相交判断；年薪除以12，日薪、时薪、外币和无法比较的薪资不入库。不填薪资则不做薪资过滤。',
+    readOnly: true,
+    readOnlyHint: false,
+    openWorld: true,
+    inputSchema: startSearchSchema,
+    outputSchema: z.strictObject({ item: discoveryRunOutputSchema }),
+    execute: async (s, a) => ({ item: await s.discovery.start(a) }),
+  }),
+  tool({
+    name: 'get_job_search',
+    title: '查询搜索进度',
+    description:
+      '读取任务及各来源覆盖、阻断和恢复提示。login_required/session_expired 需用户登录；challenge 需用户验证；scope_unverified 不应解释为零结果。',
+    readOnly: true,
+    inputSchema: z.strictObject({ runId: z.string().uuid() }),
+    outputSchema: z.strictObject({ item: discoveryRunOutputSchema }),
+    execute: async (s, a) => ({ item: await s.discovery.run(a.runId) }),
+  }),
+  tool({
+    name: 'list_discovered_jobs',
+    title: '分页读取发现岗位',
+    description:
+      '从本地稳定分页读取结果，不触发网站翻页。首屏不传 viewId 创建视图；后续分页必须传返回的 viewId，新岗位仅追加末尾。重新排列时不传 viewId 并回到第一页。展示分页不再执行任何业务筛选。',
+    readOnly: true,
+    inputSchema: jobListSchema,
+    outputSchema: z.strictObject({
+      viewId: z.string().uuid(),
+      items: z.array(discoveryJobOutputSchema),
+      total: z.number(),
+      page: z.number(),
+      pageSize: z.number(),
+    }),
+    execute: async (s, a) => ({ ...(await s.discovery.list(a)) }),
+  }),
+  tool({
+    name: 'continue_job_search',
+    title: '继续岗位搜索',
+    description:
+      '为指定任务启动下一预算轮，保留条件和已存结果。登录后可使用；失效游标会重新获取并标注。',
+    readOnly: true,
+    readOnlyHint: false,
+    openWorld: true,
+    inputSchema: z.strictObject({ runId: z.string().uuid() }),
+    outputSchema: z.strictObject({ item: discoveryRunOutputSchema }),
+    execute: async (s, a) => ({ item: await s.discovery.continue(a.runId) }),
+  }),
+  tool({
+    name: 'cancel_job_search',
+    title: '取消岗位搜索',
+    description: '只取消指定任务并保留已保存结果，不影响其他任务。',
+    readOnly: true,
+    readOnlyHint: false,
+    inputSchema: z.strictObject({ runId: z.string().uuid() }),
+    outputSchema: z.strictObject({ item: discoveryRunOutputSchema }),
+    execute: async (s, a) => ({ item: await s.discovery.cancel(a.runId) }),
+  }),
+  tool({
+    name: 'get_discovered_job',
+    title: '读取发现岗位详情',
+    description:
+      'mode=snapshot（默认）读取指定 viewId/observationId 或当前搜索观察；mode=ensure 按需补全，复用最新完整详情的30分钟缓存；mode=refresh 强制重新读取网站。补全不改变固定视图顺序与观察，不符合原薪资条件时移除当前结果并返回 removedFromCurrentSearch。确认下架后删除发现岗位及所有结果、视图和观察，保留已有求职记录，返回 DISCOVERY_JOB_OFFLINE。',
+    readOnly: true,
+    readOnlyHint: false,
+    openWorld: true,
+    inputSchema: jobDetailSchema,
+    outputSchema: z.strictObject({ item: discoveryJobOutputSchema }),
+    execute: async (s, a) => ({ item: await s.discovery.detail(a) }),
+  }),
+  tool({
+    name: 'list_job_search_history',
+    title: '岗位搜索历史',
+    description: '分页读取本地搜索历史（每页 20），无需桌面浏览器运行。',
+    readOnly: true,
+    inputSchema: z.strictObject({ page: z.number().int().positive().default(1) }),
+    outputSchema: z.strictObject({ items: z.array(discoveryRunOutputSchema), total: z.number() }),
+    execute: async (s, a) => ({ ...(await s.discovery.history(a.page)) }),
+  }),
+  tool({
+    name: 'save_discovered_job',
+    title: '加入求职记录',
+    description:
+      '确认公司后保存发现岗位为求职记录；指定已有 companyId 或明确 newCompanyName（两者择一），并指定现有 statusId，可选 resumeVersionId。公司创建、记录和来源关联同事务；重复保存返回既有记录，不覆盖用户编辑。遵守 MCP 写入确认。',
+    readOnly: false,
+    idempotent: true,
+    inputSchema: saveJobSchema,
+    outputSchema: z.strictObject({ opportunityId: z.number(), alreadySaved: z.boolean() }),
+    preview: (s, a) => ({
+      ...s.discovery.savePreview(a),
+      after: {
+        ...a,
+        status: s.statuses.get(a.statusId),
+        resume: a.resumeVersionId ? s.resumes.get(a.resumeVersionId) : null,
+      },
+    }),
+    execute: (s, a) => s.discovery.saveSync(a),
+  }),
   tool({
     name: 'create_exam_paper',
     title: '创建练习卷',

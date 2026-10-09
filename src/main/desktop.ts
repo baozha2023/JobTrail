@@ -1,3 +1,5 @@
+import { DiscoveryRuntime } from './discovery/runtime'
+import { startDiscoveryBroker } from './discovery/broker'
 import { registerDiagnosticsIpc } from './ipc/diagnostics'
 import { featureErrors } from '../shared/feature-errors'
 import { AppServiceError } from './services/errors'
@@ -70,6 +72,11 @@ const APP_ICON_PATH = app.isPackaged
   : path.join(app.getAppPath(), 'resource', 'icon.ico')
 const DEVELOPMENT_SHORTCUT_NAME = `${path.parse(process.execPath).name}.lnk`
 
+const backgroundLaunch = process.argv.includes('--discovery-background')
+let foregroundRequested = !backgroundLaunch
+let windowConfig: ConfigService | undefined
+let discoveryRuntime: DiscoveryRuntime | undefined
+let closeDiscoveryBroker: (() => Promise<void>) | undefined
 let database: DatabaseManager | undefined
 let agent: AgentCoordinator | undefined
 let mainWindow: BrowserWindow | undefined
@@ -127,14 +134,26 @@ function ensureDevelopmentTaskbarIdentity(): void {
   shell.writeShortcutLink(shortcutPath, shortcutOperation, details)
 }
 
-app.on('second-instance', () => {
-  if (!hasSingleInstanceLock || !mainWindow || mainWindow.isDestroyed()) return
+app.on('second-instance', (_event, argv) => {
+  if (argv.includes('--discovery-background')) return
+  showMainWindow()
+})
+
+function showMainWindow(): void {
+  if (!hasSingleInstanceLock || isQuitting) return
+  foregroundRequested = true
+  // A normal launch during initialization must also bring a background launch forward.
+  if (!windowConfig) return
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow(windowConfig)
+    return
+  }
   if (mainWindow.isMinimized()) mainWindow.restore()
   mainWindow.show()
   mainWindow.focus()
-})
+}
 
-function ensureTray(window: BrowserWindow): void {
+function ensureTray(): void {
   if (tray) return
   tray = new Tray(APP_ICON_PATH)
   tray.setToolTip(APP_DISPLAY_NAME)
@@ -142,10 +161,7 @@ function ensureTray(window: BrowserWindow): void {
     Menu.buildFromTemplate([
       {
         label: '显示职迹',
-        click: () => {
-          window.show()
-          window.focus()
-        },
+        click: showMainWindow,
       },
       { type: 'separator' },
       {
@@ -157,10 +173,7 @@ function ensureTray(window: BrowserWindow): void {
       },
     ]),
   )
-  tray.on('click', () => {
-    window.show()
-    window.focus()
-  })
+  tray.on('click', showMainWindow)
 }
 
 function isTrustedRendererNavigation(target: string, rendererUrl: string): boolean {
@@ -203,8 +216,12 @@ function createWindow(config: ConfigService): void {
   mainWindow = window
   trustWindow(window)
   window.once('ready-to-show', () => {
+    if (isQuitting) return
     ensureDevelopmentTaskbarIdentity()
-    window.show()
+    if (foregroundRequested) {
+      window.show()
+      window.focus()
+    } else ensureTray()
   })
 
   const rendererFile = assets.renderer
@@ -231,10 +248,14 @@ function createWindow(config: ConfigService): void {
   }
 
   window.on('close', (event) => {
-    if (!isQuitting && config.get().closeBehavior === 'tray') {
-      event.preventDefault()
-      ensureTray(window)
+    if (isQuitting) return
+    event.preventDefault()
+    if (config.get().closeBehavior === 'tray') {
+      ensureTray()
       window.hide()
+    } else {
+      // Hidden collection windows outlive the UI, so window-all-closed is insufficient.
+      app.quit()
     }
   })
   window.on('closed', () => {
@@ -262,6 +283,17 @@ async function initializeApplication(): Promise<void> {
   const config = new ConfigService(paths)
   const container = createServiceContainer(paths, !app.isPackaged)
   database = container.database
+  discoveryRuntime = new DiscoveryRuntime(
+    paths.root,
+    container.services.discovery,
+    () => mainWindow,
+  )
+  container.services.discovery.live = discoveryRuntime
+  closeDiscoveryBroker = await startDiscoveryBroker(
+    paths.root,
+    container.services.discovery,
+    () => config.get().mcp.enabled,
+  )
   const agentCore = new AgentService(
     paths,
     container.database.db,
@@ -286,12 +318,22 @@ async function initializeApplication(): Promise<void> {
   )
   registerExamIpc(container.services.exams, grader)
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
-  registerVelopackIpc(container.database, agent)
+  const maintenance = {
+    suspendForUpdate: async () => {
+      await discoveryRuntime?.suspend()
+      await agent!.suspendForUpdate()
+    },
+    resumeAfterUpdate: () => {
+      discoveryRuntime?.resume()
+      agent!.resumeAfterUpdate()
+    },
+  }
+  registerVelopackIpc(container.database, maintenance)
   registerBackupIpc(
     paths,
     container.database,
     config,
-    agent,
+    maintenance,
     () => {
       app.relaunch()
       app.quit()
@@ -305,6 +347,7 @@ async function initializeApplication(): Promise<void> {
       path: path.join(paths.root, ROOT_LAUNCHER),
     })
   nativeTheme.themeSource = config.get().themeMode
+  windowConfig = config
   createWindow(config)
   reminderScheduler = new ReminderScheduler(
     container.services.reminders,
@@ -316,10 +359,7 @@ async function initializeApplication(): Promise<void> {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('data:external-change')
   })
   externalDataMonitor.start()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(config)
-    else mainWindow?.show()
-  })
+  app.on('activate', showMainWindow)
 }
 
 app
@@ -386,6 +426,8 @@ app.on('before-quit', (event) => {
   reminderScheduler?.stop()
   void (async () => {
     try {
+      await closeDiscoveryBroker?.()
+      await discoveryRuntime?.suspend()
       await agent?.close()
     } catch (error) {
       captureError(error, { operation: 'agent.close' })

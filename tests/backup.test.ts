@@ -20,6 +20,9 @@ import {
 } from '../src/main/backup-restore'
 import { updateFreezePath } from '../src/main/update-freeze'
 import { version as currentVersion } from '../package.json'
+import { searchQuerySchema } from '../src/shared/job-discovery'
+import Database from 'better-sqlite3'
+import { validateDatabaseVersion } from '../src/main/persistence/validation'
 
 const roots: string[] = []
 const containers: ReturnType<typeof createServiceContainer>[] = []
@@ -106,7 +109,7 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
 }
 
 it.each([1, 2])(
-  'imports an authentic v%i payload, migrates it, exports v3 and restores again',
+  'imports an authentic v%i payload, migrates it, exports v4 and restores again',
   async (version) => {
     const f = fixture()
     await backup(f)
@@ -140,7 +143,7 @@ it.each([1, 2])(
     recoverRestore(f.paths)
     const restored = createServiceContainer(f.paths, false)
     containers.push(restored)
-    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(3)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(4)
     expect(restored.database.db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(
       0,
     )
@@ -162,7 +165,7 @@ it.each([1, 2])(
       secondArchive,
       importWork(f.paths.root),
     )
-    expect(manifest.databaseVersion).toBe(3)
+    expect(manifest.databaseVersion).toBe(4)
     const second = await importBackup(secondArchive, importWork(f.paths.root))
     restored.database.close()
     stageRestore(f.paths, second.directory)
@@ -306,6 +309,63 @@ describe('encrypted configuration', () => {
 })
 
 describe('complete backup and restore', () => {
+  it('invalidates imported platform evidence while keeping this installation session files', async () => {
+    const f = fixture(),
+      repo = f.container.services.discovery.repository
+    for (const status of repo.status())
+      repo.platform({
+        ...status,
+        state: 'authenticated',
+        checkedAt: 1234,
+        evidence: 'official_qr_login_confirmed',
+        limitations: [],
+      })
+    const sessionDir = path.join(f.paths.root, 'browser-sessions', 'boss')
+    fs.mkdirSync(sessionDir, { recursive: true })
+    fs.writeFileSync(path.join(sessionDir, 'session-sentinel'), 'local-session')
+    const run = repo.create(
+      searchQuerySchema.parse({ keyword: 'Java', platforms: ['boss'] }),
+      randomUUID(),
+    )
+    repo.observe(
+      {
+        platform: 'boss',
+        url: 'https://www.zhipin.com/job_detail/backup.html',
+        title: 'Java',
+        company: '公司',
+        city: '北京',
+        salary: '',
+        education: '',
+        experience: '',
+        recruitment: '',
+        employment: '',
+        jd: '',
+        detailRead: false,
+      },
+      run.id,
+    )
+    repo.state(run.id, 'completed')
+    const view = repo.list({ runId: run.id })
+    await backup(f)
+    const prepared = await importBackup(f.archive, importWork(f.paths.root))
+    f.container.database.close()
+    fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
+    stageRestore(f.paths, prepared.directory)
+    recoverRestore(f.paths)
+    const restored = createServiceContainer(f.paths, false)
+    containers.push(restored)
+    for (const status of restored.services.discovery.repository.status())
+      expect(status).toMatchObject({ state: 'unknown', checkedAt: null, evidence: '' })
+    const restoredView = await restored.services.discovery.list({
+      runId: run.id,
+      viewId: view.viewId,
+    })
+    expect(restoredView.items.map((j) => ({ id: j.id, observationId: j.observationId }))).toEqual(
+      view.items.map((j) => ({ id: j.id, observationId: j.observationId })),
+    )
+    expect(restoredView.total).toEqual(view.total)
+    expect(fs.readFileSync(path.join(sessionDir, 'session-sentinel'), 'utf8')).toBe('local-session')
+  })
   it('rejects configuration exceeding the import metadata limit before replacing a backup', async () => {
     const f = fixture()
     fs.writeFileSync(
@@ -522,6 +582,44 @@ describe('complete backup and restore', () => {
       'config.json:stream',
     ])
       expect(allowedBackupPath(name)).toBe(false)
+  })
+
+  it.each([1, 2])(
+    'finishes a committed restore left by a released v%i client before migration',
+    (version) => {
+      const f = fixture()
+      f.container.database.close()
+      for (const suffix of ['-wal', '-shm']) fs.rmSync(f.paths.database + suffix, { force: true })
+      fs.copyFileSync(path.resolve(`tests/fixtures/v${version}/data/zhiji.db`), f.paths.database)
+      const directory = restoreDirectory(f.paths.root)
+      fs.mkdirSync(directory, { recursive: true })
+      fs.writeFileSync(
+        path.join(directory, 'journal.json'),
+        JSON.stringify({ phase: 'committed', existed: [] }),
+      )
+      recoverRestore(f.paths)
+      const restored = new Database(f.paths.database, { readonly: true })
+      try {
+        validateDatabaseVersion(restored, version)
+      } finally {
+        restored.close()
+      }
+      expect(fs.existsSync(directory)).toBe(false)
+    },
+  )
+
+  it('rejects an incomplete committed v4 restore and retains its recovery journal', () => {
+    const f = fixture()
+    f.container.database.db.exec('DROP TABLE discovery_platforms')
+    f.container.database.close()
+    const directory = restoreDirectory(f.paths.root)
+    fs.mkdirSync(directory, { recursive: true })
+    fs.writeFileSync(
+      path.join(directory, 'journal.json'),
+      JSON.stringify({ phase: 'committed', existed: [] }),
+    )
+    expect(() => recoverRestore(f.paths)).toThrow('Unexpected persistent schema')
+    expect(fs.existsSync(path.join(directory, 'journal.json'))).toBe(true)
   })
 
   it('rolls back the whole set when replacing a file fails', async () => {

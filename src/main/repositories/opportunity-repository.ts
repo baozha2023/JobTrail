@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import type { CreateOpportunityInput, OpportunityQuery } from '../../shared/types'
 import { mapOpportunity, type OpportunityRow } from './row-mappers'
 import { containsLikePattern } from './sql'
+import { collectDiscoveryGarbage } from '../discovery/persistence'
 
 type SqliteDatabase = InstanceType<typeof Database>
 
@@ -130,6 +131,8 @@ export class OpportunityRepository {
   }
   delete(id: number, timestamp: number): number {
     return this.db.transaction(() => {
+      this.db.prepare('DELETE FROM discovery_saved WHERE opportunity_id = ?').run(id)
+      this.db.exec(collectDiscoveryGarbage)
       const changes = this.db.prepare('DELETE FROM opportunities WHERE id = ?').run(id).changes
       this.db
         .prepare(

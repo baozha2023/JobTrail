@@ -1,4 +1,22 @@
 export const ERROR_CODES = {
+  DISCOVERY_JOB_OFFLINE: {
+    category: 'business',
+    level: 'info',
+    ui: true,
+    translationKey: 'error.DISCOVERY_JOB_OFFLINE',
+  },
+  DISCOVERY_UNAVAILABLE: {
+    category: 'business',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.DISCOVERY_UNAVAILABLE',
+  },
+  DISCOVERY_FAILED: {
+    category: 'business',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.DISCOVERY_FAILED',
+  },
   EXAM_INVALID: {
     category: 'validation',
     level: 'warn',

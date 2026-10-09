@@ -1,15 +1,44 @@
 import Database from 'better-sqlite3'
+import { isDeepStrictEqual } from 'node:util'
 import { SCHEMA_V1 } from './schema-v1'
 import { SCHEMA_V2 } from './schema-v2'
+import { SCHEMA_V4 } from './schema-v4'
 import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
 import { examQuestionSchema, examCountsSchema, gradeResultSchema } from '../../shared/exams'
 import { z } from 'zod'
+import {
+  discoveryRunOutputSchema,
+  discoveryStatusOutputSchema,
+  searchQuerySchema,
+} from '../../shared/job-discovery'
+import { jobIdentity } from '../discovery/platforms'
+import { duplicateFingerprint } from '../discovery/normalization'
+import {
+  readObservation,
+  readSource,
+  sourceProjection,
+  type SourceRow,
+} from '../discovery/persistence'
 type Db = InstanceType<typeof Database>
 export function validateDatabaseVersion(db: Db, version: number): void {
+  // Main and MCP can be active together. All reference and count checks must
+  // observe one committed snapshot while another process keeps writing to WAL.
+  db.transaction(() => validateDatabaseSnapshot(db, version))()
+}
+
+function validateDatabaseSnapshot(db: Db, version: number): void {
   const sql =
-    version === 1 ? SCHEMA_V1 : version === 2 ? SCHEMA_V2 : version === 3 ? SCHEMA_V3 : null
+    version === 1
+      ? SCHEMA_V1
+      : version === 2
+        ? SCHEMA_V2
+        : version === 3
+          ? SCHEMA_V3
+          : version === 4
+            ? SCHEMA_V4
+            : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -46,11 +75,159 @@ export function validateDatabaseVersion(db: Db, version: number): void {
     }
     if (db.prepare("SELECT 1 FROM sqlite_master WHERE type IN ('trigger','view') LIMIT 1").get())
       throw new Error('Unexpected persistent schema')
-    if (version === 2 || version === 3) validateExamData(db)
-    if (version === 3) validateCompanyLocations(db)
+    if (version >= 2) validateExamData(db)
+    if (version >= 3) validateCompanyLocations(db)
+    if (version >= 4) validateDiscoveryData(db)
   } finally {
     expected.close()
   }
+}
+
+function validateDiscoveryData(db: Db): void {
+  for (const [table, column, target, targetColumn] of [
+    ['discovery_jobs', 'current_observation_id', 'discovery_observations', 'id'],
+    ['discovery_observations', 'job_id', 'discovery_jobs', 'id'],
+    ['discovery_sources', 'run_id', 'discovery_runs', 'id'],
+    ['discovery_results', 'run_id', 'discovery_runs', 'id'],
+    ['discovery_results', 'job_id', 'discovery_jobs', 'id'],
+    ['discovery_results', 'observation_id', 'discovery_observations', 'id'],
+    ['discovery_views', 'run_id', 'discovery_runs', 'id'],
+    ['discovery_view_items', 'view_id', 'discovery_views', 'id'],
+    ['discovery_view_items', 'job_id', 'discovery_jobs', 'id'],
+    ['discovery_view_items', 'observation_id', 'discovery_observations', 'id'],
+    ['discovery_requests', 'run_id', 'discovery_runs', 'id'],
+    ['discovery_saved', 'job_id', 'discovery_jobs', 'id'],
+    ['discovery_saved', 'opportunity_id', 'opportunities', 'id'],
+    ['discovery_saved', 'observation_id', 'discovery_observations', 'id'],
+  ]) {
+    if (
+      db
+        .prepare(
+          'SELECT 1 FROM ' +
+            table +
+            ' a LEFT JOIN ' +
+            target +
+            ' b ON a.' +
+            column +
+            '=b.' +
+            targetColumn +
+            ' WHERE b.' +
+            targetColumn +
+            ' IS NULL LIMIT 1',
+        )
+        .get()
+    )
+      throw new Error('Invalid discovery references')
+  }
+  for (const row of db
+    .prepare(
+      'SELECT o.payload,o.observed_at,j.id,j.platform,j.identity FROM discovery_observations o JOIN discovery_jobs j ON j.id=o.job_id',
+    )
+    .iterate() as Iterable<{
+    payload: string
+    observed_at: number
+    id: string
+    platform: string
+    identity: string
+  }>) {
+    const item = readObservation(row.payload),
+      key = jobIdentity(item.platform, item.url, item.externalId)
+    if (
+      key.id !== row.id ||
+      key.identity !== row.identity ||
+      item.platform !== row.platform ||
+      item.readAt !== row.observed_at ||
+      key.url !== item.url
+    )
+      throw new Error('Invalid discovery observation identity')
+  }
+  for (const row of db
+    .prepare(
+      'SELECT j.*,o.payload,o.job_id FROM discovery_jobs j JOIN discovery_observations o ON o.id=j.current_observation_id',
+    )
+    .iterate() as Iterable<{
+    id: string
+    job_id: string
+    url: string
+    duplicate_fingerprint: string | null
+    payload: string
+  }>) {
+    const item = readObservation(row.payload)
+    if (
+      row.id !== row.job_id ||
+      row.url !== item.url ||
+      row.duplicate_fingerprint !== duplicateFingerprint(item)
+    )
+      throw new Error('Invalid discovery current observation')
+  }
+  for (const row of db
+    .prepare('SELECT id,request_id,query,state,created_at,updated_at FROM discovery_runs')
+    .iterate() as Iterable<{
+    id: string
+    request_id: string
+    query: string
+    state: string
+    created_at: number
+    updated_at: number
+  }>) {
+    z.string().uuid().parse(row.id)
+    const storedQuery: unknown = JSON.parse(row.query)
+    const query = searchQuerySchema.parse(storedQuery)
+    // Input defaults and trimming must never repair persisted v4 data.
+    if (!isDeepStrictEqual(storedQuery, query)) throw new Error('Invalid persisted discovery query')
+    discoveryRunOutputSchema.shape.state.parse(row.state)
+    if (
+      !Number.isSafeInteger(row.created_at) ||
+      row.created_at < 0 ||
+      !Number.isSafeInteger(row.updated_at) ||
+      row.updated_at < row.created_at
+    )
+      throw new Error('Invalid discovery search')
+    const binding = db
+      .prepare('SELECT run_id FROM discovery_requests WHERE request_id=?')
+      .get(row.request_id) as { run_id: string } | undefined
+    if (binding?.run_id !== row.id) throw new Error('Invalid discovery request binding')
+    const sources = (
+      db
+        .prepare('SELECT ' + sourceProjection + ' FROM discovery_sources WHERE run_id=?')
+        .all(row.id) as SourceRow[]
+    ).map(readSource)
+    if (
+      sources.length !== query.platforms.length ||
+      sources.some(
+        (s) => !query.platforms.includes(s.platform) || s.remote.keyword !== query.keyword,
+      )
+    )
+      throw new Error('Invalid discovery sources')
+    for (const source of sources) {
+      const count = (
+        db
+          .prepare(
+            'SELECT COUNT(*) n FROM discovery_results r JOIN discovery_jobs j ON j.id=r.job_id WHERE r.run_id=? AND j.platform=?',
+          )
+          .get(row.id, source.platform) as { n: number }
+      ).n
+      if (source.count !== count) throw new Error('Invalid discovery source count')
+    }
+  }
+  for (const row of db.prepare('SELECT id FROM discovery_views').iterate() as Iterable<{
+    id: string
+  }>)
+    z.string().uuid().parse(row.id)
+  for (const row of db
+    .prepare('SELECT platform,payload FROM discovery_platforms')
+    .iterate() as Iterable<{ platform: string; payload: string }>) {
+    if (discoveryStatusOutputSchema.parse(JSON.parse(row.payload)).platform !== row.platform)
+      throw new Error('Invalid discovery platform')
+  }
+  for (const sql of [
+    'SELECT 1 FROM discovery_view_items v JOIN discovery_observations o ON o.id=v.observation_id WHERE v.job_id<>o.job_id LIMIT 1',
+    'SELECT 1 FROM discovery_results r JOIN discovery_observations o ON o.id=r.observation_id WHERE r.job_id<>o.job_id LIMIT 1',
+    'SELECT 1 FROM discovery_saved s JOIN discovery_observations o ON o.id=s.observation_id WHERE s.job_id<>o.job_id LIMIT 1',
+    'SELECT 1 FROM discovery_results r JOIN discovery_jobs j ON j.id=r.job_id LEFT JOIN discovery_sources s ON s.run_id=r.run_id AND s.platform=j.platform WHERE s.run_id IS NULL LIMIT 1',
+    'SELECT 1 FROM discovery_view_items i JOIN discovery_views v ON v.id=i.view_id JOIN discovery_jobs j ON j.id=i.job_id LEFT JOIN discovery_sources s ON s.run_id=v.run_id AND s.platform=j.platform WHERE s.run_id IS NULL LIMIT 1',
+  ])
+    if (db.prepare(sql).get()) throw new Error('Mismatched discovery observation')
 }
 
 function validateCompanyLocations(db: Db): void {

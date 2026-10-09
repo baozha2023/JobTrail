@@ -63,13 +63,14 @@ export function registerBackupIpc(
         flag: 'wx',
       })
       try {
+        await agent.suspendForUpdate()
         await fs.writeFile(freeze, '', { flag: 'wx' })
         frozen = true
       } catch (error) {
         await fs.rm(backupSessionPath(paths.root), { force: true })
+        agent.resumeAfterUpdate()
         throw error
       }
-      await agent.suspendForUpdate()
       await waitForMcpSessions(paths.root)
       database.db.transaction(() => undefined).immediate()
     }

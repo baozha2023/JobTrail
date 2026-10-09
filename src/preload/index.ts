@@ -77,6 +77,22 @@ const invoke = async <K extends IpcChannel>(
 }
 
 const zhijiApi: ZhijiApi = {
+  discovery: {
+    status: (...args) => invoke('discovery:status', ...args),
+    start: (...args) => invoke('discovery:start', ...args),
+    run: (...args) => invoke('discovery:run', ...args),
+    list: (...args) => invoke('discovery:list', ...args),
+    continue: (...args) => invoke('discovery:continue', ...args),
+    cancel: (...args) => invoke('discovery:cancel', ...args),
+    detail: (...args) => invoke('discovery:detail', ...args),
+    history: (...args) => invoke('discovery:history', ...args),
+    removeHistory: (...args) => invoke('discovery:removeHistory', ...args),
+    save: (...args) => invoke('discovery:save', ...args),
+    browser: (...args) => invoke('discovery:browser', ...args),
+    region: (...args) => invoke('discovery:region', ...args),
+    qrLogin: (...args) => invoke('discovery:qrLogin', ...args),
+    verification: (...args) => invoke('discovery:verification', ...args),
+  },
   diagnostics: {
     openDirectory: () => invoke('diagnostics:open-directory'),
     exportBundle: () => invoke('diagnostics:export'),

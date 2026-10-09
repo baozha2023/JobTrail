@@ -4,7 +4,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -58,15 +58,6 @@ function chunk(id, delta, finishReason = null) {
     model: 'mock',
     choices: [{ index: 0, delta, finish_reason: finishReason }],
   })}\n\n`
-}
-
-async function waitFor(predicate, description, timeout = 15_000) {
-  const deadline = Date.now() + timeout
-  while (Date.now() < deadline) {
-    if (await predicate()) return
-    await new Promise((resolve) => setTimeout(resolve, 50))
-  }
-  throw new Error(`Timed out waiting for ${description}`)
 }
 
 try {

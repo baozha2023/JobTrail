@@ -1,5 +1,5 @@
 import { validateDatabaseVersion } from './persistence/validation'
-import { SCHEMA_V3 } from './persistence/schema-v3'
+import { SCHEMA_V4 } from './persistence/schema-v4'
 import { CompanyLocationRepository } from './repositories/company-location-repository'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -71,7 +71,7 @@ export class DatabaseManager {
     if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1").get())
       throw new DatabaseVersionError(0)
 
-    this.db.exec(SCHEMA_V3)
+    this.db.exec(SCHEMA_V4)
 
     this.seed()
   }

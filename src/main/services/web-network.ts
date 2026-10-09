@@ -88,7 +88,7 @@ export function isHtmlResponse(response: WebResponse): boolean {
 }
 
 export function validateWebUrl(value: string): URL {
-  if (value.length > 2_048) throw new AppServiceError('WEB_INVALID_URL', '网页地址过长')
+  if (value.length > 10_240) throw new AppServiceError('WEB_INVALID_URL', '网页地址过长')
   let url: URL
   try {
     url = new URL(value)
@@ -159,6 +159,22 @@ export class WebNetwork {
   constructor(
     private readonly resolve = (hostname: string) => dns.lookup(hostname, { all: true }),
   ) {}
+
+  /** Return the checked address so callers can bind the actual connection to it. */
+  async resolvePublicUrl(
+    input: string,
+    signal: AbortSignal,
+  ): Promise<{ address: string; family: number }> {
+    const url = validateWebUrl(input)
+    const addresses = await this.resolveAddresses(url.hostname.replace(/^\[|\]$/g, ''), {
+      signal,
+      requests: 0,
+      bytes: 0,
+    })
+    if (!addresses.length) throw new AppServiceError('WEB_UNAVAILABLE', '无法解析网页域名')
+    for (const item of addresses) assertPublicAddress(item.address)
+    return addresses[0]
+  }
 
   async request(
     input: string,

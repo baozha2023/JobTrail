@@ -1,8 +1,10 @@
+import { discoveryMessages } from './discovery-messages'
 import { featureErrors } from '../shared/feature-errors'
 import { createI18n } from 'vue-i18n'
 
 const messages = {
   'zh-CN': {
+    discovery: discoveryMessages['zh-CN'],
     exam: {
       skillDescription: '生成笔试练习卷，边出题边作答',
       paper: '笔试练习卷',
@@ -29,6 +31,7 @@ const messages = {
       correctAnswer: '正确答案：',
     },
     appName: '职迹',
+    openOfficialWebsite: '打开职迹官网',
     window: { minimize: '最小化', maximize: '最大化', close: '关闭' },
     nav: {
       opportunities: '求职记录',
@@ -478,6 +481,7 @@ const messages = {
     weekdays: ['日', '一', '二', '三', '四', '五', '六'],
   },
   'en-US': {
+    discovery: discoveryMessages['en-US'],
     exam: {
       skillDescription: 'Create an interactive practice exam',
       paper: 'Practice exam',
@@ -504,6 +508,7 @@ const messages = {
       correctAnswer: 'Correct answer:',
     },
     appName: '职迹',
+    openOfficialWebsite: 'Open the JobTrail website',
     window: { minimize: 'Minimize', maximize: 'Maximize', close: 'Close' },
     nav: {
       opportunities: 'Opportunities',

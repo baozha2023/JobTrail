@@ -44,6 +44,7 @@ import type {
   ResumeVersion,
   Status,
 } from '../../shared/types'
+import JobDiscoveryView from './JobDiscoveryView.vue'
 import OpportunitiesView from './OpportunitiesView.vue'
 import OpportunityStatusFlowModal from './OpportunityStatusFlowModal.vue'
 import CalendarView from './CalendarView.vue'
@@ -74,6 +75,7 @@ import { useManagementWorkspace } from '../composables/useManagementWorkspace'
 import { useBackupWorkspace } from '../composables/useBackupWorkspace'
 import type { ViewKey } from '../types'
 
+const OFFICIAL_WEBSITE_URL = 'http://jobtrail.bzgames.top/'
 const { t, locale } = useI18n()
 const windowControls = window.windowControlsApi
 const statusesStore = useStatusesStore()
@@ -89,6 +91,7 @@ const { items: resumes } = storeToRefs(resumesStore)
 const { items: companies } = storeToRefs(companiesStore)
 const { config } = storeToRefs(settingsStore)
 const viewportWidth = ref(window.innerWidth)
+const discoveryView = ref<InstanceType<typeof JobDiscoveryView>>()
 const activeView = ref<ViewKey>('opportunities')
 const loading = ref(false)
 const checkingForUpdates = ref(false)
@@ -134,12 +137,21 @@ const menuOptions = computed(() => [
   { label: t('nav.industries'), key: 'industries' },
   { label: t('nav.resumes'), key: 'resumes' },
   { label: t('nav.companies'), key: 'companies' },
+  {
+    label: () =>
+      h('span', { class: 'sidebar-menu-label' }, [
+        h('span', { class: 'sidebar-menu-title' }, t('discovery.title')),
+        h('span', { class: 'sidebar-beta' }, 'Beta'),
+      ]),
+    key: 'discovery',
+  },
   { label: t('nav.agent'), key: 'agent' },
   { label: t('nav.settings'), key: 'settings' },
 ])
 
 const pageTitle = computed(() => {
   const titles: Record<string, string> = {
+    discovery: t('discovery.title'),
     opportunities: t('opportunity.title'),
     calendar: t('calendar.title'),
     statuses: t('management.statuses'),
@@ -1164,9 +1176,12 @@ onBeforeUnmount(() => {
     <div class="window-root">
       <Titlebar
         :title="t('appName')"
+        :website-url="OFFICIAL_WEBSITE_URL"
+        :website-label="t('openOfficialWebsite')"
         :minimize="() => runWindowControl(windowControls.minimize)"
         :maximize="() => runWindowControl(windowControls.toggleMaximize)"
         :close="() => runWindowControl(windowControls.close)"
+        @open-website="openExternal(OFFICIAL_WEBSITE_URL)"
       >
         <template #icon><img :src="logoUrl" alt="职迹" /></template>
       </Titlebar>
@@ -1174,20 +1189,40 @@ onBeforeUnmount(() => {
       <n-layout has-sider class="app-shell">
         <Sidebar v-model:value="activeView" :options="menuOptions" :width="sidebarWidth">
           <template #brand>
-            <div class="brand">
+            <a
+              class="brand"
+              :href="OFFICIAL_WEBSITE_URL"
+              :title="t('openOfficialWebsite')"
+              :aria-label="t('openOfficialWebsite')"
+              @click.prevent="openExternal(OFFICIAL_WEBSITE_URL)"
+            >
               <img class="brand-logo" :src="logoUrl" alt="职迹" />
-              <div class="brand-name">{{ t('appName') }}</div>
-            </div>
+              <span class="brand-name">{{ t('appName') }}</span>
+            </a>
           </template>
         </Sidebar>
 
         <n-layout>
-          <n-layout-content class="content" :class="{ 'agent-content': activeView === 'agent' }">
+          <n-layout-content
+            class="content"
+            :class="{
+              'agent-content': activeView === 'agent',
+              'discovery-content': activeView === 'discovery',
+            }"
+          >
             <header class="page-header">
               <div>
                 <h1>{{ pageTitle }}</h1>
               </div>
-              <n-space>
+              <div class="page-header-actions">
+                <template v-if="activeView === 'discovery'">
+                  <n-button @click="discoveryView?.openAccounts()">{{
+                    t('discovery.accounts')
+                  }}</n-button>
+                  <n-button @click="discoveryView?.openHistory()">{{
+                    t('discovery.history')
+                  }}</n-button>
+                </template>
                 <n-button
                   v-if="activeView === 'opportunities'"
                   type="primary"
@@ -1215,9 +1250,17 @@ onBeforeUnmount(() => {
                   @click="openCompanyEditor()"
                   >{{ t('common.add') }}</n-button
                 >
-              </n-space>
+              </div>
             </header>
 
+            <JobDiscoveryView
+              ref="discoveryView"
+              v-show="activeView === 'discovery'"
+              :active="activeView === 'discovery'"
+              :statuses="statuses"
+              :resumes="resumes"
+              @saved="companiesStore.load()"
+            />
             <OpportunitiesView
               v-if="activeView === 'opportunities'"
               :columns="columns"

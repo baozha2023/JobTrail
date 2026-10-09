@@ -72,8 +72,8 @@ importers:
         version: 4.5.4
     devDependencies:
       '@modelcontextprotocol/client':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.2.0
+        version: 2.2.0
       '@types/better-sqlite3':
         specifier: ^7.6.12
         version: 7.6.13
@@ -102,8 +102,8 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0(typescript@5.9.3)(vue@3.5.42(typescript@5.9.3))
       electron:
-        specifier: 43.7.7
-        version: 43.7.7
+        specifier: 43.7.9
+        version: 43.7.9
       electron-builder:
         specifier: 26.15.3
         version: 26.15.3(electron-builder-squirrel-windows@26.15.3)
@@ -747,12 +747,16 @@ packages:
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
 
-  '@modelcontextprotocol/client@2.0.0':
-    resolution: {integrity: sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==}
+  '@modelcontextprotocol/client@2.2.0':
+    resolution: {integrity: sha512-LxCou/CSYQ6dwEnjhLZY0KnEuc8V4UJ3IEQCl/uR2yHobSQIEdJKUlKLRYRF5i5FqRGHy1eK7une3aAWDHLtig==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/core@2.0.0':
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/core@2.2.0':
+    resolution: {integrity: sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/server@2.0.0':
@@ -1600,8 +1604,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@43.7.7:
-    resolution: {integrity: sha512-y0pg+KhWLAkW2Ts2njkFFNFl3KtB1FmbUp9Te9i+R2Og2v1fcI/I6MADJ7jvnzB5UKdt+U+0EUoCnVL79xMPMA==}
+  electron@43.7.9:
+    resolution: {integrity: sha512-wZkQ/R9F5Bv8dM5vX6vWboNo5ZCBC/IYQV195dtG9JvFAlNbebzlkWWSE5esgpCVy3rVYQ/g09GeknJwvQnS9A==}
     engines: {node: '>= 22.12.0'}
     hasBin: true
 
@@ -3464,9 +3468,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/client@2.0.0':
+  '@modelcontextprotocol/client@2.2.0':
     dependencies:
-      '@modelcontextprotocol/core': 2.0.0
+      '@modelcontextprotocol/core': 2.2.0
       cross-spawn: 7.0.6
       eventsource: 3.0.7
       eventsource-parser: 3.1.1
@@ -3475,6 +3479,10 @@ snapshots:
       zod: 4.5.4
 
   '@modelcontextprotocol/core@2.0.0':
+    dependencies:
+      zod: 4.5.4
+
+  '@modelcontextprotocol/core@2.2.0':
     dependencies:
       zod: 4.5.4
 
@@ -4380,7 +4388,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@43.7.7:
+  electron@43.7.9:
     dependencies:
       '@electron-internal/extract-zip': 1.0.5
       '@electron/get': 5.1.0

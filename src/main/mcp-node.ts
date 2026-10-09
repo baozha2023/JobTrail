@@ -1,3 +1,4 @@
+import { DiscoveryBrokerClient } from './discovery/broker'
 import path from 'node:path'
 import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
@@ -55,6 +56,8 @@ try {
   }
   throw error
 }
+const discoveryClient = new DiscoveryBrokerClient(paths.root)
+container.services.discovery.live = discoveryClient
 let handle: StdioServerHandle | undefined
 let closing = false
 let freezeTimer: ReturnType<typeof setInterval> | undefined
@@ -62,6 +65,7 @@ let freezeTimer: ReturnType<typeof setInterval> | undefined
 async function close(exitCode = 0): Promise<void> {
   if (closing) return
   closing = true
+  discoveryClient.close()
   if (freezeTimer) clearInterval(freezeTimer)
   try {
     await handle?.close()

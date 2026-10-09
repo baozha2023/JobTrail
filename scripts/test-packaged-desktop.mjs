@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
 import { linkPackagedProgram, withoutSystemEdge } from './packaged-test-helpers.mjs'
+import { checkWorkspaceHeader } from './workspace-header-check.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -42,6 +43,7 @@ try {
   )
   fs.mkdirSync(screenshots, { recursive: true })
   let page = await launch()
+  await checkWorkspaceHeader(page)
   const created = await page.evaluate(async () => {
     const api = window.zhijiApi
     const statuses = await api.statuses.list()
@@ -299,7 +301,7 @@ try {
   }, created)
   assert.deepEqual(errors, [], 'Renderer must not raise unhandled errors')
   console.log(
-    `Packaged desktop smoke passed for ${version}: startup, IPC, persistence, eight views, encrypted backup/import/restart and deletion`,
+    `Packaged desktop smoke passed for ${version}: startup, IPC, persistence, workspace views, encrypted backup/import/restart and deletion`,
   )
 } finally {
   if (application) await application.close()

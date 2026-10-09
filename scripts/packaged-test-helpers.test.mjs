@@ -21,7 +21,7 @@ test('isolates installation data and logs while preserving dependency assets wit
   const { source, destination } = fixture(t)
   fs.writeFileSync(path.join(source, 'zhiji.exe'), 'synthetic executable')
   fs.writeFileSync(path.join(source, 'config.json'), 'must not be copied')
-  for (const name of ['data', 'resumes', 'chat-uploads', '.runtime', 'logs']) {
+  for (const name of ['data', 'resumes', 'chat-uploads', 'browser-sessions', '.runtime', 'logs']) {
     fs.mkdirSync(path.join(source, name))
     fs.writeFileSync(path.join(source, name, 'private.txt'), 'must not be copied')
   }

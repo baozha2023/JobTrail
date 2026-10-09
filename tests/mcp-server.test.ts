@@ -207,11 +207,11 @@ describe('JobTrail MCP server', () => {
     },
   )
 
-  it('allows reads by default, gates access when disabled, and advertises exactly 42 tools', async () => {
+  it('allows reads by default, gates access when disabled, and advertises exactly 51 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
-    expect(listed.tools).toHaveLength(42)
-    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 42)
+    expect(listed.tools).toHaveLength(51)
+    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 51)
     expect(
       listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.openWorldHint,
     ).toBe(true)

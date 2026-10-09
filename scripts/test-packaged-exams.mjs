@@ -417,7 +417,7 @@ try {
   })
   const manifest = JSON.parse(entries['manifest.json'])
   assert.equal(manifest.schemaVersion, 1)
-  assert.equal(manifest.environment.databaseVersion, 3)
+  assert.equal(manifest.environment.databaseVersion, 4)
   assert.equal(manifest.health.degraded, false)
   assert.ok(
     Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),
@@ -447,7 +447,7 @@ try {
     !JSON.stringify(entries).includes('Promise 表示异步操作未来的结果。'),
     'answers must not enter diagnostics',
   )
-  const archive = path.join(staging, 'exam-v3.jobtrail-backup')
+  const archive = path.join(staging, 'exam.jobtrail-backup')
   await application.evaluate(({ dialog }, file) => {
     dialog.showSaveDialog = async () => ({ canceled: false, filePath: file })
   }, archive)
@@ -485,7 +485,7 @@ try {
   assert.equal(reset.questions.length, 3)
   assert.ok(reset.questions.every((q) => q.answer.value === null && q.answer.result === null))
   console.log(
-    'PASS: packaged v1 startup migration, /study, MCP paper updates, fixed 70% × 90% modal with persistent mask, incremental card/modal, concurrent AI grading, objective submissions, restart persistence, v3 backup/export/import/restart and reset',
+    'PASS: packaged v1 startup migration, /study, MCP paper updates, fixed 70% × 90% modal with persistent mask, incremental card/modal, concurrent AI grading, objective submissions, restart persistence, current-schema backup/export/import/restart and reset',
   )
 } catch (error) {
   if (application) {

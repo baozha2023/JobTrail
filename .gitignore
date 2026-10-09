@@ -55,4 +55,8 @@ tools/
 bz-personal-showcase/
 jobtrail-website/
 /.jobtrail-company-catalog.lock
-/resource/jobtrail-company-catalog.json.*.bak
+/resource/jobtrail-company-catalog.*.bak
+/resource/jobtrail-company-catalog.json.backup-*
+
+# Chromium profiles contain authentication data; never commit or back up.
+browser-sessions/

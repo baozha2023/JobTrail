@@ -1,3 +1,4 @@
+import { registerDiscoveryIpc } from './ipc/discovery'
 import type { ConfigService } from './config'
 import type { Services } from './service-container'
 import { registerCalendarIpc } from './ipc/calendar'
@@ -20,6 +21,7 @@ export function registerIpc(
   config: ConfigService,
   agent: AgentCoordinator,
 ): () => void {
+  registerDiscoveryIpc(services.discovery)
   registerAgentIpc(agent)
   registerConfigIpc(config)
   registerMcpIpc()

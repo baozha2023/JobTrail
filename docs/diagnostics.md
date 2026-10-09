@@ -2,9 +2,9 @@
 
 ## 范围与版本
 
-当前日志结构版本为 `1`，与客户端版本、SQLite `user_version`、配置 `configVersion` 分开管理。本次不变更业务数据结构。正式客户端升级和旧业务备份导入仍调用原来的版本迁移链。
+日志结构版本为 `1`，与客户端版本、SQLite `user_version`、配置 `configVersion` 独立管理。业务数据库和配置的升级、备份导入使用各自的正式版本迁移链。
 
-旧日志保留、读取转换、导出兼容和业务操作白名单方案已经废止。旧文件只被识别为“是否可安全清除”，不会解析成新事件。增加业务操作、错误码或可选属性不升日志版本；核心字段不兼容变更才升版。
+日志读取与导出仅接受当前事件结构。旧文件只用于判断是否符合安全清理条件，不转换为当前事件；业务操作名不采用白名单。增加业务操作、错误码或可选属性不升日志版本；核心字段不兼容变更才升版。
 
 ## 模块边界
 
@@ -88,3 +88,23 @@ ZIP 包含日志及 manifest：应用/Electron/Node/系统/架构版本、数据
 用户提供诊断编号后，搜索 JSONL 的 eventId；再按 traceId 和 relatedEventId 连接主进程、worker、MCP 的过程。先看健康和导出清单，确认是否有降级、聚合、缺失、损坏行或跳过文件，再判断失败原因。不要索取整个数据目录来替代诊断包。
 
 契约验证覆盖异常树、危险 getter、秘密和路径过滤、错误码、请求隔离、传输去重、文件故障恢复、轮转聚合、维护锁、旧文件清除、ZIP 内容和目标保护。发布前还须运行完整业务测试、真实 Electron 包测试及旧客户端/备份迁移矩阵。
+
+## 岗位发现
+
+`discovery.connection` 记录受控代理的 DNS、连接及上游代理失败；URL 形状与平台导航拒绝由 `discovery.<platform>.network-check` 记录。连接层不解密 HTTPS，不记录请求/响应头、Cookie、二维码或正文；不通过错误日志回传代理认证材料。网络限制与支持的代理类型见[岗位发现说明](job-discovery.md)。
+
+`DISCOVERY_UNAVAILABLE` 表示桌面运行时或受控管道暂不可用，`DISCOVERY_FAILED` 表示发现服务执行失败。`DISCOVERY_JOB_OFFLINE` 表示已确认岗位下架并完成发现数据清理，UI 展示“已下架”，受控管道保留该错误码供 MCP 识别；它不是网络或登录失败。来源业务状态（登录限制、验证码、查询范围未验证、超时等）作为结构化结果返回，不把平台阻断伪装成空结果。二维码组件区分 network/protocol/verification，只展示固定提示；诊断与测试报告不记录 Cookie、登录令牌、二维码图片或临时扫码标识。接口与验收范围见 [岗位发现说明](job-discovery.md)。
+
+猎聘二维码状态包含 `verification.available`、`verification.window`（closed/loading/ready/error）及固定的窗口错误原因（unavailable/network/blocked/blank/timeout/site_error）。`site_error` 包含 HTTP 错误及 HTTP 200 的“页面不存在”错误页；只有可见的验证码交互节点才进入 ready，图片、返回首页按钮或页面标题不能单独作为依据。猎聘请求与页面的浏览器标识不含应用产品名，包含真实 Chromium/Electron 版本；窗口使用网站标题，官方 URL 不附加应用参数。这些 UI 状态不作为认证成功证据；加载完成和用户关闭窗口都不代表通过网站验证或登录。服务端验证地址及查询参数只在 Main 内存使用，不通过 IPC、MCP、错误消息或诊断日志返回。测试报告只记录验证地址的 origin/path，不保存查询参数。
+
+普通重启保留平台上次确认的状态、时间及证据，`session_recheck_required` 表示本次运行还未复核；`authentication_check_inconclusive` 表示页面未提供充分证据，不能据此清除既有确认记录。备份恢复才清除导入的平台确认元数据，本机 Chromium 会话文件不受影响。
+
+专用查询返回固定来源原因：`control_not_found`、`city_selection_not_confirmed`、`query_not_observed`、`pagination_not_confirmed` 分别表示官方控件、单地点选择、查询响应和源页码未核实；`response_contract_changed`、`batch_accounting_mismatch` 表示外部响应或数量契约失败；`batch_save_failed` 保留未提交批次供重试。`cursor_expired_restarted` 明确告知重新提交官方查询，`no_growth` 只表示连续批次无增长，不能等同网站末页。前程无忧搜索响应含官方 `aliyun_waf_aa` 验证标识时归为 `challenge`，不归为普通 JSON 解析失败。
+
+单条岗位解析失败记录 `discovery.<platform>.parse-skipped`，属性仅含批次条目数及失败数；解码器抛异常时另以 `discovery.<platform>.item-parse` 记录脱敏异常，级别为 warn。猎聘、前程无忧城市过滤记录 `discovery.<platform>.city-filtered`，包含过滤前有效条目数及排除数。部分条目跳过不产生用户提示；非空批次全无有效岗位身份或响应无法识别时，以 `parse_error / response_contract_changed` 停止该来源，真实空列表及过滤后为空不触发。`response_too_large`、`batch_accounting_mismatch` 和响应体读取失败归入 `network_error`。不写入岗位原文、请求响应正文或认证材料。过滤前身份保留在内存批次中，用于缓存、预算和无增长判断，不持久化为数据库字段。
+
+BOSS 的有效岗位缺少薪资文本时返回 `session_expired`，当前批次不入库，通过人工处理队列提示重新扫码登录；“面议”和真实空列表不触发该状态。当前查询响应确认的登录或验证阻断优先于后续控件缺失，取消及其他明确错误按各自原因记录。
+
+网络预检的 `WEB_INVALID_URL` 区分“网页地址过长”“网页地址无效”和协议、端口或地址格式限制。URL 最长 10240 字符；HTTP/HTTPS、80/443 端口、禁止内嵌凭据及公网地址校验分别执行。页面统计上报、WebSocket 等子请求同样受网络规则约束。`network-check` 记录单个请求校验失败，不能根据其条数推断岗位数量或整轮搜索失败；采集结果以 `collect.<state>` 及来源进度为准。日志不包含请求参数或认证材料。
+
+采集每轮结束记录 `discovery.<platform>.collect.<state>` 及岗位数、跳过数和本轮批次数，用于区分正常预算停止与异常；失败保留 `discovery.<platform>.collect` 的具体异常。扫码失败记录 `discovery.<platform>.qr`，扫码验证窗口失败记录 `discovery.<platform>.qr-verification`；搜索验证复核复用采集日志。网络预检和页面加载分别记录 `network-check`、`navigation`。管道服务端拒绝/执行失败、连接重试、启动锁及清理异常记录在 `discovery.broker.*` 下，包装错误保留 cause。正常启动时尚无管道描述文件只记录 startup 事件，不作为异常。IPC/MCP 继续负责上抛异常的最终记录；纯计算和 Repository 不重复建立日志入口。人工验证成功后的续跑沿相同采集日志记录，取消仍为操作结果。

@@ -6,6 +6,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 ## Features
 
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian and 51job, filter salaries, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
@@ -45,13 +46,23 @@ Download the Windows installer from [GitHub Releases](https://github.com/baozha2
 
 You can start managing applications right away. To use the AI assistant, enter your model service URL, model name, and API key in Settings. To connect an external AI tool, copy the corresponding MCP configuration from Settings. MCP is enabled by default and can be turned off in Settings.
 
-Starting with v1.6.0, dynamic web reading uses the installed **Microsoft Edge Stable** instead of bundling a separate Chromium browser. Install Edge and keep it updated. If Edge cannot start, JobTrail reports the problem; local features and static web reading remain available. Automatic mode may return static content with an incomplete-result warning.
+Job discovery only enables platforms with a confirmed login. Login and expired-session prompts open the QR panel; website-verification prompts open a separate site window. After QR confirmation or the user closes the verification window, JobTrail checks the original query and resumes that platform when the check succeeds.
+
+Live discovery tools reuse an already running JobTrail client from the same installation. If none is running, MCP starts it in the system tray without taking focus. Local history queries do not require the desktop to run.
+
+Dynamic web reading uses the installed **Microsoft Edge Stable**; the installer does not include a separate Playwright Chromium browser. Install Edge and keep it updated. If Edge cannot start, JobTrail reports the problem; local features and static web reading remain available. Automatic mode may return static content with an incomplete-result warning.
+
+Job discovery pages use Electron's embedded Chromium.
+
+Job discovery supports direct connections and system HTTP/HTTPS proxies. SOCKS, authenticated proxies, and proxies that reject IP-based CONNECT are unsupported; failures never fall back to a direct connection. See the [discovery specification](docs/job-discovery.md) for network boundaries and validation limits.
 
 Local reminders require the app to remain running. You can hide the window in the system tray.
 
 ## Data and privacy
 
-JobTrail requires no account and does not provide cloud sync. Application records, resumes, and chat history are stored locally. When you use the AI assistant, relevant conversations and selected content are sent to the model service you configure.
+JobTrail requires no application account and does not provide cloud sync. Application records, resumes, and chat history are stored locally. When you use the AI assistant, relevant conversations and selected content are sent to the model service you configure.
+
+Recruitment-platform login sessions stay in the local browser profiles and are excluded from portable backups.
 
 Export a complete backup from Settings and save it outside the installation folder. **Importing replaces your current data, and uninstalling clears the installation folder. Back up your data first.**
 
@@ -81,7 +92,11 @@ Building the installer also requires Rust with the MSVC toolchain, Visual Studio
 The following documents are in Chinese:
 
 - [Development guidelines](CLAUDE.md)
+- [Job discovery](docs/job-discovery.md)
 - [Database structure](docs/database.md)
+- [Persistence upgrades](docs/persistence-upgrade-guide.md)
+- [Diagnostics](docs/diagnostics.md)
+- [Scripts and acceptance tests](scripts/README.md)
 
 ## License
 

@@ -1,3 +1,4 @@
+import type { DiscoveryApi } from './job-discovery'
 import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 import type {
   ExamChangeEvent,
@@ -45,6 +46,62 @@ import type {
 } from './types'
 
 export interface IpcChannelMap {
+  'discovery:status': {
+    args: Parameters<DiscoveryApi['status']>
+    result: Awaited<ReturnType<DiscoveryApi['status']>>
+  }
+  'discovery:start': {
+    args: Parameters<DiscoveryApi['start']>
+    result: Awaited<ReturnType<DiscoveryApi['start']>>
+  }
+  'discovery:run': {
+    args: Parameters<DiscoveryApi['run']>
+    result: Awaited<ReturnType<DiscoveryApi['run']>>
+  }
+  'discovery:list': {
+    args: Parameters<DiscoveryApi['list']>
+    result: Awaited<ReturnType<DiscoveryApi['list']>>
+  }
+  'discovery:continue': {
+    args: Parameters<DiscoveryApi['continue']>
+    result: Awaited<ReturnType<DiscoveryApi['continue']>>
+  }
+  'discovery:cancel': {
+    args: Parameters<DiscoveryApi['cancel']>
+    result: Awaited<ReturnType<DiscoveryApi['cancel']>>
+  }
+  'discovery:detail': {
+    args: Parameters<DiscoveryApi['detail']>
+    result: Awaited<ReturnType<DiscoveryApi['detail']>>
+  }
+  'discovery:history': {
+    args: Parameters<DiscoveryApi['history']>
+    result: Awaited<ReturnType<DiscoveryApi['history']>>
+  }
+  'discovery:removeHistory': {
+    args: Parameters<DiscoveryApi['removeHistory']>
+    result: Awaited<ReturnType<DiscoveryApi['removeHistory']>>
+  }
+  'discovery:save': {
+    args: Parameters<DiscoveryApi['save']>
+    result: Awaited<ReturnType<DiscoveryApi['save']>>
+  }
+  'discovery:browser': {
+    args: Parameters<DiscoveryApi['browser']>
+    result: Awaited<ReturnType<DiscoveryApi['browser']>>
+  }
+  'discovery:qrLogin': {
+    args: Parameters<DiscoveryApi['qrLogin']>
+    result: Awaited<ReturnType<DiscoveryApi['qrLogin']>>
+  }
+  'discovery:region': {
+    args: Parameters<DiscoveryApi['region']>
+    result: Awaited<ReturnType<DiscoveryApi['region']>>
+  }
+  'discovery:verification': {
+    args: Parameters<DiscoveryApi['verification']>
+    result: Awaited<ReturnType<DiscoveryApi['verification']>>
+  }
   'diagnostics:open-directory': { args: []; result: void }
   'diagnostics:export': { args: []; result: 'cancelled' | 'exported' }
   'exams:get': { args: [input: ExamIdentity]; result: ExamPaper }

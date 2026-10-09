@@ -1,5 +1,8 @@
 export const featureErrors = {
   'zh-CN': {
+    DISCOVERY_JOB_OFFLINE: '已下架',
+    DISCOVERY_UNAVAILABLE: '岗位发现运行时不可用，请启动桌面应用后重试',
+    DISCOVERY_FAILED: '岗位读取未完成，请查看来源状态并重试',
     WEB_BROWSER_UNAVAILABLE:
       '无法启动 Microsoft Edge，动态网页读取不可用。请确认已安装并更新 Edge；若仍失败，请修复安装或检查组织的浏览器策略。',
     EXAM_INVALID: '题目或答案格式无效，请检查后重试',
@@ -15,6 +18,9 @@ export const featureErrors = {
     PERSISTENCE_FAILED: '数据检查或升级失败，请查看日志后重新启动',
   },
   'en-US': {
+    DISCOVERY_JOB_OFFLINE: 'No longer available',
+    DISCOVERY_UNAVAILABLE: 'Job discovery is unavailable. Start the desktop app and retry.',
+    DISCOVERY_FAILED: 'Job retrieval did not complete. Check source status and retry.',
     WEB_BROWSER_UNAVAILABLE:
       'Microsoft Edge could not start, so dynamic web reading is unavailable. Install or update Edge; if the problem persists, repair the installation or check your organization’s browser policies.',
     EXAM_INVALID: 'Invalid question or answer. Check your input and retry.',

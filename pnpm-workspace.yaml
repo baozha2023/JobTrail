@@ -8,6 +8,7 @@ minimumReleaseAgeExclude:
   # Only pinned security fixes are exempt from the dependency age gate.
   - http-cache-semantics@4.3.0
   - source-map-js@1.2.2
+  - electron@43.7.9
 
 overrides:
   'node-gyp>undici': 6.28.1

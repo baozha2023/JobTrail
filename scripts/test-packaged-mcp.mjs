@@ -39,8 +39,8 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       'Rebuild the stale packaged MCP server',
     )
     const tools = await client.listTools()
-    if (tools.tools.length !== 42 || new Set(tools.tools.map((tool) => tool.name)).size !== 42) {
-      throw new Error(`${name}: expected 42 unique tools, received ${tools.tools.length}`)
+    if (tools.tools.length !== 51 || new Set(tools.tools.map((tool) => tool.name)).size !== 51) {
+      throw new Error(`${name}: expected 51 unique tools, received ${tools.tools.length}`)
     }
     const enabled = await client.callTool({ name: 'list_statuses', arguments: {} })
     if (enabled.isError) {

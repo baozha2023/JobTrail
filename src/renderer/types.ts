@@ -1,4 +1,5 @@
 export type ViewKey =
+  | 'discovery'
   | 'opportunities'
   | 'calendar'
   | 'statuses'

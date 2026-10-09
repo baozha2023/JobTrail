@@ -2,6 +2,15 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
+export async function waitFor(predicate, description, timeout = 15_000) {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    if (await predicate()) return
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  throw new Error(`Timed out waiting for ${description}`)
+}
+
 // Redirect discovery only in test child processes; never modify the installed Edge.
 export function withoutSystemEdge(environment, root) {
   const redirected = new Set(['LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)', 'HOMEDRIVE'])
@@ -20,6 +29,7 @@ const MUTABLE_ROOT_ENTRIES = new Set([
   'data',
   'resumes',
   'chat-uploads',
+  'browser-sessions',
   '.runtime',
   'logs',
 ])

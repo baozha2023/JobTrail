@@ -1,5 +1,6 @@
 import { runOperation } from './diagnostics'
 import { ExamRepository } from './repositories/exam-repository'
+import { DiscoveryRepository } from './discovery/repository'
 import { CONFIG_V1_SCHEMA } from './persistence/config-v1'
 import { validateDatabaseVersion } from './persistence/validation'
 export { validateDatabaseVersion } from './persistence/validation'
@@ -11,6 +12,7 @@ import Database from 'better-sqlite3'
 import { ConfigLoadError, ConfigService, validateConfig, type AppPaths } from './config'
 import { decryptConfig, encryptConfig } from './config-crypto'
 import { MIGRATE_V1_V2 } from './persistence/schema-v2'
+import { MIGRATE_V3_V4 } from './persistence/schema-v4'
 import { MIGRATE_V2_V3 } from './persistence/schema-v3'
 import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from './persistence/versions'
 import { updateFreezePath, waitForMcpSessions } from './update-freeze'
@@ -39,6 +41,15 @@ export const DATABASE_MIGRATIONS: MigrationStep<Db>[] = [
     apply: (db) => {
       validateDatabaseVersion(db, 2)
       db.exec(MIGRATE_V2_V3)
+      return db
+    },
+  },
+  {
+    from: 3,
+    to: 4,
+    apply: (db) => {
+      validateDatabaseVersion(db, 3)
+      db.exec(MIGRATE_V3_V4)
       return db
     },
   },
@@ -121,10 +132,13 @@ function readConfiguration(file: string): unknown {
     throw new ConfigLoadError('CONFIG_INVALID', { cause: error })
   }
 }
-function recoverExamRuntime(paths: AppPaths): void {
+function recoverRuntime(paths: AppPaths): void {
   const db = new Database(paths.database, { fileMustExist: true })
   try {
-    db.transaction(() => new ExamRepository(db).interrupt()).immediate()
+    db.transaction(() => {
+      new ExamRepository(db).interrupt()
+      new DiscoveryRepository(db).resetRuntime()
+    }).immediate()
   } finally {
     db.close()
   }
@@ -258,13 +272,10 @@ async function ensureReady(paths: AppPaths, supervised: boolean): Promise<void> 
     }
     const plan = planPersistenceUpgrade(version, configuration.configVersion)
     if (!plan.database.length && !plan.config.length) {
-      safeDirectory(path.dirname(freeze))
-      if (!frozen) {
-        fs.writeFileSync(freeze, '', { flag: 'wx' })
-        frozen = true
-      }
-      await waitForMcpSessions(paths.root)
-      recoverExamRuntime(paths)
+      // No files or schema are replaced. Runtime recovery is one IMMEDIATE
+      // transaction, so live MCP clients can remain connected when they start
+      // the desktop for discovery. Actual migrations/restores still drain them.
+      recoverRuntime(paths)
       return
     }
     safeDirectory(path.dirname(freeze))
@@ -298,7 +309,7 @@ async function ensureReady(paths: AppPaths, supervised: boolean): Promise<void> 
       fs.copyFileSync(path.join(work, 'next.config'), paths.config)
       setPhase('committed')
       recoverMigration(paths, work)
-      recoverExamRuntime(paths)
+      recoverRuntime(paths)
     } catch (error) {
       recoverMigration(paths, work)
       throw error

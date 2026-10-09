@@ -1,8 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import Database from 'better-sqlite3'
 import type { AppPaths } from './config'
 import { updateFreezePath } from './update-freeze'
+import { validateDatabaseVersion } from './persistence/validation'
 
 const NAMES = ['config.json', 'data', 'resumes', 'chat-uploads'] as const
 type RestoreJournal = { phase: 'prepared' | 'applying' | 'committed'; existed: string[] }
@@ -151,6 +153,21 @@ export function recoverRestore(paths: AppPaths): void {
     } catch (error) {
       rollback()
       throw error
+    }
+  }
+  // Imported account metadata is not evidence about this installation's Chromium
+  // sessions. Do this before removing the committed journal so crash recovery
+  // repeats the invalidation. A rolled-back restore preserves local evidence.
+  if (journal.phase !== 'applying') {
+    const db = new Database(paths.database, { fileMustExist: true })
+    try {
+      const version = db.pragma('user_version', { simple: true }) as number
+      validateDatabaseVersion(db, version)
+      // A pending restore from a released v1/v2/v3 client is validated in its
+      // source version, then upgraded by ensurePersistenceReady. V4 is exact.
+      if (version === 4) db.exec('DELETE FROM discovery_platforms')
+    } finally {
+      db.close()
     }
   }
   fs.rmSync(restore, { recursive: true, force: true })

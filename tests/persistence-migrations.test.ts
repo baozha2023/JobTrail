@@ -13,6 +13,9 @@ import {
 import { decryptConfig } from '../src/main/config-crypto'
 import { createHash } from 'node:crypto'
 import { DatabaseManager } from '../src/main/database'
+import { DiscoveryRepository } from '../src/main/discovery/repository'
+import { searchQuerySchema } from '../src/shared/job-discovery'
+import { SCHEMA_V4 } from '../src/main/persistence/schema-v4'
 const roots: string[] = []
 afterEach(() => {
   vi.restoreAllMocks()
@@ -32,6 +35,32 @@ function fixture(version = 1) {
   }
 }
 describe('persistent version upgrades', () => {
+  it('checks the agreed v4 tables, columns, constraints and explicit indexes', () => {
+    const db = new Database(':memory:')
+    try {
+      db.exec(SCHEMA_V4)
+      const objects = db
+        .prepare(
+          "SELECT type,name,tbl_name,sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type,name",
+        )
+        .all() as { type: string; name: string; tbl_name: string; sql: string }[]
+      expect(objects.filter((row) => row.type === 'table')).toHaveLength(30)
+      expect(objects.filter((row) => row.type === 'index')).toHaveLength(31)
+      // Before v2.0.0 ships, correct v4 and this baseline together; never repair
+      // intermediate development databases at startup. Freeze both on release.
+      expect(
+        createHash('sha256')
+          .update(
+            JSON.stringify(
+              objects.map((row) => ({ ...row, sql: row.sql.replace(/\s+/g, ' ').trim() })),
+            ),
+          )
+          .digest('hex'),
+      ).toBe('a97d94112163a46013d070d037212bd52cb571feddd1b098986a86b97f772aae')
+    } finally {
+      db.close()
+    }
+  })
   it('retains the frozen v2 fixture hashes and verifies its original schema', () => {
     const paths = fixture(2)
     const bytes = fs.readFileSync(path.join(paths.root, 'manifest.json'))
@@ -55,10 +84,24 @@ describe('persistent version upgrades', () => {
     }
   })
 
-  it.each([1, 2])(
-    'upgrades v%i without changing existing rows and matches a fresh v3 schema',
+  it.each([1, 2, 3])(
+    'upgrades v%i without changing existing rows and matches a fresh v4 schema',
     async (version) => {
-      const paths = fixture(version)
+      const paths = fixture(version === 3 ? 2 : version)
+      if (version === 3) {
+        const source = new Database(paths.database)
+        try {
+          DATABASE_MIGRATIONS[1].apply(source)
+          source.pragma('user_version = 3')
+          source.exec("INSERT INTO locations(id,name,created_at) VALUES(1,'上海',1234)")
+          source.exec(
+            'INSERT INTO company_locations(company_id,location_id,created_at) SELECT id,1,1234 FROM companies ORDER BY id LIMIT 1',
+          )
+          validateDatabaseVersion(source, 3)
+        } finally {
+          source.close()
+        }
+      }
       const read = (file: string, tables?: string[]) => {
         const db = new Database(file, { readonly: true })
         try {
@@ -82,7 +125,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(read(paths.database, Object.keys(before))).toEqual(before)
       const upgraded = new Database(paths.database)
-      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v3-'))
+      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v4-'))
       roots.push(freshRoot)
       const fresh = new DatabaseManager({
         ...paths,
@@ -90,8 +133,8 @@ describe('persistent version upgrades', () => {
         database: path.join(freshRoot, 'data/zhiji.db'),
       })
       try {
-        validateDatabaseVersion(upgraded, 3)
-        expect(upgraded.prepare('SELECT * FROM locations').all()).toEqual([])
+        validateDatabaseVersion(upgraded, 4)
+        if (version < 3) expect(upgraded.prepare('SELECT * FROM locations').all()).toEqual([])
         const schema = (db: Database.Database) =>
           db
             .prepare(
@@ -108,12 +151,12 @@ describe('persistent version upgrades', () => {
     },
   )
 
-  it('rolls the entire v1 chain back if the second migration fails', () => {
+  it.each([0, 1, 2])('rolls the entire v1 chain back if migration step %i fails', (index) => {
     const paths = fixture()
-    const original = DATABASE_MIGRATIONS[1].apply
-    DATABASE_MIGRATIONS[1].apply = (db) => {
+    const original = DATABASE_MIGRATIONS[index].apply
+    DATABASE_MIGRATIONS[index].apply = (db) => {
       original(db)
-      throw new Error('second-step failure')
+      throw new Error('migration-step failure')
     }
     try {
       expect(() =>
@@ -121,9 +164,9 @@ describe('persistent version upgrades', () => {
           paths.database,
           decryptConfig(fs.readFileSync(paths.config, 'utf8')),
         ),
-      ).toThrow('second-step failure')
+      ).toThrow('migration-step failure')
     } finally {
-      DATABASE_MIGRATIONS[1].apply = original
+      DATABASE_MIGRATIONS[index].apply = original
     }
     const db = new Database(paths.database)
     try {
@@ -136,7 +179,7 @@ describe('persistent version upgrades', () => {
   it('requires desktop migration before a v2 database can be opened for business', () => {
     const paths = fixture(2)
     const before = fs.readFileSync(paths.database)
-    expect(() => new DatabaseManager(paths)).toThrow('需要版本 3')
+    expect(() => new DatabaseManager(paths)).toThrow('需要版本 4')
     expect(fs.readFileSync(paths.database)).toEqual(before)
   })
 
@@ -148,7 +191,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths, true)
     expect(fs.existsSync(freeze)).toBe(true)
     const db = new Database(paths.database)
-    validateDatabaseVersion(db, 3)
+    validateDatabaseVersion(db, 4)
     db.close()
   })
   it('refuses a second live migration owner without changing user data', async () => {
@@ -159,6 +202,64 @@ describe('persistent version upgrades', () => {
     const bytes = fs.readFileSync(paths.database)
     await expect(ensurePersistenceReady(paths)).rejects.toMatchObject({ code: 'PERSISTENCE_BUSY' })
     expect(fs.readFileSync(paths.database)).toEqual(bytes)
+  })
+  it('keeps MCP clients connected when a current-schema desktop starts', async () => {
+    const paths = fixture()
+    await ensurePersistenceReady(paths)
+    const leases = path.join(paths.root, '.runtime/state/mcp-sessions')
+    fs.mkdirSync(leases, { recursive: true })
+    const lease = path.join(leases, `${process.pid}-00000000-0000-0000-0000-000000000000`)
+    fs.writeFileSync(lease, '')
+    await ensurePersistenceReady(paths)
+    expect(fs.existsSync(lease)).toBe(true)
+    expect(fs.existsSync(path.join(paths.root, '.runtime/state/update-freeze'))).toBe(false)
+  })
+  it('interrupts discovery work during supervised startup without releasing the launcher freeze', async () => {
+    const paths = fixture()
+    await ensurePersistenceReady(paths)
+    const db = new Database(paths.database)
+    const repo = new DiscoveryRepository(db)
+    for (const status of repo.status())
+      repo.platform({
+        ...status,
+        state: 'authenticated',
+        checkedAt: 1234,
+        evidence: 'official_qr_login_confirmed',
+        limitations: [],
+      })
+    const run = repo.create(
+      searchQuerySchema.parse({ keyword: 'Java', platforms: ['boss'] }),
+      crypto.randomUUID(),
+    )
+    db.close()
+    const freeze = path.join(paths.root, '.runtime/state/update-freeze')
+    fs.mkdirSync(path.dirname(freeze), { recursive: true })
+    fs.writeFileSync(freeze, '')
+    await ensurePersistenceReady(paths, true)
+    const reopened = new Database(paths.database)
+    expect(new DiscoveryRepository(reopened).run(run.id).state).toBe('interrupted')
+    for (const status of new DiscoveryRepository(reopened).status())
+      expect(status).toMatchObject({
+        state: 'authenticated',
+        checkedAt: 1234,
+        evidence: 'official_qr_login_confirmed',
+        limitations: ['session_recheck_required'],
+      })
+    expect(fs.existsSync(freeze)).toBe(true)
+    reopened.close()
+    await ensurePersistenceReady(paths, true)
+    const again = new Database(paths.database)
+    try {
+      for (const status of new DiscoveryRepository(again).status())
+        expect(status).toMatchObject({
+          state: 'authenticated',
+          checkedAt: 1234,
+          generation: 3,
+          limitations: ['session_recheck_required'],
+        })
+    } finally {
+      again.close()
+    }
   })
   it.each(['prepared', 'applying', 'committed'])(
     'recovers a stopped process at the %s replacement phase',
@@ -178,7 +279,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(configuration)
       const db = new Database(paths.database)
-      validateDatabaseVersion(db, 3)
+      validateDatabaseVersion(db, 4)
       db.close()
       expect(fs.existsSync(path.join(work, 'journal.json'))).toBe(false)
       expect(fs.existsSync(path.join(paths.root, '.runtime/state/update-freeze'))).toBe(false)
@@ -215,7 +316,7 @@ describe('persistent version upgrades', () => {
       config = fs.readFileSync(paths.config)
     await ensurePersistenceReady(paths)
     let db = new Database(paths.database)
-    validateDatabaseVersion(db, 3)
+    validateDatabaseVersion(db, 4)
     expect(db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
     db.close()
     expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(
@@ -225,7 +326,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths)
     expect(fs.readFileSync(paths.config)).toEqual(upgraded)
     db = new Database(paths.database)
-    validateDatabaseVersion(db, 3)
+    validateDatabaseVersion(db, 4)
     db.close()
   })
   it('rolls back a failed migration transaction without stamping a new version', () => {

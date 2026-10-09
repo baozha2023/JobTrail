@@ -396,6 +396,43 @@ describe('public web reader', () => {
     expect(request).toHaveBeenCalledOnce()
   })
 
+  it.each([2049, 7747, 10240])('accepts a public web URL of %i characters', (length) => {
+    const prefix = 'https://example.com/sa.gif?data='
+    const url = prefix + 'a'.repeat(length - prefix.length)
+    expect(validateWebUrl(url).href).toBe(url)
+  })
+
+  it('rejects URLs over 10240 characters before resolving the host', async () => {
+    const prefix = 'https://example.com/sa.gif?data='
+    const resolve = vi.fn()
+    await expect(
+      new WebNetwork(resolve).resolvePublicUrl(
+        prefix + 'a'.repeat(10241 - prefix.length),
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ code: 'WEB_INVALID_URL', message: '网页地址过长' })
+    expect(resolve).not.toHaveBeenCalled()
+  })
+
+  it.each(['wss://example.com/', 'https://example.com:8443/', 'https://user:secret@example.com/'])(
+    'retains protocol, port and credential restrictions for longer URLs: %s',
+    (prefix) => {
+      expect(() => validateWebUrl(prefix + '?data=' + 'a'.repeat(3000))).toThrowError(
+        AppServiceError,
+      )
+    },
+  )
+
+  it('still blocks long URLs whose hostname resolves to a private address', async () => {
+    const network = new WebNetwork(async () => [{ address: '127.0.0.1', family: 4 }])
+    await expect(
+      network.resolvePublicUrl(
+        'https://example.com/?data=' + 'a'.repeat(3000),
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ code: 'WEB_BLOCKED' })
+  })
+
   it('rejects private addresses and revalidates a redirect before connecting', async () => {
     expect(() => validateWebUrl('file:///etc/passwd')).toThrowError(AppServiceError)
     for (const ip of ['127.0.0.1', '169.254.169.254', '::1', '10.1.2.3'])

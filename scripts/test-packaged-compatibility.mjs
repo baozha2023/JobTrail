@@ -16,6 +16,7 @@ const releases = [
   { version: '1.3.0', commit: '466709b', databaseVersion: 2 },
   { version: '1.4.0', commit: '4fd2727', databaseVersion: 2 },
   { version: '1.5.0', commit: 'e4b6551', databaseVersion: 3 },
+  { version: '1.6.0', commit: '448e494', databaseVersion: 3 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -86,7 +87,7 @@ async function verify(root, expected) {
     },
     { root, tables: Object.keys(expected.rows) },
   )
-  assert.equal(actual.version, 3)
+  assert.equal(actual.version, 4)
   assert.deepEqual(actual.rows, expected.rows)
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
@@ -266,7 +267,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
         version: release.version,
         commit: release.commit,
         scenario: 'supervised-startup-upgrade-and-second-launch',
-        databaseVersion: 3,
+        databaseVersion: 4,
         configVersion: 1,
         result: 'PASS',
       })
@@ -294,7 +295,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       version: release.version,
       commit: release.commit,
       scenario: 'historical-export-import-restart-reexport-reimport-restart',
-      databaseVersion: 3,
+      databaseVersion: 4,
       configVersion: 1,
       result: 'PASS',
     })

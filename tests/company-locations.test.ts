@@ -75,7 +75,7 @@ describe('company office locations', () => {
     expect(service.searchLocations(page).items).toEqual(['上海市'])
     service.update(a.id, { locations: [] })
     expect(service.searchLocations(page)).toMatchObject({ items: [], total: 0 })
-    validateDatabaseVersion(container.database.db, 3)
+    validateDatabaseVersion(container.database.db, 4)
   })
 
   it('uses OR within locations and AND with names, aliases and industry, without duplicate rows', () => {
@@ -236,7 +236,7 @@ describe('company office locations', () => {
       isBuiltin: false,
       locations: ['Shared'],
     })
-    validateDatabaseVersion(container.database.db, 3)
+    validateDatabaseVersion(container.database.db, 4)
   })
 
   it('adopts the catalog location set and rolls back catalog failures including orphan cleanup', () => {
@@ -265,9 +265,9 @@ describe('company office locations', () => {
     const db = container.database.db
     const a = container.services.companies.create({ name: 'Validate', locations: ['上海'] })
     db.prepare('DELETE FROM company_locations WHERE company_id = ?').run(a.id)
-    expect(() => validateDatabaseVersion(db, 3)).toThrow('Invalid company location references')
+    expect(() => validateDatabaseVersion(db, 4)).toThrow('Invalid company location references')
     db.prepare('UPDATE locations SET name = ?').run(' ')
-    expect(() => validateDatabaseVersion(db, 3)).toThrow('Invalid company location')
+    expect(() => validateDatabaseVersion(db, 4)).toThrow('Invalid company location')
   })
 
   it('uses indexed bounded reads with 10,000 companies and 200,000 location links', () => {

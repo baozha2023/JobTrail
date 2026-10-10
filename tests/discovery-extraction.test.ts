@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// @vitest-environment-options {"url":"https://www.zhipin.com/"}
 import { platformAdapter } from '../src/main/discovery/adapter-registry'
 import { afterEach, expect, it, vi } from 'vitest'
 import { type PageSnapshot } from '../src/main/discovery/extraction'
@@ -13,6 +14,32 @@ function read(html: string, platform: JobPlatform = 'wuyou'): PageSnapshot {
   return window.eval(platformAdapter(platform).pageScript(true))
 }
 afterEach(() => vi.restoreAllMocks())
+it('recognizes the BOSS security redirect even while its verification UI is loading', () => {
+  window.history.replaceState({}, '', '/web/passport/zp/security.html')
+  try {
+    expect(read('<title>请稍候 - BOSS直聘</title><p>正在加载中...</p>', 'boss').challenge).toBe(
+      true,
+    )
+  } finally {
+    window.history.replaceState({}, '', '/')
+  }
+})
+it('extracts the current Zhilian detail contract without reading recommended jobs', () => {
+  const page = read(
+    '<section class="summary-planes"><h1 class="summary-planes__title">Java</h1><span class="summary-planes__salary">1.4-2.8万·14薪</span><ul class="summary-planes__info"><li><a class="workCity-link">北京</a><span>朝阳区</span></li><li>酒仙桥</li><li>3-5年</li><li>本科</li></ul></section><a class="company-info__name">当前公司</a><div class="describtion-card__detail-content">负责Java开发。任职要求：掌握Spring。</div><div class="jobs-deliver"><div class="job-education">博士</div><div class="salary">80K</div></div>',
+    'zhilian',
+  )
+  expect(page.detail).toMatchObject({
+    title: 'Java',
+    company: '当前公司',
+    city: '北京',
+    salary: '1.4-2.8万·14薪',
+    education: '本科',
+    experience: '3-5年',
+    jd: '负责Java开发。任职要求：掌握Spring。',
+    detailRead: true,
+  })
+})
 it('recognizes a short status label with nested text inside a job status element', () => {
   expect(read('<div class="job-status"><span>已下架</span></div>').offline).toBe(true)
   expect(read('<p>已下架</p>').offline).toBe(false)
@@ -57,6 +84,32 @@ it('still recognizes a visible challenge alongside the job description', () => {
   expect(page.challenge).toBe(true)
   expect(page.detail).toEqual({})
 })
+it.each(['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng'] as const)(
+  'ignores a preloaded transparent captcha but detects it when revealed on %s',
+  (platform) => {
+    const page = read(
+      '<div id="captcha-container" style="position:absolute;top:-1000000px;opacity:0"><div><iframe src="https://turing.captcha.gtimg.com/"></iframe><span>请完成验证</span></div></div>',
+      platform,
+    )
+    expect(page.challenge).toBe(false)
+    const container = document.getElementById('captcha-container')!
+    container.style.opacity = '1'
+    container.style.top = '0'
+    const revealed = window.eval(platformAdapter(platform).pageScript(true)) as PageSnapshot
+    expect(revealed.challenge).toBe(true)
+    expect(revealed.detail).toEqual({})
+  },
+)
+it.each(['opacity:0', 'display:none', 'visibility:hidden'])(
+  'ignores nested verification, login and offline evidence in a hidden container: %s',
+  (style) => {
+    const page = read(
+      `<div style="${style}"><div><iframe src="https://turing.captcha.gtimg.com/"></iframe><span>请完成验证</span><input type="password"><p>职位已下架</p></div></div><div class="bmsg job_msg">完整岗位职责</div>`,
+    )
+    expect(page).toMatchObject({ login: false, challenge: false, offline: false })
+    expect(page.detail).toMatchObject({ jd: '完整岗位职责', detailRead: true })
+  },
+)
 it('preserves a complete JD above 30,000 characters without silently truncating it', () => {
   const jd = '职责。'.repeat(11000)
   const page = read(`<div class="bmsg job_msg">${jd}</div>`)

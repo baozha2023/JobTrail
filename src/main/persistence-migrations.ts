@@ -13,6 +13,7 @@ import { ConfigLoadError, ConfigService, validateConfig, type AppPaths } from '.
 import { decryptConfig, encryptConfig } from './config-crypto'
 import { MIGRATE_V1_V2 } from './persistence/schema-v2'
 import { MIGRATE_V3_V4 } from './persistence/schema-v4'
+import { MIGRATE_V4_V5 } from './persistence/schema-v5'
 import { MIGRATE_V2_V3 } from './persistence/schema-v3'
 import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from './persistence/versions'
 import { updateFreezePath, waitForMcpSessions } from './update-freeze'
@@ -50,6 +51,15 @@ export const DATABASE_MIGRATIONS: MigrationStep<Db>[] = [
     apply: (db) => {
       validateDatabaseVersion(db, 3)
       db.exec(MIGRATE_V3_V4)
+      return db
+    },
+  },
+  {
+    from: 4,
+    to: 5,
+    apply: (db) => {
+      validateDatabaseVersion(db, 4)
+      db.exec(MIGRATE_V4_V5)
       return db
     },
   },

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AgentService } from '../src/main/agent/service'
 import { ConfigService, type AppPaths } from '../src/main/config'
 import { createServiceContainer } from '../src/main/service-container'
@@ -12,17 +12,35 @@ describe('agent context and display history', () => {
   const servers: http.Server[] = []
   let activeAgent: AgentService | null = null
   let activeContainer: ReturnType<typeof createServiceContainer> | null = null
+  const externalRequests: string[] = []
+  beforeEach(() => {
+    const fetch = globalThis.fetch
+    externalRequests.length = 0
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (new URL(url).hostname !== '127.0.0.1') {
+        externalRequests.push(url)
+        throw new DOMException('External network disabled in agent context tests', 'AbortError')
+      }
+      return fetch(input, init)
+    })
+  })
   afterEach(async () => {
-    if (activeAgent) await activeAgent.close()
-    if (activeContainer?.database.db.open) activeContainer.database.close()
-    activeAgent = null
-    activeContainer = null
-    await Promise.all(
-      servers
-        .splice(0)
-        .map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
-    )
-    roots.splice(0).forEach((root) => fs.rmSync(root, { recursive: true, force: true }))
+    try {
+      if (activeAgent) await activeAgent.close()
+      if (activeContainer?.database.db.open) activeContainer.database.close()
+      activeAgent = null
+      activeContainer = null
+      await Promise.all(
+        servers
+          .splice(0)
+          .map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+      )
+      roots.splice(0).forEach((root) => fs.rmSync(root, { recursive: true, force: true }))
+      expect(externalRequests).toEqual([])
+    } finally {
+      vi.restoreAllMocks()
+    }
   })
 
   it('archives full history, compacts working memory, and persists reported usage', async () => {

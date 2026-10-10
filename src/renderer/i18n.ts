@@ -1,10 +1,12 @@
 import { discoveryMessages } from './discovery-messages'
+import { cityNamesEn } from './discovery-city-names'
 import { featureErrors } from '../shared/feature-errors'
 import { createI18n } from 'vue-i18n'
 
 const messages = {
   'zh-CN': {
     discovery: discoveryMessages['zh-CN'],
+    discoveryCities: Object.fromEntries(Object.keys(cityNamesEn).map((name) => [name, name])),
     exam: {
       skillDescription: '生成笔试练习卷，边出题边作答',
       paper: '笔试练习卷',
@@ -482,6 +484,7 @@ const messages = {
   },
   'en-US': {
     discovery: discoveryMessages['en-US'],
+    discoveryCities: cityNamesEn,
     exam: {
       skillDescription: 'Create an interactive practice exam',
       paper: 'Practice exam',

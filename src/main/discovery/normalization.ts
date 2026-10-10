@@ -68,7 +68,10 @@ export function normalizeJob(
   // A list snapshot may refresh fields, but cannot erase a successful full detail read.
   if (previous)
     for (const field of jobFields) {
-      if ((!raw[field]?.trim() || (field === 'jd' && !raw.detailRead)) && previous[field]) {
+      if (
+        (!raw[field]?.trim() || (field === 'jd' && !raw.detailRead && previous.detailRead)) &&
+        previous[field]
+      ) {
         merged[field] = previous[field]
         if (previous.provenance?.[field]) merged.provenance![field] = previous.provenance[field]
       }
@@ -112,15 +115,4 @@ export function duplicateFingerprint(
   return fields.every(Boolean)
     ? createHash('sha256').update(JSON.stringify(fields)).digest('hex')
     : null
-}
-export function relevance(job: JobObservation, query: JobQuery): number {
-  return query.keyword
-    .split(/\s+/)
-    .reduce(
-      (score, term) =>
-        score +
-        (fold(job.title).includes(fold(term)) ? 10 : 0) +
-        (fold(job.company).includes(fold(term)) ? 2 : 0),
-      0,
-    )
 }

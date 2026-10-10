@@ -163,9 +163,9 @@ export function recoverRestore(paths: AppPaths): void {
     try {
       const version = db.pragma('user_version', { simple: true }) as number
       validateDatabaseVersion(db, version)
-      // A pending restore from a released v1/v2/v3 client is validated in its
-      // source version, then upgraded by ensurePersistenceReady. V4 is exact.
-      if (version === 4) db.exec('DELETE FROM discovery_platforms')
+      // Validate pending restores in their source version before normal migration.
+      // Discovery sessions are local-only, so imported login evidence is revoked.
+      if (version >= 4) db.exec('DELETE FROM discovery_platforms')
     } finally {
       db.close()
     }

@@ -15,8 +15,11 @@ import {
 } from '../adapter'
 import { pageScript, type PageRules } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
-import { cityCode, discoveryCity, platformCity } from '../../../shared/discovery-cities'
+import { createCityLookup } from '../../../shared/discovery-city-catalog'
+import cityCatalog from '../../../shared/discovery-cities/liepin.json'
 import { batch, job, record, rows, text } from '../parsing'
+
+const cities = createCityLookup(cityCatalog)
 
 export function liepinRequest(
   request: SearchRequest,
@@ -49,15 +52,17 @@ export function liepinRequest(
       'jobKind',
     ].every((key) => data[key] === undefined || data[key] === null || data[key] === '') &&
     text(data.key) === query.keyword &&
-    (!query.city || String(data.dq) === cityCode('liepin', query.city)) &&
+    (!query.city || String(data.dq) === cities.code(query.city)) &&
     Number(data.currentPage) === page - 1
   )
 }
 export function liepinCityFilter(city: string): (location: string) => boolean {
-  const target = city ? platformCity('liepin', city) : undefined
+  const target = city ? cities.find(city) : undefined
   if (city && !target) throw new SourceError('unsupported_city')
   const cityNames = new Set(
-    [target?.name, discoveryCity(city)?.name].map((name) => name?.replace(/市$/, '')),
+    [target?.platformName, target?.name, ...(target?.aliases ?? [])].map((name) =>
+      name?.replace(/市$/, ''),
+    ),
   )
   return (location) =>
     !target || cityNames.has(location.split(/[-·]/, 1)[0].trim().replace(/市$/, ''))
@@ -103,7 +108,7 @@ export class LiepinSearch implements PlatformSearch {
     private query: NativeQuery,
   ) {}
   private async selectCity(signal: AbortSignal) {
-    const target = platformCity('liepin', this.query.city)!
+    const target = cities.find(this.query.city)!
     const hotSelector = `li[data-selector="filter-option-item"][data-key="dq"][data-code="${target.code}"]`
     const hot = await this.page.evaluate<boolean>(
       `!!document.querySelector(${JSON.stringify(hotSelector)})`,
@@ -119,7 +124,7 @@ export class LiepinSearch implements PlatformSearch {
     await this.page.until(
       () =>
         this.page.evaluate<boolean>(
-          `(()=>{const menu=document.querySelector('.ant-city-menu-list');if(!menu||!menu.getBoundingClientRect().width)return true;const e=[...document.querySelectorAll('.data-list .ant-tag')].find(e=>e.getBoundingClientRect().width&&e.textContent.trim()===${JSON.stringify('全' + target.name)});if(!e)return false;e.click();return true})()`,
+          `(()=>{const menu=document.querySelector('.ant-city-menu-list');if(!menu||!menu.getBoundingClientRect().width)return true;const e=[...document.querySelectorAll('.data-list .ant-tag')].find(e=>e.getBoundingClientRect().width&&e.textContent.trim()===${JSON.stringify('全' + target.platformName)});if(!e)return false;e.click();return true})()`,
           signal,
         ),
       signal,
@@ -146,7 +151,7 @@ export class LiepinSearch implements PlatformSearch {
           liepinResponse(
             v,
             this.pageNumber,
-            submittedCity === cityCode('liepin', this.query.city) ? this.query.city : '',
+            submittedCity === cities.code(this.query.city) ? this.query.city : '',
           ),
       },
       action,
@@ -156,7 +161,7 @@ export class LiepinSearch implements PlatformSearch {
   }
   async read(signal: AbortSignal): Promise<SourceBatch> {
     if (this.pending) return this.pending
-    if (this.query.city && cityCode('liepin', this.query.city) === undefined)
+    if (this.query.city && cities.code(this.query.city) === undefined)
       throw new SourceError('unsupported_city')
     let result: SourceBatch
     if (!this.ready) {
@@ -182,7 +187,7 @@ export class LiepinSearch implements PlatformSearch {
         },
         signal,
       )
-      if (this.query.city && result.submitted.cityCode !== cityCode('liepin', this.query.city))
+      if (this.query.city && result.submitted.cityCode !== cities.code(this.query.city))
         result = await this.response(this.query, () => this.selectCity(signal), signal)
     } else
       result = await this.response(
@@ -236,7 +241,8 @@ const pageRules: PageRules = {
   loginSelector:
     'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer',
   loginUrl: '',
-  authenticatedSelector: 'a[href*="logout"],a[href*="signout"],.user-avatar,.userAvatar',
+  authenticatedSelector:
+    '.header-quick-menu-login .header-quick-menu-user-photo,a[href*="logout"],a[href*="signout"]',
   descriptionSelector: '.job-intro-container .paragraph,.job-description,.content.content-word',
   statusSelector: '.job-status,.job-title-box .status,.job-apply-container',
   tagsSelector:
@@ -291,10 +297,19 @@ function createQr(transport: QrTransport): QrProtocol {
   }
 }
 export const liepinAdapter: PlatformAdapter = {
+  cities,
   ...liepinIdentity,
   accountCheckUrl: 'https://www.liepin.com/',
   contractVersion: 1,
+  sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
+  async checkSession(transport) {
+    const page = await transport.page(this.accountCheckUrl, pageScript(pageRules, false))
+    if (page.challenge) return 'challenge'
+    if (page.authenticated) return 'authenticated'
+    if (page.login) return 'login_required'
+    return 'unknown'
+  },
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new LiepinSearch(page, query),
   verification: {
@@ -312,6 +327,7 @@ export const liepinAdapter: PlatformAdapter = {
     headers: (url): Record<string, string> =>
       url.startsWith(passport)
         ? {
+            'X-Requested-With': 'XMLHttpRequest',
             Accept: 'application/json, text/plain, */*',
             Referer: 'https://www.liepin.com/',
             'X-Client-Type': 'web',
@@ -322,7 +338,7 @@ export const liepinAdapter: PlatformAdapter = {
             'X-Fscp-Bi-Stat': JSON.stringify({ location: 'https://www.liepin.com/' }),
             'X-Fscp-Trace-Id': randomUUID(),
           }
-        : {},
+        : { 'X-Requested-With': 'XMLHttpRequest' },
     challenge: (response) =>
       response.headers.has('TD-SecIntercept-Redirect')
         ? { url: liepinVerificationUrl(response.headers.get('TD-SecIntercept-Redirect')) }

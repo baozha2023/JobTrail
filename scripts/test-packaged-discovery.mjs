@@ -36,18 +36,21 @@ try {
   await page.screenshot({ path: path.join(qa, 'discovery-empty.png') })
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   await page.locator('.discovery-account').first().waitFor()
-  assert.equal(await page.locator('.discovery-account').count(), 4)
+  assert.equal(await page.locator('.discovery-account').count(), 6)
   await page.screenshot({ path: path.join(qa, 'discovery-accounts.png') })
   await page
     .locator('.discovery-accounts')
     .getByRole('button', { name: '关闭', exact: true })
     .click()
-  // This is a service-level anonymous probe. The user-facing search requires login;
-  // its selection and cancellation behavior is covered by test-discovery-dialogs.
+  // Direct IPC must enforce login too, even for sources with public listings.
   const run = await page.evaluate(() =>
     window.zhijiApi.discovery.start({
       requestId: crypto.randomUUID(),
-      query: { keyword: 'Java', city: '上海', platforms: ['boss', 'liepin', 'zhilian', 'wuyou'] },
+      query: {
+        keyword: 'Java',
+        city: '上海',
+        platforms: ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng'],
+      },
     }),
   )
   console.log('Search started', run.id)
@@ -69,108 +72,35 @@ try {
     ),
   )
   report.run = result
-  report.blockers = result.sources
-    .filter((source) => !['partial', 'completed'].includes(source.state))
-    .map((source) => `${source.platform}: ${source.state} / ${source.message}`)
-  assert.ok(!['running', 'queued'].includes(result.state), 'Search must respect the round budget')
+  assert.equal(result.sources.length, 6)
+  for (const source of result.sources) {
+    assert.equal(source.state, 'login_required')
+    assert.equal(source.count, 0)
+    assert.equal(source.batches, 0)
+  }
   await page.getByRole('button', { name: '搜索历史', exact: true }).click()
   await page.getByRole('button', { name: '查看', exact: true }).first().click()
-  const first = await page.evaluate(async (id) => {
-    const list = await window.zhijiApi.discovery.list({
-      runId: id,
-      page: 1,
-      pageSize: 20,
-    })
-    return list.items[0]?.id
-  }, run.id)
-  if (!first)
-    report.blockers.push('No jobs returned: detail, browser and save interactions not exercised')
-  if (first) {
-    await page.locator('.discovery-job').first().click()
-    await page.getByRole('button', { name: '打开浏览器', exact: true }).click()
-    await new Promise((r) => setTimeout(r, 5000))
-    const native = await mainWindow.evaluate((win) =>
-      win.contentView.children.map((v) => ({
-        visible: v.getVisible(),
-        bounds: v.getBounds(),
-        alive: !!v.webContents && !v.webContents.isDestroyed(),
-      })),
-    )
-    console.log('JOB_BROWSER', JSON.stringify(native))
-    assert.ok(
-      native.some((v) => v.alive && v.visible && v.bounds.width > 100),
-      'Job browser must remain alive and visible',
-    )
-    await page.getByRole('button', { name: '账号管理', exact: true }).click()
-    assert.equal(
-      await mainWindow.evaluate((win) => win.contentView.children.some((v) => v.getVisible())),
-      false,
-    )
-    await page
-      .locator('.discovery-accounts')
-      .getByRole('button', { name: '关闭', exact: true })
-      .click()
-    await page.getByRole('button', { name: '详情', exact: true }).click()
-    await page.locator('.discovery-detail .n-spin').waitFor({ state: 'hidden', timeout: 30000 })
-    assert.doesNotMatch(
-      await page.locator('.discovery-detail-header h2').innerText(),
-      /访问验证|安全验证/,
-    )
-    const detail = await page.evaluate(
-      ({ first, runId }) => window.zhijiApi.discovery.detail({ jobId: first, runId }),
-      { first, runId: run.id },
-    )
-    console.log(
-      'DETAIL_EVIDENCE',
-      JSON.stringify({
-        platform: detail.platform,
-        detailRead: detail.detailRead,
-        missing: detail.missing,
-      }),
-    )
-    if (!detail.detailRead || detail.missing.jd)
-      report.blockers.push(
-        `${detail.platform}: complete JD not verified / ${detail.missing.jd ?? 'detail_not_read'}`,
-      )
-    await page.getByRole('button', { name: '加入求职记录', exact: true }).click()
-    await page.getByText('确认新建公司', { exact: true }).click()
-    await page.getByRole('button', { name: '确认保存', exact: true }).click()
-    await page.locator('.discovery-save-form').waitFor({ state: 'hidden' })
-    const saved = await page.evaluate(
-      ({ first, runId }) => window.zhijiApi.discovery.detail({ jobId: first, runId }),
-      { first, runId: run.id },
-    )
-    assert.ok(saved.savedOpportunityId, 'UI save must persist the source association')
-  }
+  assert.equal(
+    (await page.evaluate((id) => window.zhijiApi.discovery.list({ runId: id }), run.id)).total,
+    0,
+  )
   await page.screenshot({ path: path.join(qa, 'discovery-search.png') })
   await mainWindow.evaluate((win) => win.setSize(800, 650))
-  if (first) {
-    await page.locator('.discovery-back-list').waitFor({ state: 'visible' })
-    assert.ok(
-      (await page
-        .locator('.discovery-detail-body')
-        .evaluate((e) => e.getBoundingClientRect().height)) > 80,
-      'Narrow layout must leave space for JD content',
-    )
-  }
   await page.screenshot({ path: path.join(qa, 'discovery-narrow.png') })
   assert.deepEqual(errors, [])
   assert.deepEqual(
     report.blockers,
     [],
-    'Anonymous platform acceptance incomplete; see discovery-live-anonymous.json',
+    'Login gate acceptance failed; see discovery-login-gate.json',
   )
   report.passed = true
   console.log(
-    'Packaged anonymous sources and sampled browser/detail/save interactions passed; logged-in searches and continuation require separate acceptance.',
+    'All six packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
     staging,
   )
 } finally {
   try {
-    fs.writeFileSync(
-      path.join(qa, 'discovery-live-anonymous.json'),
-      JSON.stringify(report, null, 2),
-    )
+    fs.writeFileSync(path.join(qa, 'discovery-login-gate.json'), JSON.stringify(report, null, 2))
   } finally {
     if (application) await application.close()
   }

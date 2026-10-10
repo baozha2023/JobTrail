@@ -950,6 +950,11 @@ async function loadAll(): Promise<void> {
   loading.value = false
 }
 
+async function onDiscoveredJobSaved(): Promise<void> {
+  message.success(t('discovery.saved'))
+  await refreshExternalData()
+}
+
 let externalRefreshRunning = false
 let externalRefreshPending = false
 
@@ -1216,10 +1221,15 @@ onBeforeUnmount(() => {
               </div>
               <div class="page-header-actions">
                 <template v-if="activeView === 'discovery'">
-                  <n-button @click="discoveryView?.openAccounts()">{{
-                    t('discovery.accounts')
+                  <n-button :disabled="discoveryView?.busy" @click="discoveryView?.newSearch()">{{
+                    t('discovery.newSearch')
                   }}</n-button>
-                  <n-button @click="discoveryView?.openHistory()">{{
+                  <n-button
+                    :disabled="discoveryView?.busy"
+                    @click="discoveryView?.openAccounts()"
+                    >{{ t('discovery.accounts') }}</n-button
+                  >
+                  <n-button :disabled="discoveryView?.busy" @click="discoveryView?.openHistory()">{{
                     t('discovery.history')
                   }}</n-button>
                 </template>
@@ -1257,9 +1267,10 @@ onBeforeUnmount(() => {
               ref="discoveryView"
               v-show="activeView === 'discovery'"
               :active="activeView === 'discovery'"
+              :companies="companies"
               :statuses="statuses"
               :resumes="resumes"
-              @saved="companiesStore.load()"
+              @saved="onDiscoveredJobSaved"
             />
             <OpportunitiesView
               v-if="activeView === 'opportunities'"

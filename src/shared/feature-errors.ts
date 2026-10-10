@@ -1,5 +1,6 @@
 export const featureErrors = {
   'zh-CN': {
+    DISCOVERY_UNSUPPORTED_CITY: '所选城市不被全部招聘网站支持，请重新选择城市或调整网站。',
     DISCOVERY_JOB_OFFLINE: '已下架',
     DISCOVERY_UNAVAILABLE: '岗位发现运行时不可用，请启动桌面应用后重试',
     DISCOVERY_FAILED: '岗位读取未完成，请查看来源状态并重试',
@@ -18,6 +19,8 @@ export const featureErrors = {
     PERSISTENCE_FAILED: '数据检查或升级失败，请查看日志后重新启动',
   },
   'en-US': {
+    DISCOVERY_UNSUPPORTED_CITY:
+      'This city is not supported by every selected site. Choose another city or change the sites.',
     DISCOVERY_JOB_OFFLINE: 'No longer available',
     DISCOVERY_UNAVAILABLE: 'Job discovery is unavailable. Start the desktop app and retry.',
     DISCOVERY_FAILED: 'Job retrieval did not complete. Check source status and retry.',

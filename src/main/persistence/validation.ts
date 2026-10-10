@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { SCHEMA_V1 } from './schema-v1'
 import { SCHEMA_V2 } from './schema-v2'
 import { SCHEMA_V4 } from './schema-v4'
+import { SCHEMA_V5 } from './schema-v5'
 import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
@@ -38,7 +39,9 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
           ? SCHEMA_V3
           : version === 4
             ? SCHEMA_V4
-            : null
+            : version === 5
+              ? SCHEMA_V5
+              : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -77,13 +80,23 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
       throw new Error('Unexpected persistent schema')
     if (version >= 2) validateExamData(db)
     if (version >= 3) validateCompanyLocations(db)
-    if (version >= 4) validateDiscoveryData(db)
+    if (version >= 4) validateDiscoveryData(db, version)
   } finally {
     expected.close()
   }
 }
 
-function validateDiscoveryData(db: Db): void {
+function validateDiscoveryData(db: Db, version: number): void {
+  // Persistent platform contracts are frozen per released version, independent
+  // of the live adapter registry (including platforms nested in JSON columns).
+  const allowedPlatforms = new Set(
+    version === 4
+      ? ['boss', 'liepin', 'zhilian', 'wuyou']
+      : ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng'],
+  )
+  const platform = (value: string) => {
+    if (!allowedPlatforms.has(value)) throw new Error('Invalid persistent platform')
+  }
   for (const [table, column, target, targetColumn] of [
     ['discovery_jobs', 'current_observation_id', 'discovery_observations', 'id'],
     ['discovery_observations', 'job_id', 'discovery_jobs', 'id'],
@@ -132,6 +145,7 @@ function validateDiscoveryData(db: Db): void {
   }>) {
     const item = readObservation(row.payload),
       key = jobIdentity(item.platform, item.url, item.externalId)
+    platform(item.platform)
     if (
       key.id !== row.id ||
       key.identity !== row.identity ||
@@ -173,6 +187,7 @@ function validateDiscoveryData(db: Db): void {
     z.string().uuid().parse(row.id)
     const storedQuery: unknown = JSON.parse(row.query)
     const query = searchQuerySchema.parse(storedQuery)
+    query.platforms.forEach(platform)
     // Input defaults and trimming must never repair persisted v4 data.
     if (!isDeepStrictEqual(storedQuery, query)) throw new Error('Invalid persisted discovery query')
     discoveryRunOutputSchema.shape.state.parse(row.state)
@@ -192,6 +207,7 @@ function validateDiscoveryData(db: Db): void {
         .prepare('SELECT ' + sourceProjection + ' FROM discovery_sources WHERE run_id=?')
         .all(row.id) as SourceRow[]
     ).map(readSource)
+    sources.forEach((source) => platform(source.platform))
     if (
       sources.length !== query.platforms.length ||
       sources.some(
@@ -217,6 +233,7 @@ function validateDiscoveryData(db: Db): void {
   for (const row of db
     .prepare('SELECT platform,payload FROM discovery_platforms')
     .iterate() as Iterable<{ platform: string; payload: string }>) {
+    platform(row.platform)
     if (discoveryStatusOutputSchema.parse(JSON.parse(row.payload)).platform !== row.platform)
       throw new Error('Invalid discovery platform')
   }

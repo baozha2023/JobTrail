@@ -4,8 +4,19 @@ import type {
   RawJob,
   SourceState,
   QrScanHint,
+  QrLoginMethod,
 } from '../../shared/job-discovery'
-import type { QrProtocol, QrTransport } from './qr-protocol'
+import type { QrProtocol, QrTransport, QrRequestOptions } from './qr-protocol'
+import type { CityLookup } from '../../shared/discovery-city-catalog'
+import type { PageSnapshot } from './extraction'
+
+export type AccountSessionState = 'authenticated' | 'login_required' | 'challenge' | 'unknown'
+
+export interface AccountTransport {
+  cookie(url: string, name: string): Promise<string | null>
+  json<T>(url: string, parse: (value: unknown) => T, options?: QrRequestOptions): Promise<T>
+  page(url: string, script: string): Promise<PageSnapshot>
+}
 
 export interface JobIdentityPolicy {
   readonly id: JobPlatform
@@ -24,15 +35,21 @@ export interface VerificationPolicy {
 
 /** Site rules are owned by one adapter. Infrastructure owns all resource lifetimes. */
 export interface PlatformAdapter extends JobIdentityPolicy {
+  readonly cities: CityLookup
   readonly accountCheckUrl: string
   readonly contractVersion: number
   readonly remoteFilters: readonly string[]
   pageScript(detail: boolean): string
   createSearch(page: SearchTransport, query: NativeQuery): PlatformSearch
+  /** Anonymous search responses need an account recheck before every batch. */
+  readonly sessionCheck: 'operation' | 'batch'
+  checkSession(transport: AccountTransport): Promise<AccountSessionState>
   readonly verification?: VerificationPolicy
   readonly qr: {
     readonly scanHint: QrScanHint
-    create(transport: QrTransport): QrProtocol
+    readonly methods?: readonly { id: QrLoginMethod; label: QrScanHint; scanHint: QrScanHint }[]
+    create(transport: QrTransport, method?: QrLoginMethod): QrProtocol
+    /** Site-specific headers; the transport does not supply website defaults. */
     headers?(url: string): Record<string, string>
     /** null means no challenge; a missing URL still represents an explicit block. */
     challenge?(response: Response): { url: string | null } | null

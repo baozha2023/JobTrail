@@ -89,6 +89,12 @@ const zhijiApi: ZhijiApi = {
     removeHistory: (...args) => invoke('discovery:removeHistory', ...args),
     save: (...args) => invoke('discovery:save', ...args),
     browser: (...args) => invoke('discovery:browser', ...args),
+    onBrowserLoading(listener) {
+      const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]) =>
+        listener(state)
+      ipcRenderer.on('discovery:browser-loading', handler)
+      return () => ipcRenderer.removeListener('discovery:browser-loading', handler)
+    },
     region: (...args) => invoke('discovery:region', ...args),
     qrLogin: (...args) => invoke('discovery:qrLogin', ...args),
     verification: (...args) => invoke('discovery:verification', ...args),

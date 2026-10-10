@@ -1,0 +1,2 @@
+# Published persistence fixtures are verified byte-for-byte; never convert their line endings.
+tests/fixtures/** -text

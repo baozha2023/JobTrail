@@ -12,6 +12,7 @@ const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), '
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.agent-smoke-'))
 const runtime = path.join(staging, 'JobTrail', '.runtime', 'current')
 const fixturePdf = path.join(staging, 'stress-resume.pdf')
+const networkReport = path.join(staging, 'agent-network.jsonl')
 // Cold Windows startup includes native modules, prompt tokenization and child MCP startup.
 const WORKER_START_TIMEOUT = 90_000
 let application
@@ -172,6 +173,22 @@ try {
   let page = await application.firstWindow()
   page.setDefaultTimeout(15_000)
   await page.locator('.sidebar').waitFor()
+  await application.evaluate(
+    ({ utilityProcess }, { bootstrap, report }) => {
+      const fork = utilityProcess.fork
+      utilityProcess.fork = (modulePath, args, options) => {
+        if (!modulePath.endsWith('agent-worker.js')) return fork(modulePath, args, options)
+        return fork(bootstrap, [modulePath, ...(args ?? [])], {
+          ...options,
+          env: { ...process.env, ...options?.env, JOBTRAIL_TEST_NETWORK_REPORT: report },
+        })
+      }
+    },
+    {
+      bootstrap: path.join(project, 'scripts', 'agent-offline-test-bootstrap.cjs'),
+      report: networkReport,
+    },
+  )
   assert.equal(await page.evaluate(() => window.velopackApi.getVersion()), version)
   await application.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
@@ -375,10 +392,26 @@ try {
   await application.close()
   application = undefined
   assert.ok(performance.now() - exitStarted < 15_000, 'Application exit did not drain the agent')
+  const networkEvents = fs
+    .readFileSync(networkReport, 'utf8')
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line))
+  assert.ok(
+    new Set(networkEvents.filter((event) => event.kind === 'ready').map((event) => event.pid))
+      .size >= 3,
+    'All three agent workers must run with the external-fetch guard',
+  )
+  assert.deepEqual(
+    networkEvents.filter((event) => event.kind === 'blocked'),
+    [],
+    'Packaged agent must not fetch external tokenizer data',
+  )
   console.log(
-    `Packaged agent passed: 3 workers, FIFO queue, concurrent MCP, PDF parse, reload, backup pause, exit, page p95 ${p95.toFixed(1)} ms`,
+    `Packaged agent passed: local tokenizer, 3 guarded workers, FIFO queue, concurrent MCP, PDF parse, reload, backup pause, exit, page p95 ${p95.toFixed(1)} ms`,
   )
 } catch (error) {
+  if (fs.existsSync(networkReport)) console.error(fs.readFileSync(networkReport, 'utf8'))
   const logs = path.join(staging, 'JobTrail', 'logs')
   if (fs.existsSync(logs))
     for (const name of fs.readdirSync(logs))

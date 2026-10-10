@@ -166,7 +166,7 @@ export class BrowserReader {
       page.on('popup', (popup) => void popup.close())
       await reader.withBudget(budget, async () => {
         try {
-          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 })
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 40_000 })
         } catch (error) {
           throw reader.resourceError ?? error
         }

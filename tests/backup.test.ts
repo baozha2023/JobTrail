@@ -1,4 +1,5 @@
-import { preparePersistenceUpgrade } from '../src/main/persistence-migrations'
+import { DATABASE_MIGRATIONS, preparePersistenceUpgrade } from '../src/main/persistence-migrations'
+import { seedDiscoveryV4 } from './helpers/discovery-v4'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -108,25 +109,57 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
   )
 }
 
-it.each([1, 2])(
-  'imports an authentic v%i payload, migrates it, exports v4 and restores again',
+it.each([1, 2, 3, 4])(
+  'imports an authentic v%i payload, migrates it, exports v5 and restores again',
   async (version) => {
     const f = fixture()
+    const sourceRoot = path.join(f.paths.root, 'released-source')
+    fs.cpSync(path.resolve(`tests/fixtures/v${version === 1 ? 1 : 2}`), sourceRoot, {
+      recursive: true,
+    })
+    const sourceFile = path.join(sourceRoot, 'data/zhiji.db')
+    const source = new Database(sourceFile)
+    let discovery: Record<string, unknown[]> = {}
+    try {
+      for (const step of DATABASE_MIGRATIONS.filter((s) => s.from >= 2 && s.to <= version)) {
+        step.apply(source)
+        source.pragma(`user_version=${step.to}`)
+      }
+      if (version === 4) {
+        seedDiscoveryV4(source)
+        discovery = Object.fromEntries(
+          [
+            'discovery_jobs',
+            'discovery_observations',
+            'discovery_runs',
+            'discovery_sources',
+            'discovery_results',
+            'discovery_views',
+            'discovery_view_items',
+            'discovery_saved',
+          ].map((t) => [t, source.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all()]),
+        )
+      }
+      validateDatabaseVersion(source, version)
+    } finally {
+      source.close()
+    }
     await backup(f)
     await rewrite(f.archive, (entries) => {
-      entries.set('data/zhiji.db', fs.readFileSync(`tests/fixtures/v${version}/data/zhiji.db`))
+      entries.set('data/zhiji.db', fs.readFileSync(sourceFile))
       entries.set(
         'config.json',
         Buffer.from(
           JSON.stringify(
-            decryptConfig(fs.readFileSync(`tests/fixtures/v${version}/config.json`, 'utf8')),
+            decryptConfig(fs.readFileSync(path.join(sourceRoot, 'config.json'), 'utf8')),
           ),
         ),
       )
       const manifest = JSON.parse(entries.get('manifest.json')!.toString())
       manifest.databaseVersion = version
       manifest.configVersion = 1
-      manifest.appVersion = version === 1 ? '1.0.0' : '1.4.0'
+      manifest.appVersion =
+        version === 1 ? '1.0.0' : version === 2 ? '1.4.0' : version === 3 ? '1.6.0' : '2.0.0'
       for (const item of manifest.files) {
         const data = entries.get(item.path)!
         item.size = data.length
@@ -143,7 +176,11 @@ it.each([1, 2])(
     recoverRestore(f.paths)
     const restored = createServiceContainer(f.paths, false)
     containers.push(restored)
-    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(4)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(5)
+    for (const [table, rows] of Object.entries(discovery))
+      expect(restored.database.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).toEqual(
+        rows,
+      )
     expect(restored.database.db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(
       0,
     )
@@ -151,7 +188,7 @@ it.each([1, 2])(
     const answers = restored.database.db
       .prepare('SELECT * FROM exam_answers ORDER BY question_id')
       .all()
-    expect(answers).toHaveLength(version === 2 ? 3 : 0)
+    expect(answers).toHaveLength(version >= 2 ? 3 : 0)
     const located = restored.services.companies.create({
       name: 'Location backup',
       locations: ['上海', '北京'],
@@ -165,7 +202,7 @@ it.each([1, 2])(
       secondArchive,
       importWork(f.paths.root),
     )
-    expect(manifest.databaseVersion).toBe(4)
+    expect(manifest.databaseVersion).toBe(5)
     const second = await importBackup(secondArchive, importWork(f.paths.root))
     restored.database.close()
     stageRestore(f.paths, second.directory)
@@ -309,63 +346,72 @@ describe('encrypted configuration', () => {
 })
 
 describe('complete backup and restore', () => {
-  it('invalidates imported platform evidence while keeping this installation session files', async () => {
-    const f = fixture(),
-      repo = f.container.services.discovery.repository
-    for (const status of repo.status())
-      repo.platform({
-        ...status,
-        state: 'authenticated',
-        checkedAt: 1234,
-        evidence: 'official_qr_login_confirmed',
-        limitations: [],
+  it.each([
+    ['boss', 'https://www.zhipin.com/job_detail/backup.html'],
+    ['iguopin', 'https://www.iguopin.com/job/detail?id=900719925474099312345'],
+    ['shixiseng', 'https://www.shixiseng.com/intern/inn_900719925474099312345'],
+  ] as const)(
+    'round trips %s jobs and invalidates imported account evidence without transferring Session files',
+    async (platform, url) => {
+      const f = fixture(),
+        repo = f.container.services.discovery.repository
+      for (const status of repo.status())
+        repo.platform({
+          ...status,
+          state: 'authenticated',
+          checkedAt: 1234,
+          evidence: 'official_qr_login_confirmed',
+          limitations: [],
+        })
+      const sessionDir = path.join(f.paths.root, 'browser-sessions', platform)
+      fs.mkdirSync(sessionDir, { recursive: true })
+      fs.writeFileSync(path.join(sessionDir, 'session-sentinel'), 'local-session')
+      const run = repo.create(
+        searchQuerySchema.parse({ keyword: 'Java', platforms: [platform] }),
+        randomUUID(),
+      )
+      repo.observe(
+        {
+          platform,
+          url,
+          title: 'Java',
+          company: '公司',
+          city: '北京',
+          salary: '',
+          education: '',
+          experience: '',
+          recruitment: '',
+          employment: '',
+          jd: '',
+          detailRead: false,
+        },
+        run.id,
+      )
+      repo.state(run.id, 'completed')
+      const view = repo.list({ runId: run.id })
+      await backup(f)
+      const prepared = await importBackup(f.archive, importWork(f.paths.root))
+      f.container.database.close()
+      fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
+      stageRestore(f.paths, prepared.directory)
+      recoverRestore(f.paths)
+      const restored = createServiceContainer(f.paths, false)
+      containers.push(restored)
+      for (const status of restored.services.discovery.repository.status())
+        expect(status).toMatchObject({ state: 'unknown', checkedAt: null, evidence: '' })
+      const restoredView = await restored.services.discovery.list({
+        runId: run.id,
+        viewId: view.viewId,
       })
-    const sessionDir = path.join(f.paths.root, 'browser-sessions', 'boss')
-    fs.mkdirSync(sessionDir, { recursive: true })
-    fs.writeFileSync(path.join(sessionDir, 'session-sentinel'), 'local-session')
-    const run = repo.create(
-      searchQuerySchema.parse({ keyword: 'Java', platforms: ['boss'] }),
-      randomUUID(),
-    )
-    repo.observe(
-      {
-        platform: 'boss',
-        url: 'https://www.zhipin.com/job_detail/backup.html',
-        title: 'Java',
-        company: '公司',
-        city: '北京',
-        salary: '',
-        education: '',
-        experience: '',
-        recruitment: '',
-        employment: '',
-        jd: '',
-        detailRead: false,
-      },
-      run.id,
-    )
-    repo.state(run.id, 'completed')
-    const view = repo.list({ runId: run.id })
-    await backup(f)
-    const prepared = await importBackup(f.archive, importWork(f.paths.root))
-    f.container.database.close()
-    fs.mkdirSync(path.join(f.paths.root, '.runtime'), { recursive: true })
-    stageRestore(f.paths, prepared.directory)
-    recoverRestore(f.paths)
-    const restored = createServiceContainer(f.paths, false)
-    containers.push(restored)
-    for (const status of restored.services.discovery.repository.status())
-      expect(status).toMatchObject({ state: 'unknown', checkedAt: null, evidence: '' })
-    const restoredView = await restored.services.discovery.list({
-      runId: run.id,
-      viewId: view.viewId,
-    })
-    expect(restoredView.items.map((j) => ({ id: j.id, observationId: j.observationId }))).toEqual(
-      view.items.map((j) => ({ id: j.id, observationId: j.observationId })),
-    )
-    expect(restoredView.total).toEqual(view.total)
-    expect(fs.readFileSync(path.join(sessionDir, 'session-sentinel'), 'utf8')).toBe('local-session')
-  })
+      expect(restoredView.items.map((j) => ({ id: j.id, observationId: j.observationId }))).toEqual(
+        view.items.map((j) => ({ id: j.id, observationId: j.observationId })),
+      )
+      expect(restoredView.total).toEqual(view.total)
+      expect(fs.readFileSync(path.join(sessionDir, 'session-sentinel'), 'utf8')).toBe(
+        'local-session',
+      )
+    },
+  )
   it('rejects configuration exceeding the import metadata limit before replacing a backup', async () => {
     const f = fixture()
     fs.writeFileSync(

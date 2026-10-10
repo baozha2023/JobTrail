@@ -1,6 +1,5 @@
 import { SourceError, type PlatformSearch, type SourceBatch } from './adapter'
-import { BrowserWindow, WebContentsView, session, shell, type Session } from 'electron'
-import path from 'node:path'
+import { BrowserWindow, WebContentsView, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import {
   platforms,
@@ -18,28 +17,22 @@ import {
   type RawJob,
   type SourceProgress,
   type BrowserRegion,
+  type BrowserLoadingState,
   type PlatformStatus,
   type SourceVerificationState,
 } from '../../shared/job-discovery'
 import { JobDiscoveryService, type DiscoveryLive } from './service'
 import { allowedPage, canonicalJob, jobIdentity } from './platforms'
-import { statusFromPage } from './platform-status'
 import type { PageSnapshot } from './extraction'
 import { QrLoginManager } from './qr-login'
 import { QrVerificationWindow } from './qr-verification'
-import {
-  VerificationWindow,
-  platformPreferences,
-  protectPlatformPage,
-  websiteUserAgent,
-} from './verification-window'
-import { SearchPage, bounded, wait as delay } from './search-page'
+import { VerificationWindow, platformPreferences, protectPlatformPage } from './platform-browser'
+import { SearchPage } from './search-page'
+import { bounded, wait as delay } from './async-control'
 import { platformAdapter } from './adapter-registry'
-import { cityName } from '../../shared/discovery-cities'
+import { AccountSessions, checkAccountSession, statusFromPage } from './account-session'
 import { salaryExclusion } from './normalization'
 import { BatchCache, RoundBudget, runSourceTasks } from './collection'
-import { validateWebUrl } from '../services/web-network'
-import { DiscoveryNetwork } from './network'
 import { AppServiceError } from '../services/errors'
 import { isUpdateFrozen } from '../update-freeze'
 import { captureError, recordEvent } from '../diagnostics'
@@ -55,7 +48,8 @@ interface QueryContext {
   seen: Set<string>
 }
 type VerificationAttempt = SourceVerificationState & {
-  view?: BrowserWindow
+  view?: PlatformPage
+  window?: BrowserWindow
   controller: AbortController
 }
 
@@ -67,9 +61,15 @@ export class DiscoveryRuntime implements DiscoveryLive {
   private pagePlatforms = new Map<PlatformPage, JobPlatform>()
   private sourceControllers = new Map<string, AbortController>()
   private queries = new Map<string, QueryContext>()
-  private sessions = new Map<JobPlatform, Session>()
+  private detailChallenges = new Map<string, BrowserWindow>()
+  private accounts: AccountSessions
   private pages = new Set<PlatformPage>()
-  private foreground?: { view: WebContentsView; platform: JobPlatform }
+  private foreground?: {
+    view: WebContentsView
+    platform: JobPlatform
+    requestId: string
+    loading: boolean
+  }
   private regionValue: BrowserRegion = { x: 0, y: 0, width: 0, height: 0, visible: false }
   private lanes = new Map<JobPlatform, Promise<unknown>>()
   private runTail: Promise<unknown> = Promise.resolve()
@@ -80,15 +80,16 @@ export class DiscoveryRuntime implements DiscoveryLive {
   private cache = new BatchCache()
   private suspended = false
   private browserSequence = 0
-  private network = new DiscoveryNetwork((url) => session.defaultSession.resolveProxy(url))
   constructor(
     private root: string,
     private service: JobDiscoveryService,
     private window: () => BrowserWindow | undefined,
+    private notifyBrowserLoading: (state: BrowserLoadingState) => void = () => {},
   ) {
+    this.accounts = new AccountSessions(root)
     this.verificationWindows = new VerificationWindow(window)
     this.qr = new QrLoginManager(
-      (p) => this.session(p),
+      (p) => this.accounts.get(p),
       (p) => {
         const previous = service.repository.status().find((s) => s.platform === p)!
         service.work.run(() =>
@@ -123,42 +124,10 @@ export class DiscoveryRuntime implements DiscoveryLive {
     if (this.suspended || isUpdateFrozen(this.root))
       throw new AppServiceError('PERSISTENCE_BUSY', 'Discovery is suspended for data maintenance')
   }
-  private async session(p: JobPlatform): Promise<Session> {
-    const existing = this.sessions.get(p)
-    if (existing) {
-      await this.network.prepare(existing)
-      return existing
-    }
-    const s = session.fromPath(path.join(this.root, 'browser-sessions', p), { cache: true })
-    s.setUserAgent(websiteUserAgent(s.getUserAgent()))
-    s.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
-    s.setPermissionCheckHandler(() => false)
-    s.on('will-download', (event) => event.preventDefault())
-    s.webRequest.onBeforeRequest((details, callback) => {
-      if (details.url.startsWith('data:') || details.url.startsWith('blob:')) {
-        callback({ cancel: details.resourceType === 'mainFrame' })
-        return
-      }
-      if (details.resourceType === 'mainFrame' && !allowedPage(p, details.url)) {
-        callback({ cancel: true })
-        return
-      }
-      try {
-        validateWebUrl(details.url)
-        callback({ cancel: false })
-      } catch (error) {
-        captureError(error, { operation: `discovery.${p}.network-check`, level: 'warn' })
-        callback({ cancel: true })
-      }
-    })
-    this.sessions.set(p, s)
-    await this.network.prepare(s)
-    return s
-  }
   private createPage(p: JobPlatform, background: false): Promise<WebContentsView>
   private createPage(p: JobPlatform, background?: true): Promise<BrowserWindow>
   private async createPage(p: JobPlatform, background = true): Promise<PlatformPage> {
-    const webPreferences = platformPreferences(await this.session(p))
+    const webPreferences = platformPreferences(await this.accounts.get(p))
     this.writable(p)
     // Background search needs the same native viewport/keyboard/scroll lifecycle
     // as the official page. Foreground job pages remain embedded native views.
@@ -186,11 +155,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
     return view
   }
   private destroy(view: PlatformPage) {
-    const wc = view.webContents
     this.pages.delete(view)
     this.pagePlatforms.delete(view)
     if (view instanceof WebContentsView && this.window()?.contentView.children.includes(view))
       this.window()?.contentView.removeChildView(view)
+    if (view instanceof BrowserWindow && view.isDestroyed()) return
+    const wc = view.webContents
     if (wc && !wc.isDestroyed()) wc.close()
     if (view instanceof BrowserWindow && !view.isDestroyed()) view.destroy()
   }
@@ -257,23 +227,71 @@ export class DiscoveryRuntime implements DiscoveryLive {
     await Promise.all(
       platforms.map((p) =>
         this.lane(p, async () => {
-          this.writable(p)
-          const signal = AbortSignal.timeout(15000)
-          const foreground = this.foreground?.platform === p ? this.foreground.view : undefined
-          const view = foreground || (await this.createPage(p))
           try {
-            if (!foreground) await this.load(view, platformAdapter(p).accountCheckUrl, signal)
-            this.recordStatus(p, await this.snapshot(view, p, signal))
+            await this.checkAuthentication(p, AbortSignal.timeout(15000))
           } catch (error) {
-            /* An unreachable site is not evidence of logout. */
+            // An unreachable site is not evidence of logout.
             captureError(error, { operation: `discovery.${p}.status`, level: 'warn' })
-          } finally {
-            if (!foreground) this.destroy(view)
           }
         }),
       ),
     )
     return this.service.repository.status()
+  }
+  private async checkAuthentication(p: JobPlatform, signal: AbortSignal) {
+    this.writable(p)
+    const previous = this.service.repository.status().find((item) => item.platform === p)!
+    const result = await checkAccountSession(
+      p,
+      await this.accounts.get(p),
+      signal,
+      async (url, script) => {
+        // Dedicated temporary page: account checks never navigate a user's open job or verification page.
+        const view = await this.createPage(p)
+        try {
+          await this.load(view, url, signal)
+          return (await bounded(view.webContents.executeJavaScript(script), signal)) as PageSnapshot
+        } finally {
+          this.destroy(view)
+        }
+      },
+    )
+    signal.throwIfAborted()
+    this.writable(p)
+    const current = this.service.repository.status().find((item) => item.platform === p)!
+    if (current.generation !== previous.generation)
+      throw new SourceError('cancelled', 'account_changed')
+    const status = statusFromPage(previous, {
+      authenticated: result === 'authenticated',
+      login: result === 'login_required',
+      challenge: result === 'challenge',
+    })
+    if (result !== 'unknown') status.evidence = 'official_account_check'
+    this.service.work.run(() => this.service.repository.platform(status))
+    return { result, status }
+  }
+  private async requireAuthentication(p: JobPlatform, signal: AbortSignal, verifying = false) {
+    this.writable(p)
+    const previous = this.service.repository.status().find((item) => item.platform === p)!
+    if (previous.state !== 'authenticated' && !(verifying && previous.state === 'challenge'))
+      throw new SourceError(
+        previous.state === 'session_expired'
+          ? 'session_expired'
+          : previous.state === 'challenge'
+            ? 'challenge'
+            : 'login_required',
+      )
+    const { result, status } = await this.checkAuthentication(p, signal)
+    if (result === 'unknown')
+      throw new SourceError('parse_error', 'authentication_check_inconclusive')
+    if (status.state !== 'authenticated')
+      throw new SourceError(
+        status.state === 'session_expired'
+          ? 'session_expired'
+          : status.state === 'challenge'
+            ? 'challenge'
+            : 'login_required',
+      )
   }
   async start(input: Parameters<DiscoveryApi['start']>[0]) {
     this.writable()
@@ -365,6 +383,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
     return this.service.repository.run(id)
   }
   private releaseQueries(runId?: string, platform?: JobPlatform) {
+    for (const [key, view] of this.detailChallenges) {
+      if (runId && !key.startsWith(runId + ':')) continue
+      if (platform && this.pagePlatforms.get(view) !== platform) continue
+      this.destroy(view)
+      this.detailChallenges.delete(key)
+    }
     for (const [key, context] of this.queries) {
       if (runId && !key.startsWith(runId + ':')) continue
       if (platform && this.pagePlatforms.get(context.view) !== platform) continue
@@ -411,7 +435,22 @@ export class DiscoveryRuntime implements DiscoveryLive {
     const seen = context?.seen ?? new Set<string>()
     let durableFailure = false
     const budget = new RoundBudget(context?.noGrowth ?? 0)
+    const assertAccount = () => {
+      this.writable(p)
+      signal.throwIfAborted()
+      const account = this.service.repository.status().find((item) => item.platform === p)!
+      if (account.generation !== generation) throw new SourceError('cancelled', 'account_changed')
+      if (account.state !== 'authenticated')
+        throw new SourceError(
+          account.state === 'challenge'
+            ? 'challenge'
+            : account.state === 'session_expired'
+              ? 'session_expired'
+              : 'login_required',
+        )
+    }
     const save = (batch: SourceBatch, at = Date.now(), cached = false) => {
+      assertAccount()
       if (batch.rawCount !== batch.sourceIds.length + batch.duplicateCount + batch.rejectedCount)
         throw new SourceError('network_error', 'batch_accounting_mismatch')
       const identities = batch.jobs.map(
@@ -439,7 +478,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
           salaryExcluded: excluded,
           remote: {
             keyword: batch.submitted.keyword,
-            city: cityName(p, batch.submitted.cityCode),
+            city: platformAdapter(p).cities.name(batch.submitted.cityCode),
             cityCode: batch.submitted.cityCode,
           },
           cursor: batch.hasMore === false ? null : (context?.token ?? null),
@@ -463,8 +502,13 @@ export class DiscoveryRuntime implements DiscoveryLive {
     try {
       this.writable(p)
       signal.throwIfAborted()
+      // Historical runs may outlive a platform's catalog entry. Reject before cache
+      // reuse or navigation, preserving the original query and other sources.
+      if (query.city && !platformAdapter(p).cities.find(query.city))
+        throw new SourceError('unsupported_city')
       if (this.verificationAttempt?.platform === p && !onVerified)
         throw new SourceError('challenge', 'verification_in_progress')
+      await this.requireAuthentication(p, signal, verifying)
       update()
       if (context && (context.scope !== scope || context.view.webContents.isDestroyed())) {
         this.releaseQueries(id, p)
@@ -509,11 +553,14 @@ export class DiscoveryRuntime implements DiscoveryLive {
         }
       }
       while (!budget.exhausted) {
-        signal.throwIfAborted()
+        assertAccount()
+        // Adapters whose search endpoint allows anonymous results require stricter account checks.
+        if (platformAdapter(p).sessionCheck === 'batch') await this.requireAuthentication(p, signal)
         const batch = await context.adapter.read(signal)
-        signal.throwIfAborted()
+        assertAccount()
         if (verifying) {
           const page = await this.snapshot(context.view, p, signal)
+          assertAccount()
           this.recordStatus(p, page)
           if (page.challenge) throw new SourceError('challenge')
           if (page.login) throw new SourceError('login_required')
@@ -540,7 +587,11 @@ export class DiscoveryRuntime implements DiscoveryLive {
         if (!budget.exhausted) await delay(1200, signal)
       }
     } catch (error) {
-      const reason = signal.aborted ? signal.reason : error
+      const reason = signal.aborted
+        ? signal.reason
+        : this.service.repository.status().find((s) => s.platform === p)!.generation !== generation
+          ? new SourceError('cancelled', 'account_changed')
+          : error
       if (reason instanceof SourceError && reason.state === 'cancelled')
         recordEvent({ operation: `discovery.${p}.collect`, outcome: 'cancelled' })
       else captureError(reason, { operation: `discovery.${p}.collect`, level: 'warn' })
@@ -659,7 +710,9 @@ export class DiscoveryRuntime implements DiscoveryLive {
     this.runTail = task
     this.tasks.add(task)
   }
-  async verification(input: Parameters<DiscoveryApi['verification']>[0]) {
+  async verification(
+    input: Parameters<DiscoveryApi['verification']>[0],
+  ): Promise<SourceVerificationState | null> {
     const args = sourceVerificationSchema.parse(input)
     if (args.action !== 'open' && args.action !== 'recheck') {
       if (args.action === 'close') this.closeVerification()
@@ -673,8 +726,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
           'DISCOVERY_UNAVAILABLE',
           'Complete the current verification first',
         )
-      current.view?.show()
-      current.view?.focus()
+      if (current.window?.isDestroyed()) {
+        this.closeVerification()
+        return this.verification(args)
+      }
+      current.window?.show()
+      current.window?.focus()
       return this.verificationState()
     }
     const run = this.service.repository.run(args.runId)
@@ -702,14 +759,21 @@ export class DiscoveryRuntime implements DiscoveryLive {
     }
     const key = args.runId + ':' + args.platform
     const context = this.queries.get(key)
-    // Transfer the blocked page to the user: preserve its exact challenge and Session,
-    // and remove it from the automated cursor pool before making it interactive.
+    const detailChallenge = this.detailChallenges.get(key)
+    this.detailChallenges.delete(key)
+    // Remove the blocked page from the automated cursor pool. The interactive
+    // view reloads its exact official address in the same platform Session.
     this.queries.delete(key)
     const attempt: VerificationAttempt = {
       runId: args.runId,
       platform: args.platform,
       phase: 'open',
-      view: context && !context.view.isDestroyed() ? context.view : undefined,
+      view:
+        detailChallenge && !detailChallenge.isDestroyed()
+          ? detailChallenge
+          : context && !context.view.isDestroyed()
+            ? context.view
+            : undefined,
       controller: new AbortController(),
     }
     this.verificationAttempt = attempt
@@ -719,6 +783,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
         this.pagePlatforms.delete(attempt.view)
       }
       attempt.view = undefined
+      attempt.window = undefined
       if (this.verificationAttempt !== attempt) return
       if (!userClosed) {
         this.closeVerification()
@@ -727,27 +792,31 @@ export class DiscoveryRuntime implements DiscoveryLive {
       this.recheckVerification(attempt)
     }
     try {
+      if (context && context.view !== attempt.view) this.destroy(context.view)
       await this.qr.cancel(args.platform)
-      const platformSession = await this.session(args.platform)
+      const platformSession = await this.accounts.get(args.platform)
       if (this.verificationAttempt !== attempt) return this.verificationState()
-      const { window: view } = this.verificationWindows.open({
+      const blocked = attempt.view
+      const blockedUrl = blocked?.webContents.getURL() ?? ''
+      const targetUrl = allowedPage(args.platform, blockedUrl)
+        ? blockedUrl
+        : platformAdapter(args.platform).accountCheckUrl
+      const { window, page: view } = this.verificationWindows.open({
         platform: args.platform,
         session: platformSession,
         signal: attempt.controller.signal,
-        existing: attempt.view,
         onClosed,
       })
+      if (blocked) this.destroy(blocked)
       attempt.view = view
+      attempt.window = window
       // A historical run may no longer own a live page. Use its official account
       // entry; rechecking still uses the original search conditions, not this page.
-      if (!allowedPage(args.platform, view.webContents.getURL()))
-        void view.webContents
-          .loadURL(platformAdapter(args.platform).accountCheckUrl)
-          .catch((error) => {
-            captureError(error, { operation: 'discovery.verification.open', level: 'warn' })
-          })
-      view.show()
-      view.focus()
+      void view.webContents.loadURL(targetUrl).catch((error) => {
+        captureError(error, { operation: 'discovery.verification.open', level: 'warn' })
+      })
+      window.show()
+      window.focus()
       return this.verificationState()
     } catch (error) {
       if (this.verificationAttempt === attempt) this.closeVerification()
@@ -778,11 +847,39 @@ export class DiscoveryRuntime implements DiscoveryLive {
       })
     const operation = this.lane(job.platform, async () => {
       this.writable(job.platform)
+      try {
+        await this.requireAuthentication(job.platform, AbortSignal.timeout(15000))
+      } catch (error) {
+        if (runId && error instanceof SourceError && needsHumanAction(error.state)) {
+          const source = this.service.repository
+            .run(runId)
+            .sources.find((s) => s.platform === job.platform)
+          if (source)
+            this.service.work.run(() =>
+              this.service.repository.source(runId, {
+                ...source,
+                state: error.state,
+                message: error.state,
+              }),
+            )
+        }
+        throw error
+      }
+      const generation = this.service.repository
+        .status()
+        .find((s) => s.platform === job.platform)!.generation
       const view = await this.createPage(job.platform),
         signal = AbortSignal.timeout(25000)
       try {
         await this.load(view, job.url, signal)
         const snapshot = await this.snapshot(view, job.platform, signal, true)
+        this.writable(job.platform)
+        signal.throwIfAborted()
+        if (
+          this.service.repository.status().find((s) => s.platform === job.platform)!.generation !==
+          generation
+        )
+          throw new SourceError('cancelled', 'account_changed')
         this.recordStatus(job.platform, snapshot)
         const actual = canonicalJob(job.platform, snapshot.url)
         const expected = canonicalJob(job.platform, job.url)
@@ -805,8 +902,23 @@ export class DiscoveryRuntime implements DiscoveryLive {
           for (const f of jobFields)
             if (!raw[f] || (f === 'jd' && !job.detailRead))
               raw.missing![f] = snapshot.challenge ? 'challenge' : 'login_required'
+          if (runId) {
+            const current = this.service.repository.run(runId)
+            const source = current.sources.find((s) => s.platform === job.platform)!
+            const state = snapshot.challenge ? 'challenge' : 'session_expired'
+            this.service.work.run(() =>
+              this.service.repository.source(runId, { ...source, state, message: state }),
+            )
+            if (snapshot.challenge) {
+              const key = runId + ':' + job.platform
+              const previous = this.detailChallenges.get(key)
+              if (previous) this.destroy(previous)
+              this.detailChallenges.set(key, view)
+            }
+          }
         } else {
           if (!sameJob) throw new SourceError('scope_unverified')
+          raw.missing = { ...raw.missing, ...snapshot.detail.missing }
           for (const field of jobFields)
             if (snapshot.detail[field]) {
               raw[field] = snapshot.detail[field]!
@@ -814,6 +926,11 @@ export class DiscoveryRuntime implements DiscoveryLive {
             }
           raw.detailRead = !!snapshot.detail.detailRead
           if (!raw.detailRead) raw.missing!.jd = 'parse_error'
+          else
+            for (const field of jobFields) {
+              if (!raw[field])
+                raw.missing![field] = snapshot.detail.missing?.[field] ?? 'not_provided'
+            }
         }
         if (snapshot.challenge || snapshot.login || !raw.detailRead)
           recordEvent({
@@ -827,7 +944,8 @@ export class DiscoveryRuntime implements DiscoveryLive {
           removedFromCurrentSearch: !!runId && !this.service.repository.contains(runId, id),
         }
       } finally {
-        this.destroy(view)
+        if (!runId || this.detailChallenges.get(runId + ':' + job.platform) !== view)
+          this.destroy(view)
       }
     })
     this.details.set(id, operation)
@@ -840,7 +958,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
     if (args.action === 'start') {
       this.writable(args.platform)
       if (this.verificationAttempt?.platform === args.platform) this.closeVerification()
-      return this.qr.start(args.platform)
+      return this.qr.start(args.platform, args.method)
     }
     if (args.action === 'cancel') await this.qr.cancel(args.platform, args.attemptId)
     if (args.action === 'verify' || args.action === 'retry') {
@@ -850,6 +968,14 @@ export class DiscoveryRuntime implements DiscoveryLive {
         : this.qr.retry(args.platform, args.attemptId)
     }
     return this.qr.get(args.platform, args.attemptId)
+  }
+  private setBrowserLoading(view: WebContentsView, loading: boolean) {
+    const current = this.foreground
+    if (current?.view !== view || current.loading === loading) return
+    current.loading = loading
+    // Native child views cover DOM content, so hide the page before showing its loader.
+    if (loading && !view.webContents.isDestroyed()) view.setVisible(false)
+    this.notifyBrowserLoading({ requestId: current.requestId, loading })
   }
   async browser(input: Parameters<DiscoveryApi['browser']>[0]) {
     this.writable()
@@ -868,9 +994,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
         for (const [view, platform] of this.pagePlatforms) if (platform === p) this.destroy(view)
         if (this.foreground?.platform === p) this.foreground = undefined
         await this.lanes.get(p)?.catch(() => {})
-        const platformSession = await this.session(p)
-        await platformSession.clearData()
-        await platformSession.clearCache()
+        await this.accounts.clear(p)
         this.cache.clear()
         const previous = this.service.repository.status().find((s) => s.platform === p)!
         this.service.work.run(() =>
@@ -899,18 +1023,34 @@ export class DiscoveryRuntime implements DiscoveryLive {
       const job = this.service.repository.get(args.jobId)
       const p = job.platform
       this.writable(p)
+      // A failed account check must not reveal the previous job under the new selection.
       if (this.foreground) this.destroy(this.foreground.view)
+      this.foreground = undefined
+      await this.requireAuthentication(p, AbortSignal.timeout(15000))
+      if (sequence !== this.browserSequence) return
       const view = await this.createPage(p, false)
       if (sequence !== this.browserSequence) {
         this.destroy(view)
         return
       }
-      this.foreground = { view, platform: p }
+      this.foreground = { view, platform: p, requestId: args.requestId, loading: false }
+      const wc = view.webContents
+      wc.on('did-start-loading', () => this.setBrowserLoading(view, true))
+      wc.on('did-stop-loading', () => this.setBrowserLoading(view, false))
+      wc.on('render-process-gone', () => this.setBrowserLoading(view, false))
+      wc.on('destroyed', () => {
+        this.setBrowserLoading(view, false)
+        if (this.foreground?.view === view) this.foreground = undefined
+        this.destroy(view)
+      })
+      this.setBrowserLoading(view, true)
       this.window()?.contentView.addChildView(view)
       await this.region(this.regionValue)
-      void view.webContents.loadURL(job.url).catch((error) => {
-        if (!view.webContents.isDestroyed() && !/ERR_ABORTED/.test(String(error)))
+      void wc.loadURL(job.url).catch((error) => {
+        if (!wc.isDestroyed() && !/ERR_ABORTED/.test(String(error))) {
           captureError(error, { operation: `discovery.${job.platform}.navigation`, level: 'warn' })
+          this.setBrowserLoading(view, false)
+        }
       })
       return
     }
@@ -918,6 +1058,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
     if (!view || !view.webContents || view.webContents.isDestroyed()) return
     const wc = view.webContents
     const action = args.action
+    if (['back', 'forward', 'reload'].includes(action)) {
+      const sequence = this.browserSequence
+      await this.requireAuthentication(this.foreground!.platform, AbortSignal.timeout(15000))
+      if (sequence !== this.browserSequence || this.foreground?.view !== view || wc.isDestroyed())
+        return
+    }
     if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack()
     if (action === 'forward' && wc.navigationHistory.canGoForward())
       wc.navigationHistory.goForward()
@@ -947,7 +1093,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
       width: Math.max(0, Math.min(width - x, Math.round(rect.width))),
       height: Math.max(0, Math.min(height - y, Math.round(rect.height))),
     })
-    view.setVisible(rect.visible && rect.width > 0 && rect.height > 0)
+    view.setVisible(rect.visible && !this.foreground?.loading && rect.width > 0 && rect.height > 0)
   }
   async suspend() {
     this.suspended = true
@@ -960,12 +1106,10 @@ export class DiscoveryRuntime implements DiscoveryLive {
     await Promise.allSettled([...this.tasks])
     for (const view of [...this.pages]) this.destroy(view)
     this.queries.clear()
+    this.detailChallenges.clear()
     this.foreground = undefined
-    for (const s of this.sessions.values()) {
-      s.flushStorageData()
-      await s.cookies.flushStore()
-    }
-    await this.network.close()
+    await this.accounts.flush()
+    await this.accounts.closeConnections()
   }
   resume() {
     this.suspended = false

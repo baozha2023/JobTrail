@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { statusFromPage } from '../src/main/discovery/platform-status'
+import { statusFromPage } from '../src/main/discovery/account-session'
 import type { PlatformStatus } from '../src/shared/job-discovery'
 
 const previous: PlatformStatus = {

@@ -70,8 +70,8 @@ try {
   assert.equal(fs.existsSync(descriptor), existing, 'Local history must not start the desktop')
   const request = {
     requestId: crypto.randomUUID(),
-    // An unsupported city exercises scheduling without sending requests to a live site.
-    query: { keyword: 'Java', city: '不存在的测试城市', platforms: ['wuyou'] },
+    // Valid city admission reaches desktop startup; cancel after checking ownership.
+    query: { keyword: 'Java', city: '北京', platforms: ['wuyou'] },
   }
   const results = await Promise.all(clients.map((c) => call(c, 'start_job_search', request)))
   assert.equal(results[0].item.id, results[1].item.id, 'Concurrent retries must share a run')

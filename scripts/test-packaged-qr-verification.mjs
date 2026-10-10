@@ -64,12 +64,12 @@ try {
       },
     )
     globalThis.verificationNavigation = []
-    app.on('browser-window-created', (_event, win) => {
-      win.webContents.on('did-start-navigation', (_event, value, _inPlace, mainFrame) => {
+    app.on('web-contents-created', (_event, wc) => {
+      wc.on('did-start-navigation', (_event, value, _inPlace, mainFrame) => {
         if (mainFrame && officialTarget && value === officialTarget)
           globalThis.officialTargetUnchanged = true
       })
-      win.webContents.on('did-navigate', (_event, value, status) => {
+      wc.on('did-navigate', (_event, value, status) => {
         const u = new URL(value)
         globalThis.verificationNavigation.push({ location: u.origin + u.pathname, status })
       })
@@ -120,18 +120,27 @@ try {
       'Official verification page must actually load',
     )
     assert.equal(await windows(), baseline + 1)
-    report.page = await application.evaluate(async ({ BrowserWindow }) => {
-      const win = BrowserWindow.getAllWindows().find((w) =>
-        w.webContents.getURL().startsWith('https://safe.liepin.com/'),
+    report.page = await application.evaluate(async ({ BrowserWindow, WebContentsView }) => {
+      const host = BrowserWindow.getAllWindows().find((w) =>
+        w.contentView.children.some(
+          (v) =>
+            v instanceof WebContentsView &&
+            v.webContents.getURL().startsWith('https://safe.liepin.com/'),
+        ),
       )
-      if (!win) throw new Error('Official verification window missing')
-      const u = new URL(win.webContents.getURL())
+      if (!host) throw new Error('Native verification window missing')
+      const wc = host.contentView.children.find(
+        (v) =>
+          v instanceof WebContentsView &&
+          v.webContents.getURL().startsWith('https://safe.liepin.com/'),
+      ).webContents
+      const u = new URL(wc.getURL())
       return {
         location: u.origin + u.pathname,
-        visible: win.isVisible(),
-        bounds: win.getBounds(),
-        branded: /职迹|JobTrail|zhiji/i.test(win.getTitle() + ' ' + win.webContents.getUserAgent()),
-        pageEvidence: await win.webContents.executeJavaScript(`({
+        visible: host.isVisible(),
+        bounds: host.getBounds(),
+        branded: /职迹|JobTrail|zhiji/i.test(host.getTitle() + ' ' + wc.getUserAgent()),
+        pageEvidence: await wc.executeJavaScript(`({
           notFound: /此页面似乎不存在|我们找遍了所有地方|页面不存在|page\\s+not\\s+found/i.test(document.body?.innerText || ''),
           challenge: /安全验证|人机验证|滑动验证|请.{0,12}验证|拖动.{0,12}滑块|点击.{0,12}验证/.test(document.body?.innerText || '') || /安全中心.*验证码/.test(document.title),
           controls: [...document.querySelectorAll('button,input,canvas,[role="button"],[class*="captcha"],[id*="captcha"],iframe[src*="captcha"],iframe[src*="verify"]')].some(e => { const r=e.getBoundingClientRect();return r.width>0 && r.height>0 })
@@ -142,9 +151,15 @@ try {
     assert.equal(report.page.branded, false)
     assert.deepEqual(report.page.pageEvidence, { notFound: false, challenge: true, controls: true })
     // Closing a window cannot grant authentication. No CAPTCHA is solved by this test.
-    await application.evaluate(({ BrowserWindow }) => {
-      for (const win of BrowserWindow.getAllWindows())
-        if (win.webContents.getURL().startsWith('https://safe.liepin.com/')) win.close()
+    await application.evaluate(({ BrowserWindow, WebContentsView }) => {
+      const host = BrowserWindow.getAllWindows().find((w) =>
+        w.contentView.children.some(
+          (v) =>
+            v instanceof WebContentsView &&
+            v.webContents.getURL().startsWith('https://safe.liepin.com/'),
+        ),
+      )
+      host?.close()
     })
     let closed
     for (let i = 0; i < 25; i++) {

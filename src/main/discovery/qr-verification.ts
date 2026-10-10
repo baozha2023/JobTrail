@@ -3,7 +3,7 @@ import type { JobPlatform, QrVerificationState } from '../../shared/job-discover
 import { allowedPage } from './platforms'
 import type { VerificationPage } from './adapter'
 import { platformAdapter } from './adapter-registry'
-import { VerificationWindow, type VerificationWindowHandle } from './verification-window'
+import { VerificationWindow, type VerificationWindowHandle } from './platform-browser'
 import { captureError } from '../diagnostics'
 import { AppServiceError } from '../services/errors'
 
@@ -16,6 +16,7 @@ export interface QrVerificationHost {
     session: Session
     signal: AbortSignal
     onState: (state: VerificationWindowState) => void
+    onUserClosed: () => void
   }): Promise<void>
   close(platform: JobPlatform, attemptId: string): void
 }
@@ -57,6 +58,7 @@ export class QrVerificationWindow implements QrVerificationHost {
     let poll: ReturnType<typeof setTimeout> | undefined
     let navigationId = 0
     let lastPage: VerificationPage = 'loading'
+    let presented = false
     const abort = () => current.dispose()
     const current: NonNullable<QrVerificationWindow['current']> = {
       platform: input.platform,
@@ -80,7 +82,10 @@ export class QrVerificationWindow implements QrVerificationHost {
         new AppServiceError('DISCOVERY_FAILED', `QR verification ${error}`, undefined, { cause }),
         { operation: `discovery.${input.platform}.qr-verification`, level: 'warn' },
       )
-      current.dispose({ window: 'error', error })
+      clearTimeout(timer)
+      clearTimeout(poll)
+      if (presented) input.onState({ window: 'ready', error })
+      else current.dispose({ window: 'error', error })
     }
     input.onState({ window: 'loading', error: null })
     timer = setTimeout(() => fail('timeout'), 25000)
@@ -90,10 +95,13 @@ export class QrVerificationWindow implements QrVerificationHost {
         platform: input.platform,
         session: input.session,
         signal: input.signal,
-        onClosed: () => current.dispose(),
+        onClosed: (userClosed) => {
+          current.dispose()
+          if (userClosed && !input.signal.aborted) input.onUserClosed()
+        },
       })
       const win = current.handle.window
-      const wc = win.webContents
+      const wc = current.handle.page.webContents
       const allowed = (url: string) =>
         allowedPage(input.platform, url) && policy.allowsNavigation(url)
       const navigation = (event: Electron.Event, url: string) => {
@@ -105,6 +113,15 @@ export class QrVerificationWindow implements QrVerificationHost {
       wc.on('will-navigate', navigation)
       wc.on('will-redirect', navigation)
       wc.on('render-process-gone', () => fail('network'))
+      wc.on('destroyed', () => {
+        clearTimeout(timer)
+        clearTimeout(poll)
+        // The shared manager may be disposing this page intentionally. Its
+        // onClosed callback must settle that cancellation before reporting loss.
+        setImmediate(() => {
+          if (active()) fail('blank')
+        })
+      })
       wc.on('did-fail-load', (_event, code, _description, _url, mainFrame) => {
         if (mainFrame && code !== -3) fail('network')
       })
@@ -123,6 +140,7 @@ export class QrVerificationWindow implements QrVerificationHost {
       })
       const inspect = () => {
         if (!active()) return
+        if (wc.isDestroyed()) return fail('blank')
         if (!allowed(wc.getURL())) return fail('blocked')
         const navigation = navigationId
         clearTimeout(poll)
@@ -134,6 +152,7 @@ export class QrVerificationWindow implements QrVerificationHost {
             if (page === 'not_found') return fail('site_error')
             if (page === 'challenge') {
               clearTimeout(timer)
+              presented = true
               win.show()
               input.onState({ window: 'ready', error: null })
             } else {
@@ -147,7 +166,8 @@ export class QrVerificationWindow implements QrVerificationHost {
       }
       wc.on('dom-ready', inspect)
       void wc.loadURL(input.url, { httpReferrer: policy.referrer }).catch((error) => {
-        if (active() && !wc.isLoadingMainFrame() && !allowed(wc.getURL())) fail('network', error)
+        if (active() && !wc.isDestroyed() && !wc.isLoadingMainFrame() && !allowed(wc.getURL()))
+          fail('network', error)
       })
     } catch (error) {
       if (active()) fail('network', error)

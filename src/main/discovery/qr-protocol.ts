@@ -9,6 +9,7 @@ export class LoginError extends Error {
   }
 }
 export interface QrRequestOptions {
+  headers?: Record<string, string>
   data?: Record<string, string>
   jsonBody?: boolean
   timeoutMs?: number

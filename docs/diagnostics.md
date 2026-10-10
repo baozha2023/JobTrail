@@ -91,7 +91,7 @@ ZIP 包含日志及 manifest：应用/Electron/Node/系统/架构版本、数据
 
 ## 岗位发现
 
-`discovery.connection` 记录受控代理的 DNS、连接及上游代理失败；URL 形状与平台导航拒绝由 `discovery.<platform>.network-check` 记录。连接层不解密 HTTPS，不记录请求/响应头、Cookie、二维码或正文；不通过错误日志回传代理认证材料。网络限制与支持的代理类型见[岗位发现说明](job-discovery.md)。
+岗位发现使用 Chromium 的系统网络模式，网络错误由采集、扫码、账号检查或页面加载的对应诊断边界记录，并保留原始异常原因。URL 形状拒绝由 `discovery.<platform>.network-check` 记录。不再提供独立代理层及 `discovery.connection` 事件；不记录请求/响应头、Cookie、二维码、正文或代理认证材料。网络职责见[岗位发现说明](job-discovery.md)。
 
 `DISCOVERY_UNAVAILABLE` 表示桌面运行时或受控管道暂不可用，`DISCOVERY_FAILED` 表示发现服务执行失败。`DISCOVERY_JOB_OFFLINE` 表示已确认岗位下架并完成发现数据清理，UI 展示“已下架”，受控管道保留该错误码供 MCP 识别；它不是网络或登录失败。来源业务状态（登录限制、验证码、查询范围未验证、超时等）作为结构化结果返回，不把平台阻断伪装成空结果。二维码组件区分 network/protocol/verification，只展示固定提示；诊断与测试报告不记录 Cookie、登录令牌、二维码图片或临时扫码标识。接口与验收范围见 [岗位发现说明](job-discovery.md)。
 

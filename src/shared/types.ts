@@ -1,4 +1,4 @@
-import type { DiscoveryApi } from './job-discovery'
+import type { BrowserLoadingState, DiscoveryApi } from './job-discovery'
 import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
@@ -428,7 +428,9 @@ export interface AppErrorShape {
 }
 
 export interface ZhijiApi {
-  discovery: DiscoveryApi
+  discovery: DiscoveryApi & {
+    onBrowserLoading(listener: (state: BrowserLoadingState) => void): () => void
+  }
   diagnostics: {
     openDirectory(): Promise<void>
     exportBundle(): Promise<'cancelled' | 'exported'>

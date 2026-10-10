@@ -207,7 +207,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'get_job_platform_status',
     title: '招聘平台状态',
     description:
-      '读取四个平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
+      '读取六个平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,
@@ -219,7 +219,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'start_job_search',
     title: '开始岗位搜索',
     description:
-      '通过指定平台的官方主搜索框和地点控件搜索；city 可省略或为空，此时沿用网站默认地点并返回实际条件。不按岗位文字再次筛选关键词。指定城市时，猎聘和前程无忧在各自适配器内过滤异地及城市无法确认的岗位，BOSS和智联信任平台城市结果；不选城市则不做城市过滤。单条解析失败静默跳过并记录日志，不影响其他岗位。返回 runId 后用 get_job_search 查询；requestId 用于幂等重试。每轮最多 90 秒、每平台 3 批，200 条按整批边界停止。部分来源失败不代表全网无结果。薪资条件单位为人民币元/月，在入库前按区间相交判断；年薪除以12，日薪、时薪、外币和无法比较的薪资不入库。不填薪资则不做薪资过滤。',
+      '通过指定平台的官方主搜索框和地点控件搜索；city 可省略或为空，此时沿用网站默认地点并返回实际条件。非空城市必须被全部所选平台支持，否则拒绝创建任务；各平台能力中的 cities 是其独立完整城市列表，按统一名称的字符串交集选择。不按岗位文字再次筛选关键词。网站专用搜索、广告及地点规则由对应平台适配器处理，不增加全平台统一城市过滤；不选城市则不做城市过滤。单条解析失败静默跳过并记录日志，不影响其他岗位。返回 runId 后用 get_job_search 查询；requestId 用于幂等重试。每轮最多 90 秒、每平台 3 批，200 条按整批边界停止。部分来源失败不代表全网无结果。薪资条件单位为人民币元/月，在入库前按区间相交判断；年薪除以12，日薪、时薪、外币和无法比较的薪资不入库。不填薪资则不做薪资过滤。',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,

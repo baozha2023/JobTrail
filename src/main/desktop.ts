@@ -287,6 +287,7 @@ async function initializeApplication(): Promise<void> {
     paths.root,
     container.services.discovery,
     () => mainWindow,
+    (state) => sendToTrustedWindow('discovery:browser-loading', state),
   )
   container.services.discovery.live = discoveryRuntime
   closeDiscoveryBroker = await startDiscoveryBroker(

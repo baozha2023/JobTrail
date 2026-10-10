@@ -6,6 +6,8 @@ export const platformNames = {
   liepin: '猎聘',
   zhilian: '智联招聘',
   wuyou: '前程无忧',
+  iguopin: '国聘',
+  shixiseng: '实习僧',
 } as const
 export type JobPlatform = keyof typeof platformNames
 export const platforms = Object.keys(platformNames) as [JobPlatform, ...JobPlatform[]]
@@ -198,15 +200,29 @@ export const browserRegionSchema = z.strictObject({
   height: z.number().finite().nonnegative(),
   visible: z.boolean(),
 })
+export interface BrowserLoadingState {
+  requestId: string
+  loading: boolean
+}
 export const browserActionSchema = z.discriminatedUnion('action', [
-  z.strictObject({ action: z.literal('open'), jobId: z.string().min(1).max(100) }),
+  z.strictObject({
+    action: z.literal('open'),
+    jobId: z.string().min(1).max(100),
+    requestId: z.string().uuid(),
+  }),
   z.strictObject({ action: z.literal('clear'), platform: platformSchema }),
   z.strictObject({
     action: z.enum(['close', 'back', 'forward', 'reload', 'zoomIn', 'zoomOut', 'external']),
   }),
 ])
+export const qrMethodSchema = z.enum(['website', 'app', 'wechat'])
+export type QrLoginMethod = z.infer<typeof qrMethodSchema>
 export const qrLoginSchema = z.discriminatedUnion('action', [
-  z.strictObject({ action: z.literal('start'), platform: platformSchema }),
+  z.strictObject({
+    action: z.literal('start'),
+    platform: platformSchema,
+    method: qrMethodSchema.optional(),
+  }),
   z.strictObject({
     action: z.enum(['get', 'cancel']),
     platform: platformSchema,
@@ -327,6 +343,8 @@ export interface QrVerificationState {
 }
 export type QrScanHint = Record<'zh-CN' | 'en-US', string>
 export interface QrLoginState {
+  method: QrLoginMethod
+  methods: { id: QrLoginMethod; label: QrScanHint }[]
   scanHint: QrScanHint
   platform: JobPlatform
   attemptId: string

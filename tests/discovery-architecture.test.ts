@@ -22,20 +22,49 @@ const files = fs
 function parse(file: string) {
   return ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
 }
-function imports(source: ts.SourceFile) {
-  return source.statements
-    .filter(ts.isImportDeclaration)
-    .filter(
-      (entry) =>
-        !entry.importClause?.isTypeOnly &&
-        !(
-          entry.importClause?.namedBindings &&
-          ts.isNamedImports(entry.importClause.namedBindings) &&
-          !entry.importClause.name &&
-          entry.importClause.namedBindings.elements.every((binding) => binding.isTypeOnly)
-        ),
+function imports(source: ts.SourceFile, includeTypes = false) {
+  const result: string[] = []
+  const visit = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      const typeOnly = ts.isImportDeclaration(node)
+        ? node.importClause?.isTypeOnly ||
+          (node.importClause?.namedBindings &&
+            ts.isNamedImports(node.importClause.namedBindings) &&
+            !node.importClause.name &&
+            node.importClause.namedBindings.elements.every((binding) => binding.isTypeOnly))
+        : node.isTypeOnly ||
+          (node.exportClause &&
+            ts.isNamedExports(node.exportClause) &&
+            node.exportClause.elements.every((binding) => binding.isTypeOnly))
+      if (
+        (!typeOnly || includeTypes) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteral(node.moduleSpecifier)
+      )
+        result.push(node.moduleSpecifier.text)
+    } else if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
+      node.arguments[0] &&
+      ts.isStringLiteralLike(node.arguments[0])
     )
-    .map((entry) => (entry.moduleSpecifier as ts.StringLiteral).text)
+      result.push(node.arguments[0].text)
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return result
+}
+function resolveImport(file: string, name: string) {
+  if (!name.startsWith('.')) return undefined
+  const target = path.resolve(path.dirname(file), name)
+  return [target + '.ts', target + '/index.ts', target].find(
+    (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
+  )
+}
+function adapterOwner(file: string) {
+  const relative = path.relative(path.join(directory, 'adapters'), file).replaceAll('\\', '/')
+  return relative.startsWith('../') ? undefined : relative.split('/')[0].replace(/\.ts$/, '')
 }
 
 it('registers every public platform exactly once with a complete adapter', () => {
@@ -53,6 +82,8 @@ it('registers every public platform exactly once with a complete adapter', () =>
     expect(adapter.qr.scanHint['zh-CN']).toBeTruthy()
     expect(adapter.qr.scanHint['en-US']).toBeTruthy()
     expect(adapter.pageScript(false)).toBeTruthy()
+    expect(adapter.checkSession).toBeTypeOf('function')
+    expect(['operation', 'batch']).toContain(adapter.sessionCheck)
   }
 })
 
@@ -76,21 +107,67 @@ it('keeps concrete platform IDs, endpoint domains and branches out of shared dis
   expect(violations).toEqual([])
 })
 
-it('prevents adapters from importing orchestration, persistence, other sites or native resource owners', () => {
-  for (const file of files.filter(
-    (file) => path.dirname(file) === path.join(directory, 'adapters'),
-  )) {
-    for (const name of imports(parse(file))) {
-      if (name.startsWith('.'))
-        expect(
-          path.dirname(path.resolve(path.dirname(file), name)),
-          `${file} imports ${name}`,
-        ).not.toBe(path.join(directory, 'adapters'))
-      expect(name, `${file} imports ${name}`).not.toMatch(
-        /(?:adapter-registry|platforms$|search-page$|runtime|repository|service|persistence|qr-login|qr-verification|verification-window|^electron$|^node:(?:fs|net|child_process))/,
-      )
+it('isolates each adapter and its helpers from other sites, registries and resource owners', () => {
+  const violations: string[] = []
+  for (const platform of platforms) {
+    const visited = new Set<string>()
+    const visit = (file: string) => {
+      if (visited.has(file) || !file.endsWith('.ts')) return
+      visited.add(file)
+      for (const name of imports(parse(file), adapterOwner(file) === platform)) {
+        const label = `${path.relative(directory, file)} imports ${name}`
+        if (
+          /(?:adapter-registry|platforms$|search-page$|runtime|repository|service|persistence|qr-login|qr-verification|account-session|platform-browser|discovery-cities$|^electron$|^(?:node:)?(?:fs|net|http|https|child_process)(?:\/|$))/.test(
+            name,
+          )
+        )
+          violations.push(label)
+        const target = resolveImport(file, name)
+        if (!target) continue
+        const owner = adapterOwner(target)
+        if (owner && owner !== platform) violations.push(label)
+        if (
+          target.startsWith(path.resolve('src/shared/discovery-cities') + path.sep) &&
+          path.basename(target) !== `${platform}.json`
+        )
+          violations.push(label)
+        if (
+          target.startsWith(directory + path.sep) ||
+          target.startsWith(path.resolve('src/shared') + path.sep)
+        )
+          visit(target)
+      }
+    }
+    // Include submodules even when not currently imported by the entry point.
+    files.filter((file) => adapterOwner(file) === platform).forEach(visit)
+  }
+  expect(violations).toEqual([])
+})
+
+it('allows only the registry to import concrete adapters from application code', () => {
+  const sourceRoot = path.resolve('src')
+  const violations: string[] = []
+  for (const relative of fs.readdirSync(sourceRoot, { recursive: true })) {
+    if (typeof relative !== 'string' || !/\.(?:ts|vue)$/.test(relative)) continue
+    const file = path.join(sourceRoot, relative)
+    if (adapterOwner(file) || file === path.join(directory, 'adapter-registry.ts')) continue
+    const contents = fs.readFileSync(file, 'utf8')
+    const script = file.endsWith('.vue')
+      ? [...contents.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
+          .map((match) => match[1])
+          .join('\n')
+      : contents
+    for (const name of imports(
+      ts.createSourceFile(file, script, ts.ScriptTarget.Latest, true),
+      true,
+    )) {
+      const target = resolveImport(file, name)
+      if (target && adapterOwner(target)) violations.push(`${relative}: ${name}`)
+      if (file.startsWith(directory + path.sep) && /(?:^|\/)discovery-cities$/.test(name))
+        violations.push(`${relative}: use adapter.cities`)
     }
   }
+  expect(violations).toEqual([])
 })
 
 it('has no runtime dependency cycles inside discovery', () => {
@@ -99,8 +176,8 @@ it('has no runtime dependency cycles inside discovery', () => {
       file,
       imports(parse(file))
         .filter((name) => name.startsWith('.'))
-        .map((name) => path.resolve(path.dirname(file), name) + '.ts')
-        .filter((target) => files.includes(target)),
+        .map((name) => resolveImport(file, name))
+        .filter((target): target is string => !!target && files.includes(target)),
     ]),
   )
   const done = new Set<string>()
@@ -173,4 +250,23 @@ it('supports an adapter with canonical URL identity and rejects a normalizer tha
       first.url,
     ),
   ).toBeNull()
+})
+
+it('keeps native account requests and storage out of login orchestration and runtime', () => {
+  for (const name of ['qr-login.ts', 'runtime.ts']) {
+    const violations: string[] = []
+    const visit = (node: ts.Node) => {
+      if (
+        ts.isPropertyAccessExpression(node) &&
+        ['fetch', 'cookies', 'fromPath', 'clearData', 'clearCache', 'flushStorageData'].includes(
+          node.name.text,
+        )
+      )
+        violations.push(node.getText())
+      ts.forEachChild(node, visit)
+    }
+    visit(parse(path.join(directory, name)))
+    expect(violations, name).toEqual([])
+  }
+  expect(imports(parse(path.join(directory, 'account-session.ts')))).not.toContain('./search-page')
 })

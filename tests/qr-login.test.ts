@@ -3,6 +3,7 @@ import type { Session } from 'electron'
 import { QrLoginManager } from '../src/main/discovery/qr-login'
 import type { QrVerificationHost } from '../src/main/discovery/qr-verification'
 import { captureError } from '../src/main/diagnostics'
+import { platformAdapter } from '../src/main/discovery/adapter-registry'
 
 vi.mock('../src/main/diagnostics', async (original) => ({
   ...(await original<typeof import('../src/main/diagnostics')>()),
@@ -11,6 +12,7 @@ vi.mock('../src/main/diagnostics', async (original) => ({
 
 const png = 'data:image/png;base64,aGVsbG8='
 const managers: QrLoginManager[] = []
+const sxsQr = { code: 100, msg: 'iVBORw0KGgo=' }
 function fixture(values: unknown[], verification?: QrVerificationHost) {
   const fetch = vi.fn(async (_url: string, _init: RequestInit) => {
     const next = values.shift()
@@ -31,6 +33,152 @@ function fixture(values: unknown[], verification?: QrVerificationHost) {
 afterEach(async () => {
   for (const m of managers.splice(0)) await m.stop()
   vi.useRealTimers()
+})
+it('requires Shixiseng scan confirmation, account identity and completed official binding', async () => {
+  vi.useFakeTimers()
+  const f = fixture([
+    sxsQr,
+    { code: 500, msg: { isScan: true } },
+    { code: 100, msg: { isLogin: true } },
+    { code: 100, msg: { uuid: 'user_test' } },
+    { code: 100, msg: { is_complete: false } },
+    { code: 100, msg: { uuid: 'user_test' } },
+    { code: 100, msg: { is_complete: true } },
+  ])
+  const platformFetch = f.fetch.getMockImplementation()!
+  f.fetch.mockImplementation((url, init) => {
+    // The live gateway fails requests containing this non-website header.
+    if (new Headers(init.headers).has('X-Requested-With'))
+      return Promise.reject(new Error('net::ERR_FAILED'))
+    return platformFetch(url, init)
+  })
+  expect(await f.manager.start('shixiseng')).toMatchObject({
+    state: 'waiting',
+    method: 'wechat',
+    methods: [{ id: 'wechat' }],
+  })
+  const scene = new URL(f.fetch.mock.calls[0][0]).searchParams.get('scene')
+  expect(scene).toMatch(/^[0-9a-f]{7}4[0-9a-f]{2}[89ab][0-9a-f]{5}$/)
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(new URL(f.fetch.mock.calls[1][0]).searchParams.get('scene')).toBe(scene)
+  expect(f.manager.get('shixiseng')?.state).toBe('scanned')
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.authenticated).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('shixiseng')
+  expect(f.manager.get('shixiseng')?.image).toBeNull()
+  expect(JSON.stringify(f.manager.get('shixiseng'))).not.toContain('user_test')
+  expect(f.fetch.mock.calls.filter(([url]) => url.includes('/polling'))).toHaveLength(2)
+  for (const [url, init] of f.fetch.mock.calls) {
+    const headers = new Headers(init.headers)
+    expect(headers.has('X-Requested-With')).toBe(false)
+    expect(headers.get('Origin')).toBe('https://www.shixiseng.com')
+    expect(headers.get('Referer')).toBe('https://www.shixiseng.com/')
+    if (url.includes('/polling')) {
+      expect(init.method).toBe('POST')
+      expect(headers.get('Content-Type')).toBe('application/x-www-form-urlencoded')
+    }
+  }
+  expect(f.set).not.toHaveBeenCalled()
+})
+it('does not inject website headers when the adapter declares none', async () => {
+  const headers = vi.spyOn(platformAdapter('liepin').qr, 'headers')
+  try {
+    await headers.withImplementation(
+      () => ({}),
+      async () => {
+        const f = fixture([{ flag: 1, data: { key: 'private-key', qrcode: png } }])
+        expect((await f.manager.start('liepin')).state).toBe('waiting')
+        const actual = new Headers(f.fetch.mock.calls[0][1].headers)
+        expect(Object.fromEntries(actual)).toEqual({
+          'content-type': 'application/x-www-form-urlencoded',
+        })
+      },
+    )
+  } finally {
+    headers.mockRestore()
+  }
+  const f = fixture([{ flag: 1, data: { key: 'private-key', qrcode: png } }])
+  expect((await f.manager.start('liepin')).state).toBe('waiting')
+  expect(new Headers(f.fetch.mock.calls[0][1].headers).get('X-Requested-With')).toBe(
+    'XMLHttpRequest',
+  )
+})
+it.each([
+  {
+    platform: 'boss' as const,
+    responses: [
+      { code: 0, zpData: { shortRandKey: 'private-key' } },
+      { code: 0, zpData: { mpCodeUrl: png } },
+      { scaned: false },
+    ],
+  },
+  {
+    platform: 'liepin' as const,
+    responses: [
+      { flag: 1, data: { key: 'private-key', qrcode: png } },
+      { flag: 1, data: { status: '10001' } },
+    ],
+  },
+  {
+    platform: 'zhilian' as const,
+    responses: [{ code: 100000, data: { validateId: 'private-id', path: png } }, { code: 102004 }],
+  },
+  {
+    platform: 'wuyou' as const,
+    responses: [
+      "var trackConfig = {'guid': 'private-guid'};",
+      `callback({status:'1',result:'${png}'})`,
+      { result: '0' },
+    ],
+  },
+  {
+    platform: 'iguopin' as const,
+    responses: [
+      { code: 200, data: { qcode: 'private-key' } },
+      { code: 200, data: { is_scan: false } },
+    ],
+  },
+])(
+  'preserves $platform adapter headers during QR creation and polling',
+  async ({ platform, responses }) => {
+    vi.useFakeTimers()
+    const f = fixture(responses)
+    expect((await f.manager.start(platform)).state).toBe('waiting')
+    const initialCalls = f.fetch.mock.calls.length
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.fetch.mock.calls.length).toBeGreaterThan(initialCalls)
+    expect(f.manager.get(platform)?.state).toBe('waiting')
+    for (const [, init] of f.fetch.mock.calls)
+      expect(new Headers(init.headers).get('X-Requested-With')).toBe('XMLHttpRequest')
+  },
+)
+it('expires Shixiseng codes, rejects unsupported methods and ignores cancelled responses', async () => {
+  vi.useFakeTimers()
+  const f = fixture([
+    sxsQr,
+    ...Array.from({ length: 6 }, () => ({ code: 500, msg: { isScan: false } })),
+  ])
+  await expect(f.manager.start('shixiseng', 'app')).rejects.toThrow('Unsupported login method')
+  await f.manager.start('shixiseng', 'wechat')
+  await vi.advanceTimersByTimeAsync(12000)
+  expect(f.manager.get('shixiseng')?.state).toBe('expired')
+  expect(f.authenticated).not.toHaveBeenCalled()
+  const next = fixture([sxsQr])
+  await next.manager.start('shixiseng')
+  let release!: (value: Response) => void
+  next.fetch.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        release = resolve
+      }),
+  )
+  await vi.advanceTimersByTimeAsync(2000)
+  const cancelled = next.manager.cancel('shixiseng')
+  release(new Response(JSON.stringify({ code: 100, msg: { isLogin: true } })))
+  await cancelled
+  expect(next.manager.get('shixiseng')?.state).toBe('cancelled')
+  expect(next.authenticated).not.toHaveBeenCalled()
 })
 it('keeps challenge identifiers private and does not authenticate until platform confirmation', async () => {
   vi.useFakeTimers()
@@ -190,6 +338,50 @@ it('keeps the challenge private, pauses polling, and opens verification only on 
   expect(f.manager.get('liepin')?.state).toBe('challenge')
   expect(f.authenticated).not.toHaveBeenCalled()
 })
+it('automatically replaces the QR after manual verification closure, retaining the polled attempt', async () => {
+  vi.useFakeTimers()
+  const host = verificationHost(),
+    f = fixture(
+      [
+        challenge(),
+        { flag: 1, data: { key: 'next-key', qrcode: png } },
+        { flag: 1, data: { status: '0' } },
+      ],
+      host,
+    )
+  const state = await f.manager.start('liepin')
+  await f.manager.verify('liepin', state.attemptId)
+  await vi.advanceTimersByTimeAsync(600001)
+  const input = host.open.mock.calls[0][0]
+  input.onState({ window: 'closed', error: null })
+  input.onUserClosed()
+  input.onUserClosed()
+  expect(f.manager.get('liepin', state.attemptId)?.state).toBe('loading')
+  await vi.advanceTimersByTimeAsync(0)
+  expect(f.manager.get('liepin', state.attemptId)).toMatchObject({
+    state: 'waiting',
+    method: state.method,
+    image: png,
+  })
+  expect(f.fetch).toHaveBeenCalledTimes(2)
+  expect(f.authenticated).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('liepin')
+})
+
+it('does not restart a replaced login attempt from a late manual-close callback', async () => {
+  vi.useFakeTimers()
+  const host = verificationHost(),
+    f = fixture([challenge(), { flag: 1, data: { key: 'next-key', qrcode: png } }], host)
+  const state = await f.manager.start('liepin')
+  await f.manager.verify('liepin', state.attemptId)
+  const current = await f.manager.start('liepin')
+  host.open.mock.calls[0][0].onUserClosed()
+  await vi.advanceTimersByTimeAsync(0)
+  expect(f.manager.get('liepin')?.attemptId).toBe(current.attemptId)
+  expect(f.fetch).toHaveBeenCalledTimes(2)
+})
+
 it('retries within the same session, closes verification, and still requires a QR confirmation', async () => {
   vi.useFakeTimers()
   const host = verificationHost(),
@@ -223,13 +415,16 @@ it.each([
   await f.manager.verify('liepin', state.attemptId)
   expect(host.open).not.toHaveBeenCalled()
 })
-it('expires verification attempts and releases their window without accepting late status updates', async () => {
+it('keeps an open official window beyond QR expiry and expires only after the user closes it', async () => {
   vi.useFakeTimers()
   const host = verificationHost(),
     f = fixture([challenge()], host)
   const state = await f.manager.start('liepin')
   await f.manager.verify('liepin', state.attemptId)
   await vi.advanceTimersByTimeAsync(600001)
+  expect(f.manager.get('liepin')?.state).toBe('challenge')
+  expect(host.close).not.toHaveBeenCalled()
+  host.open.mock.calls[0][0].onState({ window: 'closed', error: null })
   expect(f.manager.get('liepin')?.state).toBe('expired')
   expect(host.close).toHaveBeenCalledWith('liepin', state.attemptId)
   expect(host.open.mock.calls[0][0].signal.aborted).toBe(true)
@@ -243,6 +438,8 @@ it('cancels verification on shutdown and rejects late callbacks', async () => {
   await f.manager.verify('liepin', state.attemptId)
   await f.manager.stop()
   host.open.mock.calls[0][0].onState({ window: 'ready', error: null })
+  host.open.mock.calls[0][0].onUserClosed()
+  expect(f.fetch).toHaveBeenCalledTimes(1)
   expect(f.manager.get('liepin')).toMatchObject({
     state: 'cancelled',
     verification: { available: false, window: 'closed' },

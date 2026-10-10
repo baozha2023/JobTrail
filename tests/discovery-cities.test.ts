@@ -3,11 +3,12 @@ import { platformAdapter } from '../src/main/discovery/adapter-registry'
 import type { WebContents } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  discoveryCities,
-  discoveryCity,
+  commonCities,
+  cityCatalogs,
+  platformCities,
   platformCity,
-  discoveryCityNames,
 } from '../src/shared/discovery-cities'
+import { createCityLookup, intersectCityCatalogs } from '../src/shared/discovery-city-catalog'
 import { platforms } from '../src/shared/job-discovery'
 import { cityCode, cityName } from '../src/shared/discovery-cities'
 import { BossSearch } from '../src/main/discovery/adapters/boss'
@@ -17,29 +18,151 @@ import { WuyouSearch } from '../src/main/discovery/adapters/wuyou'
 import { SearchPage } from '../src/main/discovery/search-page'
 
 describe('official discovery city catalog', () => {
-  it('stores only final cities with a complete mapping for every platform', () => {
-    expect(discoveryCityNames).toHaveLength(363)
-    expect(discoveryCityNames).not.toContain('三沙')
-    expect(discoveryCityNames).toContain('天津')
-    for (const city of discoveryCities) {
-      expect(Object.keys(city.platforms).sort()).toEqual([...platforms].sort())
+  it('keeps adapter capabilities and renderer metadata aligned for every city and alias', () => {
+    for (const platform of platforms) {
+      const lookup = platformAdapter(platform).cities
+      expect(lookup.all).toEqual(platformCities(platform))
+      for (const city of lookup.all) {
+        expect(lookup.name(city.code)).toBe(city.name)
+        for (const name of [city.name, ...(city.aliases ?? [])]) {
+          expect(lookup.find(name)).toEqual(platformCity(platform, name))
+          expect(lookup.code(name)).toBe(cityCode(platform, name))
+        }
+      }
+      expect(lookup.find('不存在的城市')).toBeUndefined()
+      expect(lookup.name('unknown-code')).toBe('unknown-code')
     }
   })
+  it('keeps overlapping native codes and ambiguous aliases local to their catalog', () => {
+    const first = {
+      name: '甲',
+      province: '甲',
+      initial: 'J',
+      platformName: '甲市',
+      code: '1',
+      aliases: ['旧称'],
+    }
+    const second = { ...first, name: '乙', platformName: '乙市', initial: 'Y' }
+    const a = createCityLookup({ verifiedAt: '', sources: [], cities: [first] })
+    const b = createCityLookup({ verifiedAt: '', sources: [], cities: [second] })
+    expect(a.name('1')).toBe('甲')
+    expect(b.name('1')).toBe('乙')
+    expect(a.find('旧称')?.name).toBe('甲')
+    expect(b.find('旧称')?.name).toBe('乙')
+    const ambiguous = createCityLookup({
+      verifiedAt: '',
+      sources: [],
+      cities: [first, { ...second, code: '2' }],
+    })
+    expect(ambiguous.find('旧称')).toBeUndefined()
+    expect(a.find('旧称')?.name).toBe('甲')
+  })
+  it('preserves independent platform coverage instead of truncating to the intersection', () => {
+    expect(commonCities([])).toEqual([])
+    expect(commonCities(platforms).map((c) => c.name)).toContain('三沙')
+    expect(commonCities(['boss']).map((c) => c.name)).toContain('白杨')
+    expect(commonCities(['boss', 'liepin']).map((c) => c.name)).not.toContain('白杨')
+    expect(commonCities(['wuyou']).map((c) => c.name)).toContain('昆山')
+    expect(commonCities(['liepin', 'wuyou']).map((c) => c.name)).toContain('雄安')
+    expect(commonCities(platforms).map((c) => c.name)).not.toContain('雄安')
+    expect(commonCities(['boss', 'liepin'])).toEqual(commonCities(['liepin', 'boss', 'boss']))
+    expect(
+      commonCities(platforms)
+        .slice(0, 4)
+        .map((c) => c.name),
+    ).toEqual(['北京', '上海', '天津', '重庆'])
+  })
   it('covers all provincial groups with unique, reversible platform identities', () => {
-    expect(discoveryCities).toHaveLength(363)
-    expect(new Set(discoveryCities.map((c) => c.province)).size).toBe(34)
-    expect(new Set(discoveryCities.map((c) => c.name)).size).toBe(discoveryCities.length)
+    const labels = new Map<string, { province: string; initial: string }>()
     for (const platform of platforms) {
-      const cities = discoveryCityNames
-      expect(cities).not.toContain('全国')
-      const codes = cities.map((name) => cityCode(platform, name))
+      const catalog = cityCatalogs[platform]
+      expect(catalog.verifiedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(catalog.sources.length).toBeGreaterThan(0)
+      const cities = platformCities(platform)
+      expect(new Set(cities.map((c) => c.province)).size).toBe(34)
+      expect(new Set(cities.map((c) => c.name)).size).toBe(cities.length)
+      expect(cities.map((c) => c.name)).not.toContain('全国')
+      expect(commonCities([platform]).map((c) => c.name)).toEqual(cities.map((c) => c.name))
+      const codes = cities.map(({ name }) => cityCode(platform, name))
       expect(new Set(codes).size).toBe(codes.length)
-      for (const name of cities) {
+      for (const { name, province, initial, platformName, aliases } of cities) {
+        const label = { province, initial }
+        if (labels.has(name)) expect(label).toEqual(labels.get(name))
+        else labels.set(name, label)
+        expect(initial).toMatch(/^[A-Z]$/)
+        expect(platformName).not.toBe('')
         const code = cityCode(platform, name)!
-        expect(code).toMatch(/^\d+$/)
+        if (platform === 'shixiseng') expect(code).toBe(platformName)
+        else expect(code).toMatch(/^\d+(?:\.\d+)*$/)
         expect(cityName(platform, code)).toBe(name)
+        // Hsinchu/Chiayi cities and counties are separate official choices.
+        if (!['新竹县', '嘉义县'].includes(name))
+          expect(name).not.toMatch(/(?:自治区|自治州|自治县|地区|新区|开发区|省|市|县|盟)$/)
+        for (const alias of aliases ?? []) expect(cityCode(platform, alias)).toBe(code)
       }
     }
+    expect(commonCities([...platforms].reverse())).toEqual(commonCities(platforms))
+  })
+  it('intersects only selected catalogs using exact canonical name strings', () => {
+    const a = { name: '甲城', province: '甲', initial: 'J' }
+    const b = { name: '乙城', province: '乙', initial: 'Y' }
+    const registry = { first: [a], second: [a, b], future: [b] }
+    expect(intersectCityCatalogs([registry.first, registry.second])).toEqual([a])
+    expect(intersectCityCatalogs([registry.first, registry.second, registry.future])).toEqual([])
+    expect(intersectCityCatalogs([registry.first, []])).toEqual([])
+    expect(intersectCityCatalogs([[a], [{ ...a, province: '另一分组' }]])).toEqual([a])
+    expect(intersectCityCatalogs([[a], [{ ...a, name: '甲城市' }]])).toEqual([])
+  })
+  it('does not use website names, aliases, codes or administrative hierarchy for intersection', () => {
+    const city = {
+      name: '恩施',
+      province: '湖北',
+      initial: 'E',
+      code: 'same-code',
+      platformName: '恩施州',
+      aliases: ['恩施土家族苗族自治州'],
+    }
+    for (const name of ['恩施州', '恩施土家族苗族自治州', '恩施市', ' 恩施 ']) {
+      expect(intersectCityCatalogs([[city], [{ ...city, name }]])).toEqual([])
+    }
+    expect(
+      intersectCityCatalogs([
+        [{ name: '台湾', province: '台湾', initial: 'T' }],
+        [{ name: '台北', province: '台湾', initial: 'T' }],
+      ]),
+    ).toEqual([])
+  })
+  it('uses the new platforms canonical source names while retaining their native search values', () => {
+    for (const platform of ['iguopin', 'shixiseng'] as const) {
+      const names = platformCities(platform).map((city) => city.name)
+      for (const name of ['恩施', '锡林郭勒', '大理', '巴音郭楞', '北屯']) {
+        expect(names).toContain(name)
+        expect(commonCities(['boss', platform]).map((city) => city.name)).toContain(name)
+      }
+    }
+    expect(platformCity('iguopin', '雄安')).toMatchObject({
+      name: '雄安',
+      platformName: '雄安新区',
+      code: '000000.130000.131200',
+    })
+    expect(platformCity('shixiseng', '平潭')).toMatchObject({
+      name: '平潭',
+      platformName: '平潭综合实验区',
+      code: '平潭综合实验区',
+    })
+    for (const name of ['新竹', '嘉义']) {
+      expect(cityCode('shixiseng', name)).toBe(name)
+      expect(cityCode('shixiseng', name + '县')).toBe(name + '县')
+      expect(commonCities(['shixiseng']).map((city) => city.name)).toEqual(
+        expect.arrayContaining([name, name + '县']),
+      )
+    }
+    const oldSites = ['boss', 'liepin', 'zhilian', 'wuyou'] as const
+    const original = commonCities(oldSites)
+    expect(commonCities([...oldSites, 'iguopin'])).toEqual(original)
+    expect(commonCities([...oldSites, 'shixiseng'])).toEqual(
+      original.filter((city) => platformCities('shixiseng').some((c) => c.name === city.name)),
+    )
   })
   it.each([
     ['zhilian', '广州', '763'],
@@ -55,12 +178,16 @@ describe('official discovery city catalog', () => {
   })
   it('preserves leading zeros, optional municipal suffixes and prefecture identity', () => {
     expect(cityCode('liepin', '天津市')).toBe('030')
-    expect(discoveryCity('天津')).toBe(discoveryCity('天津市'))
+    expect(platformCity('liepin', '天津')).toBe(platformCity('liepin', '天津市'))
     expect(platformCity('liepin', '恩施土家族苗族自治州')).toMatchObject({
+      name: '恩施',
       code: '170180',
-      name: '恩施州',
+      platformName: '恩施州',
     })
-    expect(cityCode('zhilian', '北屯市')).toBeUndefined() // 北屯区 in Taiwan is not 北屯市 in Xinjiang.
+    expect(commonCities(platforms).map((c) => c.name)).toContain('恩施')
+    expect(commonCities(platforms).map((c) => c.name)).not.toContain('恩施州')
+    expect(platformCity('zhilian', '北屯市')).toMatchObject({ code: '932', province: '新疆' })
+    expect(cityCode('zhilian', '北屯区')).toBeUndefined()
     expect(cityCode('boss', '')).toBeUndefined()
     expect(cityCode('boss', '全国')).toBeUndefined()
   })

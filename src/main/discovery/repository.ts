@@ -17,10 +17,10 @@ import {
   type PlatformStatus,
   type JobPlatform,
 } from '../../shared/job-discovery'
-import { normalizeJob, salaryExclusion, duplicateFingerprint, relevance } from './normalization'
+import { normalizeJob, salaryExclusion, duplicateFingerprint } from './normalization'
+import { rankRelevance } from './relevance'
 import { jobIdentity } from './platforms'
 import { platformAdapter } from './adapter-registry'
-import { discoveryCityNames } from '../../shared/discovery-cities'
 import { AppServiceError } from '../services/errors'
 import {
   observationPayload,
@@ -256,7 +256,7 @@ export class DiscoveryRepository {
         .prepare(
           'INSERT INTO discovery_results VALUES(?,?,?,?) ON CONFLICT(run_id,job_id) DO UPDATE SET observation_id=excluded.observation_id,relevance=excluded.relevance',
         )
-        .run(run.id, jobId, observationId, relevance(value, run.query))
+        .run(run.id, jobId, observationId, 0)
     this.db
       .prepare('UPDATE discovery_sources SET count=count+? WHERE run_id=? AND platform=?')
       .run(excluded ? (existed ? -1 : 0) : existed ? 0 : 1, run.id, value.platform)
@@ -347,7 +347,7 @@ export class DiscoveryRepository {
     const q = jobListSchema.parse(input)
     return this.db
       .transaction(() => {
-        this.run(q.runId)
+        const run = this.run(q.runId)
         const viewId = q.viewId ?? randomUUID()
         const view = q.viewId
           ? (this.db.prepare('SELECT run_id,sort FROM discovery_views WHERE id=?').get(viewId) as
@@ -363,6 +363,18 @@ export class DiscoveryRepository {
           this.db
             .prepare('INSERT INTO discovery_views VALUES(?,?,?,?)')
             .run(viewId, q.runId, view.sort, Date.now())
+        if (
+          view.sort === 'relevance' &&
+          (!q.viewId ||
+            this.db
+              .prepare(
+                `SELECT 1 FROM discovery_results r WHERE r.run_id=?
+            AND NOT EXISTS(SELECT 1 FROM discovery_view_items v WHERE v.view_id=? AND v.job_id=r.job_id)
+            LIMIT 1`,
+              )
+              .get(q.runId, viewId))
+        )
+          this.rankResults(run)
         const sort =
           view.sort === 'salary'
             ? "COALESCE(json_extract(o.payload,'$.salaryMax'),json_extract(o.payload,'$.salaryMin')) DESC NULLS LAST"
@@ -401,6 +413,24 @@ export class DiscoveryRepository {
         }
       })
       .immediate()
+  }
+  private rankResults(run: SearchRun): void {
+    const rows = this.db
+      .prepare(
+        `SELECT r.job_id,o.payload FROM discovery_results r
+      JOIN discovery_observations o ON o.id=r.observation_id WHERE r.run_id=?`,
+      )
+      .iterate(run.id) as IterableIterator<{ job_id: string; payload: string }>
+    function* documents() {
+      for (const row of rows) yield { id: row.job_id, ...readObservation(row.payload) }
+    }
+    // Only numeric features survive the scan. SQL still owns ordering, counts and pagination.
+    // Recalculate at refresh/append boundaries; existing view ordinals stay immutable.
+    const scores = rankRelevance(run.query.keyword, documents())
+    const update = this.db.prepare(
+      'UPDATE discovery_results SET relevance=? WHERE run_id=? AND job_id=?',
+    )
+    for (const { id, score } of scores) update.run(score, run.id, id)
   }
   history(page: number) {
     z.number().int().min(1).parse(page)
@@ -458,7 +488,7 @@ export class DiscoveryRepository {
             limitations: ['authentication_unchecked'],
           }
       // Capabilities belong to the current adapter, not the persisted account state.
-      status.capabilities.cities = [...discoveryCityNames]
+      status.capabilities.cities = platformAdapter(platform).cities.all.map((city) => city.name)
       status.capabilities.remoteFilters = [...platformAdapter(platform).remoteFilters]
       return status
     })

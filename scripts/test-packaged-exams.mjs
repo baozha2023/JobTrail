@@ -417,7 +417,7 @@ try {
   })
   const manifest = JSON.parse(entries['manifest.json'])
   assert.equal(manifest.schemaVersion, 1)
-  assert.equal(manifest.environment.databaseVersion, 4)
+  assert.equal(manifest.environment.databaseVersion, 5)
   assert.equal(manifest.health.degraded, false)
   assert.ok(
     Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),

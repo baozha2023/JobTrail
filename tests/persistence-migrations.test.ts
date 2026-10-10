@@ -85,7 +85,7 @@ describe('persistent version upgrades', () => {
   })
 
   it.each([1, 2, 3])(
-    'upgrades v%i without changing existing rows and matches a fresh v4 schema',
+    'upgrades v%i without changing existing rows and matches a fresh v5 schema',
     async (version) => {
       const paths = fixture(version === 3 ? 2 : version)
       if (version === 3) {
@@ -125,7 +125,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(read(paths.database, Object.keys(before))).toEqual(before)
       const upgraded = new Database(paths.database)
-      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v4-'))
+      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v5-'))
       roots.push(freshRoot)
       const fresh = new DatabaseManager({
         ...paths,
@@ -133,7 +133,7 @@ describe('persistent version upgrades', () => {
         database: path.join(freshRoot, 'data/zhiji.db'),
       })
       try {
-        validateDatabaseVersion(upgraded, 4)
+        validateDatabaseVersion(upgraded, 5)
         if (version < 3) expect(upgraded.prepare('SELECT * FROM locations').all()).toEqual([])
         const schema = (db: Database.Database) =>
           db
@@ -151,7 +151,7 @@ describe('persistent version upgrades', () => {
     },
   )
 
-  it.each([0, 1, 2])('rolls the entire v1 chain back if migration step %i fails', (index) => {
+  it.each([0, 1, 2, 3])('rolls the entire v1 chain back if migration step %i fails', (index) => {
     const paths = fixture()
     const original = DATABASE_MIGRATIONS[index].apply
     DATABASE_MIGRATIONS[index].apply = (db) => {
@@ -179,7 +179,7 @@ describe('persistent version upgrades', () => {
   it('requires desktop migration before a v2 database can be opened for business', () => {
     const paths = fixture(2)
     const before = fs.readFileSync(paths.database)
-    expect(() => new DatabaseManager(paths)).toThrow('需要版本 4')
+    expect(() => new DatabaseManager(paths)).toThrow('需要版本 5')
     expect(fs.readFileSync(paths.database)).toEqual(before)
   })
 
@@ -191,7 +191,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths, true)
     expect(fs.existsSync(freeze)).toBe(true)
     const db = new Database(paths.database)
-    validateDatabaseVersion(db, 4)
+    validateDatabaseVersion(db, 5)
     db.close()
   })
   it('refuses a second live migration owner without changing user data', async () => {
@@ -279,7 +279,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(configuration)
       const db = new Database(paths.database)
-      validateDatabaseVersion(db, 4)
+      validateDatabaseVersion(db, 5)
       db.close()
       expect(fs.existsSync(path.join(work, 'journal.json'))).toBe(false)
       expect(fs.existsSync(path.join(paths.root, '.runtime/state/update-freeze'))).toBe(false)
@@ -316,7 +316,7 @@ describe('persistent version upgrades', () => {
       config = fs.readFileSync(paths.config)
     await ensurePersistenceReady(paths)
     let db = new Database(paths.database)
-    validateDatabaseVersion(db, 4)
+    validateDatabaseVersion(db, 5)
     expect(db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
     db.close()
     expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(
@@ -326,7 +326,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths)
     expect(fs.readFileSync(paths.config)).toEqual(upgraded)
     db = new Database(paths.database)
-    validateDatabaseVersion(db, 4)
+    validateDatabaseVersion(db, 5)
     db.close()
   })
   it('rolls back a failed migration transaction without stamping a new version', () => {

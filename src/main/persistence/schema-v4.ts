@@ -1,6 +1,5 @@
 import { SCHEMA_V3 } from './schema-v3'
-// V4 targets the unreleased v2.0.0: correct this DDL and its test baseline in place,
-// without intermediate compatibility or migrations. Freeze it on official release.
+// Released V4: keep its DDL and validation baseline frozen. Changes belong in V5+.
 const platformCheck = "'boss','liepin','zhilian','wuyou'"
 const sourceStateCheck =
   "'queued','running','completed','partial','login_required','session_expired','challenge','unsupported_city','scope_unverified','parse_error','timeout','network_error','cancelled','interrupted'"

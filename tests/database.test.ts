@@ -67,7 +67,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       expect(
         (saved.prepare('SELECT value FROM snapshot_probe').get() as { value: string }).value,
       ).toBe('before-update')
-      expect(saved.pragma('user_version', { simple: true })).toBe(4)
+      expect(saved.pragma('user_version', { simple: true })).toBe(5)
     } finally {
       saved.close()
     }
@@ -80,7 +80,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     ['extra column', 'ALTER TABLE discovery_sources ADD COLUMN legacy_count INTEGER'],
     ['missing index', 'DROP INDEX idx_discovery_job_current'],
     ['extra table', 'CREATE TABLE discovery_legacy_jobs(id TEXT)'],
-  ])('rejects v4 with %s without repairing its schema', (_name, mutation) => {
+  ])('rejects v5 with %s without repairing its schema', (_name, mutation) => {
     database!.db.exec(mutation)
     const schema = database!.db.prepare('SELECT * FROM sqlite_master ORDER BY name').all()
     database!.close()
@@ -88,14 +88,14 @@ describe('职迹最终数据库结构和业务服务', () => {
     expect(() => new DatabaseManager(paths)).toThrow(/persistent schema/)
     const unchanged = new Database(paths.database, { readonly: true })
     try {
-      expect(unchanged.pragma('user_version', { simple: true })).toBe(4)
+      expect(unchanged.pragma('user_version', { simple: true })).toBe(5)
       expect(unchanged.prepare('SELECT * FROM sqlite_master ORDER BY name').all()).toEqual(schema)
     } finally {
       unchanged.close()
     }
   })
 
-  it('creates schema v4 before seeding and has no physical foreign key', () => {
+  it('creates schema v5 before seeding and has no physical foreign key', () => {
     const names = (
       database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
         name: string
@@ -205,7 +205,7 @@ describe('职迹最终数据库结构和业务服务', () => {
           .get() as { count: number }
       ).count,
     ).toBe(0)
-    expect(database!.db.pragma('user_version', { simple: true })).toBe(4)
+    expect(database!.db.pragma('user_version', { simple: true })).toBe(5)
     expect(
       database!.db.prepare('SELECT * FROM builtin_company_catalog_state WHERE id = 1').get(),
     ).toEqual({
@@ -291,7 +291,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     const unsupportedDatabasePath = path.join(unsupportedRoot, 'data', 'zhiji.db')
     fs.mkdirSync(path.dirname(unsupportedDatabasePath), { recursive: true })
     const rawDatabase = new Database(unsupportedDatabasePath)
-    rawDatabase.pragma('user_version = 5')
+    rawDatabase.pragma('user_version = 6')
     rawDatabase.close()
     const originalHash = createHash('sha256')
       .update(fs.readFileSync(unsupportedDatabasePath))

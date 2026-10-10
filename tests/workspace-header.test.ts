@@ -15,6 +15,7 @@ if (!header) throw new Error('Workspace header template was not found')
 it('keeps exactly the current view actions and their handlers across repeated navigation', async () => {
   const activeView = ref<ViewKey>('opportunities')
   const actions = {
+    newSearch: vi.fn(),
     openAccounts: vi.fn(),
     openHistory: vi.fn(),
     newOpportunity: vi.fn(),
@@ -25,6 +26,7 @@ it('keeps exactly the current view actions and their handlers across repeated na
   }
   const expected: Record<ViewKey, { label: string; action: keyof typeof actions }[]> = {
     discovery: [
+      { label: 'discovery.newSearch', action: 'newSearch' },
       { label: 'discovery.accounts', action: 'openAccounts' },
       { label: 'discovery.history', action: 'openHistory' },
     ],

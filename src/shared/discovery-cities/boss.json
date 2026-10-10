@@ -1,0 +1,2943 @@
+{
+  "verifiedAt": "2026-10-09",
+  "sources": ["https://www.zhipin.com/wapi/zpCommon/data/city.json"],
+  "cities": [
+    {
+      "name": "北京",
+      "province": "北京",
+      "initial": "B",
+      "code": "101010100",
+      "platformName": "北京",
+      "aliases": ["北京市"]
+    },
+    {
+      "name": "上海",
+      "province": "上海",
+      "initial": "S",
+      "code": "101020100",
+      "platformName": "上海",
+      "aliases": ["上海市"]
+    },
+    {
+      "name": "天津",
+      "province": "天津",
+      "initial": "T",
+      "code": "101030100",
+      "platformName": "天津",
+      "aliases": ["天津市"]
+    },
+    {
+      "name": "重庆",
+      "province": "重庆",
+      "initial": "C",
+      "code": "101040100",
+      "platformName": "重庆",
+      "aliases": ["重庆市"]
+    },
+    {
+      "name": "哈尔滨",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "101050100",
+      "platformName": "哈尔滨",
+      "aliases": ["哈尔滨市"]
+    },
+    {
+      "name": "齐齐哈尔",
+      "province": "黑龙江",
+      "initial": "Q",
+      "code": "101050200",
+      "platformName": "齐齐哈尔",
+      "aliases": ["齐齐哈尔市"]
+    },
+    {
+      "name": "牡丹江",
+      "province": "黑龙江",
+      "initial": "M",
+      "code": "101050300",
+      "platformName": "牡丹江",
+      "aliases": ["牡丹江市"]
+    },
+    {
+      "name": "佳木斯",
+      "province": "黑龙江",
+      "initial": "J",
+      "code": "101050400",
+      "platformName": "佳木斯",
+      "aliases": ["佳木斯市"]
+    },
+    {
+      "name": "绥化",
+      "province": "黑龙江",
+      "initial": "S",
+      "code": "101050500",
+      "platformName": "绥化",
+      "aliases": ["绥化市"]
+    },
+    {
+      "name": "黑河",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "101050600",
+      "platformName": "黑河",
+      "aliases": ["黑河市"]
+    },
+    {
+      "name": "伊春",
+      "province": "黑龙江",
+      "initial": "Y",
+      "code": "101050700",
+      "platformName": "伊春",
+      "aliases": ["伊春市"]
+    },
+    {
+      "name": "大庆",
+      "province": "黑龙江",
+      "initial": "D",
+      "code": "101050800",
+      "platformName": "大庆",
+      "aliases": ["大庆市"]
+    },
+    {
+      "name": "七台河",
+      "province": "黑龙江",
+      "initial": "Q",
+      "code": "101050900",
+      "platformName": "七台河",
+      "aliases": ["七台河市"]
+    },
+    {
+      "name": "鸡西",
+      "province": "黑龙江",
+      "initial": "J",
+      "code": "101051000",
+      "platformName": "鸡西",
+      "aliases": ["鸡西市"]
+    },
+    {
+      "name": "鹤岗",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "101051100",
+      "platformName": "鹤岗",
+      "aliases": ["鹤岗市"]
+    },
+    {
+      "name": "双鸭山",
+      "province": "黑龙江",
+      "initial": "S",
+      "code": "101051200",
+      "platformName": "双鸭山",
+      "aliases": ["双鸭山市"]
+    },
+    {
+      "name": "大兴安岭",
+      "province": "黑龙江",
+      "initial": "D",
+      "code": "101051300",
+      "platformName": "大兴安岭地区",
+      "aliases": ["大兴安岭地区"]
+    },
+    {
+      "name": "长春",
+      "province": "吉林",
+      "initial": "C",
+      "code": "101060100",
+      "platformName": "长春",
+      "aliases": ["长春市"]
+    },
+    {
+      "name": "吉林",
+      "province": "吉林",
+      "initial": "J",
+      "code": "101060200",
+      "platformName": "吉林",
+      "aliases": ["吉林市"]
+    },
+    {
+      "name": "四平",
+      "province": "吉林",
+      "initial": "S",
+      "code": "101060300",
+      "platformName": "四平",
+      "aliases": ["四平市"]
+    },
+    {
+      "name": "通化",
+      "province": "吉林",
+      "initial": "T",
+      "code": "101060400",
+      "platformName": "通化",
+      "aliases": ["通化市"]
+    },
+    {
+      "name": "白城",
+      "province": "吉林",
+      "initial": "B",
+      "code": "101060500",
+      "platformName": "白城",
+      "aliases": ["白城市"]
+    },
+    {
+      "name": "辽源",
+      "province": "吉林",
+      "initial": "L",
+      "code": "101060600",
+      "platformName": "辽源",
+      "aliases": ["辽源市"]
+    },
+    {
+      "name": "松原",
+      "province": "吉林",
+      "initial": "S",
+      "code": "101060700",
+      "platformName": "松原",
+      "aliases": ["松原市"]
+    },
+    {
+      "name": "白山",
+      "province": "吉林",
+      "initial": "B",
+      "code": "101060800",
+      "platformName": "白山",
+      "aliases": ["白山市"]
+    },
+    {
+      "name": "延边",
+      "province": "吉林",
+      "initial": "Y",
+      "code": "101060900",
+      "platformName": "延边朝鲜族自治州",
+      "aliases": ["延边朝鲜族自治州"]
+    },
+    {
+      "name": "沈阳",
+      "province": "辽宁",
+      "initial": "S",
+      "code": "101070100",
+      "platformName": "沈阳",
+      "aliases": ["沈阳市"]
+    },
+    {
+      "name": "大连",
+      "province": "辽宁",
+      "initial": "D",
+      "code": "101070200",
+      "platformName": "大连",
+      "aliases": ["大连市"]
+    },
+    {
+      "name": "鞍山",
+      "province": "辽宁",
+      "initial": "A",
+      "code": "101070300",
+      "platformName": "鞍山",
+      "aliases": ["鞍山市"]
+    },
+    {
+      "name": "抚顺",
+      "province": "辽宁",
+      "initial": "F",
+      "code": "101070400",
+      "platformName": "抚顺",
+      "aliases": ["抚顺市"]
+    },
+    {
+      "name": "本溪",
+      "province": "辽宁",
+      "initial": "B",
+      "code": "101070500",
+      "platformName": "本溪",
+      "aliases": ["本溪市"]
+    },
+    {
+      "name": "丹东",
+      "province": "辽宁",
+      "initial": "D",
+      "code": "101070600",
+      "platformName": "丹东",
+      "aliases": ["丹东市"]
+    },
+    {
+      "name": "锦州",
+      "province": "辽宁",
+      "initial": "J",
+      "code": "101070700",
+      "platformName": "锦州"
+    },
+    {
+      "name": "营口",
+      "province": "辽宁",
+      "initial": "Y",
+      "code": "101070800",
+      "platformName": "营口",
+      "aliases": ["营口市"]
+    },
+    {
+      "name": "阜新",
+      "province": "辽宁",
+      "initial": "F",
+      "code": "101070900",
+      "platformName": "阜新",
+      "aliases": ["阜新市"]
+    },
+    {
+      "name": "辽阳",
+      "province": "辽宁",
+      "initial": "L",
+      "code": "101071000",
+      "platformName": "辽阳",
+      "aliases": ["辽阳市"]
+    },
+    {
+      "name": "铁岭",
+      "province": "辽宁",
+      "initial": "T",
+      "code": "101071100",
+      "platformName": "铁岭",
+      "aliases": ["铁岭市"]
+    },
+    {
+      "name": "朝阳",
+      "province": "辽宁",
+      "initial": "C",
+      "code": "101071200",
+      "platformName": "朝阳",
+      "aliases": ["朝阳市"]
+    },
+    {
+      "name": "盘锦",
+      "province": "辽宁",
+      "initial": "P",
+      "code": "101071300",
+      "platformName": "盘锦",
+      "aliases": ["盘锦市"]
+    },
+    {
+      "name": "葫芦岛",
+      "province": "辽宁",
+      "initial": "H",
+      "code": "101071400",
+      "platformName": "葫芦岛"
+    },
+    {
+      "name": "呼和浩特",
+      "province": "内蒙古",
+      "initial": "H",
+      "code": "101080100",
+      "platformName": "呼和浩特",
+      "aliases": ["呼和浩特市"]
+    },
+    {
+      "name": "包头",
+      "province": "内蒙古",
+      "initial": "B",
+      "code": "101080200",
+      "platformName": "包头",
+      "aliases": ["包头市"]
+    },
+    {
+      "name": "乌海",
+      "province": "内蒙古",
+      "initial": "W",
+      "code": "101080300",
+      "platformName": "乌海",
+      "aliases": ["乌海市"]
+    },
+    {
+      "name": "通辽",
+      "province": "内蒙古",
+      "initial": "T",
+      "code": "101080400",
+      "platformName": "通辽",
+      "aliases": ["通辽市"]
+    },
+    {
+      "name": "赤峰",
+      "province": "内蒙古",
+      "initial": "C",
+      "code": "101080500",
+      "platformName": "赤峰",
+      "aliases": ["赤峰市"]
+    },
+    {
+      "name": "鄂尔多斯",
+      "province": "内蒙古",
+      "initial": "E",
+      "code": "101080600",
+      "platformName": "鄂尔多斯",
+      "aliases": ["鄂尔多斯市"]
+    },
+    {
+      "name": "呼伦贝尔",
+      "province": "内蒙古",
+      "initial": "H",
+      "code": "101080700",
+      "platformName": "呼伦贝尔",
+      "aliases": ["呼伦贝尔市"]
+    },
+    {
+      "name": "巴彦淖尔",
+      "province": "内蒙古",
+      "initial": "B",
+      "code": "101080800",
+      "platformName": "巴彦淖尔",
+      "aliases": ["巴彦淖尔市"]
+    },
+    {
+      "name": "乌兰察布",
+      "province": "内蒙古",
+      "initial": "W",
+      "code": "101080900",
+      "platformName": "乌兰察布",
+      "aliases": ["乌兰察布市"]
+    },
+    {
+      "name": "锡林郭勒",
+      "province": "内蒙古",
+      "initial": "X",
+      "code": "101081000",
+      "platformName": "锡林郭勒盟",
+      "aliases": ["锡林郭勒盟", "锡盟"]
+    },
+    {
+      "name": "兴安",
+      "province": "内蒙古",
+      "initial": "X",
+      "code": "101081100",
+      "platformName": "兴安盟",
+      "aliases": ["兴安盟"]
+    },
+    {
+      "name": "阿拉善",
+      "province": "内蒙古",
+      "initial": "A",
+      "code": "101081200",
+      "platformName": "阿拉善盟",
+      "aliases": ["阿拉善盟"]
+    },
+    {
+      "name": "石家庄",
+      "province": "河北",
+      "initial": "S",
+      "code": "101090100",
+      "platformName": "石家庄",
+      "aliases": ["石家庄市"]
+    },
+    {
+      "name": "保定",
+      "province": "河北",
+      "initial": "B",
+      "code": "101090200",
+      "platformName": "保定",
+      "aliases": ["保定市"]
+    },
+    {
+      "name": "张家口",
+      "province": "河北",
+      "initial": "Z",
+      "code": "101090300",
+      "platformName": "张家口",
+      "aliases": ["张家口市"]
+    },
+    {
+      "name": "承德",
+      "province": "河北",
+      "initial": "C",
+      "code": "101090400",
+      "platformName": "承德",
+      "aliases": ["承德市"]
+    },
+    {
+      "name": "唐山",
+      "province": "河北",
+      "initial": "T",
+      "code": "101090500",
+      "platformName": "唐山",
+      "aliases": ["唐山市"]
+    },
+    {
+      "name": "廊坊",
+      "province": "河北",
+      "initial": "L",
+      "code": "101090600",
+      "platformName": "廊坊",
+      "aliases": ["廊坊市"]
+    },
+    {
+      "name": "沧州",
+      "province": "河北",
+      "initial": "C",
+      "code": "101090700",
+      "platformName": "沧州"
+    },
+    {
+      "name": "衡水",
+      "province": "河北",
+      "initial": "H",
+      "code": "101090800",
+      "platformName": "衡水",
+      "aliases": ["衡水市"]
+    },
+    {
+      "name": "邢台",
+      "province": "河北",
+      "initial": "X",
+      "code": "101090900",
+      "platformName": "邢台",
+      "aliases": ["邢台市"]
+    },
+    {
+      "name": "邯郸",
+      "province": "河北",
+      "initial": "H",
+      "code": "101091000",
+      "platformName": "邯郸",
+      "aliases": ["邯郸市"]
+    },
+    {
+      "name": "秦皇岛",
+      "province": "河北",
+      "initial": "Q",
+      "code": "101091100",
+      "platformName": "秦皇岛"
+    },
+    {
+      "name": "太原",
+      "province": "山西",
+      "initial": "T",
+      "code": "101100100",
+      "platformName": "太原",
+      "aliases": ["太原市"]
+    },
+    {
+      "name": "大同",
+      "province": "山西",
+      "initial": "D",
+      "code": "101100200",
+      "platformName": "大同",
+      "aliases": ["大同市"]
+    },
+    {
+      "name": "阳泉",
+      "province": "山西",
+      "initial": "Y",
+      "code": "101100300",
+      "platformName": "阳泉",
+      "aliases": ["阳泉市"]
+    },
+    {
+      "name": "晋中",
+      "province": "山西",
+      "initial": "J",
+      "code": "101100400",
+      "platformName": "晋中",
+      "aliases": ["晋中市"]
+    },
+    {
+      "name": "长治",
+      "province": "山西",
+      "initial": "C",
+      "code": "101100500",
+      "platformName": "长治",
+      "aliases": ["长治市"]
+    },
+    {
+      "name": "晋城",
+      "province": "山西",
+      "initial": "J",
+      "code": "101100600",
+      "platformName": "晋城",
+      "aliases": ["晋城市"]
+    },
+    {
+      "name": "临汾",
+      "province": "山西",
+      "initial": "L",
+      "code": "101100700",
+      "platformName": "临汾",
+      "aliases": ["临汾市"]
+    },
+    {
+      "name": "运城",
+      "province": "山西",
+      "initial": "Y",
+      "code": "101100800",
+      "platformName": "运城",
+      "aliases": ["运城市"]
+    },
+    {
+      "name": "朔州",
+      "province": "山西",
+      "initial": "S",
+      "code": "101100900",
+      "platformName": "朔州"
+    },
+    {
+      "name": "忻州",
+      "province": "山西",
+      "initial": "X",
+      "code": "101101000",
+      "platformName": "忻州"
+    },
+    {
+      "name": "吕梁",
+      "province": "山西",
+      "initial": "L",
+      "code": "101101100",
+      "platformName": "吕梁",
+      "aliases": ["吕梁市"]
+    },
+    {
+      "name": "西安",
+      "province": "陕西",
+      "initial": "X",
+      "code": "101110100",
+      "platformName": "西安",
+      "aliases": ["西安市"]
+    },
+    {
+      "name": "咸阳",
+      "province": "陕西",
+      "initial": "X",
+      "code": "101110200",
+      "platformName": "咸阳",
+      "aliases": ["咸阳市"]
+    },
+    {
+      "name": "延安",
+      "province": "陕西",
+      "initial": "Y",
+      "code": "101110300",
+      "platformName": "延安",
+      "aliases": ["延安市"]
+    },
+    {
+      "name": "榆林",
+      "province": "陕西",
+      "initial": "Y",
+      "code": "101110400",
+      "platformName": "榆林",
+      "aliases": ["榆林市"]
+    },
+    {
+      "name": "渭南",
+      "province": "陕西",
+      "initial": "W",
+      "code": "101110500",
+      "platformName": "渭南",
+      "aliases": ["渭南市"]
+    },
+    {
+      "name": "商洛",
+      "province": "陕西",
+      "initial": "S",
+      "code": "101110600",
+      "platformName": "商洛",
+      "aliases": ["商洛市"]
+    },
+    {
+      "name": "安康",
+      "province": "陕西",
+      "initial": "A",
+      "code": "101110700",
+      "platformName": "安康",
+      "aliases": ["安康市"]
+    },
+    {
+      "name": "汉中",
+      "province": "陕西",
+      "initial": "H",
+      "code": "101110800",
+      "platformName": "汉中",
+      "aliases": ["汉中市"]
+    },
+    {
+      "name": "宝鸡",
+      "province": "陕西",
+      "initial": "B",
+      "code": "101110900",
+      "platformName": "宝鸡",
+      "aliases": ["宝鸡市"]
+    },
+    {
+      "name": "铜川",
+      "province": "陕西",
+      "initial": "T",
+      "code": "101111000",
+      "platformName": "铜川",
+      "aliases": ["铜川市"]
+    },
+    {
+      "name": "济南",
+      "province": "山东",
+      "initial": "J",
+      "code": "101120100",
+      "platformName": "济南",
+      "aliases": ["济南市"]
+    },
+    {
+      "name": "青岛",
+      "province": "山东",
+      "initial": "Q",
+      "code": "101120200",
+      "platformName": "青岛"
+    },
+    {
+      "name": "淄博",
+      "province": "山东",
+      "initial": "Z",
+      "code": "101120300",
+      "platformName": "淄博",
+      "aliases": ["淄博市"]
+    },
+    {
+      "name": "德州",
+      "province": "山东",
+      "initial": "D",
+      "code": "101120400",
+      "platformName": "德州"
+    },
+    {
+      "name": "烟台",
+      "province": "山东",
+      "initial": "Y",
+      "code": "101120500",
+      "platformName": "烟台",
+      "aliases": ["烟台市"]
+    },
+    {
+      "name": "潍坊",
+      "province": "山东",
+      "initial": "W",
+      "code": "101120600",
+      "platformName": "潍坊",
+      "aliases": ["潍坊市"]
+    },
+    {
+      "name": "济宁",
+      "province": "山东",
+      "initial": "J",
+      "code": "101120700",
+      "platformName": "济宁",
+      "aliases": ["济宁市"]
+    },
+    {
+      "name": "泰安",
+      "province": "山东",
+      "initial": "T",
+      "code": "101120800",
+      "platformName": "泰安",
+      "aliases": ["泰安市"]
+    },
+    {
+      "name": "临沂",
+      "province": "山东",
+      "initial": "L",
+      "code": "101120900",
+      "platformName": "临沂",
+      "aliases": ["临沂市"]
+    },
+    {
+      "name": "菏泽",
+      "province": "山东",
+      "initial": "H",
+      "code": "101121000",
+      "platformName": "菏泽",
+      "aliases": ["菏泽市"]
+    },
+    {
+      "name": "滨州",
+      "province": "山东",
+      "initial": "B",
+      "code": "101121100",
+      "platformName": "滨州"
+    },
+    {
+      "name": "东营",
+      "province": "山东",
+      "initial": "D",
+      "code": "101121200",
+      "platformName": "东营",
+      "aliases": ["东营市"]
+    },
+    {
+      "name": "威海",
+      "province": "山东",
+      "initial": "W",
+      "code": "101121300",
+      "platformName": "威海",
+      "aliases": ["威海市"]
+    },
+    {
+      "name": "枣庄",
+      "province": "山东",
+      "initial": "Z",
+      "code": "101121400",
+      "platformName": "枣庄",
+      "aliases": ["枣庄市"]
+    },
+    {
+      "name": "日照",
+      "province": "山东",
+      "initial": "R",
+      "code": "101121500",
+      "platformName": "日照",
+      "aliases": ["日照市"]
+    },
+    {
+      "name": "聊城",
+      "province": "山东",
+      "initial": "L",
+      "code": "101121700",
+      "platformName": "聊城",
+      "aliases": ["聊城市"]
+    },
+    {
+      "name": "乌鲁木齐",
+      "province": "新疆",
+      "initial": "W",
+      "code": "101130100",
+      "platformName": "乌鲁木齐",
+      "aliases": ["乌鲁木齐市"]
+    },
+    {
+      "name": "克拉玛依",
+      "province": "新疆",
+      "initial": "K",
+      "code": "101130200",
+      "platformName": "克拉玛依",
+      "aliases": ["克拉玛依市"]
+    },
+    {
+      "name": "昌吉",
+      "province": "新疆",
+      "initial": "C",
+      "code": "101130300",
+      "platformName": "昌吉回族自治州",
+      "aliases": ["昌吉回族自治州"]
+    },
+    {
+      "name": "巴音郭楞",
+      "province": "新疆",
+      "initial": "B",
+      "code": "101130400",
+      "platformName": "巴音郭楞蒙古自治州",
+      "aliases": ["巴音郭楞蒙古自治州"]
+    },
+    {
+      "name": "博尔塔拉",
+      "province": "新疆",
+      "initial": "B",
+      "code": "101130500",
+      "platformName": "博尔塔拉蒙古自治州",
+      "aliases": ["博尔塔拉蒙古自治州"]
+    },
+    {
+      "name": "伊犁",
+      "province": "新疆",
+      "initial": "Y",
+      "code": "101130600",
+      "platformName": "伊犁哈萨克自治州",
+      "aliases": ["伊犁哈萨克自治州"]
+    },
+    {
+      "name": "吐鲁番",
+      "province": "新疆",
+      "initial": "T",
+      "code": "101130800",
+      "platformName": "吐鲁番",
+      "aliases": ["吐鲁番市"]
+    },
+    {
+      "name": "哈密",
+      "province": "新疆",
+      "initial": "H",
+      "code": "101130900",
+      "platformName": "哈密",
+      "aliases": ["哈密市"]
+    },
+    {
+      "name": "阿克苏",
+      "province": "新疆",
+      "initial": "A",
+      "code": "101131000",
+      "platformName": "阿克苏地区",
+      "aliases": ["阿克苏地区"]
+    },
+    {
+      "name": "克孜勒苏柯尔克孜",
+      "province": "新疆",
+      "initial": "K",
+      "code": "101131100",
+      "platformName": "克孜勒苏柯尔克孜自治州",
+      "aliases": ["克孜勒苏柯尔克孜自治州", "克州"]
+    },
+    {
+      "name": "喀什",
+      "province": "新疆",
+      "initial": "K",
+      "code": "101131200",
+      "platformName": "喀什地区",
+      "aliases": ["喀什地区"]
+    },
+    {
+      "name": "和田",
+      "province": "新疆",
+      "initial": "H",
+      "code": "101131300",
+      "platformName": "和田地区",
+      "aliases": ["和田地区"]
+    },
+    {
+      "name": "塔城",
+      "province": "新疆",
+      "initial": "T",
+      "code": "101131400",
+      "platformName": "塔城地区",
+      "aliases": ["塔城地区"]
+    },
+    {
+      "name": "阿勒泰",
+      "province": "新疆",
+      "initial": "A",
+      "code": "101131500",
+      "platformName": "阿勒泰地区",
+      "aliases": ["阿勒泰地区"]
+    },
+    {
+      "name": "石河子",
+      "province": "新疆",
+      "initial": "S",
+      "code": "101131600",
+      "platformName": "石河子",
+      "aliases": ["石河子市"]
+    },
+    {
+      "name": "阿拉尔",
+      "province": "新疆",
+      "initial": "A",
+      "code": "101131700",
+      "platformName": "阿拉尔",
+      "aliases": ["阿拉尔市"]
+    },
+    {
+      "name": "图木舒克",
+      "province": "新疆",
+      "initial": "T",
+      "code": "101131800",
+      "platformName": "图木舒克",
+      "aliases": ["图木舒克市"]
+    },
+    {
+      "name": "五家渠",
+      "province": "新疆",
+      "initial": "W",
+      "code": "101131900",
+      "platformName": "五家渠",
+      "aliases": ["五家渠市"]
+    },
+    {
+      "name": "铁门关",
+      "province": "新疆",
+      "initial": "T",
+      "code": "101132000",
+      "platformName": "铁门关",
+      "aliases": ["铁门关市"]
+    },
+    {
+      "name": "北屯",
+      "province": "新疆",
+      "initial": "B",
+      "code": "101132100",
+      "platformName": "北屯市",
+      "aliases": ["北屯市"]
+    },
+    {
+      "name": "可克达拉",
+      "province": "新疆",
+      "initial": "K",
+      "code": "101132200",
+      "platformName": "可克达拉市",
+      "aliases": ["可克达拉市"]
+    },
+    {
+      "name": "昆玉",
+      "province": "新疆",
+      "initial": "K",
+      "code": "101132300",
+      "platformName": "昆玉市",
+      "aliases": ["昆玉市"]
+    },
+    {
+      "name": "双河",
+      "province": "新疆",
+      "initial": "S",
+      "code": "101132400",
+      "platformName": "双河市",
+      "aliases": ["双河市"]
+    },
+    {
+      "name": "新星",
+      "province": "新疆",
+      "initial": "X",
+      "code": "101132500",
+      "platformName": "新星市",
+      "aliases": ["新星市"]
+    },
+    {
+      "name": "胡杨河",
+      "province": "新疆",
+      "initial": "H",
+      "code": "101132600",
+      "platformName": "胡杨河市",
+      "aliases": ["胡杨河市"]
+    },
+    {
+      "name": "白杨",
+      "province": "新疆",
+      "initial": "B",
+      "code": "101132700",
+      "platformName": "白杨市",
+      "aliases": ["白杨市"]
+    },
+    {
+      "name": "拉萨",
+      "province": "西藏",
+      "initial": "L",
+      "code": "101140100",
+      "platformName": "拉萨",
+      "aliases": ["拉萨市"]
+    },
+    {
+      "name": "日喀则",
+      "province": "西藏",
+      "initial": "R",
+      "code": "101140200",
+      "platformName": "日喀则",
+      "aliases": ["日喀则市"]
+    },
+    {
+      "name": "昌都",
+      "province": "西藏",
+      "initial": "C",
+      "code": "101140300",
+      "platformName": "昌都",
+      "aliases": ["昌都市"]
+    },
+    {
+      "name": "林芝",
+      "province": "西藏",
+      "initial": "L",
+      "code": "101140400",
+      "platformName": "林芝",
+      "aliases": ["林芝市"]
+    },
+    {
+      "name": "山南",
+      "province": "西藏",
+      "initial": "S",
+      "code": "101140500",
+      "platformName": "山南",
+      "aliases": ["山南市"]
+    },
+    {
+      "name": "那曲",
+      "province": "西藏",
+      "initial": "N",
+      "code": "101140600",
+      "platformName": "那曲",
+      "aliases": ["那曲市"]
+    },
+    {
+      "name": "阿里",
+      "province": "西藏",
+      "initial": "A",
+      "code": "101140700",
+      "platformName": "阿里地区",
+      "aliases": ["阿里地区"]
+    },
+    {
+      "name": "西宁",
+      "province": "青海",
+      "initial": "X",
+      "code": "101150100",
+      "platformName": "西宁",
+      "aliases": ["西宁市"]
+    },
+    {
+      "name": "海东",
+      "province": "青海",
+      "initial": "H",
+      "code": "101150200",
+      "platformName": "海东",
+      "aliases": ["海东市"]
+    },
+    {
+      "name": "海北",
+      "province": "青海",
+      "initial": "H",
+      "code": "101150300",
+      "platformName": "海北藏族自治州",
+      "aliases": ["海北藏族自治州"]
+    },
+    {
+      "name": "黄南",
+      "province": "青海",
+      "initial": "H",
+      "code": "101150400",
+      "platformName": "黄南藏族自治州",
+      "aliases": ["黄南藏族自治州"]
+    },
+    {
+      "name": "海南",
+      "province": "青海",
+      "initial": "H",
+      "code": "101150500",
+      "platformName": "海南藏族自治州",
+      "aliases": ["海南藏族自治州", "海南州"]
+    },
+    {
+      "name": "果洛",
+      "province": "青海",
+      "initial": "G",
+      "code": "101150600",
+      "platformName": "果洛藏族自治州",
+      "aliases": ["果洛藏族自治州"]
+    },
+    {
+      "name": "玉树",
+      "province": "青海",
+      "initial": "Y",
+      "code": "101150700",
+      "platformName": "玉树藏族自治州",
+      "aliases": ["玉树藏族自治州"]
+    },
+    {
+      "name": "海西",
+      "province": "青海",
+      "initial": "H",
+      "code": "101150800",
+      "platformName": "海西蒙古族藏族自治州",
+      "aliases": ["海西蒙古族藏族自治州"]
+    },
+    {
+      "name": "兰州",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "101160100",
+      "platformName": "兰州"
+    },
+    {
+      "name": "定西",
+      "province": "甘肃",
+      "initial": "D",
+      "code": "101160200",
+      "platformName": "定西",
+      "aliases": ["定西市"]
+    },
+    {
+      "name": "平凉",
+      "province": "甘肃",
+      "initial": "P",
+      "code": "101160300",
+      "platformName": "平凉",
+      "aliases": ["平凉市"]
+    },
+    {
+      "name": "庆阳",
+      "province": "甘肃",
+      "initial": "Q",
+      "code": "101160400",
+      "platformName": "庆阳",
+      "aliases": ["庆阳市"]
+    },
+    {
+      "name": "武威",
+      "province": "甘肃",
+      "initial": "W",
+      "code": "101160500",
+      "platformName": "武威",
+      "aliases": ["武威市"]
+    },
+    {
+      "name": "金昌",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "101160600",
+      "platformName": "金昌",
+      "aliases": ["金昌市"]
+    },
+    {
+      "name": "张掖",
+      "province": "甘肃",
+      "initial": "Z",
+      "code": "101160700",
+      "platformName": "张掖",
+      "aliases": ["张掖市"]
+    },
+    {
+      "name": "酒泉",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "101160800",
+      "platformName": "酒泉",
+      "aliases": ["酒泉市"]
+    },
+    {
+      "name": "天水",
+      "province": "甘肃",
+      "initial": "T",
+      "code": "101160900",
+      "platformName": "天水",
+      "aliases": ["天水市"]
+    },
+    {
+      "name": "白银",
+      "province": "甘肃",
+      "initial": "B",
+      "code": "101161000",
+      "platformName": "白银",
+      "aliases": ["白银市"]
+    },
+    {
+      "name": "陇南",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "101161100",
+      "platformName": "陇南",
+      "aliases": ["陇南市"]
+    },
+    {
+      "name": "嘉峪关",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "101161200",
+      "platformName": "嘉峪关",
+      "aliases": ["嘉峪关市"]
+    },
+    {
+      "name": "临夏",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "101161300",
+      "platformName": "临夏回族自治州",
+      "aliases": ["临夏回族自治州"]
+    },
+    {
+      "name": "甘南",
+      "province": "甘肃",
+      "initial": "G",
+      "code": "101161400",
+      "platformName": "甘南藏族自治州",
+      "aliases": ["甘南藏族自治州"]
+    },
+    {
+      "name": "银川",
+      "province": "宁夏",
+      "initial": "Y",
+      "code": "101170100",
+      "platformName": "银川",
+      "aliases": ["银川市"]
+    },
+    {
+      "name": "石嘴山",
+      "province": "宁夏",
+      "initial": "S",
+      "code": "101170200",
+      "platformName": "石嘴山",
+      "aliases": ["石嘴山市"]
+    },
+    {
+      "name": "吴忠",
+      "province": "宁夏",
+      "initial": "W",
+      "code": "101170300",
+      "platformName": "吴忠",
+      "aliases": ["吴忠市"]
+    },
+    {
+      "name": "固原",
+      "province": "宁夏",
+      "initial": "G",
+      "code": "101170400",
+      "platformName": "固原",
+      "aliases": ["固原市"]
+    },
+    {
+      "name": "中卫",
+      "province": "宁夏",
+      "initial": "Z",
+      "code": "101170500",
+      "platformName": "中卫",
+      "aliases": ["中卫市"]
+    },
+    {
+      "name": "郑州",
+      "province": "河南",
+      "initial": "Z",
+      "code": "101180100",
+      "platformName": "郑州"
+    },
+    {
+      "name": "安阳",
+      "province": "河南",
+      "initial": "A",
+      "code": "101180200",
+      "platformName": "安阳",
+      "aliases": ["安阳市"]
+    },
+    {
+      "name": "新乡",
+      "province": "河南",
+      "initial": "X",
+      "code": "101180300",
+      "platformName": "新乡",
+      "aliases": ["新乡市"]
+    },
+    {
+      "name": "许昌",
+      "province": "河南",
+      "initial": "X",
+      "code": "101180400",
+      "platformName": "许昌",
+      "aliases": ["许昌市"]
+    },
+    {
+      "name": "平顶山",
+      "province": "河南",
+      "initial": "P",
+      "code": "101180500",
+      "platformName": "平顶山",
+      "aliases": ["平顶山市"]
+    },
+    {
+      "name": "信阳",
+      "province": "河南",
+      "initial": "X",
+      "code": "101180600",
+      "platformName": "信阳",
+      "aliases": ["信阳市"]
+    },
+    {
+      "name": "南阳",
+      "province": "河南",
+      "initial": "N",
+      "code": "101180700",
+      "platformName": "南阳",
+      "aliases": ["南阳市"]
+    },
+    {
+      "name": "开封",
+      "province": "河南",
+      "initial": "K",
+      "code": "101180800",
+      "platformName": "开封",
+      "aliases": ["开封市"]
+    },
+    {
+      "name": "洛阳",
+      "province": "河南",
+      "initial": "L",
+      "code": "101180900",
+      "platformName": "洛阳",
+      "aliases": ["洛阳市"]
+    },
+    {
+      "name": "商丘",
+      "province": "河南",
+      "initial": "S",
+      "code": "101181000",
+      "platformName": "商丘",
+      "aliases": ["商丘市"]
+    },
+    {
+      "name": "焦作",
+      "province": "河南",
+      "initial": "J",
+      "code": "101181100",
+      "platformName": "焦作",
+      "aliases": ["焦作市"]
+    },
+    {
+      "name": "鹤壁",
+      "province": "河南",
+      "initial": "H",
+      "code": "101181200",
+      "platformName": "鹤壁",
+      "aliases": ["鹤壁市"]
+    },
+    {
+      "name": "濮阳",
+      "province": "河南",
+      "initial": "P",
+      "code": "101181300",
+      "platformName": "濮阳",
+      "aliases": ["濮阳市"]
+    },
+    {
+      "name": "周口",
+      "province": "河南",
+      "initial": "Z",
+      "code": "101181400",
+      "platformName": "周口",
+      "aliases": ["周口市"]
+    },
+    {
+      "name": "漯河",
+      "province": "河南",
+      "initial": "L",
+      "code": "101181500",
+      "platformName": "漯河",
+      "aliases": ["漯河市"]
+    },
+    {
+      "name": "驻马店",
+      "province": "河南",
+      "initial": "Z",
+      "code": "101181600",
+      "platformName": "驻马店",
+      "aliases": ["驻马店市"]
+    },
+    {
+      "name": "三门峡",
+      "province": "河南",
+      "initial": "S",
+      "code": "101181700",
+      "platformName": "三门峡",
+      "aliases": ["三门峡市"]
+    },
+    {
+      "name": "济源",
+      "province": "河南",
+      "initial": "J",
+      "code": "101181800",
+      "platformName": "济源",
+      "aliases": ["济源市"]
+    },
+    {
+      "name": "南京",
+      "province": "江苏",
+      "initial": "N",
+      "code": "101190100",
+      "platformName": "南京",
+      "aliases": ["南京市"]
+    },
+    {
+      "name": "无锡",
+      "province": "江苏",
+      "initial": "W",
+      "code": "101190200",
+      "platformName": "无锡",
+      "aliases": ["无锡市"]
+    },
+    {
+      "name": "镇江",
+      "province": "江苏",
+      "initial": "Z",
+      "code": "101190300",
+      "platformName": "镇江",
+      "aliases": ["镇江市"]
+    },
+    {
+      "name": "苏州",
+      "province": "江苏",
+      "initial": "S",
+      "code": "101190400",
+      "platformName": "苏州"
+    },
+    {
+      "name": "南通",
+      "province": "江苏",
+      "initial": "N",
+      "code": "101190500",
+      "platformName": "南通",
+      "aliases": ["南通市"]
+    },
+    {
+      "name": "扬州",
+      "province": "江苏",
+      "initial": "Y",
+      "code": "101190600",
+      "platformName": "扬州"
+    },
+    {
+      "name": "盐城",
+      "province": "江苏",
+      "initial": "Y",
+      "code": "101190700",
+      "platformName": "盐城",
+      "aliases": ["盐城市"]
+    },
+    {
+      "name": "徐州",
+      "province": "江苏",
+      "initial": "X",
+      "code": "101190800",
+      "platformName": "徐州"
+    },
+    {
+      "name": "淮安",
+      "province": "江苏",
+      "initial": "H",
+      "code": "101190900",
+      "platformName": "淮安",
+      "aliases": ["淮安市"]
+    },
+    {
+      "name": "连云港",
+      "province": "江苏",
+      "initial": "L",
+      "code": "101191000",
+      "platformName": "连云港",
+      "aliases": ["连云港市"]
+    },
+    {
+      "name": "常州",
+      "province": "江苏",
+      "initial": "C",
+      "code": "101191100",
+      "platformName": "常州"
+    },
+    {
+      "name": "泰州",
+      "province": "江苏",
+      "initial": "T",
+      "code": "101191200",
+      "platformName": "泰州"
+    },
+    {
+      "name": "宿迁",
+      "province": "江苏",
+      "initial": "S",
+      "code": "101191300",
+      "platformName": "宿迁",
+      "aliases": ["宿迁市"]
+    },
+    {
+      "name": "武汉",
+      "province": "湖北",
+      "initial": "W",
+      "code": "101200100",
+      "platformName": "武汉",
+      "aliases": ["武汉市"]
+    },
+    {
+      "name": "襄阳",
+      "province": "湖北",
+      "initial": "X",
+      "code": "101200200",
+      "platformName": "襄阳",
+      "aliases": ["襄阳市"]
+    },
+    {
+      "name": "鄂州",
+      "province": "湖北",
+      "initial": "E",
+      "code": "101200300",
+      "platformName": "鄂州"
+    },
+    {
+      "name": "孝感",
+      "province": "湖北",
+      "initial": "X",
+      "code": "101200400",
+      "platformName": "孝感",
+      "aliases": ["孝感市"]
+    },
+    {
+      "name": "黄冈",
+      "province": "湖北",
+      "initial": "H",
+      "code": "101200500",
+      "platformName": "黄冈",
+      "aliases": ["黄冈市"]
+    },
+    {
+      "name": "黄石",
+      "province": "湖北",
+      "initial": "H",
+      "code": "101200600",
+      "platformName": "黄石",
+      "aliases": ["黄石市"]
+    },
+    {
+      "name": "咸宁",
+      "province": "湖北",
+      "initial": "X",
+      "code": "101200700",
+      "platformName": "咸宁",
+      "aliases": ["咸宁市"]
+    },
+    {
+      "name": "荆州",
+      "province": "湖北",
+      "initial": "J",
+      "code": "101200800",
+      "platformName": "荆州"
+    },
+    {
+      "name": "宜昌",
+      "province": "湖北",
+      "initial": "Y",
+      "code": "101200900",
+      "platformName": "宜昌",
+      "aliases": ["宜昌市"]
+    },
+    {
+      "name": "十堰",
+      "province": "湖北",
+      "initial": "S",
+      "code": "101201000",
+      "platformName": "十堰",
+      "aliases": ["十堰市"]
+    },
+    {
+      "name": "随州",
+      "province": "湖北",
+      "initial": "S",
+      "code": "101201100",
+      "platformName": "随州"
+    },
+    {
+      "name": "荆门",
+      "province": "湖北",
+      "initial": "J",
+      "code": "101201200",
+      "platformName": "荆门",
+      "aliases": ["荆门市"]
+    },
+    {
+      "name": "恩施",
+      "province": "湖北",
+      "initial": "E",
+      "code": "101201300",
+      "platformName": "恩施土家族苗族自治州",
+      "aliases": ["恩施土家族苗族自治州", "恩施州"]
+    },
+    {
+      "name": "仙桃",
+      "province": "湖北",
+      "initial": "X",
+      "code": "101201400",
+      "platformName": "仙桃",
+      "aliases": ["仙桃市"]
+    },
+    {
+      "name": "潜江",
+      "province": "湖北",
+      "initial": "Q",
+      "code": "101201500",
+      "platformName": "潜江",
+      "aliases": ["潜江市"]
+    },
+    {
+      "name": "天门",
+      "province": "湖北",
+      "initial": "T",
+      "code": "101201600",
+      "platformName": "天门",
+      "aliases": ["天门市"]
+    },
+    {
+      "name": "神农架",
+      "province": "湖北",
+      "initial": "S",
+      "code": "101201700",
+      "platformName": "神农架",
+      "aliases": ["神农架市", "神农架林区"]
+    },
+    {
+      "name": "杭州",
+      "province": "浙江",
+      "initial": "H",
+      "code": "101210100",
+      "platformName": "杭州"
+    },
+    {
+      "name": "湖州",
+      "province": "浙江",
+      "initial": "H",
+      "code": "101210200",
+      "platformName": "湖州"
+    },
+    {
+      "name": "嘉兴",
+      "province": "浙江",
+      "initial": "J",
+      "code": "101210300",
+      "platformName": "嘉兴",
+      "aliases": ["嘉兴市"]
+    },
+    {
+      "name": "宁波",
+      "province": "浙江",
+      "initial": "N",
+      "code": "101210400",
+      "platformName": "宁波",
+      "aliases": ["宁波市"]
+    },
+    {
+      "name": "绍兴",
+      "province": "浙江",
+      "initial": "S",
+      "code": "101210500",
+      "platformName": "绍兴",
+      "aliases": ["绍兴市"]
+    },
+    {
+      "name": "台州",
+      "province": "浙江",
+      "initial": "T",
+      "code": "101210600",
+      "platformName": "台州"
+    },
+    {
+      "name": "温州",
+      "province": "浙江",
+      "initial": "W",
+      "code": "101210700",
+      "platformName": "温州"
+    },
+    {
+      "name": "丽水",
+      "province": "浙江",
+      "initial": "L",
+      "code": "101210800",
+      "platformName": "丽水",
+      "aliases": ["丽水市"]
+    },
+    {
+      "name": "金华",
+      "province": "浙江",
+      "initial": "J",
+      "code": "101210900",
+      "platformName": "金华",
+      "aliases": ["金华市"]
+    },
+    {
+      "name": "衢州",
+      "province": "浙江",
+      "initial": "Q",
+      "code": "101211000",
+      "platformName": "衢州"
+    },
+    {
+      "name": "舟山",
+      "province": "浙江",
+      "initial": "Z",
+      "code": "101211100",
+      "platformName": "舟山",
+      "aliases": ["舟山市"]
+    },
+    {
+      "name": "合肥",
+      "province": "安徽",
+      "initial": "H",
+      "code": "101220100",
+      "platformName": "合肥",
+      "aliases": ["合肥市"]
+    },
+    {
+      "name": "蚌埠",
+      "province": "安徽",
+      "initial": "B",
+      "code": "101220200",
+      "platformName": "蚌埠",
+      "aliases": ["蚌埠市"]
+    },
+    {
+      "name": "芜湖",
+      "province": "安徽",
+      "initial": "W",
+      "code": "101220300",
+      "platformName": "芜湖",
+      "aliases": ["芜湖市"]
+    },
+    {
+      "name": "淮南",
+      "province": "安徽",
+      "initial": "H",
+      "code": "101220400",
+      "platformName": "淮南",
+      "aliases": ["淮南市"]
+    },
+    {
+      "name": "马鞍山",
+      "province": "安徽",
+      "initial": "M",
+      "code": "101220500",
+      "platformName": "马鞍山",
+      "aliases": ["马鞍山市"]
+    },
+    {
+      "name": "安庆",
+      "province": "安徽",
+      "initial": "A",
+      "code": "101220600",
+      "platformName": "安庆",
+      "aliases": ["安庆市"]
+    },
+    {
+      "name": "宿州",
+      "province": "安徽",
+      "initial": "S",
+      "code": "101220700",
+      "platformName": "宿州"
+    },
+    {
+      "name": "阜阳",
+      "province": "安徽",
+      "initial": "F",
+      "code": "101220800",
+      "platformName": "阜阳",
+      "aliases": ["阜阳市"]
+    },
+    {
+      "name": "亳州",
+      "province": "安徽",
+      "initial": "B",
+      "code": "101220900",
+      "platformName": "亳州"
+    },
+    {
+      "name": "滁州",
+      "province": "安徽",
+      "initial": "C",
+      "code": "101221000",
+      "platformName": "滁州"
+    },
+    {
+      "name": "淮北",
+      "province": "安徽",
+      "initial": "H",
+      "code": "101221100",
+      "platformName": "淮北",
+      "aliases": ["淮北市"]
+    },
+    {
+      "name": "铜陵",
+      "province": "安徽",
+      "initial": "T",
+      "code": "101221200",
+      "platformName": "铜陵",
+      "aliases": ["铜陵市"]
+    },
+    {
+      "name": "宣城",
+      "province": "安徽",
+      "initial": "X",
+      "code": "101221300",
+      "platformName": "宣城",
+      "aliases": ["宣城市"]
+    },
+    {
+      "name": "六安",
+      "province": "安徽",
+      "initial": "L",
+      "code": "101221400",
+      "platformName": "六安",
+      "aliases": ["六安市"]
+    },
+    {
+      "name": "池州",
+      "province": "安徽",
+      "initial": "C",
+      "code": "101221500",
+      "platformName": "池州"
+    },
+    {
+      "name": "黄山",
+      "province": "安徽",
+      "initial": "H",
+      "code": "101221600",
+      "platformName": "黄山",
+      "aliases": ["黄山市"]
+    },
+    {
+      "name": "福州",
+      "province": "福建",
+      "initial": "F",
+      "code": "101230100",
+      "platformName": "福州"
+    },
+    {
+      "name": "厦门",
+      "province": "福建",
+      "initial": "X",
+      "code": "101230200",
+      "platformName": "厦门",
+      "aliases": ["厦门市"]
+    },
+    {
+      "name": "宁德",
+      "province": "福建",
+      "initial": "N",
+      "code": "101230300",
+      "platformName": "宁德",
+      "aliases": ["宁德市"]
+    },
+    {
+      "name": "莆田",
+      "province": "福建",
+      "initial": "P",
+      "code": "101230400",
+      "platformName": "莆田",
+      "aliases": ["莆田市"]
+    },
+    {
+      "name": "泉州",
+      "province": "福建",
+      "initial": "Q",
+      "code": "101230500",
+      "platformName": "泉州"
+    },
+    {
+      "name": "漳州",
+      "province": "福建",
+      "initial": "Z",
+      "code": "101230600",
+      "platformName": "漳州"
+    },
+    {
+      "name": "龙岩",
+      "province": "福建",
+      "initial": "L",
+      "code": "101230700",
+      "platformName": "龙岩",
+      "aliases": ["龙岩市"]
+    },
+    {
+      "name": "三明",
+      "province": "福建",
+      "initial": "S",
+      "code": "101230800",
+      "platformName": "三明",
+      "aliases": ["三明市"]
+    },
+    {
+      "name": "南平",
+      "province": "福建",
+      "initial": "N",
+      "code": "101230900",
+      "platformName": "南平",
+      "aliases": ["南平市"]
+    },
+    {
+      "name": "南昌",
+      "province": "江西",
+      "initial": "N",
+      "code": "101240100",
+      "platformName": "南昌",
+      "aliases": ["南昌市"]
+    },
+    {
+      "name": "九江",
+      "province": "江西",
+      "initial": "J",
+      "code": "101240200",
+      "platformName": "九江",
+      "aliases": ["九江市"]
+    },
+    {
+      "name": "上饶",
+      "province": "江西",
+      "initial": "S",
+      "code": "101240300",
+      "platformName": "上饶",
+      "aliases": ["上饶市"]
+    },
+    {
+      "name": "抚州",
+      "province": "江西",
+      "initial": "F",
+      "code": "101240400",
+      "platformName": "抚州"
+    },
+    {
+      "name": "宜春",
+      "province": "江西",
+      "initial": "Y",
+      "code": "101240500",
+      "platformName": "宜春",
+      "aliases": ["宜春市"]
+    },
+    {
+      "name": "吉安",
+      "province": "江西",
+      "initial": "J",
+      "code": "101240600",
+      "platformName": "吉安",
+      "aliases": ["吉安市"]
+    },
+    {
+      "name": "赣州",
+      "province": "江西",
+      "initial": "G",
+      "code": "101240700",
+      "platformName": "赣州"
+    },
+    {
+      "name": "景德镇",
+      "province": "江西",
+      "initial": "J",
+      "code": "101240800",
+      "platformName": "景德镇",
+      "aliases": ["景德镇市"]
+    },
+    {
+      "name": "萍乡",
+      "province": "江西",
+      "initial": "P",
+      "code": "101240900",
+      "platformName": "萍乡",
+      "aliases": ["萍乡市"]
+    },
+    {
+      "name": "新余",
+      "province": "江西",
+      "initial": "X",
+      "code": "101241000",
+      "platformName": "新余",
+      "aliases": ["新余市"]
+    },
+    {
+      "name": "鹰潭",
+      "province": "江西",
+      "initial": "Y",
+      "code": "101241100",
+      "platformName": "鹰潭",
+      "aliases": ["鹰潭市"]
+    },
+    {
+      "name": "长沙",
+      "province": "湖南",
+      "initial": "C",
+      "code": "101250100",
+      "platformName": "长沙",
+      "aliases": ["长沙市"]
+    },
+    {
+      "name": "湘潭",
+      "province": "湖南",
+      "initial": "X",
+      "code": "101250200",
+      "platformName": "湘潭",
+      "aliases": ["湘潭市"]
+    },
+    {
+      "name": "株洲",
+      "province": "湖南",
+      "initial": "Z",
+      "code": "101250300",
+      "platformName": "株洲",
+      "aliases": ["株洲市"]
+    },
+    {
+      "name": "衡阳",
+      "province": "湖南",
+      "initial": "H",
+      "code": "101250400",
+      "platformName": "衡阳",
+      "aliases": ["衡阳市"]
+    },
+    {
+      "name": "郴州",
+      "province": "湖南",
+      "initial": "C",
+      "code": "101250500",
+      "platformName": "郴州"
+    },
+    {
+      "name": "常德",
+      "province": "湖南",
+      "initial": "C",
+      "code": "101250600",
+      "platformName": "常德",
+      "aliases": ["常德市"]
+    },
+    {
+      "name": "益阳",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "101250700",
+      "platformName": "益阳",
+      "aliases": ["益阳市"]
+    },
+    {
+      "name": "娄底",
+      "province": "湖南",
+      "initial": "L",
+      "code": "101250800",
+      "platformName": "娄底",
+      "aliases": ["娄底市"]
+    },
+    {
+      "name": "邵阳",
+      "province": "湖南",
+      "initial": "S",
+      "code": "101250900",
+      "platformName": "邵阳",
+      "aliases": ["邵阳市"]
+    },
+    {
+      "name": "岳阳",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "101251000",
+      "platformName": "岳阳",
+      "aliases": ["岳阳市"]
+    },
+    {
+      "name": "张家界",
+      "province": "湖南",
+      "initial": "Z",
+      "code": "101251100",
+      "platformName": "张家界",
+      "aliases": ["张家界市"]
+    },
+    {
+      "name": "怀化",
+      "province": "湖南",
+      "initial": "H",
+      "code": "101251200",
+      "platformName": "怀化",
+      "aliases": ["怀化市"]
+    },
+    {
+      "name": "永州",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "101251300",
+      "platformName": "永州"
+    },
+    {
+      "name": "湘西",
+      "province": "湖南",
+      "initial": "X",
+      "code": "101251400",
+      "platformName": "湘西土家族苗族自治州",
+      "aliases": ["湘西土家族苗族自治州"]
+    },
+    {
+      "name": "贵阳",
+      "province": "贵州",
+      "initial": "G",
+      "code": "101260100",
+      "platformName": "贵阳",
+      "aliases": ["贵阳市"]
+    },
+    {
+      "name": "遵义",
+      "province": "贵州",
+      "initial": "Z",
+      "code": "101260200",
+      "platformName": "遵义",
+      "aliases": ["遵义市"]
+    },
+    {
+      "name": "安顺",
+      "province": "贵州",
+      "initial": "A",
+      "code": "101260300",
+      "platformName": "安顺",
+      "aliases": ["安顺市"]
+    },
+    {
+      "name": "铜仁",
+      "province": "贵州",
+      "initial": "T",
+      "code": "101260400",
+      "platformName": "铜仁",
+      "aliases": ["铜仁市"]
+    },
+    {
+      "name": "毕节",
+      "province": "贵州",
+      "initial": "B",
+      "code": "101260500",
+      "platformName": "毕节",
+      "aliases": ["毕节市"]
+    },
+    {
+      "name": "六盘水",
+      "province": "贵州",
+      "initial": "L",
+      "code": "101260600",
+      "platformName": "六盘水",
+      "aliases": ["六盘水市"]
+    },
+    {
+      "name": "黔东南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "101260700",
+      "platformName": "黔东南苗族侗族自治州",
+      "aliases": ["黔东南苗族侗族自治州"]
+    },
+    {
+      "name": "黔南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "101260800",
+      "platformName": "黔南布依族苗族自治州",
+      "aliases": ["黔南布依族苗族自治州"]
+    },
+    {
+      "name": "黔西南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "101260900",
+      "platformName": "黔西南布依族苗族自治州",
+      "aliases": ["黔西南布依族苗族自治州"]
+    },
+    {
+      "name": "成都",
+      "province": "四川",
+      "initial": "C",
+      "code": "101270100",
+      "platformName": "成都",
+      "aliases": ["成都市"]
+    },
+    {
+      "name": "攀枝花",
+      "province": "四川",
+      "initial": "P",
+      "code": "101270200",
+      "platformName": "攀枝花",
+      "aliases": ["攀枝花市"]
+    },
+    {
+      "name": "自贡",
+      "province": "四川",
+      "initial": "Z",
+      "code": "101270300",
+      "platformName": "自贡",
+      "aliases": ["自贡市"]
+    },
+    {
+      "name": "绵阳",
+      "province": "四川",
+      "initial": "M",
+      "code": "101270400",
+      "platformName": "绵阳",
+      "aliases": ["绵阳市"]
+    },
+    {
+      "name": "南充",
+      "province": "四川",
+      "initial": "N",
+      "code": "101270500",
+      "platformName": "南充",
+      "aliases": ["南充市"]
+    },
+    {
+      "name": "达州",
+      "province": "四川",
+      "initial": "D",
+      "code": "101270600",
+      "platformName": "达州"
+    },
+    {
+      "name": "遂宁",
+      "province": "四川",
+      "initial": "S",
+      "code": "101270700",
+      "platformName": "遂宁",
+      "aliases": ["遂宁市"]
+    },
+    {
+      "name": "广安",
+      "province": "四川",
+      "initial": "G",
+      "code": "101270800",
+      "platformName": "广安",
+      "aliases": ["广安市"]
+    },
+    {
+      "name": "巴中",
+      "province": "四川",
+      "initial": "B",
+      "code": "101270900",
+      "platformName": "巴中",
+      "aliases": ["巴中市"]
+    },
+    {
+      "name": "泸州",
+      "province": "四川",
+      "initial": "L",
+      "code": "101271000",
+      "platformName": "泸州"
+    },
+    {
+      "name": "宜宾",
+      "province": "四川",
+      "initial": "Y",
+      "code": "101271100",
+      "platformName": "宜宾",
+      "aliases": ["宜宾市"]
+    },
+    {
+      "name": "内江",
+      "province": "四川",
+      "initial": "N",
+      "code": "101271200",
+      "platformName": "内江",
+      "aliases": ["内江市"]
+    },
+    {
+      "name": "资阳",
+      "province": "四川",
+      "initial": "Z",
+      "code": "101271300",
+      "platformName": "资阳",
+      "aliases": ["资阳市"]
+    },
+    {
+      "name": "乐山",
+      "province": "四川",
+      "initial": "L",
+      "code": "101271400",
+      "platformName": "乐山",
+      "aliases": ["乐山市"]
+    },
+    {
+      "name": "眉山",
+      "province": "四川",
+      "initial": "M",
+      "code": "101271500",
+      "platformName": "眉山",
+      "aliases": ["眉山市"]
+    },
+    {
+      "name": "雅安",
+      "province": "四川",
+      "initial": "Y",
+      "code": "101271600",
+      "platformName": "雅安",
+      "aliases": ["雅安市"]
+    },
+    {
+      "name": "德阳",
+      "province": "四川",
+      "initial": "D",
+      "code": "101271700",
+      "platformName": "德阳",
+      "aliases": ["德阳市"]
+    },
+    {
+      "name": "广元",
+      "province": "四川",
+      "initial": "G",
+      "code": "101271800",
+      "platformName": "广元",
+      "aliases": ["广元市"]
+    },
+    {
+      "name": "阿坝",
+      "province": "四川",
+      "initial": "A",
+      "code": "101271900",
+      "platformName": "阿坝藏族羌族自治州",
+      "aliases": ["阿坝藏族羌族自治州"]
+    },
+    {
+      "name": "凉山",
+      "province": "四川",
+      "initial": "L",
+      "code": "101272000",
+      "platformName": "凉山彝族自治州",
+      "aliases": ["凉山彝族自治州"]
+    },
+    {
+      "name": "甘孜",
+      "province": "四川",
+      "initial": "G",
+      "code": "101272100",
+      "platformName": "甘孜藏族自治州",
+      "aliases": ["甘孜藏族自治州"]
+    },
+    {
+      "name": "广州",
+      "province": "广东",
+      "initial": "G",
+      "code": "101280100",
+      "platformName": "广州"
+    },
+    {
+      "name": "韶关",
+      "province": "广东",
+      "initial": "S",
+      "code": "101280200",
+      "platformName": "韶关",
+      "aliases": ["韶关市"]
+    },
+    {
+      "name": "惠州",
+      "province": "广东",
+      "initial": "H",
+      "code": "101280300",
+      "platformName": "惠州"
+    },
+    {
+      "name": "梅州",
+      "province": "广东",
+      "initial": "M",
+      "code": "101280400",
+      "platformName": "梅州"
+    },
+    {
+      "name": "汕头",
+      "province": "广东",
+      "initial": "S",
+      "code": "101280500",
+      "platformName": "汕头",
+      "aliases": ["汕头市"]
+    },
+    {
+      "name": "深圳",
+      "province": "广东",
+      "initial": "S",
+      "code": "101280600",
+      "platformName": "深圳",
+      "aliases": ["深圳市"]
+    },
+    {
+      "name": "珠海",
+      "province": "广东",
+      "initial": "Z",
+      "code": "101280700",
+      "platformName": "珠海",
+      "aliases": ["珠海市"]
+    },
+    {
+      "name": "佛山",
+      "province": "广东",
+      "initial": "F",
+      "code": "101280800",
+      "platformName": "佛山",
+      "aliases": ["佛山市"]
+    },
+    {
+      "name": "肇庆",
+      "province": "广东",
+      "initial": "Z",
+      "code": "101280900",
+      "platformName": "肇庆",
+      "aliases": ["肇庆市"]
+    },
+    {
+      "name": "湛江",
+      "province": "广东",
+      "initial": "Z",
+      "code": "101281000",
+      "platformName": "湛江",
+      "aliases": ["湛江市"]
+    },
+    {
+      "name": "江门",
+      "province": "广东",
+      "initial": "J",
+      "code": "101281100",
+      "platformName": "江门",
+      "aliases": ["江门市"]
+    },
+    {
+      "name": "河源",
+      "province": "广东",
+      "initial": "H",
+      "code": "101281200",
+      "platformName": "河源",
+      "aliases": ["河源市"]
+    },
+    {
+      "name": "清远",
+      "province": "广东",
+      "initial": "Q",
+      "code": "101281300",
+      "platformName": "清远",
+      "aliases": ["清远市"]
+    },
+    {
+      "name": "云浮",
+      "province": "广东",
+      "initial": "Y",
+      "code": "101281400",
+      "platformName": "云浮",
+      "aliases": ["云浮市"]
+    },
+    {
+      "name": "潮州",
+      "province": "广东",
+      "initial": "C",
+      "code": "101281500",
+      "platformName": "潮州"
+    },
+    {
+      "name": "东莞",
+      "province": "广东",
+      "initial": "D",
+      "code": "101281600",
+      "platformName": "东莞",
+      "aliases": ["东莞市"]
+    },
+    {
+      "name": "中山",
+      "province": "广东",
+      "initial": "Z",
+      "code": "101281700",
+      "platformName": "中山",
+      "aliases": ["中山市"]
+    },
+    {
+      "name": "阳江",
+      "province": "广东",
+      "initial": "Y",
+      "code": "101281800",
+      "platformName": "阳江",
+      "aliases": ["阳江市"]
+    },
+    {
+      "name": "揭阳",
+      "province": "广东",
+      "initial": "J",
+      "code": "101281900",
+      "platformName": "揭阳",
+      "aliases": ["揭阳市"]
+    },
+    {
+      "name": "茂名",
+      "province": "广东",
+      "initial": "M",
+      "code": "101282000",
+      "platformName": "茂名",
+      "aliases": ["茂名市"]
+    },
+    {
+      "name": "汕尾",
+      "province": "广东",
+      "initial": "S",
+      "code": "101282100",
+      "platformName": "汕尾",
+      "aliases": ["汕尾市"]
+    },
+    {
+      "name": "东沙群岛",
+      "province": "广东",
+      "initial": "D",
+      "code": "101282200",
+      "platformName": "东沙群岛"
+    },
+    {
+      "name": "昆明",
+      "province": "云南",
+      "initial": "K",
+      "code": "101290100",
+      "platformName": "昆明",
+      "aliases": ["昆明市"]
+    },
+    {
+      "name": "曲靖",
+      "province": "云南",
+      "initial": "Q",
+      "code": "101290200",
+      "platformName": "曲靖",
+      "aliases": ["曲靖市"]
+    },
+    {
+      "name": "保山",
+      "province": "云南",
+      "initial": "B",
+      "code": "101290300",
+      "platformName": "保山",
+      "aliases": ["保山市"]
+    },
+    {
+      "name": "玉溪",
+      "province": "云南",
+      "initial": "Y",
+      "code": "101290400",
+      "platformName": "玉溪",
+      "aliases": ["玉溪市"]
+    },
+    {
+      "name": "普洱",
+      "province": "云南",
+      "initial": "P",
+      "code": "101290500",
+      "platformName": "普洱",
+      "aliases": ["普洱市"]
+    },
+    {
+      "name": "昭通",
+      "province": "云南",
+      "initial": "Z",
+      "code": "101290700",
+      "platformName": "昭通",
+      "aliases": ["昭通市"]
+    },
+    {
+      "name": "临沧",
+      "province": "云南",
+      "initial": "L",
+      "code": "101290800",
+      "platformName": "临沧",
+      "aliases": ["临沧市"]
+    },
+    {
+      "name": "丽江",
+      "province": "云南",
+      "initial": "L",
+      "code": "101290900",
+      "platformName": "丽江",
+      "aliases": ["丽江市"]
+    },
+    {
+      "name": "西双版纳",
+      "province": "云南",
+      "initial": "X",
+      "code": "101291000",
+      "platformName": "西双版纳傣族自治州",
+      "aliases": ["西双版纳傣族自治州"]
+    },
+    {
+      "name": "文山",
+      "province": "云南",
+      "initial": "W",
+      "code": "101291100",
+      "platformName": "文山壮族苗族自治州",
+      "aliases": ["文山壮族苗族自治州", "文山州"]
+    },
+    {
+      "name": "红河",
+      "province": "云南",
+      "initial": "H",
+      "code": "101291200",
+      "platformName": "红河哈尼族彝族自治州",
+      "aliases": ["红河哈尼族彝族自治州", "红河州"]
+    },
+    {
+      "name": "德宏",
+      "province": "云南",
+      "initial": "D",
+      "code": "101291300",
+      "platformName": "德宏傣族景颇族自治州",
+      "aliases": ["德宏傣族景颇族自治州"]
+    },
+    {
+      "name": "怒江",
+      "province": "云南",
+      "initial": "N",
+      "code": "101291400",
+      "platformName": "怒江傈僳族自治州",
+      "aliases": ["怒江傈僳族自治州"]
+    },
+    {
+      "name": "迪庆",
+      "province": "云南",
+      "initial": "D",
+      "code": "101291500",
+      "platformName": "迪庆藏族自治州",
+      "aliases": ["迪庆藏族自治州"]
+    },
+    {
+      "name": "大理",
+      "province": "云南",
+      "initial": "D",
+      "code": "101291600",
+      "platformName": "大理白族自治州",
+      "aliases": ["大理白族自治州", "大理州"]
+    },
+    {
+      "name": "楚雄",
+      "province": "云南",
+      "initial": "C",
+      "code": "101291700",
+      "platformName": "楚雄彝族自治州",
+      "aliases": ["楚雄彝族自治州", "楚雄州"]
+    },
+    {
+      "name": "南宁",
+      "province": "广西",
+      "initial": "N",
+      "code": "101300100",
+      "platformName": "南宁",
+      "aliases": ["南宁市"]
+    },
+    {
+      "name": "崇左",
+      "province": "广西",
+      "initial": "C",
+      "code": "101300200",
+      "platformName": "崇左",
+      "aliases": ["崇左市"]
+    },
+    {
+      "name": "柳州",
+      "province": "广西",
+      "initial": "L",
+      "code": "101300300",
+      "platformName": "柳州"
+    },
+    {
+      "name": "来宾",
+      "province": "广西",
+      "initial": "L",
+      "code": "101300400",
+      "platformName": "来宾",
+      "aliases": ["来宾市"]
+    },
+    {
+      "name": "桂林",
+      "province": "广西",
+      "initial": "G",
+      "code": "101300500",
+      "platformName": "桂林",
+      "aliases": ["桂林市"]
+    },
+    {
+      "name": "梧州",
+      "province": "广西",
+      "initial": "W",
+      "code": "101300600",
+      "platformName": "梧州"
+    },
+    {
+      "name": "贺州",
+      "province": "广西",
+      "initial": "H",
+      "code": "101300700",
+      "platformName": "贺州"
+    },
+    {
+      "name": "贵港",
+      "province": "广西",
+      "initial": "G",
+      "code": "101300800",
+      "platformName": "贵港",
+      "aliases": ["贵港市"]
+    },
+    {
+      "name": "玉林",
+      "province": "广西",
+      "initial": "Y",
+      "code": "101300900",
+      "platformName": "玉林",
+      "aliases": ["玉林市"]
+    },
+    {
+      "name": "百色",
+      "province": "广西",
+      "initial": "B",
+      "code": "101301000",
+      "platformName": "百色",
+      "aliases": ["百色市"]
+    },
+    {
+      "name": "钦州",
+      "province": "广西",
+      "initial": "Q",
+      "code": "101301100",
+      "platformName": "钦州"
+    },
+    {
+      "name": "河池",
+      "province": "广西",
+      "initial": "H",
+      "code": "101301200",
+      "platformName": "河池",
+      "aliases": ["河池市"]
+    },
+    {
+      "name": "北海",
+      "province": "广西",
+      "initial": "B",
+      "code": "101301300",
+      "platformName": "北海",
+      "aliases": ["北海市"]
+    },
+    {
+      "name": "防城港",
+      "province": "广西",
+      "initial": "F",
+      "code": "101301400",
+      "platformName": "防城港",
+      "aliases": ["防城港市"]
+    },
+    {
+      "name": "海口",
+      "province": "海南",
+      "initial": "H",
+      "code": "101310100",
+      "platformName": "海口",
+      "aliases": ["海口市"]
+    },
+    {
+      "name": "三亚",
+      "province": "海南",
+      "initial": "S",
+      "code": "101310200",
+      "platformName": "三亚",
+      "aliases": ["三亚市"]
+    },
+    {
+      "name": "三沙",
+      "province": "海南",
+      "initial": "S",
+      "code": "101310300",
+      "platformName": "三沙",
+      "aliases": ["三沙市"]
+    },
+    {
+      "name": "儋州",
+      "province": "海南",
+      "initial": "D",
+      "code": "101310400",
+      "platformName": "儋州"
+    },
+    {
+      "name": "五指山",
+      "province": "海南",
+      "initial": "W",
+      "code": "101310500",
+      "platformName": "五指山",
+      "aliases": ["五指山市"]
+    },
+    {
+      "name": "琼海",
+      "province": "海南",
+      "initial": "Q",
+      "code": "101310600",
+      "platformName": "琼海",
+      "aliases": ["琼海市"]
+    },
+    {
+      "name": "文昌",
+      "province": "海南",
+      "initial": "W",
+      "code": "101310700",
+      "platformName": "文昌",
+      "aliases": ["文昌市"]
+    },
+    {
+      "name": "万宁",
+      "province": "海南",
+      "initial": "W",
+      "code": "101310800",
+      "platformName": "万宁",
+      "aliases": ["万宁市"]
+    },
+    {
+      "name": "东方",
+      "province": "海南",
+      "initial": "D",
+      "code": "101310900",
+      "platformName": "东方",
+      "aliases": ["东方市"]
+    },
+    {
+      "name": "定安",
+      "province": "海南",
+      "initial": "D",
+      "code": "101311000",
+      "platformName": "定安",
+      "aliases": ["定安市", "定安县"]
+    },
+    {
+      "name": "屯昌",
+      "province": "海南",
+      "initial": "T",
+      "code": "101311100",
+      "platformName": "屯昌",
+      "aliases": ["屯昌市", "屯昌县"]
+    },
+    {
+      "name": "澄迈",
+      "province": "海南",
+      "initial": "C",
+      "code": "101311200",
+      "platformName": "澄迈",
+      "aliases": ["澄迈市", "澄迈县"]
+    },
+    {
+      "name": "临高",
+      "province": "海南",
+      "initial": "L",
+      "code": "101311300",
+      "platformName": "临高",
+      "aliases": ["临高市", "临高县"]
+    },
+    {
+      "name": "白沙",
+      "province": "海南",
+      "initial": "B",
+      "code": "101311400",
+      "platformName": "白沙黎族自治县",
+      "aliases": ["白沙黎族自治县", "白沙县"]
+    },
+    {
+      "name": "昌江",
+      "province": "海南",
+      "initial": "C",
+      "code": "101311500",
+      "platformName": "昌江黎族自治县",
+      "aliases": ["昌江黎族自治县", "昌江县"]
+    },
+    {
+      "name": "乐东",
+      "province": "海南",
+      "initial": "L",
+      "code": "101311600",
+      "platformName": "乐东黎族自治县",
+      "aliases": ["乐东黎族自治县", "乐东县"]
+    },
+    {
+      "name": "陵水",
+      "province": "海南",
+      "initial": "L",
+      "code": "101311700",
+      "platformName": "陵水黎族自治县",
+      "aliases": ["陵水黎族自治县", "陵水县"]
+    },
+    {
+      "name": "保亭",
+      "province": "海南",
+      "initial": "B",
+      "code": "101311800",
+      "platformName": "保亭黎族苗族自治县",
+      "aliases": ["保亭黎族苗族自治县", "保亭县"]
+    },
+    {
+      "name": "琼中",
+      "province": "海南",
+      "initial": "Q",
+      "code": "101311900",
+      "platformName": "琼中黎族苗族自治县",
+      "aliases": ["琼中黎族苗族自治县", "琼中县"]
+    },
+    {
+      "name": "香港",
+      "province": "香港",
+      "initial": "X",
+      "code": "101320300",
+      "platformName": "香港",
+      "aliases": ["香港市"]
+    },
+    {
+      "name": "澳门",
+      "province": "澳门",
+      "initial": "A",
+      "code": "101330100",
+      "platformName": "澳门",
+      "aliases": ["澳门市"]
+    },
+    {
+      "name": "台湾",
+      "province": "台湾",
+      "initial": "T",
+      "code": "101341100",
+      "platformName": "台湾",
+      "aliases": ["台湾市"]
+    }
+  ]
+}

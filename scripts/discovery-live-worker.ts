@@ -15,7 +15,7 @@ import { bossResponse } from '../src/main/discovery/adapters/boss'
 import { liepinResponse } from '../src/main/discovery/adapters/liepin'
 import { zhilianResponse, zhilianInitial } from '../src/main/discovery/adapters/zhilian'
 import { wuyouResponse } from '../src/main/discovery/adapters/wuyou'
-import { wait, bounded } from '../src/main/discovery/search-page'
+import { wait, bounded } from '../src/main/discovery/async-control'
 import { record, rows, text } from '../src/main/discovery/parsing'
 
 const qa = path.join(process.cwd(), 'dist/qa')
@@ -41,6 +41,8 @@ type Captured = {
 }
 type Query = { keyword: string; city: string; salaryMin?: number; salaryMax?: number }
 const matrix = {
+  'city-restored': { keyword: '销售', city: '三沙' },
+  'city-common': { keyword: '销售', city: '北京' },
   salary: { keyword: 'Java', city: '北京', salaryMin: 17321, salaryMax: 28456 },
   'salary-min': { keyword: 'Java', city: '北京', salaryMin: 17321 },
   'salary-max': { keyword: 'Java', city: '北京', salaryMax: 28456 },
@@ -55,9 +57,17 @@ assert.ok(
   platformArg === 'all' || platforms.includes(platformArg as JobPlatform),
   'Unknown platform',
 )
-assert.ok(caseArg === 'all' || Object.hasOwn(matrix, caseArg), 'Unknown test case')
+assert.ok(
+  caseArg === 'all' || caseArg === 'cities' || Object.hasOwn(matrix, caseArg),
+  'Unknown test case',
+)
 const selectedPlatforms = platformArg === 'all' ? [...platforms] : [platformArg as JobPlatform]
-const queries = caseArg === 'all' ? Object.values(matrix) : [matrix[caseArg as keyof typeof matrix]]
+const queries =
+  caseArg === 'all'
+    ? Object.values(matrix)
+    : caseArg === 'cities'
+      ? [matrix['city-restored'], matrix['city-common']]
+      : [matrix[caseArg as keyof typeof matrix]]
 const reportName =
   platformArg === 'all' && caseArg === 'all'
     ? 'discovery-live-acceptance.json'

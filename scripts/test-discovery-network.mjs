@@ -7,8 +7,13 @@ import { linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.discovery-network-'))
-const root = path.join(staging, 'JobTrail')
-linkPackagedProgram(path.join(project, 'dist', 'win-unpacked'), root)
+const root = path.join(staging, 'JobTrail'),
+  runtime = path.join(root, '.runtime/current')
+linkPackagedProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
+fs.copyFileSync(
+  path.join(project, 'native/bootstrap/target/debug/launcher.exe'),
+  path.join(root, 'JobTrail.exe'),
+)
 const certificate = path.join(staging, 'fixture.pfx')
 // Generate an ephemeral test certificate without installing anything in the OS store.
 execFileSync(
@@ -35,64 +40,106 @@ const env = { ...process.env, APPDATA: staging }
 delete env.ELECTRON_RUN_AS_NODE
 let application
 try {
-  application = await electron.launch({ executablePath: path.join(root, 'zhiji.exe'), env })
+  application = await electron.launch({
+    executablePath: path.join(runtime, 'zhiji.exe'),
+    args: [`--user-data-dir=${path.join(staging, 'chromium')}`],
+    env,
+  })
   const page = await application.firstWindow()
   await page.locator('.sidebar').waitFor()
+  const platforms = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
   await application.evaluate(
-    async ({ session }, { certificate }) => {
+    ({ session }, { root, platforms }) => {
+      const path = process.getBuiltinModule('path')
+      globalThis.systemNetworkCalls = {}
+      for (const platform of platforms) {
+        const current = session.fromPath(path.join(root, 'browser-sessions', platform))
+        const original = current.setProxy.bind(current)
+        const calls = (globalThis.systemNetworkCalls[platform] = [])
+        current.setProxy = async (config) => {
+          calls.push(config)
+          return original(config)
+        }
+      }
+    },
+    { root, platforms },
+  )
+  // Initialize the production sessions using only disposable account storage.
+  for (const platform of platforms) {
+    await page.evaluate(
+      (platform) => window.zhijiApi.discovery.browser({ action: 'clear', platform }),
+      platform,
+    )
+  }
+  const configured = await application.evaluate(
+    async ({ session }, { root, platforms }) => {
+      const path = process.getBuiltinModule('path')
+      const reference = session.fromPartition('network-system-reference')
+      await reference.setProxy({ mode: 'system' })
+      const expected = await reference.resolveProxy('https://www.zhipin.com/')
+      const matches = []
+      for (const platform of platforms) {
+        const current = session.fromPath(path.join(root, 'browser-sessions', platform))
+        matches.push((await current.resolveProxy('https://www.zhipin.com/')) === expected)
+      }
+      return { calls: globalThis.systemNetworkCalls, matches }
+    },
+    { root, platforms },
+  )
+  for (const platform of platforms)
+    assert.deepEqual(configured.calls[platform], [{ mode: 'system' }])
+  assert.ok(configured.matches.every(Boolean), 'Every platform must use the system proxy policy')
+
+  const result = await application.evaluate(
+    async ({ session, BrowserWindow }, { root, certificate }) => {
       const https = process.getBuiltinModule('https')
       const http = process.getBuiltinModule('http')
       const net = process.getBuiltinModule('net')
-      const dns = process.getBuiltinModule('dns/promises')
       const fs = process.getBuiltinModule('fs')
-      const originalDial = net.createConnection.bind(net)
-      const originalLookup = dns.lookup.bind(dns)
-      const state = (globalThis.networkFixture = {
-        private: false,
-        dialed: [],
-        authorities: [],
-        requests: [],
-        privateRequests: 0,
-      })
+      const path = process.getBuiltinModule('path')
+      const current = session.fromPath(path.join(root, 'browser-sessions', 'boss'))
+      const requests = []
+      const authorities = []
+      const sockets = new Set()
       const tls = https.createServer({ pfx: fs.readFileSync(certificate) }, (req, res) => {
-        state.requests.push(req.url)
+        requests.push(req.url)
         res.setHeader('Cache-Control', 'no-store')
-        const privateUrl = `https://127.0.0.1:${state.tlsPort}/private`
-        if (req.url === '/redirect') {
-          res.writeHead(302, { location: privateUrl })
-        } else if (req.url === '/worker.js') {
+        if (req.url === '/worker.js') {
           res.setHeader('Content-Type', 'application/javascript')
           res.end(
-            `self.addEventListener("install",event=>event.waitUntil(self.skipWaiting()));self.addEventListener("activate",event=>event.waitUntil(self.clients.claim()));self.addEventListener("message",event=>event.waitUntil(fetch(${JSON.stringify(privateUrl)}).then(()=>event.ports[0].postMessage(false),()=>event.ports[0].postMessage(true))));`,
+            `self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(fetch('/worker-fetch').then(r=>r.text()).then(text=>e.ports[0].postMessage(text))));`,
           )
-          return
-        } else res.setHeader('Content-Type', 'text/html')
-        res.end(
-          `<!doctype html><title>Network fixture</title><p>public connection</p><img src="${privateUrl}">`,
-        )
-      })
-      await new Promise((resolve) => tls.listen(0, '127.0.0.1', resolve))
-      const port = tls.address().port
-      state.tlsPort = port
-      dns.lookup = (hostname, options) =>
-        ['www.zhipin.com', 'untrusted.zhipin.com'].includes(hostname)
-          ? Promise.resolve([{ address: state.private ? '127.0.0.1' : '8.8.8.8', family: 4 }])
-          : originalLookup(hostname, options)
-      net.createConnection = (...args) => {
-        if (args[0]?.host === '8.8.8.8') {
-          state.dialed.push({ host: args[0].host, port: args[0].port })
-          return originalDial(port, '127.0.0.1')
+        } else if (req.url === '/hang') {
+          // Deliberately leave the response pending to check cancellation.
+        } else if (req.url === '/redirect') {
+          res.writeHead(302, { location: '/redirected' })
+          res.end()
+        } else if (req.url.endsWith('-fetch')) {
+          res.end(req.headers.cookie || 'missing cookie')
+        } else {
+          res.setHeader('Content-Type', 'text/html')
+          res.setHeader(
+            'Set-Cookie',
+            'network-fixture=synthetic; Secure; HttpOnly; SameSite=Lax; Path=/',
+          )
+          res.end('<!doctype html><title>Network fixture</title><p>system transport</p>')
         }
-        return originalDial(...args)
-      }
-      const proxy = http.createServer((_request, response) => {
-        state.privateRequests++
-        response.end('private endpoint')
       })
+      const proxy = http.createServer((_req, res) => {
+        res.writeHead(502)
+        res.end()
+      })
+      for (const server of [tls, proxy])
+        server.on('connection', (socket) => {
+          sockets.add(socket)
+          socket.on('close', () => sockets.delete(socket))
+        })
+      await new Promise((resolve) => tls.listen(0, '127.0.0.1', resolve))
       proxy.on('connect', (req, socket, head) => {
-        state.authorities.push(req.url)
-        if (req.url !== '8.8.8.8:443') return socket.destroy()
-        const upstream = originalDial(port, '127.0.0.1', () => {
+        authorities.push(req.url)
+        if (!['www.zhipin.com:443', 'untrusted.zhipin.com:443'].includes(req.url))
+          return socket.destroy()
+        const upstream = net.createConnection(tls.address().port, '127.0.0.1', () => {
           socket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
           if (head.length) upstream.write(head)
           socket.pipe(upstream).pipe(socket)
@@ -103,110 +150,88 @@ try {
         upstream.on('close', () => socket.destroy())
       })
       await new Promise((resolve) => proxy.listen(0, '127.0.0.1', resolve))
-      state.proxyPort = proxy.address().port
-      await session.defaultSession.setProxy({ mode: 'direct' })
-    },
-    { certificate },
-  )
-  // This creates the production platform Session and applies its connection policy.
-  await page.evaluate(() =>
-    window.zhijiApi.discovery.browser({ action: 'clear', platform: 'boss' }),
-  )
-  const result = await application.evaluate(async ({ session, BrowserWindow }, root) => {
-    const path = process.getBuiltinModule('path')
-    const s = session.fromPath(path.join(root, 'browser-sessions', 'boss'))
-    const state = globalThis.networkFixture
-    const rejected = async (url) => {
+      let win
       try {
-        const response = await s.fetch(url, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(10000),
+        // The production system configuration was verified above. Substitute a
+        // local proxy only in this disposable test Session to avoid real websites
+        // and changes to Windows settings while exercising Chromium's transport.
+        await current.setProxy({
+          mode: 'fixed_servers',
+          proxyRules: `http://127.0.0.1:${proxy.address().port}`,
         })
-        return !response.ok
-      } catch {
-        return true
+        await current.closeAllConnections()
+        let certRejected = false
+        try {
+          await current.fetch('https://untrusted.zhipin.com/untrusted')
+        } catch {
+          certRejected = true
+        }
+        current.setCertificateVerifyProc((request, done) =>
+          done(request.hostname === 'www.zhipin.com' ? 0 : -3),
+        )
+        await current.closeAllConnections()
+        const response = await current.fetch('https://www.zhipin.com/session', {
+          cache: 'no-store',
+        })
+        const text = await response.text()
+        const redirected = await (await current.fetch('https://www.zhipin.com/redirect')).text()
+        win = new BrowserWindow({
+          show: false,
+          webPreferences: {
+            session: current,
+            sandbox: true,
+            contextIsolation: true,
+            nodeIntegration: false,
+          },
+        })
+        await win.loadURL('https://www.zhipin.com/page')
+        const renderer = await win.webContents.executeJavaScript(`(async()=>{
+        const page=await(await fetch('/renderer-fetch')).text();
+        await navigator.serviceWorker.register('/worker.js');
+        const registration=await navigator.serviceWorker.ready;
+        const channel=new MessageChannel();
+        const worker=new Promise((resolve,reject)=>{
+          const timer=setTimeout(()=>reject(new Error('worker timeout')),10000);
+          channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data)};
+        });
+        registration.active.postMessage('check',[channel.port2]);
+        return {page,worker:await worker};
+      })()`)
+        let cancelled = false
+        try {
+          await current.fetch('https://www.zhipin.com/hang', { signal: AbortSignal.timeout(200) })
+        } catch {
+          cancelled = true
+        }
+        return { certRejected, text, redirected, renderer, cancelled, authorities, requests }
+      } finally {
+        win?.destroy()
+        await current.closeAllConnections()
+        current.setCertificateVerifyProc(null)
+        await current.setProxy({ mode: 'system' })
+        for (const socket of sockets) socket.destroy()
+        await Promise.all(
+          [tls, proxy].map((server) => new Promise((resolve) => server.close(resolve))),
+        )
       }
-    }
-    // Trust the fixture targets in this disposable Session so a loopback bypass
-    // would succeed and fail the assertions, rather than being hidden by TLS.
-    s.setCertificateVerifyProc((request, done) =>
-      done(['www.zhipin.com', '127.0.0.1'].includes(request.hostname) ? 0 : -3),
-    )
-    const certRejected = await rejected('https://untrusted.zhipin.com/untrusted')
-    const response = await s.fetch('https://www.zhipin.com/fetch', { cache: 'no-store' })
-    const text = await response.text()
-    const win = new BrowserWindow({
-      show: false,
-      webPreferences: { session: s, sandbox: true, contextIsolation: true, nodeIntegration: false },
-    })
-    await win.loadURL('https://www.zhipin.com/page')
-    const renderer = await win.webContents.executeJavaScript(`(async()=>{
-      await navigator.serviceWorker.register('/worker.js');
-      const registration=await navigator.serviceWorker.ready;
-      const channel=new MessageChannel();
-      const blocked=new Promise(resolve=>{channel.port1.onmessage=event=>resolve(event.data);setTimeout(()=>resolve(false),10000)});
-      registration.active.postMessage('check',[channel.port2]);
-      try {await fetch('https://127.0.0.1:${state.tlsPort}/private');return false}catch{return await blocked}
-    })()`)
-    const redirectBlocked = await rejected('https://www.zhipin.com/redirect')
-    const localBlocked = await rejected(`http://127.0.0.1:${state.proxyPort}/private`)
-    await s.closeAllConnections()
-    state.private = true
-    const before = state.dialed.length
-    const reboundBlocked = await rejected('https://www.zhipin.com/rebound')
-    const noPrivateDial = state.dialed.length === before
-    state.private = false
-    await s.closeAllConnections()
-    await session.defaultSession.setProxy({
-      mode: 'fixed_servers',
-      proxyRules: `http://127.0.0.1:${state.proxyPort}`,
-    })
-    const proxied = await (
-      await s.fetch('https://www.zhipin.com/proxied', { cache: 'no-store' })
-    ).text()
-    await s.closeAllConnections()
-    await session.defaultSession.setProxy({
-      mode: 'fixed_servers',
-      proxyRules: 'socks5://127.0.0.1:1',
-    })
-    const unsupportedProxyBlocked = await rejected('https://www.zhipin.com/unsupported-proxy')
-    win.destroy()
-    return {
-      certRejected,
-      text,
-      renderer,
-      redirectBlocked,
-      localBlocked,
-      reboundBlocked,
-      noPrivateDial,
-      proxied,
-      unsupportedProxyBlocked,
-      authorities: state.authorities,
-      dialed: state.dialed,
-      privateRequests: state.privateRequests,
-      tlsPrivateRequests: state.requests.filter((url) => url === '/private').length,
-    }
-  }, root)
-  for (const key of [
-    'certRejected',
-    'renderer',
-    'redirectBlocked',
-    'localBlocked',
-    'reboundBlocked',
-    'noPrivateDial',
-    'unsupportedProxyBlocked',
-  ])
-    assert.equal(result[key], true, key)
-  assert.match(result.text, /public connection/)
-  assert.match(result.proxied, /public connection/)
-  assert.equal(result.privateRequests, 0)
-  assert.equal(result.tlsPrivateRequests, 0)
-  assert.ok(result.dialed.length > 0)
-  assert.ok(result.dialed.every((target) => target.host === '8.8.8.8' && target.port === 443))
+    },
+    { root, certificate },
+  )
+  assert.equal(result.certRejected, true)
+  assert.match(result.text, /system transport/)
+  assert.match(result.redirected, /system transport/)
+  assert.match(result.renderer.page, /network-fixture=synthetic/)
+  assert.match(result.renderer.worker, /network-fixture=synthetic/)
+  assert.equal(result.cancelled, true)
   assert.ok(result.authorities.length > 0)
-  assert.ok(result.authorities.every((authority) => authority === '8.8.8.8:443'))
+  assert.ok(
+    result.authorities.every((value) =>
+      ['www.zhipin.com:443', 'untrusted.zhipin.com:443'].includes(value),
+    ),
+  )
+  assert.ok(result.requests.includes('/redirected'))
   console.log(
-    'Packaged discovery connection policy passed: TLS, Session fetch, renderer, redirects, rebinding, HTTP proxy and fail-closed proxy policy',
+    'Packaged discovery system networking passed: six platform policies, Chromium TLS, Session fetch, renderer, Service Worker, cookies, redirects and cancellation',
   )
 } finally {
   await application?.close()

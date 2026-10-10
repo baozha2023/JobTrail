@@ -13,6 +13,7 @@ import type { UnitOfWork } from '../services/unit-of-work'
 import type { CompanyService } from '../services/company-service'
 import type { OpportunityService } from '../services/opportunity-service'
 import { AppServiceError } from '../services/errors'
+import { platformAdapter } from './adapter-registry'
 
 export type DiscoveryLive = Pick<
   DiscoveryApi,
@@ -44,7 +45,22 @@ export class JobDiscoveryService implements DiscoveryApi {
     return check ? this.runtime().status(true) : this.repository.status()
   }
   async start(input: z.input<typeof startSearchSchema>) {
-    return this.runtime().start(startSearchSchema.parse(input))
+    const parsed = startSearchSchema.parse(input)
+    const { city, platforms } = parsed.query
+    if (city) {
+      const cities = platforms.map((platform) => platformAdapter(platform).cities.find(city))
+      const first = cities[0]
+      if (!first || cities.some((item) => !item || item.name !== first.name))
+        throw new AppServiceError(
+          'DISCOVERY_UNSUPPORTED_CITY',
+          'City is not shared by selected platforms',
+          {
+            city,
+            platforms,
+          },
+        )
+    }
+    return this.runtime().start(parsed)
   }
   async run(id: string) {
     return this.repository.run(id)

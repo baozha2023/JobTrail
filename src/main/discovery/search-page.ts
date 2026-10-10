@@ -6,35 +6,7 @@ import { record } from './parsing'
 import { captureError } from '../diagnostics'
 import { needsHumanAction } from '../../shared/job-discovery'
 
-export async function wait(ms: number, signal: AbortSignal): Promise<void> {
-  signal.throwIfAborted()
-  await new Promise<void>((resolve, reject) => {
-    const abort = () => {
-      clearTimeout(timer)
-      reject(signal.reason)
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener('abort', abort)
-      resolve()
-    }, ms)
-    signal.addEventListener('abort', abort, { once: true })
-  })
-}
-export async function bounded<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  signal.throwIfAborted()
-  let abort = () => {}
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_, reject) => {
-        abort = () => reject(signal.reason)
-        signal.addEventListener('abort', abort, { once: true })
-      }),
-    ])
-  } finally {
-    signal.removeEventListener('abort', abort)
-  }
-}
+import { bounded, wait } from './async-control'
 
 const requestEvent = z.object({
   requestId: z.string(),
@@ -43,7 +15,7 @@ const requestEvent = z.object({
 const finishedEvent = z.object({ requestId: z.string(), encodedDataLength: z.number() })
 const bodyResult = z.object({ body: z.string(), base64Encoded: z.boolean() })
 
-/** Owned Chromium page transport; all site behavior belongs to the four adapters. */
+/** Owned Chromium page transport; all site behavior belongs to platform adapters. */
 export class SearchPage implements SearchTransport {
   constructor(
     readonly contents: WebContents,
@@ -242,6 +214,20 @@ export class SearchPage implements SearchTransport {
         needsHumanAction(failure.state)
       )
         throw failure
+      // A verification redirect can discard the response body before Chromium
+      // delivers it. Prefer the current official page's human-action evidence
+      // to a transport/parser failure, without masking cancellation.
+      if (
+        !signal.aborted &&
+        error instanceof SourceError &&
+        ['scope_unverified', 'network_error', 'parse_error'].includes(error.state)
+      ) {
+        try {
+          await this.guard(signal)
+        } catch (pageError) {
+          if (pageError instanceof SourceError && needsHumanAction(pageError.state)) throw pageError
+        }
+      }
       throw error
     } finally {
       protocol.removeListener('message', listener)

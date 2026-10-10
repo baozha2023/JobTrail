@@ -12,8 +12,11 @@ import {
 } from '../adapter'
 import { pageScript, type PageRules } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
-import { cityCode, discoveryCity, platformCity } from '../../../shared/discovery-cities'
+import { createCityLookup } from '../../../shared/discovery-city-catalog'
+import cityCatalog from '../../../shared/discovery-cities/zhilian.json'
 import { batch, job, record, rows, text } from '../parsing'
+
+const cities = createCityLookup(cityCatalog)
 
 export function zhilianRequest(
   request: SearchRequest,
@@ -46,7 +49,7 @@ export function zhilianRequest(
     ].every((key) => data[key] === undefined || data[key] === null || data[key] === '') &&
     data.eventScenario === 'pcSearchedSouSearch' &&
     text(data.S_SOU_FULL_INDEX).toLowerCase() === query.keyword.toLowerCase() &&
-    (!query.city || String(data.S_SOU_WORK_CITY) === cityCode('zhilian', query.city)) &&
+    (!query.city || String(data.S_SOU_WORK_CITY) === cities.code(query.city)) &&
     Number(data.pageIndex) === page
   )
 }
@@ -90,7 +93,7 @@ export function zhilianInitial(
     ) ||
     state.pageMode !== 'search' ||
     text(params.kw).toLowerCase() !== query.keyword.toLowerCase() ||
-    (query.city && String(params.jl) !== cityCode('zhilian', query.city)) ||
+    (query.city && String(params.jl) !== cities.code(query.city)) ||
     state.pageIndex !== page ||
     state.loadingStatus !== false ||
     state.listLoadError === true
@@ -113,7 +116,7 @@ export class ZhilianSearch implements PlatformSearch {
   ) {}
   async read(signal: AbortSignal): Promise<SourceBatch> {
     if (this.pending) return this.pending
-    if (this.query.city && cityCode('zhilian', this.query.city) === undefined)
+    if (this.query.city && cities.code(this.query.city) === undefined)
       throw new SourceError('unsupported_city')
     if (!this.ready) await this.page.load('https://www.zhaopin.com/', signal)
     let submittedCity = ''
@@ -139,14 +142,13 @@ export class ZhilianSearch implements PlatformSearch {
               ),
             signal,
           )
-          const code = cityCode('zhilian', this.query.city)
+          const code = cities.code(this.query.city)
           const selected = await this.page.evaluate<string>(
             'new URL(location.href).searchParams.get("jl")||""',
             signal,
           )
           if (this.query.city && selected !== code) {
-            const city = discoveryCity(this.query.city)!
-            const target = platformCity('zhilian', this.query.city)!
+            const target = cities.find(this.query.city)!
             await this.page.click('.filter-region-box .filter-select-box__trigger', null, signal)
             const dialog = '.s-dialog[aria-label="请选择地区"]'
             await this.page.until(
@@ -159,20 +161,20 @@ export class ZhilianSearch implements PlatformSearch {
             )
             // The first column is provinces, the second is cities (including the hot group).
             const hasCity = await this.page.evaluate<boolean>(
-              `[...document.querySelectorAll('${dialog} .s-cascader__options')[1].querySelectorAll('.s-cascader__option-content')].some(e=>e.textContent.trim()===${JSON.stringify(target.name)})`,
+              `[...document.querySelectorAll('${dialog} .s-cascader__options')[1].querySelectorAll('.s-cascader__option-content')].some(e=>e.textContent.trim()===${JSON.stringify(target.platformName)})`,
               signal,
             )
             if (!hasCity) {
-              const province = ['香港', '澳门', '台湾'].includes(city.province)
+              const province = ['香港', '澳门', '台湾'].includes(target.province)
                 ? '港澳台'
-                : city.province
+                : target.province
               await this.page.click(`${dialog} .s-cascader__option-content`, province, signal)
             }
             // Scope to the city column so 吉林省 and 吉林市 cannot be confused.
             await this.page.until(
               () =>
                 this.page.evaluate<boolean>(
-                  `(()=>{const column=document.querySelectorAll('${dialog} .s-cascader__options')[1];const e=[...column.querySelectorAll('.s-cascader__option-content')].find(e=>e.textContent.trim()===${JSON.stringify(target.name)});if(!e)return false;e.click();return true})()`,
+                  `(()=>{const column=document.querySelectorAll('${dialog} .s-cascader__options')[1];const e=[...column.querySelectorAll('.s-cascader__option-content')].find(e=>e.textContent.trim()===${JSON.stringify(target.platformName)});if(!e)return false;e.click();return true})()`,
                   signal,
                 ),
               signal,
@@ -181,7 +183,7 @@ export class ZhilianSearch implements PlatformSearch {
             await this.page.until(
               () =>
                 this.page.evaluate<boolean>(
-                  `(()=>{const root=document.querySelector('${dialog}');if(!root||!root.getBoundingClientRect().width)return true;const e=[...root.querySelectorAll('.s-checkbutton__item')].find(e=>e.textContent.trim()===${JSON.stringify('全' + target.name)});if(!e)return false;e.click();return true})()`,
+                  `(()=>{const root=document.querySelector('${dialog}');if(!root||!root.getBoundingClientRect().width)return true;const e=[...root.querySelectorAll('.s-checkbutton__item')].find(e=>e.textContent.trim()===${JSON.stringify('全' + target.platformName)});if(!e)return false;e.click();return true})()`,
                   signal,
                 ),
               signal,
@@ -296,10 +298,19 @@ function createQr(transport: QrTransport): QrProtocol {
   }
 }
 export const zhilianAdapter: PlatformAdapter = {
+  cities,
   ...zhilianIdentity,
   accountCheckUrl: 'https://www.zhaopin.com/',
   contractVersion: 1,
+  sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
+  async checkSession(transport) {
+    const page = await transport.page(this.accountCheckUrl, pageScript(pageRules, false))
+    if (page.challenge) return 'challenge'
+    if (page.authenticated) return 'authenticated'
+    if (page.login) return 'login_required'
+    return 'unknown'
+  },
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new ZhilianSearch(page, query),
   qr: {
@@ -309,6 +320,7 @@ export const zhilianAdapter: PlatformAdapter = {
     },
     create: createQr,
     headers: () => ({
+      'X-Requested-With': 'XMLHttpRequest',
       'x-zp-passport-appid': appID,
       'x-zp-refer': '121126445',
       'x-zp-client-type': 'n',
@@ -321,20 +333,21 @@ const pageRules: PageRules = {
   loginSelector:
     'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.job-list-login-gate,.job-detail-login-gate__panel',
   loginUrl: '://passport\\.zhaopin\\.com/',
-  authenticatedSelector: 'a[href*="logout"],a[href*="signout"],.user-avatar,.userAvatar',
+  authenticatedSelector:
+    '.home-header__c-login .c-login__top__img,a[href*="logout"],a[href*="signout"]',
   descriptionSelector:
-    '.describtion__detail-content,.job-detail-description,.job-detail .describtion',
+    '.describtion-card__detail-content,.describtion__detail-content,.job-detail-description,.job-detail .describtion',
   statusSelector: '.job-status,.job-summary__status,.job-summary__btn',
   tagsSelector:
-    '.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
+    '.summary-planes__info li,.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
   fields: {
-    title: '.job-name h1,.name h1,.job-title h1,.cn h1',
-    company: '.sider-company .company-info a,.company-name,.company-title',
-    city: '.job-banner .text-city,.job-area,.job-address,.job-dq',
-    salary: '.job-banner .salary,.salary,.job-salary,.cn strong',
+    title: '.summary-planes__title,.job-name h1,.name h1,.job-title h1,.cn h1',
+    company: '.company-info__name,.sider-company .company-info a,.company-name,.company-title',
+    city: '.summary-planes__info .workCity-link,.job-banner .text-city,.job-area,.job-address,.job-dq',
+    salary: '.summary-planes__salary,.job-banner .salary,.salary,.job-salary,.cn strong',
     experience: '.job-experience,[class*="work-years"],[class*="workyear"]',
     education: '.job-education,[class*="education"]',
   },
   foldedSelector: '.job-sec button,.job-description button',
-  excludedSelector: 'aside,[class*="recommend"],.job-list,.company-intro',
+  excludedSelector: 'aside,[class*="recommend"],.jobs-deliver,.job-list,.company-intro',
 }

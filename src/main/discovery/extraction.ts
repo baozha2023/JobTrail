@@ -8,6 +8,7 @@ export interface PageSnapshot {
   detail: Partial<RawJob>
 }
 export interface PageRules {
+  challengeUrl?: string
   loginSelector: string
   loginUrl: string
   loginUrlNeedsText: boolean
@@ -26,9 +27,20 @@ function readPage(rules: PageRules, detail: boolean): PageSnapshot {
   const visible = (e: Element) => {
     const rect = e.getBoundingClientRect(),
       style = getComputedStyle(e)
-    return (
-      rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0 ||
+      style.visibility === 'hidden' ||
+      style.visibility === 'collapse'
     )
+      return false
+    // Preloaded verification frames can retain their size inside transparent containers.
+    // Opacity and display on any ancestor affect rendering; offscreen JD content remains readable.
+    for (let node: Element | null = e; node; node = node.parentElement) {
+      const ancestorStyle = node === e ? style : getComputedStyle(node)
+      if (ancestorStyle.display === 'none' || ancestorStyle.opacity === '0') return false
+    }
+    return true
   }
   const text = (e: Element | null) =>
     ((e as HTMLElement)?.innerText || e?.textContent || '').trim().replace(/\u00a0/g, ' ')
@@ -55,6 +67,7 @@ function readPage(rules: PageRules, detail: boolean): PageSnapshot {
     body += (node.textContent ?? '').slice(0, 40000 - body.length)
   }
   const challenge =
+    (!!rules.challengeUrl && new RegExp(rules.challengeUrl).test(location.href)) ||
     /captcha|verify|security-check/i.test(location.pathname) ||
     /滑动验证|请完成验证|访问过于频繁|账号异常|安全验证|行为异常|人机验证/.test(body) ||
     /^(访问验证|安全验证|人机验证)(\s|$)/.test(document.title.trim()) ||

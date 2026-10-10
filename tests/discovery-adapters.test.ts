@@ -344,6 +344,22 @@ describe('response correlation', () => {
     expect(result).toEqual({ id: 'current' })
     expect(t.protocol.listenerCount('message')).toBe(0)
   })
+  it.each(['network_error', 'parse_error', 'scope_unverified'] as const)(
+    'reports the current verification page instead of a %s caused by its redirect',
+    async (state) => {
+      const t = transport()
+      vi.spyOn(t.page, 'guard').mockRejectedValue(new SourceError('challenge'))
+      await expect(
+        t.page.response(
+          { request: () => true, response: (value) => value },
+          async () => {
+            throw new SourceError(state)
+          },
+          AbortSignal.timeout(2000),
+        ),
+      ).rejects.toMatchObject({ state: 'challenge' })
+    },
+  )
   it.each(['login_required', 'session_expired', 'challenge'] as const)(
     'preserves an official %s response when page controls become unavailable',
     async (state) => {

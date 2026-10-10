@@ -1,4 +1,10 @@
 export const ERROR_CODES = {
+  DISCOVERY_UNSUPPORTED_CITY: {
+    category: 'validation',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.DISCOVERY_UNSUPPORTED_CITY',
+  },
   DISCOVERY_JOB_OFFLINE: {
     category: 'business',
     level: 'info',

@@ -406,10 +406,7 @@ describe('public web reader', () => {
     const prefix = 'https://example.com/sa.gif?data='
     const resolve = vi.fn()
     await expect(
-      new WebNetwork(resolve).resolvePublicUrl(
-        prefix + 'a'.repeat(10241 - prefix.length),
-        new AbortController().signal,
-      ),
+      new WebNetwork(resolve).request(prefix + 'a'.repeat(10241 - prefix.length), budget()),
     ).rejects.toMatchObject({ code: 'WEB_INVALID_URL', message: '网页地址过长' })
     expect(resolve).not.toHaveBeenCalled()
   })
@@ -426,10 +423,7 @@ describe('public web reader', () => {
   it('still blocks long URLs whose hostname resolves to a private address', async () => {
     const network = new WebNetwork(async () => [{ address: '127.0.0.1', family: 4 }])
     await expect(
-      network.resolvePublicUrl(
-        'https://example.com/?data=' + 'a'.repeat(3000),
-        new AbortController().signal,
-      ),
+      network.request('https://example.com/?data=' + 'a'.repeat(3000), budget()),
     ).rejects.toMatchObject({ code: 'WEB_BLOCKED' })
   })
 
@@ -472,46 +466,16 @@ describe('public web reader', () => {
     expect(connect).toHaveBeenCalledOnce()
   })
 
-  it('resolves fake proxy DNS through pinned public DNS before connecting', async () => {
-    const network = new WebNetwork(async () => [{ address: '198.18.0.28', family: 4 }])
-    const connect = vi.fn(async (url: URL, _address: { address: string }) =>
-      url.hostname === 'cloudflare-dns.com'
-        ? {
-            status: 200,
-            headers: { 'content-type': 'application/dns-json' },
-            body: Buffer.from(
-              JSON.stringify({ Status: 0, Answer: [{ type: 1, data: '101.201.70.32' }] }),
-            ),
-          }
-        : { status: 200, headers: { 'content-type': 'text/html' }, body: Buffer.from('ok') },
-    )
-    Object.defineProperty(network, 'once', { value: connect })
-    const results = await Promise.all([
-      network.request('https://sanycampus.zhiye.com/', budget()),
-      network.request('https://sanycampus.zhiye.com/', budget()),
-    ])
-    expect(results).toEqual([
-      expect.objectContaining({ status: 200, body: Buffer.from('ok') }),
-      expect.objectContaining({ status: 200, body: Buffer.from('ok') }),
-    ])
-    expect(connect).toHaveBeenCalledTimes(3)
-    expect(connect.mock.calls[0]?.[1]).toEqual({ address: '1.1.1.1', family: 4 })
-    expect(connect.mock.calls[1]?.[1]).toEqual({ address: '101.201.70.32', family: 4 })
-    expect(connect.mock.calls[2]?.[1]).toEqual({ address: '101.201.70.32', family: 4 })
-  })
-
-  it('rejects a private address returned by public DNS before opening the webpage', async () => {
-    const network = new WebNetwork(async () => [{ address: '198.18.0.28', family: 4 }])
-    const connect = vi.fn(async () => ({
-      status: 200,
-      headers: { 'content-type': 'application/dns-json' },
-      body: Buffer.from(JSON.stringify({ Status: 0, Answer: [{ type: 1, data: '127.0.0.1' }] })),
-    }))
+  it('does not query another DNS service when system DNS returns a reserved proxy address', async () => {
+    const resolve = vi.fn(async () => [{ address: '198.18.0.28', family: 4 }])
+    const network = new WebNetwork(resolve)
+    const connect = vi.fn()
     Object.defineProperty(network, 'once', { value: connect })
     await expect(network.request('https://example.com/', budget())).rejects.toMatchObject({
       code: 'WEB_BLOCKED',
     })
-    expect(connect).toHaveBeenCalledOnce()
+    expect(resolve).toHaveBeenCalledExactlyOnceWith('example.com')
+    expect(connect).not.toHaveBeenCalled()
   })
 
   it('pins the resolved IP and limits compressed and uncompressed responses', async () => {
@@ -926,7 +890,7 @@ describe('public web reader', () => {
     }))
     Object.defineProperty(network, 'once', { value: once })
     await network.requestQuery(approved, budget())
-    expect(once.mock.calls[0]?.[7]).toEqual(approved.headers)
+    expect(once.mock.calls[0]?.[6]).toEqual(approved.headers)
     expect(
       approveWebQueryPost(
         page,

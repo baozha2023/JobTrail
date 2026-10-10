@@ -12,8 +12,11 @@ import {
 } from '../adapter'
 import { pageScript, type PageRules } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
-import { cityCode, discoveryCity, platformCity } from '../../../shared/discovery-cities'
+import { createCityLookup } from '../../../shared/discovery-city-catalog'
+import cityCatalog from '../../../shared/discovery-cities/wuyou.json'
 import { batch, job, record, rows, text } from '../parsing'
+
+const cities = createCityLookup(cityCatalog)
 
 export function wuyouBody(body: string): unknown {
   if (/<meta\b[^>]*\bname=["']aliyun_waf_aa["']/i.test(body)) throw new SourceError('challenge')
@@ -37,15 +40,17 @@ export function wuyouRequest(
       (key) => !url.searchParams.get(key),
     ) &&
     url.searchParams.get('keyword') === query.keyword &&
-    (!query.city || url.searchParams.get('jobArea') === cityCode('wuyou', query.city)) &&
+    (!query.city || url.searchParams.get('jobArea') === cities.code(query.city)) &&
     Number(url.searchParams.get('pageNum')) === page
   )
 }
 export function wuyouCityFilter(city: string): (location: string) => boolean {
-  const target = city ? platformCity('wuyou', city) : undefined
+  const target = city ? cities.find(city) : undefined
   if (city && !target) throw new SourceError('unsupported_city')
   const cityNames = new Set(
-    [target?.name, discoveryCity(city)?.name].map((name) => name?.replace(/市$/, '')),
+    [target?.platformName, target?.name, ...(target?.aliases ?? [])].map((name) =>
+      name?.replace(/市$/, ''),
+    ),
   )
   return (location) =>
     !target || cityNames.has(location.split(/[-·]/, 1)[0].trim().replace(/市$/, ''))
@@ -84,7 +89,8 @@ export function wuyouResponse(
     },
     Number.isSafeInteger(total) && total >= 0 ? page * pageSize < total : null,
     {
-      // jobAreaString is city[·district]; missing or non-city locations cannot prove admission.
+      // The search list mixes isPromotion jobs from other cities into its results.
+      // Apply 51job's jobAreaString city[·district] rule here, before storage and caching.
       accept: (item) => acceptsCity(item.city),
     },
   )
@@ -100,7 +106,7 @@ export class WuyouSearch implements PlatformSearch {
   ) {}
   private async selectCity(signal: AbortSignal) {
     if (!this.query.city) return
-    const city = platformCity('wuyou', this.query.city)!.name
+    const city = cities.find(this.query.city)!.platformName
     const selected = await this.page.evaluate<string[]>(
       `[...document.querySelectorAll('.c_area a.ch.on')].map(e=>e.textContent.trim())`,
       signal,
@@ -119,7 +125,7 @@ export class WuyouSearch implements PlatformSearch {
           )
             return null
           return (
-            u.searchParams.get('jobArea') === cityCode('wuyou', this.query.city) &&
+            u.searchParams.get('jobArea') === cities.code(this.query.city) &&
             u.searchParams.get('pageNum') === '1'
           )
         },
@@ -185,7 +191,7 @@ export class WuyouSearch implements PlatformSearch {
   }
   async read(signal: AbortSignal): Promise<SourceBatch> {
     if (this.pending) return this.pending
-    if (this.query.city && cityCode('wuyou', this.query.city) === undefined)
+    if (this.query.city && cities.code(this.query.city) === undefined)
       throw new SourceError('unsupported_city')
     if (!this.ready) {
       await this.page.response(
@@ -319,10 +325,20 @@ function createQr(transport: QrTransport): QrProtocol {
   }
 }
 export const wuyouAdapter: PlatformAdapter = {
+  cities,
   ...wuyouIdentity,
-  accountCheckUrl: 'https://www.51job.com/',
+  // The marketing homepage can show a login form while the search session is authenticated.
+  accountCheckUrl: 'https://we.51job.com/pc/search',
   contractVersion: 1,
+  sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
+  async checkSession(transport) {
+    const page = await transport.page(this.accountCheckUrl, pageScript(pageRules, false))
+    if (page.challenge) return 'challenge'
+    if (page.authenticated) return 'authenticated'
+    if (page.login) return 'login_required'
+    return 'unknown'
+  },
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new WuyouSearch(page, query),
   qr: {
@@ -331,14 +347,15 @@ export const wuyouAdapter: PlatformAdapter = {
       'en-US': 'Scan and confirm using the 51job app or WeChat.',
     },
     create: createQr,
+    headers: () => ({ 'X-Requested-With': 'XMLHttpRequest' }),
   },
 }
 const pageRules: PageRules = {
   loginUrlNeedsText: false,
   loginSelector:
-    'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer',
+    'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.login-card .phone-login-form',
   loginUrl: '://login\\.51job\\.com/',
-  authenticatedSelector: 'a[href*="logout"],a[href*="signout"],.user-avatar,.userAvatar',
+  authenticatedSelector: '.user-info .name-span:not(:empty),a[href*="logout"],a[href*="signout"]',
   descriptionSelector: '.bmsg.job_msg,.job-detail .job-intro,.job-description',
   statusSelector: '.job-status,.cn .status,.job-expired',
   tagsSelector:

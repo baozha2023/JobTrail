@@ -1,4 +1,4 @@
-import type { DiscoveryApi } from './job-discovery'
+import type { BrowserLoadingState, DiscoveryApi } from './job-discovery'
 import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
 import type {
   ExamChangeEvent,
@@ -214,6 +214,7 @@ export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
 export interface AppEventMap {
+  'discovery:browser-loading': BrowserLoadingState
   'backup:import-confirmation': BackupImportConfirmation
   'exams:changed': ExamChangeEvent
   'company-catalog:progress': CompanyCatalogProgress

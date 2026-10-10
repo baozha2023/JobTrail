@@ -12,8 +12,11 @@ import {
 } from '../adapter'
 import { pageScript, type PageRules } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
-import { cityCode, discoveryCity, platformCity } from '../../../shared/discovery-cities'
+import { createCityLookup } from '../../../shared/discovery-city-catalog'
+import cityCatalog from '../../../shared/discovery-cities/boss.json'
 import { batch, job, record, rows, text } from '../parsing'
+
+const cities = createCityLookup(cityCatalog)
 
 export function bossRequest(
   request: SearchRequest,
@@ -33,7 +36,7 @@ export function bossRequest(
       (key) => !parameters.get(key) || parameters.get(key) === '0',
     ) &&
     parameters.get('query') === query.keyword &&
-    (!query.city || parameters.get('city') === cityCode('boss', query.city)) &&
+    (!query.city || parameters.get('city') === cities.code(query.city)) &&
     Number(parameters.get('page')) === page
   )
 }
@@ -77,7 +80,7 @@ export class BossSearch implements PlatformSearch {
   ) {}
   async read(signal: AbortSignal): Promise<SourceBatch> {
     if (this.pending) return this.pending
-    if (this.query.city && cityCode('boss', this.query.city) === undefined)
+    if (this.query.city && cities.code(this.query.city) === undefined)
       throw new SourceError('unsupported_city')
     if (!this.ready) await this.page.load('https://www.zhipin.com/', signal)
     let submittedCity = ''
@@ -107,8 +110,8 @@ export class BossSearch implements PlatformSearch {
             'document.querySelector(".cur-city-label")?.textContent.trim()||""',
             signal,
           )
-          const target = platformCity('boss', this.query.city)
-          if (target && current !== target.name) {
+          const target = cities.find(this.query.city)
+          if (target && current !== target.platformName) {
             await this.page.click('.city-label', null, signal)
             await this.page.until(
               () =>
@@ -119,20 +122,28 @@ export class BossSearch implements PlatformSearch {
               signal,
             )
             const hot = await this.page.evaluate<boolean>(
-              `[...document.querySelectorAll('.city-select-dialog .city-list-hot li')].some(e=>e.textContent.trim()===${JSON.stringify(target.name)})`,
+              `[...document.querySelectorAll('.city-select-dialog .city-list-hot li')].some(e=>e.textContent.trim()===${JSON.stringify(target.platformName)})`,
               signal,
             )
             if (hot)
-              await this.page.click('.city-select-dialog .city-list-hot li', target.name, signal)
+              await this.page.click(
+                '.city-select-dialog .city-list-hot li',
+                target.platformName,
+                signal,
+              )
             else {
-              const initial = discoveryCity(this.query.city)!.initial
+              const initial = target.initial
               const group = await this.page.evaluate<string | null>(
                 `[...document.querySelectorAll('.city-select-dialog .city-char-list li')].map(e=>e.textContent.trim()).find(t=>t.includes(${JSON.stringify(initial)}))??null`,
                 signal,
               )
               if (!group) throw new SourceError('scope_unverified', 'control_not_found')
               await this.page.click('.city-select-dialog .city-char-list li', group, signal)
-              await this.page.click('.city-select-dialog .list-select-list a', target.name, signal)
+              await this.page.click(
+                '.city-select-dialog .list-select-list a',
+                target.platformName,
+                signal,
+              )
             }
           }
         } else {
@@ -215,10 +226,19 @@ function createQr(transport: QrTransport): QrProtocol {
   }
 }
 export const bossAdapter: PlatformAdapter = {
+  cities,
   ...bossIdentity,
   accountCheckUrl: 'https://www.zhipin.com/',
   contractVersion: 2,
+  sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
+  async checkSession(transport) {
+    const page = await transport.page(this.accountCheckUrl, pageScript(pageRules, false))
+    if (page.challenge) return 'challenge'
+    if (page.authenticated) return 'authenticated'
+    if (page.login) return 'login_required'
+    return 'unknown'
+  },
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new BossSearch(page, query),
   qr: {
@@ -227,9 +247,11 @@ export const bossAdapter: PlatformAdapter = {
       'en-US': 'Scan with WeChat and confirm in the BOSS mini program.',
     },
     create: createQr,
+    headers: () => ({ 'X-Requested-With': 'XMLHttpRequest' }),
   },
 }
 const pageRules: PageRules = {
+  challengeUrl: '^https://www\\.zhipin\\.com/web/passport/zp/security\\.html(?:[?#]|$)',
   loginUrlNeedsText: true,
   loginSelector:
     'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.job-list-login-gate,.job-detail-login-gate__panel',

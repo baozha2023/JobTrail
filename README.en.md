@@ -6,7 +6,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 ## Features
 
-- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian and 51job, filter salaries, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin and Shixiseng, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
@@ -54,7 +54,7 @@ Dynamic web reading uses the installed **Microsoft Edge Stable**; the installer 
 
 Job discovery pages use Electron's embedded Chromium.
 
-Job discovery supports direct connections and system HTTP/HTTPS proxies. SOCKS, authenticated proxies, and proxies that reject IP-based CONNECT are unsupported; failures never fall back to a direct connection. See the [discovery specification](docs/job-discovery.md) for network boundaries and validation limits.
+Chromium handles job discovery using the system DNS, proxy/PAC, TLS and connection settings, without a custom proxy or public DNS fallback. Login, search and detail pages share an isolated browser session for each platform. See the [discovery specification](docs/job-discovery.md) for network boundaries and live-site validation limits.
 
 Local reminders require the app to remain running. You can hide the window in the system tray.
 

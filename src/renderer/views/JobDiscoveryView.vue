@@ -14,6 +14,7 @@ import {
   NTag,
   NPagination,
   NSpin,
+  type SelectOption,
 } from 'naive-ui'
 import {
   platforms,
@@ -26,15 +27,24 @@ import {
   type PlatformStatus,
   type JobPage,
   type QrLoginState,
+  type QrLoginMethod,
   type SourceVerificationState,
   type SourceState,
+  type SourceProgress,
 } from '../../shared/job-discovery'
-import type { Status, ResumeVersion } from '../../shared/types'
-import { discoveryCities } from '../../shared/discovery-cities'
+import type { CompanySummary, Status, ResumeVersion } from '../../shared/types'
+import { commonCities, platformCity } from '../../shared/discovery-cities'
+import { cityNamesEn } from '../discovery-city-names'
 import { errorCode, getErrorMessage } from '../utils/errors'
-const props = defineProps<{ active: boolean; statuses: Status[]; resumes: ResumeVersion[] }>()
+import DiscoveryLoginPanel from '../components/DiscoveryLoginPanel.vue'
+const props = defineProps<{
+  active: boolean
+  companies: CompanySummary[]
+  statuses: Status[]
+  resumes: ResumeVersion[]
+}>()
 const emit = defineEmits<{ saved: [] }>()
-const { t, locale } = useI18n(),
+const { t, te } = useI18n(),
   api = window.zhijiApi.discovery
 const keyword = ref(''),
   city = ref<string | null>(null),
@@ -48,6 +58,9 @@ const run = ref<SearchRun | null>(null),
   selected = ref<DiscoveredJob | null>(null),
   selectedId = ref('')
 const jobOffline = ref(false)
+const browserLoading = ref(false)
+let browserRequestId: string | null = null
+let removeBrowserLoadingListener: (() => void) | undefined
 const page = ref(1),
   pageSize = ref<10 | 20 | 50>(20),
   sort = ref<'relevance' | 'salary' | 'discovered'>('relevance')
@@ -57,6 +70,8 @@ const error = ref(''),
   webMode = ref(false),
   narrowDetails = ref(false),
   split = ref(40)
+const queryLocked = ref(false)
+const inputsDisabled = computed(() => queryLocked.value || busy.value)
 const accounts = ref(false),
   historyOpen = ref(false),
   saveOpen = ref(false),
@@ -77,8 +92,8 @@ const accountStates = ref<PlatformStatus[]>([]),
   historyDeleting = ref(false),
   historyError = ref('')
 let historySequence = 0
-let companySequence = 0
 let accountSequence = 0
+let accountRefresh = Promise.resolve()
 const authenticatedPlatforms = computed(
   () =>
     new Set(accountStates.value.filter((s) => s.state === 'authenticated').map((s) => s.platform)),
@@ -97,7 +112,6 @@ const selectedAccount = computed(() =>
 const existingCompany = ref<number | null>(null),
   newCompany = ref(false),
   newCompanyName = ref(''),
-  companyOptions = ref<{ label: string; value: number }[]>([]),
   statusId = ref<number | null>(null),
   resumeId = ref<number | null>(null)
 const region = ref<HTMLElement>(),
@@ -147,9 +161,58 @@ const currentWarning = computed(() =>
 const otherWarnings = computed(() =>
   sourceWarnings.value.filter((source) => !needsHumanAction(source.state)),
 )
+function sourceLabel(source: Pick<SourceProgress, 'state' | 'message'>): string {
+  return label(
+    source.state === 'parse_error' && source.message === 'authentication_check_inconclusive'
+      ? source.message
+      : source.state,
+  )
+}
 const statusOptions = computed(() => props.statuses.map((s) => ({ label: s.label, value: s.id })))
+const companyOptions = computed(() =>
+  props.companies.map((company) => ({ label: company.name, value: company.id })),
+)
 const resumeOptions = computed(() => props.resumes.map((s) => ({ label: s.name, value: s.id })))
-const cityOptions = discoveryCities.map((city) => ({ label: city.name, value: city.name }))
+const citySelectionVersion = ref(0)
+const cityOptions = computed(() =>
+  commonCities(selectedPlatforms.value).map((city) => ({
+    label: cityLabel(city.name),
+    value: city.name,
+  })),
+)
+function cityLabel(name: string, sites: readonly JobPlatform[] = selectedPlatforms.value): string {
+  const canonical = sites.map((p) => platformCity(p, name)?.name).find(Boolean) ?? name
+  const key = 'discoveryCities.' + canonical
+  return te(key) ? t(key) : name
+}
+function cityFallback(value: string | number): SelectOption {
+  return { value, label: cityLabel(String(value)) }
+}
+function filterCity(pattern: string, option: SelectOption): boolean {
+  // Search either language, ignoring Latin case, accents and syllable separators.
+  const searchable = (text: string) =>
+    text
+      .normalize('NFKD')
+      .replace(/\p{M}|[\s'’]/gu, '')
+      .toLowerCase()
+  const name = String(option.value ?? '')
+  return [name, cityNamesEn[name] ?? name].some((text) =>
+    searchable(text).includes(searchable(pattern)),
+  )
+}
+function selectPlatforms(value: readonly (string | number)[]) {
+  if (queryLocked.value) return
+  const next = platforms.filter((platform) => value.includes(platform))
+  if (
+    next.length !== selectedPlatforms.value.length ||
+    next.some((platform) => !selectedPlatforms.value.includes(platform))
+  ) {
+    city.value = null
+    citySelectionVersion.value++
+    openMenus.value.delete('city')
+  }
+  selectedPlatforms.value = next
+}
 const missing = computed(() => Object.entries(selected.value?.missing || {}))
 const fields: Record<string, string> = {
   title: 'fieldTitle',
@@ -206,6 +269,7 @@ async function syncRegion() {
     visible:
       !!target &&
       props.active &&
+      !browserLoading.value &&
       !historyOpen.value &&
       !saveOpen.value &&
       !clearPlatform.value &&
@@ -229,19 +293,22 @@ function scheduleRegion() {
 async function loadResults() {
   if (!run.value) return
   const seq = ++listSequence
-  const result = await api.list({
-    runId: run.value.id,
-    viewId: viewId.value,
-    page: page.value,
-    pageSize: pageSize.value,
-    sort: sort.value,
-  })
-  if (seq !== listSequence || disposed) return
-  viewId.value = result.viewId
-  results.value = result
-  if (page.value > 1 && !result.items.length) {
-    page.value = Math.max(1, Math.ceil(result.total / pageSize.value))
-    return
+  try {
+    const result = await api.list({
+      runId: run.value.id,
+      viewId: viewId.value,
+      page: page.value,
+      pageSize: pageSize.value,
+      sort: sort.value,
+    })
+    if (seq !== listSequence || disposed) return
+    viewId.value = result.viewId
+    results.value = result
+    if (page.value > 1 && !result.items.length) {
+      page.value = Math.max(1, Math.ceil(result.total / pageSize.value))
+    }
+  } catch (e) {
+    if (seq === listSequence && !disposed) throw e
   }
 }
 async function refreshResults() {
@@ -257,22 +324,34 @@ async function refreshResults() {
 async function refreshRun() {
   if (!run.value) return
   const id = run.value.id
-  const updated = await api.run(id)
-  if (run.value?.id !== id) return
-  run.value = updated
-  await loadResults()
+  try {
+    const updated = await api.run(id)
+    if (run.value?.id !== id || disposed) return
+    run.value = updated
+    await loadResults()
+  } catch (e) {
+    if (run.value?.id === id && !disposed) throw e
+  }
 }
-async function refreshAccounts() {
+function refreshAccounts(): Promise<void> {
   const seq = ++accountSequence
-  const states = await api.status()
-  if (seq !== accountSequence || disposed) return
-  const previous = authenticatedPlatforms.value
-  accountStates.value = states
-  selectedPlatforms.value = platforms.filter(
-    (p) =>
-      authenticatedPlatforms.value.has(p) &&
-      (selectedPlatforms.value.includes(p) || !previous.has(p)),
-  )
+  accountRefresh = (async () => {
+    const states = await api.status()
+    // A submit superseded by polling must wait until the newer selection is applied.
+    if (seq !== accountSequence) return accountRefresh
+    if (disposed) return
+    const previous = authenticatedPlatforms.value
+    accountStates.value = states
+    if (queryLocked.value) return
+    selectPlatforms(
+      platforms.filter(
+        (p) =>
+          authenticatedPlatforms.value.has(p) &&
+          (selectedPlatforms.value.includes(p) || !previous.has(p)),
+      ),
+    )
+  })()
+  return accountRefresh
 }
 async function tick() {
   if (disposed) return
@@ -353,6 +432,12 @@ async function submitSearch() {
         run.value = await api.cancel(run.value!.id)
         return
       }
+      if (run.value) {
+        if (verificationState.value) return
+        run.value = await api.continue(run.value.id)
+        await loadResults()
+        return
+      }
       await refreshAccounts()
       if (!selectedPlatforms.value.length) return
       await closeVerification()
@@ -363,6 +448,7 @@ async function submitSearch() {
         salaryMin: salaryMin.value ?? undefined,
         salaryMax: salaryMax.value ?? undefined,
       })
+      queryLocked.value = true
       run.value = await api.start({ requestId: crypto.randomUUID(), query })
       viewId.value = undefined
       selected.value = null
@@ -372,6 +458,55 @@ async function submitSearch() {
       page.value = 1
       await api.browser({ action: 'close' })
       await loadResults()
+    } finally {
+      busy.value = false
+    }
+  })
+}
+function clearSearchPage() {
+  // Invalidate reads before clearing the run so late results cannot restore the old page.
+  detailSequence++
+  listSequence++
+  verificationSequence++
+  run.value = null
+  viewId.value = undefined
+  results.value = null
+  selected.value = null
+  selectedId.value = ''
+  jobOffline.value = false
+  detailBusy.value = false
+  verificationState.value = null
+  verificationBusy.value = false
+  warningQueue.value = []
+  keyword.value = ''
+  city.value = null
+  citySelectionVersion.value++
+  salaryMin.value = null
+  salaryMax.value = null
+  queryLocked.value = false
+  selectPlatforms(platforms.filter((p) => authenticatedPlatforms.value.has(p)))
+  filtersOpen.value = false
+  page.value = 1
+  pageSize.value = 20
+  sort.value = 'relevance'
+  narrowDetails.value = false
+  webMode.value = false
+  browserRequestId = null
+  browserLoading.value = false
+  saveOpen.value = false
+  error.value = ''
+}
+async function newSearch() {
+  if (busy.value) return
+  await safely(async () => {
+    busy.value = true
+    try {
+      await closeVerification()
+      if (running.value) await api.cancel(run.value!.id)
+      await api.browser({ action: 'close' })
+      clearSearchPage()
+      await refreshAccounts()
+      await syncRegion()
     } finally {
       busy.value = false
     }
@@ -387,7 +522,7 @@ async function selectJob(job: DiscoveredJob) {
   detailBusy.value = true
   try {
     if (webMode.value && !accounts.value) {
-      await api.browser({ action: 'open', jobId: job.id })
+      await openJobPage(job.id)
       if (seq !== detailSequence) return
       lastRegion = ''
       await syncRegion()
@@ -401,7 +536,6 @@ async function selectJob(job: DiscoveredJob) {
     })
     if (seq !== detailSequence) return
     selected.value = detail
-    await loadResults()
   } catch (e) {
     if (errorCode(e) === 'DISCOVERY_JOB_OFFLINE') {
       if (seq === detailSequence) {
@@ -424,25 +558,48 @@ async function selectJob(job: DiscoveredJob) {
             ),
           }
         }
-        await safely(loadResults)
+        if (seq !== detailSequence) await safely(loadResults)
       }
     } else if (seq === detailSequence) fail(e)
   } finally {
-    if (seq === detailSequence) detailBusy.value = false
+    if (seq === detailSequence) {
+      detailBusy.value = false
+      // Completed runs are not polled until a warning is known. Detail reads can
+      // introduce a new login/challenge warning, including when they reject.
+      if (!disposed && run.value?.id === runId) await refreshRun().catch(fail)
+    }
+  }
+}
+async function openJobPage(jobId: string) {
+  const requestId = crypto.randomUUID()
+  browserRequestId = requestId
+  browserLoading.value = true
+  await syncRegion()
+  if (disposed || !webMode.value || browserRequestId !== requestId) return
+  try {
+    await api.browser({ action: 'open', jobId, requestId })
+  } catch (e) {
+    if (browserRequestId === requestId) {
+      browserLoading.value = false
+      await syncRegion()
+      throw e
+    }
   }
 }
 async function browserMode(value: boolean) {
   webMode.value = value
+  if (!value) {
+    browserRequestId = null
+    browserLoading.value = false
+  }
   await safely(async () => {
-    if (value && selected.value) await api.browser({ action: 'open', jobId: selected.value.id })
+    if (value && selected.value) await openJobPage(selected.value.id)
     else await api.browser({ action: 'close' })
     lastRegion = ''
     await syncRegion()
   })
 }
-async function browserAction(
-  action: 'back' | 'forward' | 'reload' | 'zoomIn' | 'zoomOut' | 'external',
-) {
+async function browserAction(action: 'back' | 'forward' | 'reload' | 'external') {
   await safely(() => api.browser({ action }))
 }
 async function openAccounts(target?: { runId: string; platform: JobPlatform }) {
@@ -454,7 +611,7 @@ async function openAccounts(target?: { runId: string; platform: JobPlatform }) {
   await api.region({ x: 0, y: 0, width: 0, height: 0, visible: false })
   await refreshAccounts()
 }
-async function login(platform: JobPlatform) {
+async function login(platform: JobPlatform, method?: QrLoginMethod) {
   const seq = ++qrSequence
   const previous = loginPlatform.value
   loginPlatform.value = platform
@@ -464,7 +621,7 @@ async function login(platform: JobPlatform) {
   try {
     if (previous) await api.qrLogin({ action: 'cancel', platform: previous })
     if (seq !== qrSequence) return
-    const result = await api.qrLogin({ action: 'start', platform })
+    const result = await api.qrLogin({ action: 'start', platform, ...(method ? { method } : {}) })
     if (seq === qrSequence && accounts.value) {
       qrState.value = result
       await resumeAfterLogin(result)
@@ -530,25 +687,29 @@ async function closeAccounts() {
 }
 async function resumeAfterLogin(state: QrLoginState | null) {
   const target = sourceLogin.value
-  if (
-    !target ||
-    !accounts.value ||
-    state?.state !== 'authenticated' ||
-    state.platform !== target.platform ||
-    run.value?.id !== target.runId
-  )
+  if (!accounts.value || state?.state !== 'authenticated' || state.platform !== loginPlatform.value)
     return
+  if (!target) return closeAccounts()
+  if (state.platform !== target.platform || run.value?.id !== target.runId) return
+  // Official login success closes the QR panel even if the following search
+  // recheck fails. Keep the attempt alive until Main validates its evidence.
+  accounts.value = false
   const seq = ++verificationSequence
-  const current = await api.verification({
-    action: 'recheck',
-    ...target,
-    attemptId: state.attemptId,
-  })
-  if (seq !== verificationSequence || sourceLogin.value !== target || disposed) return
-  verificationState.value = current
-  sourceLogin.value = null
-  await closeAccounts()
-  await refreshRun()
+  try {
+    const current = await api.verification({
+      action: 'recheck',
+      ...target,
+      attemptId: state.attemptId,
+    })
+    if (seq !== verificationSequence || sourceLogin.value !== target || disposed) return
+    verificationState.value = current
+    await refreshRun()
+  } finally {
+    if (sourceLogin.value === target) {
+      sourceLogin.value = null
+      await closeAccounts()
+    }
+  }
 }
 async function logout() {
   if (!clearPlatform.value) return
@@ -615,13 +776,15 @@ async function cancelHistory(item: SearchRun) {
 }
 async function useHistory(item: SearchRun) {
   await closeVerification()
+  queryLocked.value = true
   jobOffline.value = false
   run.value = item
   viewId.value = undefined
   const q = item.query
   keyword.value = q.keyword
   city.value = q.city || null
-  selectedPlatforms.value = q.platforms.filter((p) => authenticatedPlatforms.value.has(p))
+  citySelectionVersion.value++
+  selectedPlatforms.value = [...q.platforms]
   salaryMin.value = q.salaryMin ?? null
   salaryMax.value = q.salaryMax ?? null
   selectedId.value = ''
@@ -643,14 +806,7 @@ async function removeHistory() {
     if (run.value && ids.includes(run.value.id)) await closeVerification()
     await api.removeHistory(ids)
     if (run.value && ids.includes(run.value.id)) {
-      detailSequence++
-      listSequence++
-      run.value = null
-      jobOffline.value = false
-      selected.value = null
-      selectedId.value = ''
-      results.value = null
-      narrowDetails.value = false
+      clearSearchPage()
       await browserMode(false)
     }
     historySelected.value = []
@@ -664,21 +820,17 @@ async function removeHistory() {
     historyDeleting.value = false
   }
 }
-async function findCompanies(value: string) {
-  const seq = ++companySequence
-  const result = await window.zhijiApi.companies.search({ keyword: value, page: 1, pageSize: 20 })
-  if (seq !== companySequence || disposed) return
-  companyOptions.value = result.items.map((c) => ({ label: c.name, value: c.id }))
-}
 async function openSave() {
-  if (!selected.value) return
+  const job = selected.value
+  if (!job) return
+  error.value = ''
   saveOpen.value = true
-  existingCompany.value = null
+  existingCompany.value =
+    props.companies.find((company) => company.name === job.company)?.id ?? null
   newCompany.value = false
-  newCompanyName.value = selected.value.company
+  newCompanyName.value = job.company
   statusId.value = props.statuses[0]?.id ?? null
   resumeId.value = null
-  await safely(() => findCompanies(selected.value!.company))
   await syncRegion()
 }
 async function save() {
@@ -740,6 +892,11 @@ watch(
 )
 watch([historyOpen, saveOpen, clearPlatform, deleteHistory, narrowDetails], scheduleRegion)
 onMounted(() => {
+  removeBrowserLoadingListener = api.onBrowserLoading((state) => {
+    if (disposed || !webMode.value || state.requestId !== browserRequestId) return
+    browserLoading.value = state.loading
+    void syncRegion()
+  })
   if (props.active) void safely(refreshAccounts)
   resize = new ResizeObserver(scheduleRegion)
   if (panes.value) resize.observe(panes.value)
@@ -756,6 +913,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   disposed = true
+  browserRequestId = null
+  removeBrowserLoadingListener?.()
   ++verificationSequence
   void api.verification({ action: 'close' }).catch(() => {})
   ++qrSequence
@@ -770,32 +929,75 @@ onBeforeUnmount(() => {
   document.removeEventListener('scroll', scheduleRegion, true)
   void api.browser({ action: 'close' }).catch(() => {})
 })
-defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safely(showHistory) })
+defineExpose({
+  openAccounts: () => safely(openAccounts),
+  openHistory: () => safely(showHistory),
+  newSearch,
+  busy,
+})
 </script>
 
 <template>
   <section class="discovery" :class="{ 'show-detail': narrowDetails }">
+    <div v-if="webMode && selected" class="discovery-browser-toolbar">
+      <n-button
+        v-if="narrowDetails"
+        class="discovery-back-list"
+        size="small"
+        @click="narrowDetails = false"
+        >{{ label('goList') }}</n-button
+      >
+      <n-button size="small" @click="browserMode(false)">{{ label('details') }}</n-button>
+      <n-button
+        v-for="action in ['back', 'forward', 'reload', 'external'] as const"
+        :key="action"
+        size="small"
+        @click="browserAction(action)"
+        >{{ label(action === 'reload' ? 'refresh' : action) }}</n-button
+      >
+      <n-button
+        class="discovery-browser-save"
+        size="small"
+        type="primary"
+        :disabled="!!selected.savedOpportunityId"
+        @click="openSave"
+        >{{ label(selected.savedOpportunityId ? 'saved' : 'save') }}</n-button
+      >
+    </div>
     <div ref="panes" class="discovery-panes" :style="{ '--list-width': split + '%' }">
       <div class="discovery-list">
         <div class="discovery-search">
           <n-input
             v-model:value="keyword"
+            :disabled="inputsDisabled"
             :placeholder="label('keyword')"
             @keyup.enter="submitSearch"
           />
           <n-select
+            :key="citySelectionVersion"
             v-model:value="city"
+            :disabled="inputsDisabled || !selectedPlatforms.length || !cityOptions.length"
             filterable
             clearable
             :options="cityOptions"
-            :placeholder="label('city')"
+            :filter="filterCity"
+            :fallback-option="cityFallback"
+            :placeholder="
+              label(
+                !selectedPlatforms.length
+                  ? 'selectPlatformsFirst'
+                  : !cityOptions.length
+                    ? 'noCommonCities'
+                    : 'city',
+              )
+            "
             @update:show="menu('city', $event)"
           />
           <div class="discovery-search-buttons">
             <n-button
               type="primary"
               :loading="busy"
-              :disabled="!running && !selectedPlatforms.length"
+              :disabled="!running && (run ? !!verificationState : !selectedPlatforms.length)"
               @click="submitSearch"
             >
               <template v-if="running" #icon>
@@ -805,7 +1007,7 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
                   aria-hidden="true"
                 />
               </template>
-              {{ label(running ? 'cancel' : 'search') }}
+              {{ label(running ? 'cancel' : results?.total ? 'continue' : 'search') }}
             </n-button>
             <n-button @click="filtersOpen = !filtersOpen">{{ label('moreFilters') }}</n-button>
             <n-button
@@ -833,39 +1035,37 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
                 : 'verificationHint',
           )
         }}</small>
-        <n-checkbox-group v-model:value="selectedPlatforms" class="discovery-platforms"
+        <n-checkbox-group
+          :value="selectedPlatforms"
+          class="discovery-platforms"
+          @update:value="selectPlatforms"
           ><n-checkbox
             v-for="p in platforms"
             :key="p"
             :value="p"
             :label="platformNames[p]"
-            :disabled="!authenticatedPlatforms.has(p)"
-            :aria-disabled="!authenticatedPlatforms.has(p)"
+            :disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
+            :aria-disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
         /></n-checkbox-group>
         <div v-if="filtersOpen" class="discovery-filters">
           <n-input-number
             v-model:value="salaryMin"
+            :disabled="inputsDisabled"
             :min="0"
             :placeholder="label('salaryMin')"
-          /><n-input-number v-model:value="salaryMax" :min="0" :placeholder="label('salaryMax')" />
+          /><n-input-number
+            v-model:value="salaryMax"
+            :disabled="inputsDisabled"
+            :min="0"
+            :placeholder="label('salaryMax')"
+          />
         </div>
         <n-alert v-if="error" type="error" closable @close="error = ''">{{ error }}</n-alert>
-        <div v-if="run && (!running || otherWarnings.length)" class="discovery-actions">
-          <n-button
-            v-if="!running"
-            size="small"
-            :disabled="!!verificationState"
-            @click="
-              safely(async () => {
-                run = await api.continue(run!.id)
-              })
-            "
-            >{{ label('continue') }}</n-button
-          >
-          <div v-if="otherWarnings.length" class="discovery-source-warnings" aria-live="polite">
+        <div v-if="otherWarnings.length" class="discovery-actions">
+          <div class="discovery-source-warnings" aria-live="polite">
             <template v-for="source in otherWarnings" :key="source.platform">
               <n-tag size="small" type="warning" :title="label(source.message || source.state)"
-                >{{ platformNames[source.platform] }} · {{ label(source.state) }}</n-tag
+                >{{ platformNames[source.platform] }} · {{ sourceLabel(source) }}</n-tag
               >
             </template>
           </div>
@@ -930,38 +1130,35 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
         @keydown.left="split = Math.max(28, split - 2)"
         @keydown.right="split = Math.min(65, split + 2)"
       />
-      <div class="discovery-detail">
-        <n-button class="discovery-back-list" size="small" @click="narrowDetails = false">{{
-          label('goList')
-        }}</n-button>
+      <div class="discovery-detail" :class="{ 'discovery-detail-web': webMode && selected }">
+        <n-button
+          v-if="!webMode || !selected"
+          class="discovery-back-list"
+          size="small"
+          @click="narrowDetails = false"
+          >{{ label('goList') }}</n-button
+        >
         <div v-if="jobOffline" class="discovery-offline" role="status">
           {{ t('error.DISCOVERY_JOB_OFFLINE') }}
         </div>
         <p v-else-if="!selected" class="discovery-empty">{{ label('select') }}</p>
         <template v-else
-          ><div class="discovery-detail-header">
+          ><div v-if="!webMode" class="discovery-detail-header">
             <h2>{{ selected.title }}</h2>
             <p>{{ selected.company }} · {{ selected.city }}</p>
             <n-tag v-if="selected.possibleDuplicate" type="warning">{{ label('duplicate') }}</n-tag>
           </div>
-          <div v-if="webMode" class="discovery-browser-toolbar">
-            <n-button size="tiny" @click="browserMode(false)">{{ label('details') }}</n-button
-            ><n-button
-              v-for="action in [
-                'back',
-                'forward',
-                'reload',
-                'zoomOut',
-                'zoomIn',
-                'external',
-              ] as const"
-              :key="action"
-              size="tiny"
-              @click="browserAction(action)"
-              >{{ label(action === 'reload' ? 'refresh' : action) }}</n-button
-            >
+          <div
+            v-if="webMode"
+            ref="region"
+            class="discovery-browser-region"
+            :aria-busy="browserLoading"
+          >
+            <div v-if="browserLoading" class="discovery-browser-loading" role="status">
+              <n-spin size="large" />
+              <span>{{ label('webLoading') }}</span>
+            </div>
           </div>
-          <div v-if="webMode" ref="region" class="discovery-browser-region" />
           <div v-else class="discovery-detail-body">
             <n-spin v-if="detailBusy" size="small" />
             <dl>
@@ -992,8 +1189,8 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
             <p class="discovery-jd">{{ selected.jd || label('detail_not_read') }}</p>
             <small class="discovery-url">{{ selected.url }}</small>
           </div>
-          <div class="discovery-detail-actions">
-            <n-button v-if="!webMode" @click="browserMode(true)">{{ label('browser') }}</n-button
+          <div v-if="!webMode" class="discovery-detail-actions">
+            <n-button @click="browserMode(true)">{{ label('browser') }}</n-button
             ><n-button type="primary" :disabled="!!selected.savedOpportunityId" @click="openSave">{{
               label(selected.savedOpportunityId ? 'saved' : 'save')
             }}</n-button>
@@ -1054,90 +1251,16 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
             </div>
             <p class="discovery-subtitle discovery-login-hint">{{ label('loginHint') }}</p>
           </div>
-          <div class="discovery-qr-panel" aria-live="polite">
-            <template v-if="loginPlatform">
-              <strong class="discovery-qr-title">{{ platformNames[loginPlatform] }}</strong>
-              <p v-if="sourceLogin" class="discovery-subtitle">{{ label('sourceLoginHint') }}</p>
-              <n-alert v-if="qrError" type="error">{{ qrError }}</n-alert>
-              <n-spin v-if="qrBusy" size="large" />
-              <img
-                v-if="qrState?.image"
-                :src="qrState.image"
-                :alt="label('qrAlt')"
-                class="discovery-qr-image"
-              />
-              <template
-                v-if="
-                  !qrBusy &&
-                  (qrState?.state === 'authenticated' ||
-                    (!qrState && selectedAccount?.state === 'authenticated'))
-                "
-              >
-                <span class="discovery-login-success" aria-hidden="true">✓</span>
-                <strong>{{ label('authenticated') }}</strong>
-                <p v-if="selectedAccount?.checkedAt" class="discovery-subtitle">
-                  {{ label('lastConfirmed') }} {{ time(selectedAccount.checkedAt) }}
-                </p>
-              </template>
-              <template v-else>
-                <p>
-                  {{ qrBusy ? label('qrLoading') : qrState ? label('qr_' + qrState.state) : '' }}
-                </p>
-                <p
-                  v-if="qrState?.state === 'waiting' || qrState?.state === 'scanned'"
-                  class="discovery-subtitle"
-                >
-                  {{ qrState.scanHint[locale === 'en-US' ? 'en-US' : 'zh-CN'] }}
-                </p>
-                <p v-if="qrState?.reason" class="discovery-subtitle">
-                  {{ label('qrReason_' + qrState.reason) }}
-                </p>
-                <template
-                  v-if="
-                    !qrBusy && qrState?.state === 'challenge' && qrState.verification?.available
-                  "
-                >
-                  <p class="discovery-subtitle">{{ label('qrVerificationHint') }}</p>
-                  <p v-if="qrState.verification.window !== 'closed'" class="discovery-subtitle">
-                    {{ label('qrWindow_' + qrState.verification.window) }}
-                  </p>
-                  <n-alert v-if="qrState.verification.error" type="warning">{{
-                    label('qrVerificationError_' + qrState.verification.error)
-                  }}</n-alert>
-                  <n-button
-                    type="primary"
-                    :loading="qrState.verification.window === 'loading'"
-                    @click="verifyLogin('verify')"
-                    >{{ label('qrVerify') }}</n-button
-                  >
-                  <n-button @click="verifyLogin('retry')">{{
-                    label('qrVerificationRetry')
-                  }}</n-button>
-                </template>
-                <p
-                  v-else-if="
-                    qrState?.state === 'challenge' && qrState.verification?.error === 'unavailable'
-                  "
-                  class="discovery-subtitle"
-                >
-                  {{ label('qrVerificationError_unavailable') }}
-                </p>
-                <n-button
-                  v-if="
-                    !qrBusy &&
-                    qrState &&
-                    !(qrState.state === 'challenge' && qrState.verification?.available)
-                  "
-                  @click="login(loginPlatform)"
-                  >{{ label('qrRefresh') }}</n-button
-                >
-              </template>
-            </template>
-            <template v-else
-              ><strong>{{ label('qrPanelTitle') }}</strong>
-              <p class="discovery-subtitle">{{ label('qrChoose') }}</p></template
-            >
-          </div>
+          <DiscoveryLoginPanel
+            :platform="loginPlatform"
+            :account="selectedAccount"
+            :state="qrState"
+            :busy="qrBusy"
+            :error="qrError"
+            :hint="sourceLogin ? label('sourceLoginHint') : undefined"
+            @login="login"
+            @verify="verifyLogin"
+          />
         </div>
         <template #footer
           ><div class="discovery-dialog-footer discovery-account-footer">
@@ -1193,14 +1316,16 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
               <div class="discovery-history-info">
                 <div class="discovery-history-heading">
                   <strong>{{ item.query.keyword }}</strong
-                  ><n-tag v-if="item.query.city" size="small">{{ item.query.city }}</n-tag>
+                  ><n-tag v-if="item.query.city" size="small">{{
+                    cityLabel(item.query.city, item.query.platforms)
+                  }}</n-tag>
                 </div>
                 <time>{{ time(item.createdAt) }}</time>
                 <div class="discovery-history-sources">
                   <span v-for="source in item.sources" :key="source.platform"
                     >{{ platformNames[source.platform] }} · {{ source.count
                     }}<template v-if="sourceErrorStates.has(source.state)">
-                      · {{ label(source.state) }}</template
+                      · {{ sourceLabel(source) }}</template
                     ></span
                   >
                 </div>
@@ -1268,10 +1393,8 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
             v-else
             v-model:value="existingCompany"
             filterable
-            remote
             :options="companyOptions"
             :placeholder="label('existing')"
-            @search="safely(() => findCompanies($event))"
             @update:show="menu('company', $event)"
           /><label>{{ label('status') }}</label
           ><n-select
@@ -1344,6 +1467,16 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.discovery-browser-toolbar {
+  flex-shrink: 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: safe flex-end;
+  overflow-x: auto;
+}
+.discovery-browser-toolbar > .n-button {
+  flex-shrink: 0;
 }
 .discovery-source-warnings {
   display: flex;
@@ -1481,6 +1614,10 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
   padding: 16px;
   gap: 12px;
 }
+.discovery-detail-web {
+  padding: 0;
+  gap: 0;
+}
 .discovery-offline {
   flex: 1;
   display: grid;
@@ -1529,10 +1666,18 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
   line-height: 1.8;
 }
 .discovery-browser-region {
+  position: relative;
   flex: 1;
-  min-height: 220px;
-  background: #fff;
-  border-radius: 8px;
+  min-height: 0;
+}
+.discovery-browser-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 /* Both dialogs keep the requested viewport proportions; only their bodies scroll. */
 .discovery-dialog {
@@ -1561,6 +1706,7 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
   justify-content: flex-end;
 }
 .discovery-account-layout {
+  container-type: size;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 24px;
@@ -1569,8 +1715,7 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
 }
 .discovery-source-login {
   width: min(440px, 90vw);
-  height: auto;
-  max-height: 90vh;
+  height: min(600px, 90vh);
 }
 .discovery-source-login .discovery-account-layout {
   grid-template-columns: minmax(0, 1fr);
@@ -1614,39 +1759,6 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
 .discovery-login-hint {
   line-height: 1.7;
   margin: 12px 0 0;
-}
-.discovery-qr-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 24px;
-  border: 1px dashed #8884;
-  border-radius: 12px;
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  text-align: center;
-}
-.discovery-qr-panel p {
-  margin: 0;
-  line-height: 1.7;
-}
-.discovery-qr-title {
-  font-size: 18px;
-}
-.discovery-qr-image {
-  width: min(240px, 100%);
-  aspect-ratio: 1;
-  object-fit: contain;
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-}
-.discovery-login-success {
-  font-size: 42px;
-  color: #18a058;
 }
 .discovery-history-toolbar,
 .discovery-history-footer {
@@ -1742,10 +1854,6 @@ defineExpose({ openAccounts: () => safely(openAccounts), openHistory: () => safe
   }
   .discovery-account :deep(.n-button) {
     font-size: 11px;
-  }
-  .discovery-qr-panel {
-    padding: 12px;
-    gap: 10px;
   }
   .discovery-history-row {
     padding: 12px;

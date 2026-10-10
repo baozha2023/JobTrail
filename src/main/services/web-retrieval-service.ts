@@ -69,7 +69,7 @@ function budgetFor(
   if (signal.aborted) abort()
   const timer = setTimeout(
     () => controller.abort(new AppServiceError('WEB_TIMEOUT', '网页读取超时')),
-    45_000,
+    60_000,
   )
   return {
     budget: { signal: controller.signal, requests, bytes },

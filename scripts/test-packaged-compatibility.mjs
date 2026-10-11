@@ -18,6 +18,7 @@ const releases = [
   { version: '1.5.0', commit: 'e4b6551', databaseVersion: 3 },
   { version: '1.6.0', commit: '448e494', databaseVersion: 3 },
   { version: '2.0.0', commit: 'c2fefde', databaseVersion: 4 },
+  { version: '2.1.0', commit: '605ee60', databaseVersion: 5 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -171,7 +172,7 @@ try {
     configuration.ai.apiKey = `synthetic-compatibility-${release.version}`
     fs.writeFileSync(path.join(root, 'config.json'), encodeTestConfig(configuration))
     const entry = path.join(source, 'compatibility-entry.ts')
-    if (release.databaseVersion === 4)
+    if (release.databaseVersion >= 4)
       fs.writeFileSync(
         path.join(source, 'seed-discovery-v4.ts'),
         fs
@@ -184,7 +185,7 @@ try {
 import fs from 'node:fs'; import path from 'node:path'; import { createHash } from 'node:crypto';
 import { ConfigService } from './src/main/config'; import { DatabaseManager } from './src/main/database';
 import { exportBackup } from './src/main/backup-archive';
-${release.databaseVersion === 4 ? "import { seedDiscoveryV4 } from './seed-discovery-v4';" : ''}
+${release.databaseVersion >= 4 ? "import { seedDiscoveryV4 } from './seed-discovery-v4';" : ''}
 ${release.databaseVersion >= 3 ? "import { CompanyLocationRepository } from './src/main/repositories/company-location-repository'; import { preparePersistenceUpgrade } from './src/main/persistence-migrations';" : ''}
 async function main() {
  const [root, archive, version] = process.argv.slice(2);
@@ -199,7 +200,7 @@ async function main() {
   const tables=['builtin_company_catalog_state', 'opportunity_status_events', 'calendar_events', 'calendar_event_reminders', 'statuses','industries','companies','company_industries','company_aliases','resume_versions','opportunities','agent_conversations','agent_chat_events','agent_model_usage','chat_attachments','checkpoints','writes'];
   if (${release.databaseVersion} >= 2) tables.push('exam_papers', 'exam_questions', 'exam_answers');
   if (${release.databaseVersion} >= 3) tables.push('locations', 'company_locations');
-  ${release.databaseVersion === 4 ? "seedDiscoveryV4(database.db); database.db.exec('UPDATE discovery_sources SET cursor=NULL'); tables.push('discovery_jobs','discovery_observations','discovery_runs','discovery_requests','discovery_sources','discovery_results','discovery_views','discovery_view_items','discovery_saved');" : ''}
+  ${release.databaseVersion >= 4 ? "seedDiscoveryV4(database.db); database.db.exec('UPDATE discovery_sources SET cursor=NULL'); tables.push('discovery_jobs','discovery_observations','discovery_runs','discovery_requests','discovery_sources','discovery_results','discovery_views','discovery_view_items','discovery_saved');" : ''}
   const files={}; for(const dir of ['resumes','chat-uploads']) for(const file of fs.readdirSync(path.join(root,dir))) files[dir+'/'+file]=createHash('sha256').update(fs.readFileSync(path.join(root,dir,file))).digest('hex');
   fs.writeFileSync(archive+'.expected.json',JSON.stringify({config:config.get(),rows:Object.fromEntries(tables.map(t=>[t,database.db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()])),files}));
   const work=fs.mkdtempSync(path.join(root,'export-')); const manifest=await exportBackup(paths,database,config,version,archive,work);

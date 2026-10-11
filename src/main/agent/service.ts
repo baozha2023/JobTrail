@@ -43,7 +43,8 @@ export class AgentService {
   readonly files: AgentFileStore
   private readonly saver: SqliteSaver
   private readonly mcp: AgentMcpClient
-  private readonly graph: ReturnType<typeof createAgentGraph>
+  private readonly graph: ReturnType<typeof createAgentGraph>['graph']
+  private readonly contextUsage: ReturnType<typeof createAgentGraph>['contextUsage']
   private readonly archive: AgentArchive
   private readonly running = new Map<string, AbortController>()
   private readonly inFlight = new Set<Promise<unknown>>()
@@ -69,7 +70,7 @@ export class AgentService {
     this.archive = new AgentArchive(db, this.files)
     this.saver = new SqliteSaver(db)
     this.mcp = new AgentMcpClient(config, connection, runtime.appVersion)
-    this.graph = createAgentGraph(
+    const agentGraph = createAgentGraph(
       config,
       services,
       this.files,
@@ -78,6 +79,8 @@ export class AgentService {
       this.archive,
       runtime,
     )
+    this.graph = agentGraph.graph
+    this.contextUsage = agentGraph.contextUsage
   }
 
   list(): AgentConversation[] {
@@ -191,15 +194,21 @@ export class AgentService {
       )
       if (waiting?.role === 'tool') waiting.status = 'waiting'
     }
-    const compacted = this.archive.lastEventKind(id) === 'compact'
-    const contextTokens = compacted
-      ? (snapshot.values?.lastCompact?.afterTokens ?? null)
-      : this.archive.latestAgentInput(id)
+    let context: { contextTokens: number | null; contextEstimated: boolean } = {
+      contextTokens: null,
+      contextEstimated: true,
+    }
+    try {
+      context = this.contextUsage(snapshot.values)
+    } catch (error) {
+      // Unavailable settings must not prevent reading archived history.
+      captureError(error, { operation: 'agent.context-count' })
+    }
     const usage = this.archive.usage(
       id,
       this.config.get().ai.contextWindowK * 1000,
-      contextTokens,
-      compacted || contextTokens === null,
+      context.contextTokens,
+      context.contextEstimated,
     )
     return { messages: visible, pending, usage, running: this.running.has(id) }
   }
@@ -525,7 +534,11 @@ export class AgentService {
         } else if (mode === 'updates' && chunk && typeof chunk === 'object') {
           const update = chunk as Record<
             string,
-            { messages?: BaseMessage[]; lastCompact?: unknown }
+            {
+              messages?: BaseMessage[]
+              lastCompact?: unknown
+              contextDisplay?: { contextTokens: number; contextEstimated: boolean }
+            }
           >
           for (const message of update.agent?.messages ?? []) {
             if (!(message instanceof AIMessage)) continue
@@ -565,6 +578,22 @@ export class AgentService {
                 status: result.usage ? 'completed' : 'skipped',
                 attachments: [],
               },
+            })
+          }
+          // Publish a persisted snapshot after a response or compaction. Local
+          // preflight/tool estimates are for budgeting, not intermediate UI values.
+          for (const value of Object.values(update)) {
+            const context = value?.contextDisplay
+            if (!context) continue
+            this.emit({
+              conversationId: id,
+              kind: 'usage',
+              usage: this.archive.usage(
+                id,
+                this.config.get().ai.contextWindowK * 1000,
+                context.contextTokens,
+                context.contextEstimated,
+              ),
             })
           }
         }

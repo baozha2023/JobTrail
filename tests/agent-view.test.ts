@@ -842,6 +842,8 @@ describe('agent composer', () => {
     })
     try {
       await flushPromises()
+      expect(wrapper.find('.agent-context-ring').attributes('title')).toBe('上下文用量暂不可用')
+      expect(wrapper.find('.agent-usage').text()).toContain('—')
       const editor = wrapper.find<HTMLElement>('.agent-composer [role="textbox"]').element
       typeAtCaret(editor, '/compact')
       editor.dispatchEvent(
@@ -858,6 +860,39 @@ describe('agent composer', () => {
         conversationId: conversation.id,
         jobId: compact.mock.calls[0][1],
         sequence: 1,
+        kind: 'compact',
+        compact: {
+          id: 'compact-1',
+          role: 'compact',
+          beforeTokens: 12000,
+          afterTokens: 2000,
+          status: 'completed',
+          attachments: [],
+        },
+      })
+      onAgentEvent?.({
+        conversationId: conversation.id,
+        jobId: compact.mock.calls[0][1],
+        sequence: 2,
+        kind: 'usage',
+        usage: {
+          inputTokens: 30000,
+          outputTokens: 3000,
+          cacheReadTokens: 10000,
+          contextTokens: 2000,
+          contextEstimated: true,
+          contextWindowTokens: 256000,
+        },
+      })
+      await flushPromises()
+      expect(wrapper.find('.agent-compact-row').text()).toContain('12.0k → 2.0k')
+      expect(wrapper.find('.agent-context-ring').attributes('title')).toBe('上下文已用 1%')
+      expect(wrapper.find('.agent-usage').text()).toContain('1%')
+      expect(wrapper.find('.agent-compact-row').text()).not.toMatch(/预计|估算|校准/)
+      onAgentEvent?.({
+        conversationId: conversation.id,
+        jobId: compact.mock.calls[0][1],
+        sequence: 3,
         kind: 'state',
         state: 'idle',
       })
@@ -979,9 +1014,7 @@ describe('agent composer', () => {
     await flushPromises()
     expect(wrapper.find('.agent-usage').text()).toContain('输入 1.2k')
     expect(wrapper.find('.agent-usage').text()).not.toContain('估算')
-    expect(wrapper.find('.agent-context-ring').attributes('title')).toContain(
-      '下一次模型请求后校准',
-    )
+    expect(wrapper.find('.agent-context-ring').attributes('title')).toBe('上下文已用 25%')
     expect(wrapper.find('.agent-usage').text()).toContain('25%')
     const editor = wrapper.find('[role="textbox"]').element as HTMLElement
     typeAtCaret(editor, '@')

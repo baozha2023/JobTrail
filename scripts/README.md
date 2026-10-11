@@ -24,7 +24,7 @@
 | `pnpm test:mcp:package`                              | `test-packaged-mcp.mjs` 验证独立 MCP、系统 Edge 与 sandbox、动态网页、无 Edge 错误及协议行为                                                          |
 | `pnpm test:mcp:launcher`                             | `test-mcp-launcher.mjs` 用 Cargo 锁文件构建启动器，再验证更新与 MCP 启动                                                                              |
 | `pnpm test:agent:package`、`pnpm test:exams:package` | `test-packaged-agent.mjs`、`test-packaged-exams.mjs` 验证智能体和试卷完整流程；智能体 worker 通过测试专用 bootstrap 禁止外部 fetch，验证随包本地分词  |
-| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                                        |
+| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.1.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
 | `pnpm test:diagnostics:package`                      | `test-packaged-diagnostics.mjs` 验证 MCP / Agent 文件诊断与输出隔离                                                                                   |
 | `pnpm test:discovery:local`                          | 岗位发现连接安全、界面、合成会话重启、MCP 冷启动及已有桌面复用；全部使用隔离安装目录，不访问招聘网站                                                  |
 
@@ -44,7 +44,7 @@
 - `node scripts/test-discovery-mcp-startup.mjs` 及追加 `--existing`：验证 MCP 后台启动、并发启动合并和复用已有桌面。两个模式都属于 `test:discovery:local`。
 - `node scripts/test-desktop-lifecycle.mjs`：验证隐藏后台页面存在时的退出、托盘和重复启动；属于 `test:desktop:package`。
 - `pnpm test:discovery:package`：在隔离安装目录检查六平台账号界面、匿名搜索的后端登录准入、零批次/零结果以及历史查看；不访问真实账号，不宣称已验证登录后的列表、JD 或保存链路。
-- `node scripts/test-packaged-qr.mjs`、`node scripts/test-packaged-qr-verification.mjs`：真实二维码及官方验证窗口，需要公网连接；网站阻断不表示搜索、JD 或登录验收通过。官方验证脚本在未触发 challenge 时会明确记录验证路径未执行，不代表验证交互通过。
+- `node scripts/test-packaged-qr.mjs [平台] [app|wechat]`、`node scripts/test-packaged-qr-verification.mjs`：真实二维码及官方验证窗口，需要公网连接。二维码脚本可指定平台和方式，检查界面切换、图片解码、未扫码状态、刷新后保留方式及关闭取消，例如 `boss app`、`liepin app`、`zhilian wechat`；单方式报告分别保存，避免覆盖。网站阻断不表示搜索、JD 或登录验收通过。官方验证脚本在未触发 challenge 时会明确记录验证路径未执行，不代表验证交互通过。
 - `node scripts/test-discovery-live.mjs [平台|all] [用例|all]`：源码级手动联网诊断，调用 `discovery-live-worker.ts`；每次建立全新的匿名数据和 Session，不读取开发目录配置、数据库或登录态。独立观察来源响应并按生产适配器解析结果核对数据库身份集合、薪资准入、续查和 10/20/50 条稳定分页；不能作为解析器正确性的独立证据，不覆盖 JD 或真实扫码登录。用例为 `salary`、`salary-min`、`salary-max`、`agent`、`java-beijing`、`java-shanghai`、`no-city`、`empty`。阻断结果使进程非零退出，并保存脱敏报告至 `dist/qa/`。
 
 `release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。已知发布阻断以 `CLAUDE.md` 和 `docs/job-discovery.md` 为准。
@@ -62,6 +62,8 @@
 涉及 IPC 的异步条件使用 `packaged-test-helpers.mjs` 的 `waitFor` 等待 Promise 完成；DOM 条件使用 `page.waitForFunction`。二维码图片使用解码结果确认可用，未执行的验证、详情或保存路径明确记录为未通过。
 
 公共网络 URL 边界由 `tests/web-retrieval.test.ts` 覆盖：10240 字符接受、超过上限拒绝，长 URL 仍须通过协议、端口、凭据及公网地址检查。岗位响应分类、登录阻断优先级及已提交批次保留由岗位发现适配器和运行时测试覆盖。
+
+智能体上下文由 `agent-token-context.test.ts`、`agent-context.test.ts` 和 `agent-model.test.ts` 覆盖：服务端输入基准与新增消息计数、工具调用参数及结果、模型／端点／历史变化时基准失效、缺失 usage、输出空间预留、压缩前后记录和 checkpoint 重启恢复。用量显示只在模型响应或压缩完成后更新，测试通过延迟模型响应验证工具结果和历史刷新不会发布中间估算；`agent-coordinator.test.ts` 与 `agent-store.test.ts` 覆盖迟到的历史响应不能覆盖新事件，以及事件序号缺口的历史补读能够生效。压缩回归还验证切换模型后的跳过压缩记录与显示快照一致。累计用量只采用端点报告值，图片和未知模型的本地计数仍是估算。界面测试确认上下文只显示占用数值，不出现预计或校准说明；安装包智能体验收继续拦截外部分词请求。
 
 ## 隔离与版本约定
 

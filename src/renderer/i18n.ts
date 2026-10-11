@@ -249,7 +249,7 @@ const messages = {
       usageCached: '缓存命中',
       usageUnavailable: '未提供',
       contextUsed: '上下文已用 {percent}%',
-      contextUsedEstimated: '上下文已用 {percent}%；压缩后的占用将在下一次模型请求后校准',
+      contextUnavailable: '上下文用量暂不可用',
       incomplete: '未完成',
       menuTitle: '选择引用',
       menuBack: '返回分类',
@@ -727,8 +727,7 @@ const messages = {
       usageCached: 'Cache hit',
       usageUnavailable: 'Unavailable',
       contextUsed: 'Context used: {percent}%',
-      contextUsedEstimated:
-        'Context used: {percent}%; post-compaction usage will be calibrated after the next model request',
+      contextUnavailable: 'Context usage is unavailable',
       incomplete: 'Incomplete',
       menuTitle: 'Insert reference',
       menuBack: 'Back to categories',

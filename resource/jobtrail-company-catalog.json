@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "catalogVersion": 6,
+  "catalogVersion": 7,
   "minimumAppVersion": "1.5.0",
   "industries": [
     {
@@ -31844,7 +31844,38 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "天津市",
+        "重庆市",
+        "安徽省",
+        "福建省",
+        "广东省",
+        "甘肃省",
+        "广西壮族自治区",
+        "贵州省",
+        "湖北省",
+        "河北省",
+        "黑龙江省",
+        "海南省",
+        "湖南省",
+        "河南省",
+        "吉林省",
+        "江苏省",
+        "江西省",
+        "辽宁省",
+        "内蒙古自治区",
+        "宁夏回族自治区",
+        "青海省",
+        "四川省",
+        "山东省",
+        "陕西省",
+        "山西省",
+        "新疆维吾尔自治区",
+        "云南省",
+        "浙江省"
+      ]
     },
     {
       "builtinKey": "937042a5-cfdb-45bf-aca0-f88903d2669e",
@@ -31866,7 +31897,11 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "大连市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "ed8e6ab3-b98f-427f-8775-1b5eff482e66",
@@ -31878,7 +31913,9 @@
       "industryKeys": [
         "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
       ],
-      "locations": []
+      "locations": [
+        "长春市"
+      ]
     },
     {
       "builtinKey": "64985478-664e-436b-8f70-5af72269e00d",
@@ -31890,7 +31927,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "d8712fe7-899d-47de-850e-fd02f9f3dfe3",
@@ -31900,7 +31939,11 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "杭州市",
+        "台州市",
+        "宿迁市"
+      ]
     },
     {
       "builtinKey": "23c7e834-fc55-4f42-8c69-90237fae738c",
@@ -31910,7 +31953,9 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "东莞市"
+      ]
     },
     {
       "builtinKey": "98374400-bbcf-4f3e-b392-5d9cd307d33a",
@@ -31944,7 +31989,12 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "无锡市",
+        "上海市",
+        "苏州市",
+        "合肥市"
+      ]
     },
     {
       "builtinKey": "080be07b-d5ca-4618-a4ea-da8ef8097180",
@@ -31954,7 +32004,9 @@
       "industryKeys": [
         "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
       ],
-      "locations": []
+      "locations": [
+        "成都市"
+      ]
     },
     {
       "builtinKey": "e29669ce-d91d-45cc-bc1b-fedb76dda8ba",
@@ -31966,7 +32018,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "扬州市"
+      ]
     },
     {
       "builtinKey": "ef076baa-74c1-4d36-acca-09f50c524812",
@@ -31976,7 +32030,18 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "烟台",
+        "天津",
+        "北京",
+        "上海",
+        "天水",
+        "深圳",
+        "成都",
+        "迪拜",
+        "美国",
+        "伊拉克"
+      ]
     },
     {
       "builtinKey": "195d2203-3519-465a-b741-828d15a8fcd2",
@@ -31988,7 +32053,9 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "杭州"
+      ]
     },
     {
       "builtinKey": "24fd8f93-2fd0-423a-9058-00a0fcea7d5b",
@@ -31998,7 +32065,9 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "深圳"
+      ]
     },
     {
       "builtinKey": "a4475bbe-0f2a-4b48-b372-05976ef45696",
@@ -32010,7 +32079,12 @@
       "industryKeys": [
         "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
       ],
-      "locations": []
+      "locations": [
+        "北京",
+        "上海",
+        "无锡",
+        "南通"
+      ]
     },
     {
       "builtinKey": "b9133363-497f-4fb1-b11a-c0f13683a2a3",
@@ -32020,7 +32094,9 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "无锡"
+      ]
     },
     {
       "builtinKey": "76ebd622-9ebe-4f3d-8324-9462162fe038",
@@ -32030,7 +32106,10 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "深圳",
+        "重庆"
+      ]
     },
     {
       "builtinKey": "30f56700-8d24-4dd2-be21-22dbc7cdb446",
@@ -32042,7 +32121,10 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "上海",
+        "太仓"
+      ]
     },
     {
       "builtinKey": "ad39adbe-e10a-4182-b168-744b4e2da71b",
@@ -32054,7 +32136,19 @@
       "industryKeys": [
         "fe7a9878-1e7d-4af2-a7c9-9ea915f06caa"
       ],
-      "locations": []
+      "locations": [
+        "淄博市",
+        "盐城市",
+        "儋州市",
+        "宁波市",
+        "潍坊市",
+        "钦州市",
+        "上海市",
+        "镇江市",
+        "普洱市",
+        "清远市",
+        "南通市"
+      ]
     },
     {
       "builtinKey": "887cef47-1cc8-44ac-aa41-e022c1ff0f95",
@@ -32090,7 +32184,12 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "苏州市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "0eada64f-ddd9-4d92-aed0-1382181566cb",
@@ -32102,7 +32201,10 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "94f87731-dc7e-4754-95b8-975eb04b3ab7",
@@ -32114,7 +32216,20 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "东莞市",
+        "深圳市",
+        "盐城市",
+        "苏州市",
+        "扬州市",
+        "成都市",
+        "江门市",
+        "北京市",
+        "桂林市",
+        "郑州市",
+        "伊斯坦布尔",
+        "北宁"
+      ]
     },
     {
       "builtinKey": "af5e87ce-111c-4d81-b05b-216e9c0f778c",
@@ -32126,7 +32241,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "广东省"
+      ]
     },
     {
       "builtinKey": "20de6448-f4ac-4915-b500-7bd91bb4e8ec",
@@ -32138,7 +32255,18 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "重庆市",
+        "西安市",
+        "杭州市",
+        "合肥市",
+        "武汉市",
+        "广州市",
+        "深圳市",
+        "成都市"
+      ]
     },
     {
       "builtinKey": "b4582ab7-0186-40ce-9c3a-935499efc3d5",
@@ -32148,7 +32276,9 @@
       "industryKeys": [
         "302ee2f0-f476-4f5f-9947-303781989c3b"
       ],
-      "locations": []
+      "locations": [
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "34151b1c-a9ea-42e4-bb9c-e1628c1833f5",
@@ -32160,7 +32290,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "7334eee2-2805-4acb-8e98-a1dddd5edd93",
@@ -32172,7 +32304,9 @@
       "industryKeys": [
         "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
       ],
-      "locations": []
+      "locations": [
+        "昆明市"
+      ]
     },
     {
       "builtinKey": "3a42c7a7-e17d-4ade-9122-fd21ac8276a0",
@@ -32184,7 +32318,10 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "be7c74ae-37c3-48b6-9c38-c41227ce83e1",
@@ -32194,7 +32331,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "251d43fb-01f6-4663-bea2-3f50ca09867d",
@@ -32206,7 +32345,11 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "潍坊市",
+        "临沂市",
+        "哈尔滨市"
+      ]
     },
     {
       "builtinKey": "096b435b-cca5-4f3a-8068-ef929e18c5e2",
@@ -32218,7 +32361,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "青岛市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "0c35fe2d-5d27-4454-b6a9-ac43afbb4e78",
@@ -32230,7 +32376,9 @@
       "industryKeys": [
         "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
       ],
-      "locations": []
+      "locations": [
+        "大连市"
+      ]
     },
     {
       "builtinKey": "5032f4f2-eef7-4771-8b72-0839ec2b27ec",
@@ -32240,7 +32388,13 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "潍坊市",
+        "南通市",
+        "威海市",
+        "日照市",
+        "青岛市"
+      ]
     },
     {
       "builtinKey": "00375db6-06cb-4573-88d7-24512df0aab0",
@@ -32250,7 +32404,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "惠州市"
+      ]
     },
     {
       "builtinKey": "9a4e3b2e-3ba3-4c8d-b4ff-51798f0c234b",
@@ -32260,7 +32416,11 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "南京市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "2be354d8-c3b8-4daa-9ed8-b4adbffea4c8",
@@ -32270,7 +32430,10 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "南京市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "7af45ed2-6939-43c9-930c-4fe6f943c3ae",
@@ -32280,7 +32443,10 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "成都市",
+        "合肥市"
+      ]
     },
     {
       "builtinKey": "4698b51b-2301-4823-bdd7-a43ab5a7e617",
@@ -32290,7 +32456,15 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "常州市",
+        "上海市",
+        "广州市",
+        "南京市",
+        "北京市",
+        "成都市",
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "64803cac-2d52-4288-bc6c-a1b57f08912c",
@@ -32302,7 +32476,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "34e96c4a-c8cc-4576-88b6-8c868c79672d",
@@ -32314,7 +32490,10 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "浙江省",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "7d48e7c7-5cbf-4b2b-8c62-b57a45dbe7c8",
@@ -32326,7 +32505,21 @@
       "industryKeys": [
         "09dc3b79-f653-4a7f-930c-e34429247b2c"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "深圳市",
+        "成都市",
+        "长沙市",
+        "杭州市",
+        "金华市",
+        "绵阳市",
+        "宁波市",
+        "青岛市",
+        "武汉市",
+        "无锡市",
+        "广州市"
+      ]
     },
     {
       "builtinKey": "640ea23e-a468-4cb8-9ef5-782d71023bcb",
@@ -32339,7 +32532,9 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "上海市"
+      ]
     },
     {
       "builtinKey": "add7893a-06f8-4385-8319-45984bfeeb20",
@@ -32349,7 +32544,22 @@
       "industryKeys": [
         "7e8f30f6-6085-4831-b39a-f03d9f4239d7"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "成都市",
+        "汉中市",
+        "衡阳市",
+        "武汉市",
+        "芜湖市",
+        "厦门市",
+        "南昌市",
+        "赣州市",
+        "吉安市",
+        "贵阳市",
+        "西安市",
+        "广东省"
+      ]
     },
     {
       "builtinKey": "e4be58a6-7123-49f8-9302-57f1991e3eee",
@@ -32362,7 +32572,28 @@
       "industryKeys": [
         "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
       ],
-      "locations": []
+      "locations": [
+        "广东省",
+        "江苏省",
+        "河南省",
+        "广西壮族自治区",
+        "福建省",
+        "安徽省",
+        "浙江省",
+        "黑龙江省",
+        "内蒙古自治区",
+        "辽宁省",
+        "湖北省",
+        "江西省",
+        "海南省",
+        "上海市",
+        "重庆市",
+        "陕西省",
+        "山东省",
+        "四川省",
+        "新疆维吾尔自治区",
+        "河北省"
+      ]
     },
     {
       "builtinKey": "49c6a81c-363d-41da-91b4-aeaae24f4906",
@@ -32374,7 +32605,13 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "德阳市",
+        "成都市",
+        "西安市",
+        "上海市",
+        "镇江市"
+      ]
     },
     {
       "builtinKey": "ec032ab0-5cc3-4f87-9b77-b211eef46c8f",
@@ -32384,7 +32621,14 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "天津市",
+        "北京市",
+        "深圳市",
+        "成都市",
+        "南京市",
+        "杭州市"
+      ]
     },
     {
       "builtinKey": "8b9f82e3-4e0e-4bbe-bb23-2cdcf6d02f9f",
@@ -32396,7 +32640,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "广州市"
+      ]
     },
     {
       "builtinKey": "e531252e-69df-408c-8818-566eb871c84f",
@@ -32408,7 +32654,9 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "b72525fa-2a2a-4f7c-9d00-1c78a91e58ba",
@@ -32420,7 +32668,19 @@
       "industryKeys": [
         "88049ef4-ad25-42e2-8479-088cb20f88cd"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "沈阳市",
+        "上海市",
+        "无锡市",
+        "苏州市",
+        "南通市",
+        "杭州市",
+        "宁波市",
+        "郑州市",
+        "广州市",
+        "西安市"
+      ]
     },
     {
       "builtinKey": "641198e9-3ba6-428b-9404-f0aff09dd8fa",
@@ -32430,7 +32690,9 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "上海市"
+      ]
     },
     {
       "builtinKey": "a3417252-1751-4bcf-bff6-4589602c2feb",
@@ -32442,7 +32704,22 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "济南市",
+        "北京市",
+        "广州市",
+        "蚌埠市",
+        "芜湖市",
+        "阜阳市",
+        "贵阳市",
+        "合肥市",
+        "南昌市",
+        "郑州市",
+        "成都市",
+        "武汉市",
+        "长沙市"
+      ]
     },
     {
       "builtinKey": "f90a5049-c00a-43a4-84b3-c4d1d53ec2dc",
@@ -32452,7 +32729,9 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "长沙市"
+      ]
     },
     {
       "builtinKey": "c0ccda6b-d3e7-44d5-8020-fb2485fc634c",
@@ -32464,7 +32743,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "西安市"
+      ]
     },
     {
       "builtinKey": "a8b61c01-c5a0-4617-988a-b4618b70f6b5",
@@ -32474,19 +32756,25 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "佛山市",
+        "湖州市",
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "b1e0b1de-1c03-4c9a-85a5-2c6193260f3b",
       "name": "中信重工机械股份有限公司",
-      "careerUrl": "https://join.citic-hic.com.cn/#/pages/school/school?id=undefined",
+      "careerUrl": "https://join.citic-hic.com.cn/#/pages/school/school",
       "aliases": [
         "中信重工"
       ],
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "洛阳市"
+      ]
     },
     {
       "builtinKey": "4e637519-d417-4d0e-935b-77e7b266fcef",
@@ -32496,7 +32784,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "武汉市"
+      ]
     },
     {
       "builtinKey": "3fab5d1c-b28a-48cd-b20d-03478bd51d0a",
@@ -32506,7 +32797,11 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "成都市",
+        "海口市"
+      ]
     },
     {
       "builtinKey": "0355b498-6a09-4eb4-8439-8799720c7bdb",
@@ -32516,7 +32811,12 @@
       "industryKeys": [
         "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "长沙市",
+        "广州市",
+        "杭州市"
+      ]
     },
     {
       "builtinKey": "549069fe-c9f8-4166-90ad-575cccad5f50",
@@ -32526,7 +32826,9 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "合肥市"
+      ]
     },
     {
       "builtinKey": "41e0d19f-08af-4955-9b30-f7075d4134e0",
@@ -32538,7 +32840,9 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "江苏省"
+      ]
     },
     {
       "builtinKey": "ed2325a7-394c-41f1-8ef9-5aacfc5a9677",
@@ -32550,7 +32854,9 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "ddb6738f-c5c8-42bf-a8c7-72c727f44cb8",
@@ -32560,7 +32866,12 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "武汉市",
+        "西安市",
+        "成都市"
+      ]
     },
     {
       "builtinKey": "a10aa90c-9385-48d2-b322-80a68d951daa",
@@ -32570,7 +32881,10 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "南京市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "b09e29cc-4ebd-45cb-9cb5-f51bf408469c",
@@ -32583,7 +32897,11 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "深圳市",
+        "北京市"
+      ]
     },
     {
       "builtinKey": "686ded22-9609-4df3-95c4-2e84b74c66e7",
@@ -32605,7 +32923,11 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "西安市",
+        "宝鸡市"
+      ]
     },
     {
       "builtinKey": "7c226cf2-27ec-4d88-ab8a-3aff185be391",
@@ -32630,7 +32952,23 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "苏州市",
+        "成都市",
+        "北京市",
+        "乌鲁木齐市",
+        "太原市",
+        "长春市",
+        "上海市",
+        "郑州市",
+        "合肥市",
+        "青岛市",
+        "广州市",
+        "温州市",
+        "宁波市",
+        "呼和浩特市",
+        "南宁市"
+      ]
     },
     {
       "builtinKey": "9ffdf6e2-2a85-4f76-87f3-031bcd8790cb",
@@ -32643,7 +32981,13 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "深圳市",
+        "平顶山市",
+        "常州市",
+        "西安市"
+      ]
     },
     {
       "builtinKey": "cad83698-74c0-4a17-b508-5fae277db664",
@@ -32655,7 +32999,11 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "成都市",
+        "广州市",
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "c16f73cb-5f84-4976-882e-88c849a329e2",
@@ -32680,7 +33028,11 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "杭州市",
+        "青岛市"
+      ]
     },
     {
       "builtinKey": "d0b80c94-0516-40ff-bf8e-206811fbd092",
@@ -32705,7 +33057,72 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "常德市",
+        "长沙市",
+        "郴州市",
+        "恩施土家族苗族自治州",
+        "鄂州市",
+        "黄冈市",
+        "怀化市",
+        "黄石市",
+        "衡阳市",
+        "荆门市",
+        "荆州市",
+        "娄底市",
+        "潜江市",
+        "邵阳市",
+        "十堰市",
+        "随州市",
+        "天门市",
+        "武汉市",
+        "孝感市",
+        "咸宁市",
+        "湘潭市",
+        "仙桃市",
+        "湘西土家族苗族自治州",
+        "襄阳市",
+        "宜昌市",
+        "岳阳市",
+        "益阳市",
+        "永州市",
+        "张家界市",
+        "株洲市",
+        "宁波市",
+        "杭州市",
+        "常州市",
+        "苏州市",
+        "广州市",
+        "安庆市",
+        "蚌埠市",
+        "亳州市",
+        "滁州市",
+        "池州市",
+        "阜阳市",
+        "淮北市",
+        "合肥市",
+        "淮南市",
+        "黄山市",
+        "六安市",
+        "马鞍山市",
+        "宿州市",
+        "铜陵市",
+        "芜湖市",
+        "宣城市",
+        "安顺市",
+        "毕节市",
+        "贵阳市",
+        "六盘水市",
+        "黔东南苗族侗族自治州",
+        "黔南布依族苗族自治州",
+        "黔西南布依族苗族自治州",
+        "铜仁市",
+        "遵义市",
+        "成都市",
+        "重庆市",
+        "青岛市"
+      ]
     },
     {
       "builtinKey": "e556143f-5a4a-4003-aa58-1fe3a152cc96",
@@ -32741,7 +33158,17 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "平顶山市",
+        "北京市",
+        "上海市",
+        "天津市",
+        "郑州市",
+        "西安市",
+        "威海市",
+        "长沙市",
+        "泰州市"
+      ]
     },
     {
       "builtinKey": "c6890438-68ca-4b2f-8839-6412a56e3d24",
@@ -32753,7 +33180,25 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "德阳市",
+        "洛阳市",
+        "南京市",
+        "重庆市",
+        "泰州市",
+        "杭州市",
+        "郑州市",
+        "合肥市",
+        "广州市",
+        "桂林市",
+        "海口市",
+        "青岛市",
+        "中山市",
+        "天津市",
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "846f9310-ed83-4a07-8fea-e01e8ea2dde9",
@@ -32773,7 +33218,21 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "杭州市",
+        "北京市",
+        "温州市",
+        "广州市",
+        "深圳市",
+        "武汉市",
+        "成都市",
+        "重庆市",
+        "西安市",
+        "石家庄市",
+        "济南市",
+        "合肥市"
+      ]
     },
     {
       "builtinKey": "fac02926-d0ce-4a5c-90bd-8a2e09ecbc9f",
@@ -32785,7 +33244,9 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "济南市"
+      ]
     },
     {
       "builtinKey": "1e7cb2cd-7236-4511-b921-d9522dfd9207",
@@ -32797,7 +33258,33 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "江门市",
+        "常州市",
+        "成都市",
+        "重庆市",
+        "广州市",
+        "浙江省",
+        "广西壮族自治区",
+        "河南省",
+        "陕西省",
+        "安徽省",
+        "河北省",
+        "湖南省",
+        "江西省",
+        "北京市",
+        "天津市",
+        "云南省",
+        "山东省",
+        "湖北省",
+        "山西省",
+        "甘肃省",
+        "青海省",
+        "宁夏回族自治区",
+        "新疆维吾尔自治区",
+        "贵州省"
+      ]
     },
     {
       "builtinKey": "3068b5f6-7b80-4d5e-9cae-1dd951085c25",
@@ -32809,7 +33296,11 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "苏州市",
+        "上海市",
+        "武汉市"
+      ]
     },
     {
       "builtinKey": "54166283-55e5-4d5e-b285-88bab508bde5",
@@ -32843,7 +33334,10 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "南京市"
+      ]
     },
     {
       "builtinKey": "debde8dd-3b06-45f4-85cd-9f74ccdc51c6",
@@ -32855,7 +33349,24 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "杭州市",
+        "滨州市",
+        "东营市",
+        "济南市",
+        "聊城市",
+        "临沂市",
+        "青岛市",
+        "苏州市",
+        "深圳市",
+        "泰安市",
+        "潍坊市",
+        "淄博市",
+        "珠海市",
+        "枣庄市",
+        "阿拉善盟"
+      ]
     },
     {
       "builtinKey": "9d1ee7b3-01be-4e33-842e-6a6e1b076331",
@@ -32867,7 +33378,9 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "杭州市"
+      ]
     },
     {
       "builtinKey": "afecaa0a-a35a-4977-b4b8-a573f1dd7215",
@@ -32879,7 +33392,14 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "南京市",
+        "沈阳市",
+        "哈尔滨市",
+        "济南市",
+        "郑州市",
+        "长沙市"
+      ]
     },
     {
       "builtinKey": "2f729dc8-d7b5-4ce9-a079-819f47478b9c",
@@ -32891,7 +33411,10 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "重庆市",
+        "成都市"
+      ]
     },
     {
       "builtinKey": "40dcca65-0be6-4815-980d-a8765123dd96",
@@ -32927,7 +33450,9 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "上海市"
+      ]
     },
     {
       "builtinKey": "26983568-d047-49d0-ae48-54c7d2c10aa4",
@@ -32939,7 +33464,9 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "武汉市"
+      ]
     },
     {
       "builtinKey": "c8b2e9b1-6987-4ae1-a3bc-4ad5974c6b7c",
@@ -32951,7 +33478,23 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "陕西省",
+        "山西省",
+        "宁夏回族自治区",
+        "青海省",
+        "内蒙古自治区",
+        "喀什地区",
+        "巴音郭楞蒙古自治州",
+        "石河子市",
+        "五家渠市",
+        "乌鲁木齐市",
+        "金昌市",
+        "昌吉回族自治州",
+        "塔城地区",
+        "梅河口市",
+        "郑州市"
+      ]
     },
     {
       "builtinKey": "bd41b647-8d90-424d-8190-a7420a145506",
@@ -32963,7 +33506,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "广州市"
+      ]
     },
     {
       "builtinKey": "0c7a3d64-a105-44f2-b6fe-399f291a5284",
@@ -32985,7 +33530,16 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "天津市",
+        "石家庄市",
+        "衡水市",
+        "邯郸市",
+        "山西省",
+        "山东省",
+        "河南省"
+      ]
     },
     {
       "builtinKey": "95c006bf-4e23-4004-98bb-dc8beca09134",
@@ -32995,7 +33549,12 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "秦皇岛市",
+        "赤峰市",
+        "巴彦淖尔市",
+        "合肥市"
+      ]
     },
     {
       "builtinKey": "32f50901-305e-4497-9735-968fbc948272",
@@ -33005,7 +33564,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "cf137c39-67b8-48a7-a584-f435a8945acd",
@@ -33015,7 +33577,24 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "桂林市",
+        "上海市",
+        "佛山市",
+        "广州市",
+        "深圳市",
+        "宿迁市",
+        "合肥市",
+        "武汉市",
+        "珠海市",
+        "温州市",
+        "徐州市",
+        "岳阳市",
+        "重庆市",
+        "成都市",
+        "苏州市",
+        "北京市"
+      ]
     },
     {
       "builtinKey": "2a8bf210-6cde-436e-be98-0adb5e6e1b0d",
@@ -33025,7 +33604,9 @@
       "industryKeys": [
         "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
       ],
-      "locations": []
+      "locations": [
+        "济南市"
+      ]
     },
     {
       "builtinKey": "9a04f316-d91f-43f8-9163-c83fadd8c21e",
@@ -33035,7 +33616,10 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "南通市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "3e161ffa-1998-4efc-be49-0577c1f24461",
@@ -33047,7 +33631,14 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "苏州市",
+        "广州市",
+        "北京市",
+        "上海市",
+        "重庆市",
+        "成都市"
+      ]
     },
     {
       "builtinKey": "e628e870-8c7b-487f-811e-d3c7d45b4e2d",
@@ -33069,7 +33660,14 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "苏州市",
+        "南京市",
+        "合肥市",
+        "武汉市",
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "9172d926-7b02-48d1-b885-4000e9347eb9",
@@ -33079,7 +33677,11 @@
       "industryKeys": [
         "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "上海市",
+        "厦门市"
+      ]
     },
     {
       "builtinKey": "4ccba5c1-fd79-42fe-bb8c-da4ecd0848fb",
@@ -33089,7 +33691,19 @@
       "industryKeys": [
         "302ee2f0-f476-4f5f-9947-303781989c3b"
       ],
-      "locations": []
+      "locations": [
+        "安庆市",
+        "淮北市",
+        "九江市",
+        "淄博市",
+        "潍坊市",
+        "下龙市",
+        "镇江市",
+        "北京市",
+        "济南市",
+        "青岛市",
+        "清化市"
+      ]
     },
     {
       "builtinKey": "1966295a-4222-4719-a175-1ce649265128",
@@ -33099,7 +33713,20 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "台州市",
+        "杭州市",
+        "南京市",
+        "石家庄市",
+        "西安市",
+        "湘潭市",
+        "济南市",
+        "成都市",
+        "大连市",
+        "上海市",
+        "深圳市",
+        "太原市"
+      ]
     },
     {
       "builtinKey": "9a059f6f-cd3a-4fff-9f29-14b5f102a33e",
@@ -33109,7 +33736,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "常州市"
+      ]
     },
     {
       "builtinKey": "4a84b806-700c-4338-a6d1-6981c08cdcba",
@@ -33121,7 +33750,9 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "东莞市"
+      ]
     },
     {
       "builtinKey": "2d9de94a-2d31-462b-8a5f-098f34650b81",
@@ -33131,7 +33762,13 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "苏州市",
+        "上海市",
+        "西安市",
+        "北京市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "494382f9-6cc5-48d1-bd45-d9c3d33738ab",
@@ -33143,7 +33780,12 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "浙江省",
+        "山东省",
+        "天津市",
+        "黑龙江省"
+      ]
     },
     {
       "builtinKey": "0209e76d-1bcc-4bc3-9563-24521e055155",
@@ -33155,7 +33797,11 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "泉州市",
+        "上海市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "651dd1d7-df60-4fc4-b3e0-6566557cb279",
@@ -33165,7 +33811,12 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "北京市",
+        "温州市",
+        "嘉兴市"
+      ]
     },
     {
       "builtinKey": "fd200293-fcb5-4db0-98ec-0f6eb5ad246a",
@@ -33175,7 +33826,11 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "惠州市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "ad607927-363e-4b59-917a-41c26893d14f",
@@ -33187,7 +33842,15 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "北京市",
+        "石家庄市",
+        "吉林省",
+        "黑龙江省",
+        "天津市",
+        "辽宁省"
+      ]
     },
     {
       "builtinKey": "be7a6bac-72c8-4719-9381-008275ec34e0",
@@ -33199,7 +33862,11 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "苏州市",
+        "南通市"
+      ]
     },
     {
       "builtinKey": "aa4dd54a-d359-4189-8e58-e3dbb2b65fa1",
@@ -33211,7 +33878,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "惠州市"
+      ]
     },
     {
       "builtinKey": "b207d9e6-f642-4e4f-ae74-940cd91ebb11",
@@ -33223,7 +33892,9 @@
       "industryKeys": [
         "e1013465-32aa-4ec0-a147-e9a342890f20"
       ],
-      "locations": []
+      "locations": [
+        "重庆市"
+      ]
     },
     {
       "builtinKey": "2ad96240-6d9f-4fae-8a22-cf0647896bdb",
@@ -33235,7 +33906,13 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "南京市",
+        "天津市",
+        "合肥市",
+        "成都市",
+        "广州市"
+      ]
     },
     {
       "builtinKey": "48e72654-69bc-4746-8af9-65800fd434df",
@@ -33245,7 +33922,26 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "长沙市",
+        "杭州市",
+        "南京市",
+        "深圳市",
+        "武汉市",
+        "西安市",
+        "株洲市",
+        "苏州市",
+        "北京市",
+        "长春市",
+        "重庆市",
+        "东莞市",
+        "河源市",
+        "济南市",
+        "徐州市",
+        "金华市",
+        "香港特别行政区",
+        "泰国"
+      ]
     },
     {
       "builtinKey": "a0cd49a3-b7fc-4cee-875c-80061756627f",
@@ -33255,7 +33951,15 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "中山市",
+        "苏州市",
+        "北京市",
+        "上海市",
+        "郑州市",
+        "张家口市"
+      ]
     },
     {
       "builtinKey": "57d6d93b-980a-4fb2-abdb-03f8e73fca7a",
@@ -33267,7 +33971,10 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "福州市",
+        "北京市"
+      ]
     },
     {
       "builtinKey": "3a646864-5185-41c6-86b7-9420a69bf43f",
@@ -33279,7 +33986,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "东莞市"
+      ]
     },
     {
       "builtinKey": "7396331d-46c1-49e0-9d48-b2762e4e34dd",
@@ -33291,7 +34000,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "扬州市"
+      ]
     },
     {
       "builtinKey": "f4b2eb03-349b-4bf2-a536-7feb2e3a41db",
@@ -33301,7 +34012,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "北京市"
+      ]
     },
     {
       "builtinKey": "b360891c-f1e3-4fa7-8026-f7fd481c862a",
@@ -33323,7 +34037,27 @@
       "industryKeys": [
         "06480bcc-2a04-41b8-b447-d5ead64ad92a"
       ],
-      "locations": []
+      "locations": [
+        "青岛市",
+        "江苏省",
+        "湖北省",
+        "贵州省",
+        "新疆维吾尔自治区",
+        "福建省",
+        "重庆市",
+        "上海市",
+        "四川省",
+        "河北省",
+        "广西壮族自治区",
+        "浙江省",
+        "湖南省",
+        "江西省",
+        "海南省",
+        "云南省",
+        "辽宁省",
+        "广东省",
+        "安徽省"
+      ]
     },
     {
       "builtinKey": "334ef063-58a6-4516-bd12-48a51a574fd1",
@@ -33335,7 +34069,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "绍兴市",
+        "杭州市"
+      ]
     },
     {
       "builtinKey": "38da2431-5171-47a2-9f83-18c78cae35af",
@@ -33347,7 +34084,11 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "南京市",
+        "常州市"
+      ]
     },
     {
       "builtinKey": "527f39ec-fe71-4928-b365-b703f377b7d4",
@@ -33381,7 +34122,15 @@
       "industryKeys": [
         "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
       ],
-      "locations": []
+      "locations": [
+        "临沂市",
+        "日照市",
+        "济宁市",
+        "菏泽市",
+        "呼和浩特市",
+        "包头市",
+        "乌海市"
+      ]
     },
     {
       "builtinKey": "eddda9a2-4fe3-47de-a26f-181bce21d801",
@@ -33393,7 +34142,9 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "北京市"
+      ]
     },
     {
       "builtinKey": "c2b9ee8d-a592-4146-9199-38df6408d857",
@@ -33403,7 +34154,9 @@
       "industryKeys": [
         "09dc3b79-f653-4a7f-930c-e34429247b2c"
       ],
-      "locations": []
+      "locations": [
+        "广州市"
+      ]
     },
     {
       "builtinKey": "a0b31f04-719b-49d2-a3c4-52296f37ab52",
@@ -33413,7 +34166,13 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "太原市",
+        "晋中市",
+        "上海市",
+        "西安市",
+        "天津市"
+      ]
     },
     {
       "builtinKey": "22d0a59d-d432-45c2-be76-3382301a27df",
@@ -33426,7 +34185,10 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "临沂市",
+        "济南市"
+      ]
     },
     {
       "builtinKey": "b321d749-cea3-4a77-bbcb-946aa0979c2d",
@@ -33438,7 +34200,18 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "大同市",
+        "上海市",
+        "宿迁市",
+        "杭州市",
+        "合肥市",
+        "厦门市",
+        "中山市",
+        "重庆市",
+        "西安市"
+      ]
     },
     {
       "builtinKey": "ae3d9c1d-e1f9-4e87-9904-47991553a1e8",
@@ -33450,7 +34223,16 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "昆明市",
+        "北京市",
+        "上海市",
+        "天津市",
+        "无锡市",
+        "云南省",
+        "丽江市",
+        "文山市"
+      ]
     },
     {
       "builtinKey": "87e684cc-c610-470f-bb7c-ea559149485a",
@@ -33462,7 +34244,18 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "东莞市",
+        "宜昌市",
+        "金华市",
+        "韶关市",
+        "乌兰察布市",
+        "宜春市",
+        "武汉市",
+        "广州市",
+        "肇庆市"
+      ]
     },
     {
       "builtinKey": "2a2ffd8c-a7f3-46e2-86a7-13c1dff47b42",
@@ -33474,7 +34267,10 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "苏州市",
+        "越南"
+      ]
     },
     {
       "builtinKey": "2fbfac37-fc9f-4d36-b78f-0d3ea65b2f5b",
@@ -33486,17 +34282,23 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "西安市"
+      ]
     },
     {
       "builtinKey": "bd2fc159-63e8-44db-8307-d7ca5ae66fc7",
       "name": "建华控股",
-      "careerUrl": "https://jianhuabm.zhiye.com/jobs?queryId=262333a3-8b82-400c-8f9f-c57811033059",
+      "careerUrl": "https://jianhuabm.zhiye.com/campus/jobs",
       "aliases": [],
       "industryKeys": [
         "a4eedff9-019e-4894-ace3-df3bb2992a4b"
       ],
-      "locations": []
+      "locations": [
+        "南通市",
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "ab84b4af-a514-4013-84ba-6c83e9acb0be",
@@ -33506,7 +34308,13 @@
       "industryKeys": [
         "a4eedff9-019e-4894-ace3-df3bb2992a4b"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "江苏省",
+        "浙江省",
+        "安徽省",
+        "福建省"
+      ]
     },
     {
       "builtinKey": "00c932c0-74b2-4a8c-9d30-c5e43e0860a7",
@@ -33518,7 +34326,14 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "潍坊市",
+        "无锡市",
+        "青岛市",
+        "厦门市",
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "f301a873-85f7-49d1-aee8-65617dc7f14a",
@@ -33530,7 +34345,12 @@
       "industryKeys": [
         "09dc3b79-f653-4a7f-930c-e34429247b2c"
       ],
-      "locations": []
+      "locations": [
+        "湖州市",
+        "杭州市",
+        "厦门市",
+        "漳州市"
+      ]
     },
     {
       "builtinKey": "f4569092-8c31-431e-8d1a-14114bb69105",
@@ -33540,7 +34360,25 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "重庆市",
+        "香港特别行政区",
+        "深圳市",
+        "惠州市",
+        "金华市",
+        "南京市",
+        "枣庄市",
+        "茂名市",
+        "宜昌市",
+        "德阳市",
+        "南昌市",
+        "赣州市",
+        "东莞市",
+        "西安市",
+        "大连市",
+        "宜春市"
+      ]
     },
     {
       "builtinKey": "b6d49581-0905-47ae-bcf1-488f7388a7e0",
@@ -33550,7 +34388,15 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "大连市",
+        "济南市",
+        "沈阳市",
+        "南京市",
+        "长春市",
+        "天津市"
+      ]
     },
     {
       "builtinKey": "03722147-9c49-41f9-b77e-706ff17603c2",
@@ -33562,7 +34408,9 @@
       "industryKeys": [
         "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
       ],
-      "locations": []
+      "locations": [
+        "武汉市"
+      ]
     },
     {
       "builtinKey": "bdbb007b-90b4-4fcd-b3bd-2cb8b3c1aa5e",
@@ -33572,7 +34420,14 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "东莞市",
+        "天津市",
+        "无锡市",
+        "徐州市",
+        "台州市",
+        "重庆市"
+      ]
     },
     {
       "builtinKey": "6906ea59-c11a-4199-9655-72094009ae85",
@@ -33584,7 +34439,9 @@
       "industryKeys": [
         "aa439be4-2099-4b3c-a8a4-b489d705d073"
       ],
-      "locations": []
+      "locations": [
+        "深圳市"
+      ]
     },
     {
       "builtinKey": "3892fc6d-6a3f-4876-a4b2-cc846d720f54",
@@ -33594,7 +34451,9 @@
       "industryKeys": [
         "10fc8a4f-14cf-45d4-8ca6-3d1c905335d3"
       ],
-      "locations": []
+      "locations": [
+        "杭州市"
+      ]
     },
     {
       "builtinKey": "6f270fcd-aca6-4b79-8c3b-bb075b6daf78",
@@ -33614,7 +34473,16 @@
       "industryKeys": [
         "09dc3b79-f653-4a7f-930c-e34429247b2c"
       ],
-      "locations": []
+      "locations": [
+        "北京市",
+        "天津市",
+        "上海市",
+        "重庆市",
+        "济南市",
+        "西安市",
+        "哈尔滨市",
+        "青岛市"
+      ]
     },
     {
       "builtinKey": "369cbc83-92a7-4375-97a3-aa78f3cf8e7f",
@@ -33638,7 +34506,18 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "长春市",
+        "武汉市",
+        "成都市",
+        "四平市",
+        "漯河市",
+        "邯郸市",
+        "都江堰市",
+        "郑州市",
+        "上海市",
+        "茨魏布吕肯"
+      ]
     },
     {
       "builtinKey": "4c42d38c-caf8-4bd7-bab2-6b328e3fc15d",
@@ -33650,7 +34529,24 @@
       "industryKeys": [
         "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "北京市",
+        "南京市",
+        "成都市",
+        "昆明市",
+        "深圳市",
+        "重庆市",
+        "福州市",
+        "广州市",
+        "杭州市",
+        "武汉市",
+        "香港特别行政区",
+        "厦门市",
+        "济南市",
+        "青岛市",
+        "郑州市"
+      ]
     },
     {
       "builtinKey": "02eecad8-d318-4032-9e3e-e9a0380ee97e",
@@ -33662,7 +34558,18 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "上海市",
+        "南京市",
+        "徐州市",
+        "北京市",
+        "河北省",
+        "山西省",
+        "河南省",
+        "广州市",
+        "深圳市",
+        "无锡市"
+      ]
     },
     {
       "builtinKey": "2269439a-9626-48c3-aef3-7c5398e344dd",
@@ -33674,7 +34581,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "05b71dec-b9ee-44c8-94bb-fd0424cd68c3",
@@ -33686,7 +34595,15 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "常州市",
+        "厦门市",
+        "宜宾市",
+        "苏州市",
+        "上海市",
+        "长沙市"
+      ]
     },
     {
       "builtinKey": "0d730caa-ca2d-41a9-9263-09fc64a4a91e",
@@ -33706,7 +34623,13 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "绍兴市",
+        "许昌市",
+        "安徽省",
+        "上海市",
+        "江苏省"
+      ]
     },
     {
       "builtinKey": "aa42e39a-497b-4a8e-bb4b-0b7541e58e9e",
@@ -33718,7 +34641,52 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "宁波市",
+        "南京市",
+        "成都市",
+        "北京市",
+        "温州市",
+        "嘉兴市",
+        "连云港市",
+        "南通市",
+        "淮安市",
+        "恩施土家族苗族自治州",
+        "十堰市",
+        "武汉市",
+        "呼和浩特市",
+        "辽阳市",
+        "营口市",
+        "盘锦市",
+        "邯郸市",
+        "保定市",
+        "石家庄市",
+        "遵义市",
+        "六盘水市",
+        "贵阳市",
+        "乌鲁木齐市",
+        "苏州市",
+        "无锡市",
+        "合肥市",
+        "青岛市",
+        "大连市",
+        "哈尔滨市",
+        "南宁市",
+        "上饶市",
+        "临沧市",
+        "红河哈尼族彝族自治州",
+        "重庆市",
+        "深圳市",
+        "柳州市",
+        "上海市",
+        "郑州市",
+        "黄冈市",
+        "黄石市",
+        "广州市",
+        "杭州市",
+        "临沂市",
+        "宁夏回族自治区"
+      ]
     },
     {
       "builtinKey": "eeb90021-9e97-42e0-9188-e0851529595c",
@@ -33742,7 +34710,9 @@
       "industryKeys": [
         "06480bcc-2a04-41b8-b447-d5ead64ad92a"
       ],
-      "locations": []
+      "locations": [
+        "广东省"
+      ]
     },
     {
       "builtinKey": "ee0fbd17-f67e-4944-8a23-6fc4fe7fd933",
@@ -33752,7 +34722,9 @@
       "industryKeys": [
         "fe2069c6-7fe1-4d22-8ea2-473861a9ab2d"
       ],
-      "locations": []
+      "locations": [
+        "苏州市"
+      ]
     },
     {
       "builtinKey": "87cf6e37-a427-47a7-b6c7-2ae2e825d4e9",
@@ -33762,7 +34734,16 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "天津市",
+        "北京市",
+        "上海市",
+        "重庆市",
+        "廊坊市",
+        "沈阳市",
+        "广州市",
+        "太原市"
+      ]
     },
     {
       "builtinKey": "8323caa4-3efd-4099-8f6c-e9819707ba0a",
@@ -33774,7 +34755,14 @@
       "industryKeys": [
         "77b75116-b077-4581-9c43-8b0749566106"
       ],
-      "locations": []
+      "locations": [
+        "桂林市",
+        "玉林市",
+        "河池市",
+        "北海市",
+        "深圳市",
+        "上海市"
+      ]
     },
     {
       "builtinKey": "98ec792e-37f1-49e5-af52-24a765263f34",
@@ -33798,7 +34786,14 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "深圳市",
+        "苏州市",
+        "长沙市",
+        "中山市",
+        "西安市",
+        "济南市"
+      ]
     },
     {
       "builtinKey": "fc9dc2fd-5d5e-41f3-943e-93e3af634957",
@@ -33810,7 +34805,20 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "东莞市",
+        "株洲市",
+        "深圳市",
+        "上海市",
+        "北京市",
+        "广州市",
+        "合肥市",
+        "南京市",
+        "长沙市",
+        "成都市",
+        "济南市",
+        "武汉市"
+      ]
     },
     {
       "builtinKey": "b6170cf2-219f-41f9-a346-50683372d4ea",
@@ -33822,7 +34830,9 @@
       "industryKeys": [
         "8464c112-0ea7-4782-a43f-18e4a23d369d"
       ],
-      "locations": []
+      "locations": [
+        "南京市"
+      ]
     },
     {
       "builtinKey": "a300cec8-63ee-4665-8f2a-3aac4f6e6add",
@@ -33834,7 +34844,36 @@
       "industryKeys": [
         "3144f514-a14f-4738-8095-550dab89363e"
       ],
-      "locations": []
+      "locations": [
+        "南京市",
+        "苏州市",
+        "无锡市",
+        "镇江市",
+        "徐州市",
+        "杭州市",
+        "宁波市",
+        "绍兴市",
+        "济南市",
+        "青岛市",
+        "南昌市",
+        "赣州市",
+        "合肥市",
+        "芜湖市",
+        "马鞍山市",
+        "保定市",
+        "秦皇岛市",
+        "郑州市",
+        "洛阳市",
+        "焦作市",
+        "武汉市",
+        "西安市",
+        "咸阳市",
+        "太原市",
+        "哈尔滨市",
+        "沈阳市",
+        "大连市",
+        "长春市"
+      ]
     },
     {
       "builtinKey": "3ae2571f-0726-4f0d-a8d6-c59fc21df1ed",
@@ -33846,7 +34885,10 @@
       "industryKeys": [
         "b8b0affa-c4d9-4471-b7b1-ea111545c065"
       ],
-      "locations": []
+      "locations": [
+        "新乡市",
+        "郑州市"
+      ]
     },
     {
       "builtinKey": "49391826-5248-47bb-9ff3-0382355ed22d",
@@ -33858,7 +34900,17 @@
       "industryKeys": [
         "e20e6089-4139-4ea5-b50f-4e949226292d"
       ],
-      "locations": []
+      "locations": [
+        "河南省",
+        "邯郸市",
+        "乌鲁木齐市",
+        "北京市",
+        "海口市",
+        "武汉市",
+        "上海市",
+        "石家庄市",
+        "广州市"
+      ]
     }
   ]
 }

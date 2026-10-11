@@ -6,12 +6,12 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 ## Features
 
-- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin and Shixiseng, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin and Shixiseng, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
-- **AI assistant**: Connect a model of your choice to discuss resumes and job opportunities, or connect external AI tools through MCP.
+- **AI assistant**: Connect your chosen model, reference resumes and roles, assess resume fit, and generate practice exams. View context usage, compact conversations, or connect external AI tools through MCP.
 - **Data backup**: Export and import complete backups of your records, settings, resumes, and chat attachments.
 
 Supports Simplified Chinese and English, light and dark themes, the system tray, launch at startup, and in-app updates.
@@ -30,15 +30,19 @@ Supports Simplified Chinese and English, light and dark themes, the system tray,
 
 ## Screenshots
 
-The screenshots show the Chinese interface with sample applications, events, and resumes. Click an image to view it at full size.
+The screenshots show the current Chinese interface with sample data. Click an image to view it at full size.
 
-| Application tracking                                                                            | Calendar                                                                                   |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [![Application tracking](docs/screenshots/applications.png)](docs/screenshots/applications.png) | [![Calendar](docs/screenshots/calendar.png)](docs/screenshots/calendar.png)                |
-| Company management                                                                              | Industry categories                                                                        |
-| [![Company management](docs/screenshots/companies.png)](docs/screenshots/companies.png)         | [![Industry categories](docs/screenshots/industries.png)](docs/screenshots/industries.png) |
-| Resume versions                                                                                 | AI assistant                                                                               |
-| [![Resume versions](docs/screenshots/resumes.png)](docs/screenshots/resumes.png)                | [![AI assistant](docs/screenshots/assistant.png)](docs/screenshots/assistant.png)          |
+| Application tracking                                                                            | Calendar                                                                                  |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [![Application tracking](docs/screenshots/applications.png)](docs/screenshots/applications.png) | [![Calendar](docs/screenshots/calendar.png)](docs/screenshots/calendar.png)               |
+| Company management                                                                              | Job discovery (Beta)                                                                      |
+| [![Company management](docs/screenshots/companies.png)](docs/screenshots/companies.png)         | [![Job discovery (Beta)](docs/screenshots/discovery.png)](docs/screenshots/discovery.png) |
+| Industry categories                                                                             | Resume versions                                                                           |
+| [![Industry categories](docs/screenshots/industries.png)](docs/screenshots/industries.png)      | [![Resume versions](docs/screenshots/resumes.png)](docs/screenshots/resumes.png)          |
+
+**AI assistant**
+
+[![AI assistant](docs/screenshots/assistant.png)](docs/screenshots/assistant.png)
 
 ## Download and get started
 

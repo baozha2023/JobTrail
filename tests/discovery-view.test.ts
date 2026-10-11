@@ -362,14 +362,35 @@ it.each(['accounts', 'search warning'] as const)(
     expect(panel().find('.discovery-qr-image').attributes('src')).toBe(waiting.image)
 
     f.api.qrLogin.mockResolvedValue({ ...waiting, state: 'authenticated', image: null })
+    f.api.status.mockResolvedValue(accountStatuses(['boss']))
     await vi.advanceTimersByTimeAsync(1800)
     await flushPromises()
-    expect(wrapper!.findComponent(NModal).props('show')).toBe(false)
+    expect(wrapper!.findComponent(NModal).props('show')).toBe(entry === 'accounts')
     expect(
       f.api.verification.mock.calls.some(
         ([input]) => (input as { action: string }).action === 'recheck',
       ),
     ).toBe(entry === 'search warning')
+    if (entry === 'accounts') {
+      expect(panel().find('.discovery-login-success').exists()).toBe(true)
+      expect(panel().find('.discovery-qr-image').exists()).toBe(false)
+      expect(wrapper!.find('.discovery-account').text()).toContain('Signed in')
+      const qrCalls = f.api.qrLogin.mock.calls.length
+      await vi.advanceTimersByTimeAsync(3200)
+      expect(wrapper!.findComponent(NModal).props('show')).toBe(true)
+      expect(f.api.qrLogin).toHaveBeenCalledTimes(qrCalls)
+
+      f.api.qrLogin.mockResolvedValue({ ...waiting, platform: 'liepin', attemptId: 'liepin-login' })
+      wrapper!.findAll('.discovery-account')[1].findComponent(NButton).vm.$emit('click')
+      await flushPromises()
+      expect(f.api.qrLogin).toHaveBeenLastCalledWith({ action: 'start', platform: 'liepin' })
+      expect(panel().find('.discovery-qr-image').exists()).toBe(true)
+      expect(wrapper!.findComponent(NModal).props('show')).toBe(true)
+
+      wrapper!.find('.discovery-accounts').findComponent(NCard).vm.$emit('close')
+      await flushPromises()
+      expect(wrapper!.findComponent(NModal).props('show')).toBe(false)
+    }
   },
 )
 

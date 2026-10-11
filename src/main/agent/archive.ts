@@ -196,24 +196,6 @@ export class AgentArchive {
     }
   }
 
-  latestAgentInput(conversationId: string): number | null {
-    const row = this.db
-      .prepare(
-        "SELECT input_tokens AS inputTokens FROM agent_model_usage WHERE conversation_id = ? AND kind = 'agent' ORDER BY created_at DESC, rowid DESC LIMIT 1",
-      )
-      .get(conversationId) as { inputTokens: number | null } | undefined
-    return row?.inputTokens ?? null
-  }
-
-  lastEventKind(conversationId: string): string | null {
-    const row = this.db
-      .prepare(
-        "SELECT kind FROM agent_chat_events WHERE conversation_id = ? AND kind IN ('assistant', 'tool', 'compact') ORDER BY seq DESC LIMIT 1",
-      )
-      .get(conversationId) as { kind: string } | undefined
-    return row?.kind ?? null
-  }
-
   usesAttachment(conversationId: string, attachmentId: string): boolean {
     const rows = this.db
       .prepare("SELECT payload FROM agent_chat_events WHERE conversation_id = ? AND kind = 'user'")

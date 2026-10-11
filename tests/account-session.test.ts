@@ -10,6 +10,7 @@ import { platformAdapter } from '../src/main/discovery/adapter-registry'
 import { SourceError } from '../src/main/discovery/adapter'
 import type { PageSnapshot } from '../src/main/discovery/extraction'
 import { platforms } from '../src/shared/job-discovery'
+import { allowedPage } from '../src/main/discovery/platforms'
 
 const native = vi.hoisted(() => ({ fromPath: vi.fn() }))
 vi.mock('electron', () => ({ session: native }))
@@ -41,6 +42,37 @@ function fixture() {
   const login = accountLoginTransport('boss', session, controller.signal, callbacks)
   return { fetch, cookies, session, controller, page, transport, login, callbacks }
 }
+
+it('permits the official Zhaopin WeChat image endpoint only for image downloads', async () => {
+  const f = fixture()
+  const url = 'https://mp.weixin.qq.com/cgi-bin/showqrcode?ticket=test'
+  const login = accountLoginTransport('zhilian', f.session, f.controller.signal, f.callbacks)
+  f.fetch.mockImplementation(
+    async () =>
+      new Response(new Uint8Array([255, 216, 255]), { headers: { 'content-type': 'image/jpg' } }),
+  )
+  expect(await login.image(url)).toBe('data:image/jpeg;base64,/9j/')
+  const init = (f.fetch.mock.calls[0] as unknown as [string, RequestInit])[1]
+  expect(Object.fromEntries(new Headers(init.headers))).toEqual({})
+  expect(init.redirect).toBe('error')
+  expect(allowedPage('zhilian', url)).toBe(false)
+  await expect(login.json(url, (value) => value)).rejects.toMatchObject({ reason: 'protocol' })
+  await expect(login.setCookie({ url, name: 'at', value: 'private' })).rejects.toMatchObject({
+    reason: 'protocol',
+  })
+  for (const other of [
+    'https://mp.weixin.qq.com/other',
+    'https://evil.mp.weixin.qq.com/cgi-bin/showqrcode',
+    'https://mp.weixin.qq.com.evil.test/cgi-bin/showqrcode',
+    'http://mp.weixin.qq.com/cgi-bin/showqrcode',
+    'https://user:pass@mp.weixin.qq.com/cgi-bin/showqrcode',
+    'https://mp.weixin.qq.com:444/cgi-bin/showqrcode',
+  ])
+    await expect(login.image(other)).rejects.toMatchObject({ reason: 'protocol' })
+  await expect(f.login.image(url)).rejects.toMatchObject({ reason: 'protocol' })
+  expect(f.fetch).toHaveBeenCalledOnce()
+  expect(f.cookies.set).not.toHaveBeenCalled()
+})
 
 it.each(platforms)(
   'checks %s using the shared account boundary and its own adapter',

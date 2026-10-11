@@ -383,27 +383,51 @@ try {
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   await dimensions('.discovery-accounts')
   assert.equal(await page.getByRole('button', { name: '重新检查登录', exact: true }).count(), 0)
-  const rects = await page.locator('.discovery-account').evaluateAll((es) =>
-    es.map((e) => {
-      const r = e.getBoundingClientRect()
-      return { x: r.x, y: r.y, right: r.right }
-    }),
-  )
-  assert.equal(rects.length, 6)
-  assert.equal(rects[0].y, rects[1].y)
-  assert.equal(rects[2].y, rects[3].y)
-  assert.equal(rects[4].y, rects[5].y)
-  assert.equal(rects[0].x, rects[2].x)
-  assert.equal(rects[0].x, rects[4].x)
-  assert.ok(
-    (await page.locator('.discovery-qr-panel').evaluate((e) => e.getBoundingClientRect().x)) >
-      rects[1].right,
-  )
+  async function accountListLayout() {
+    const rects = await page.locator('.discovery-account').evaluateAll((es) =>
+      es.map((e) => {
+        const r = e.getBoundingClientRect()
+        const status = e.querySelector('.n-tag').getBoundingClientRect()
+        const action = e
+          .querySelector('.discovery-account-actions .n-button')
+          .getBoundingClientRect()
+        return {
+          x: r.x,
+          y: r.y,
+          right: r.right,
+          bottom: r.bottom,
+          statusRight: status.right,
+          actionLeft: action.left,
+        }
+      }),
+    )
+    assert.equal(rects.length, 6)
+    for (const row of rects) {
+      assert.ok(row.statusRight < row.actionLeft, 'The login status must sit left of the action')
+      assert.equal(row.statusRight, rects[0].statusRight, 'Login status labels must align')
+      assert.equal(row.actionLeft, rects[0].actionLeft, 'Account actions must align')
+    }
+    for (let index = 1; index < rects.length; index++) {
+      assert.equal(rects[index].x, rects[0].x, 'Each platform must occupy one full list row')
+      assert.equal(rects[index].right, rects[0].right)
+      assert.ok(rects[index].y >= rects[index - 1].bottom, 'Account rows must not overlap')
+    }
+    assert.ok(
+      (await page.locator('.discovery-qr-panel').evaluate((e) => e.getBoundingClientRect().x)) >
+        rects[0].right,
+    )
+    assert.ok(
+      await page.locator('.discovery-account-left').evaluate((e) => e.scrollWidth <= e.clientWidth),
+      'The account list must not overflow horizontally',
+    )
+  }
+  await accountListLayout()
   await screenshot('discovery-accounts.png')
   assert.equal(await page.locator('.n-message--error').count(), 0)
   const originalBounds = await mainWindow.evaluate((w) => w.getNormalBounds())
   await resizeWindow(800, 650)
   await dimensions('.discovery-accounts')
+  await accountListLayout()
   await screenshot('discovery-accounts-narrow.png')
   await mainWindow.evaluate((w, bounds) => w.setBounds(bounds), originalBounds)
   await page
@@ -902,9 +926,14 @@ try {
       { cache: true },
     )
     current.protocol.handle('https', (request) => {
-      const data = new URL(request.url).pathname.endsWith('/randKey')
+      const pathname = new URL(request.url).pathname
+      const data = pathname.endsWith('/randKey')
         ? { qcode: 'scroll-layout-fixture' }
-        : { is_scan: false }
+        : pathname.endsWith('/login-mini-qcode')
+          ? {
+              url: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jrAAAAABJRU5ErkJggg==',
+            }
+          : { is_scan: false }
       return new Response(JSON.stringify({ code: 200, data }), {
         headers: { 'content-type': 'application/json' },
       })
@@ -914,7 +943,10 @@ try {
   const accounts = page.locator('.discovery-accounts')
   await accounts.getByRole('button', { name: '国聘', exact: true }).click()
   await accounts.locator('.discovery-qr-image').waitFor()
-  assert.equal(await accounts.locator('.discovery-qr-methods button').count(), 2)
+  assert.deepEqual(await accounts.locator('.discovery-qr-methods button').allTextContents(), [
+    '微信',
+    '国聘 APP',
+  ])
   for (const [width, height, zoom] of [
     [1280, 900, 1],
     [1280, 600, 1.5],

@@ -26,7 +26,12 @@ try {
   const report = []
   const candidates = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
   const selected = process.argv[2]
+  const selectedMethod = process.argv[3]
   assert.ok(!selected || candidates.includes(selected), 'Unknown QR test platform')
+  assert.ok(
+    !selectedMethod || (selected && ['app', 'wechat'].includes(selectedMethod)),
+    'Select a platform and a supported QR method',
+  )
   for (const [index, platform] of candidates.entries()) {
     if (selected && selected !== platform) continue
     await app.evaluate(
@@ -67,10 +72,30 @@ try {
     await page
       .getByText('正在获取二维码…', { exact: true })
       .waitFor({ state: 'hidden', timeout: 65000 })
+    const current = await page.evaluate(async (p) => {
+      const value = await window.zhijiApi.discovery.qrLogin({ action: 'get', platform: p })
+      return value && { method: value.method, methods: value.methods }
+    }, platform)
+    if (selectedMethod && current?.method !== selectedMethod) {
+      const method = current?.methods.find((method) => method.id === selectedMethod)
+      assert.ok(method, 'The adapter must advertise the requested login method')
+      await page.getByRole('button', { name: method.label['zh-CN'], exact: true }).click()
+      await page
+        .getByText('正在获取二维码…', { exact: true })
+        .waitFor({ state: 'hidden', timeout: 65000 })
+    }
     const state = await page.evaluate(async (p) => {
       const value = await window.zhijiApi.discovery.qrLogin({ action: 'get', platform: p })
-      return value && { state: value.state, reason: value.reason, attemptId: value.attemptId }
+      return (
+        value && {
+          method: value.method,
+          state: value.state,
+          reason: value.reason,
+          attemptId: value.attemptId,
+        }
+      )
     }, platform)
+    if (selectedMethod) assert.equal(state?.method, selectedMethod)
     const decoded =
       state?.state === 'waiting'
         ? await page.locator('.discovery-qr-image').evaluate(async (img) => {
@@ -78,7 +103,13 @@ try {
             return img.naturalWidth > 0
           })
         : false
-    const result = { platform, state: state?.state, reason: state?.reason, imageDecoded: decoded }
+    const result = {
+      platform,
+      method: state?.method,
+      state: state?.state,
+      reason: state?.reason,
+      imageDecoded: decoded,
+    }
     if (state?.state === 'error')
       result.connectionEvents = await app.evaluate(
         ({ session }, { root, platform }) =>
@@ -114,7 +145,10 @@ try {
       )
       result.pollResponse = 'passed'
     }
-    if (['liepin', 'shixiseng'].includes(platform) && state?.state === 'waiting') {
+    if (
+      (selectedMethod || ['liepin', 'shixiseng'].includes(platform)) &&
+      state?.state === 'waiting'
+    ) {
       // Unscanned codes must survive acknowledgement and support a fresh attempt.
       await new Promise((resolve) => setTimeout(resolve, 3500))
       result.pollState = await page.evaluate(async (platform) => {
@@ -128,10 +162,11 @@ try {
         .waitFor({ state: 'hidden', timeout: 20000 })
       const refreshed = await page.evaluate(async (platform) => {
         const value = await window.zhijiApi.discovery.qrLogin({ action: 'get', platform })
-        return value && { state: value.state, attemptId: value.attemptId }
+        return value && { state: value.state, method: value.method, attemptId: value.attemptId }
       }, platform)
       result.refreshState = refreshed?.state
       assert.equal(result.refreshState, 'waiting')
+      assert.equal(refreshed?.method, state.method)
       assert.notEqual(refreshed?.attemptId, state.attemptId)
       await page.locator('.discovery-qr-image').evaluate((img) => img.decode())
     }
@@ -155,7 +190,12 @@ try {
     'cancelled',
   )
   fs.writeFileSync(
-    path.join(project, 'dist', 'qa', 'qr-login-live.json'),
+    path.join(
+      project,
+      'dist',
+      'qa',
+      selectedMethod ? `qr-login-live-${selected}-${selectedMethod}.json` : 'qr-login-live.json',
+    ),
     JSON.stringify({ at: new Date().toISOString(), report }, null, 2),
   )
   assert.ok(

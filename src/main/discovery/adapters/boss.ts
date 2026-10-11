@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import QRCode from 'qrcode'
+import type { QrLoginMethod } from '../../../shared/job-discovery'
 import {
   SourceError,
   type PlatformAdapter,
@@ -185,11 +187,18 @@ const passport = 'https://www.zhipin.com/wapi/zppassport'
 const qrResponse = z.object({
   code: z.number().optional(),
   scaned: z.boolean().optional(),
+  login: z.boolean().optional(),
   zpData: z
-    .object({ shortRandKey: z.string().optional(), mpCodeUrl: z.string().optional() })
+    .object({
+      shortRandKey: z.string().optional(),
+      qrId: z.string().optional(),
+      mpCodeUrl: z.string().optional(),
+    })
     .optional(),
 })
-function createQr(transport: QrTransport): QrProtocol {
+function createQr(transport: QrTransport, method: QrLoginMethod = 'wechat'): QrProtocol {
+  if (method === 'app') return createAppQr(transport)
+  if (method !== 'wechat') throw new LoginError('protocol')
   let key = ''
   return {
     async initialize() {
@@ -225,6 +234,68 @@ function createQr(transport: QrTransport): QrProtocol {
     },
   }
 }
+function createAppQr(transport: QrTransport): QrProtocol {
+  let key = '',
+    scanned = false
+  const image = (value: string) => QRCode.toDataURL(value, { width: 300, margin: 1 })
+  return {
+    async initialize() {
+      const value = await transport.json(`${passport}/captcha/randkey`, qrResponse.parse, {
+        data: {},
+      })
+      if (value.code !== 0) throw new LoginError('verification')
+      if (!value.zpData?.qrId) throw new LoginError('protocol')
+      key = value.zpData.qrId
+      return { image: await image(key), expiresInMs: 30000 }
+    },
+    async poll() {
+      if (!scanned) {
+        const value = await transport.json(
+          `${passport}/qrcode/scan?${new URLSearchParams({ uuid: key })}`,
+          qrResponse.parse,
+          { timeoutMs: 95000 },
+        )
+        if (value.code != null && value.code !== 0) throw new LoginError('verification')
+        if (typeof value.scaned !== 'boolean') throw new LoginError('protocol')
+        if (!value.scaned) return 'waiting'
+        const second = await transport.json(
+          `${passport}/captcha/getSecondKey?${new URLSearchParams({ uuid: key })}`,
+          qrResponse.parse,
+        )
+        if (second.code !== 0) throw new LoginError('verification')
+        if (!second.zpData?.qrId) throw new LoginError('protocol')
+        scanned = true
+        // The website replaces the image, then starts confirmation after one second
+        // even when scanSecond has not returned. Our next poll follows that path.
+        return { state: 'scanned', image: await image(second.zpData.qrId), expiresInMs: 180000 }
+      }
+      const confirmed = await transport.json(
+        `${passport}/qrcode/scanLogin?${new URLSearchParams({ qrId: key })}`,
+        qrResponse.parse,
+        { timeoutMs: 95000 },
+      )
+      if (confirmed.code != null && confirmed.code !== 0) throw new LoginError('verification')
+      if (typeof confirmed.scaned !== 'boolean') throw new LoginError('protocol')
+      if (!confirmed.scaned) return 'scanned'
+      if (confirmed.login === false) return 'expired'
+      if (confirmed.login !== true) throw new LoginError('protocol')
+      const result = await transport.json(
+        `${passport}/qrcode/dispatcher?${new URLSearchParams({ qrId: key, pk: 'cpc_user_sign_up' })}`,
+        qrResponse.parse,
+      )
+      if (result.code !== 0) throw new LoginError('verification')
+      return 'authenticated'
+    },
+  }
+}
+const wechatHint = {
+  'zh-CN': '使用微信扫一扫，在 BOSS 直聘小程序中确认。',
+  'en-US': 'Scan with WeChat and confirm in the BOSS mini program.',
+}
+const appHint = {
+  'zh-CN': '使用 BOSS 直聘 App 扫码并确认登录；如二维码更新，请按 App 提示再次扫码。',
+  'en-US': 'Scan and confirm using the BOSS app. Scan the updated code again if the app asks.',
+}
 export const bossAdapter: PlatformAdapter = {
   cities,
   ...bossIdentity,
@@ -242,10 +313,11 @@ export const bossAdapter: PlatformAdapter = {
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new BossSearch(page, query),
   qr: {
-    scanHint: {
-      'zh-CN': '使用微信扫一扫，在 BOSS 直聘小程序中确认。',
-      'en-US': 'Scan with WeChat and confirm in the BOSS mini program.',
-    },
+    scanHint: wechatHint,
+    methods: [
+      { id: 'wechat', label: { 'zh-CN': '微信', 'en-US': 'WeChat' }, scanHint: wechatHint },
+      { id: 'app', label: { 'zh-CN': 'BOSS 直聘 App', 'en-US': 'BOSS app' }, scanHint: appHint },
+    ],
     create: createQr,
     headers: () => ({ 'X-Requested-With': 'XMLHttpRequest' }),
   },

@@ -1291,6 +1291,7 @@ onBeforeUnmount(() => {
             />
             <CalendarView
               v-if="activeView === 'calendar'"
+              :dark="isDarkTheme"
               :month-label="monthLabel"
               :weekdays="weekdays"
               :calendar-days="calendarDays"

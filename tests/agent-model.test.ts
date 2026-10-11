@@ -21,7 +21,7 @@ describe('local agent token estimates', () => {
       { type: 'text', text: 'world' },
     ]
     expect(await model.getNumTokens(content)).toBe(2)
-    expect(await model.getNumTokens('<|endoftext|>')).toBe(4)
+    expect(await model.getNumTokens('<|endoftext|>')).toBe(7)
     const messages = [new SystemMessage('Hello'), new HumanMessage('world')]
     expect(await model.getNumTokensFromMessages(messages)).toEqual({
       totalCount: 13,
@@ -39,6 +39,25 @@ describe('local agent token estimates', () => {
     expect(await model.getNumTokens('Hello world')).toBe(2)
     expect(model.invocationParams()).toMatchObject({ seed: 17, stop: ['END'], max_tokens: 512 })
     expect(original.invocationParams()).not.toHaveProperty('seed', 17)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('uses bundled model-specific tokenizers in outer and derived models without network requests', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network forbidden'))
+    const text = '第一轮：我偏好远程岗位'
+    const fallback = await createAgentModel(ai).getNumTokens(text)
+    for (const modelId of ['gpt-4', 'gpt-4o', 'gpt-5']) {
+      const model = createAgentModel({ ...ai, modelId })
+      const tokens = await model.getNumTokens(text)
+      expect(tokens).toBeGreaterThan(0)
+      expect(tokens).toBeLessThan(fallback)
+      const configured = model.withConfig({ seed: 5 }) as ChatOpenAI
+      expect(await configured.getNumTokens(text)).toBe(tokens)
+      const completions = Reflect.get(model, 'completions') as ChatOpenAICompletions
+      expect(await completions.getNumTokens(text)).toBe(tokens)
+      const response = Reflect.get(model, 'responses') as ChatOpenAI
+      expect(await response.getNumTokens(text)).toBe(tokens)
+    }
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -62,6 +81,7 @@ describe('local agent token estimates', () => {
     completions.streaming = true
     const response = await model.invoke('Hello')
     expect(response.content).toBe('Hello world')
+    expect(response.usage_metadata?.input_tokens).toBeUndefined()
     expect(requests).toEqual([`${ai.baseUrl}/chat/completions`])
   })
 })

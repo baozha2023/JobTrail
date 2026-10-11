@@ -51,6 +51,8 @@ export interface PlatformAdapter extends JobIdentityPolicy {
     create(transport: QrTransport, method?: QrLoginMethod): QrProtocol
     /** Site-specific headers; the transport does not supply website defaults. */
     headers?(url: string): Record<string, string>
+    /** Additional official QR image URLs; never permits API requests or navigation. */
+    allowsImageUrl?(url: string): boolean
     /** null means no challenge; a missing URL still represents an explicit block. */
     challenge?(response: Response): { url: string | null } | null
   }

@@ -20,6 +20,7 @@ function isCompleted(event: CalendarEvent): boolean {
 }
 
 defineProps<{
+  dark?: boolean
   monthLabel: string
   weekdays: string[]
   calendarDays: Date[]
@@ -49,7 +50,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="page-section calendar-page">
+  <section class="page-section calendar-page" :class="{ 'is-dark': dark }">
     <div class="calendar-toolbar">
       <div class="calendar-nav">
         <n-button circle quaternary :aria-label="$t('calendar.previous')" @click="emit('previous')"

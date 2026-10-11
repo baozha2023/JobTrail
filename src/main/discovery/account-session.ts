@@ -79,13 +79,14 @@ export type AccountPageReader = (url: string, script: string) => Promise<PageSna
 /** All login and account requests use the same isolated Session and resource limits. */
 class SessionRequests {
   constructor(
-    private platform: JobPlatform,
+    platform: JobPlatform,
     private session: Session,
     private signal: AbortSignal,
+    private allowsUrl: (url: string) => boolean = (url) => allowedPage(platform, url),
   ) {}
   check(url: string) {
     this.signal.throwIfAborted()
-    if (!allowedPage(this.platform, url) || new URL(url).protocol !== 'https:')
+    if (!this.allowsUrl(url) || new URL(url).protocol !== 'https:')
       throw new SourceError('parse_error', 'invalid_account_endpoint')
   }
   async cookie(url: string, name: string) {
@@ -232,6 +233,12 @@ export function accountLoginTransport(
 ): AccountLoginTransport {
   const requests = new SessionRequests(platform, session, signal)
   const qr = platformAdapter(platform).qr
+  const images = new SessionRequests(
+    platform,
+    session,
+    signal,
+    (url) => allowedPage(platform, url) || !!qr.allowsImageUrl?.(url),
+  )
   const login = async <T>(work: () => Promise<T>): Promise<T> => {
     try {
       return await work()
@@ -249,11 +256,11 @@ export function accountLoginTransport(
       throw error
     }
   }
-  const body = (url: string, options: QrRequestOptions = {}) => {
+  const body = (url: string, options: QrRequestOptions = {}, target = requests) => {
     const headers = new Headers(qr.headers?.(url))
     for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value)
     return login(() =>
-      requests.body(url, { ...options, headers: Object.fromEntries(headers) }, (response) => {
+      target.body(url, { ...options, headers: Object.fromEntries(headers) }, (response) => {
         const challenge = qr.challenge?.(response)
         if (challenge) {
           callbacks.challenge(challenge.url)
@@ -294,7 +301,9 @@ export function accountLoginTransport(
         value.length < 2_000_000
       )
         return value
-      const result = await body(value)
+      const result = await body(value, {}, images)
+      // Normalize the JPEG MIME alias before passing the image to the renderer.
+      if (result.mime === 'image/jpg') result.mime = 'image/jpeg'
       if (
         !result.mime ||
         !['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(result.mime)

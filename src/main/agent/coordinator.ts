@@ -105,16 +105,22 @@ export class AgentCoordinator {
   }
 
   async history(id: string): Promise<AgentHistory> {
-    const history = await this.agent.history(id)
     const job = this.jobsByConversation.get(id)
-    const includeInput =
-      !!job &&
-      job.operation === 'send' &&
-      !history.messages.some((message) => message.role === 'user' && message.id === job.jobId)
+    // Capture the event cursor before the asynchronous checkpoint read. A late
+    // history response must never claim to include newer worker events.
+    const snapshot = job ? this.snapshot(job, job.operation === 'send') : null
+    const history = await this.agent.history(id)
+    if (
+      snapshot &&
+      history.messages.some((message) => message.role === 'user' && message.id === snapshot.jobId)
+    ) {
+      snapshot.submittedParts = undefined
+      snapshot.submittedAttachments = undefined
+    }
     return {
       ...history,
-      running: !!job,
-      job: job ? this.snapshot(job, includeInput) : null,
+      running: !!snapshot,
+      job: snapshot,
     }
   }
 

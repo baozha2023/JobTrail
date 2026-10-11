@@ -203,8 +203,21 @@ export class QrLoginManager {
       this.expire(a)
       return
     }
-    const state = await a.protocol!.poll()
+    const result = await a.protocol!.poll()
     if (!this.active(a)) return
+    if (typeof result !== 'string') {
+      const image = await a.transport!.image(result.image)
+      if (!this.active(a)) return
+      a.value = {
+        ...a.value,
+        state: result.state,
+        image,
+        expiresAt: Date.now() + result.expiresInMs,
+      }
+      this.schedule(a)
+      return
+    }
+    const state = result
     if (state === 'expired') {
       this.expire(a)
       return

@@ -689,7 +689,8 @@ async function resumeAfterLogin(state: QrLoginState | null) {
   const target = sourceLogin.value
   if (!accounts.value || state?.state !== 'authenticated' || state.platform !== loginPlatform.value)
     return
-  if (!target) return closeAccounts()
+  // Account management stays open; only a search recovery login closes automatically.
+  if (!target) return
   if (state.platform !== target.platform || run.value?.id !== target.runId) return
   // Official login success closes the QR panel even if the following search
   // recheck fails. Keep the attempt alive until Main validates its evidence.
@@ -1208,47 +1209,53 @@ defineExpose({
       >
         <div class="discovery-account-layout">
           <div v-if="!sourceLogin" class="discovery-account-left">
-            <div class="discovery-account-grid">
-              <div
+            <ul class="discovery-account-list">
+              <li
                 v-for="item in accountStates"
                 :key="item.platform"
                 class="discovery-account"
                 :class="{ selected: loginPlatform === item.platform }"
               >
-                <n-button
-                  text
-                  class="discovery-account-name"
-                  @click="chooseAccount(item.platform)"
-                  >{{ platformNames[item.platform] }}</n-button
-                >
-                <n-tag
-                  size="small"
-                  :type="
-                    item.state === 'authenticated'
-                      ? 'success'
-                      : item.state === 'challenge'
-                        ? 'warning'
-                        : 'default'
-                  "
-                  >{{ label(item.state) }}</n-tag
-                >
-                <n-button
-                  size="small"
-                  :type="loginPlatform === item.platform ? 'primary' : 'default'"
-                  @click="chooseAccount(item.platform)"
-                  >{{
-                    item.state === 'authenticated' ? label('accountDetails') : label('login')
-                  }}</n-button
-                >
-                <n-button
-                  size="small"
-                  ghost
-                  :type="loginPlatform === item.platform ? 'primary' : 'default'"
-                  @click="clearPlatform = item.platform"
-                  >{{ label('logout') }}</n-button
-                >
-              </div>
-            </div>
+                <div class="discovery-account-info">
+                  <n-button
+                    text
+                    class="discovery-account-name"
+                    :aria-pressed="loginPlatform === item.platform"
+                    @click="chooseAccount(item.platform)"
+                    >{{ platformNames[item.platform] }}</n-button
+                  >
+                </div>
+                <div class="discovery-account-actions">
+                  <n-tag
+                    size="small"
+                    :title="label(item.state)"
+                    :type="
+                      item.state === 'authenticated'
+                        ? 'success'
+                        : item.state === 'challenge'
+                          ? 'warning'
+                          : 'default'
+                    "
+                    >{{ label(item.state) }}</n-tag
+                  >
+                  <n-button
+                    size="small"
+                    :type="loginPlatform === item.platform ? 'primary' : 'default'"
+                    @click="chooseAccount(item.platform)"
+                    >{{
+                      item.state === 'authenticated' ? label('accountDetails') : label('login')
+                    }}</n-button
+                  >
+                  <n-button
+                    size="small"
+                    ghost
+                    :type="loginPlatform === item.platform ? 'primary' : 'default'"
+                    @click="clearPlatform = item.platform"
+                    >{{ label('logout') }}</n-button
+                  >
+                </div>
+              </li>
+            </ul>
             <p class="discovery-subtitle discovery-login-hint">{{ label('loginHint') }}</p>
           </div>
           <DiscoveryLoginPanel
@@ -1723,38 +1730,72 @@ defineExpose({
 .discovery-account-left {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
 }
-.discovery-account-grid {
+.discovery-account-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(min-content, 1fr);
-  gap: 12px;
-  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .discovery-account {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 12px;
-  padding: 16px 12px;
+  padding: 12px;
   border: 1px solid #8883;
-  border-radius: 12px;
+  border-radius: 10px;
   min-width: 0;
 }
 .discovery-account.selected {
   border-color: #18a058;
   background: #18a0580b;
 }
+.discovery-account-info {
+  min-width: 0;
+}
 .discovery-account-name {
-  font-size: 16px;
+  max-width: 100%;
+  font-size: 14px;
   font-weight: 650;
+  text-align: left;
+}
+.discovery-account-name :deep(.n-button__content) {
+  white-space: normal;
 }
 .discovery-account :deep(.n-tag) {
-  align-self: flex-start;
   max-width: 100%;
+  justify-self: end;
+}
+.discovery-account :deep(.n-tag__content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.discovery-account-actions {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 6px;
+}
+.discovery-account-actions :deep(.n-button) {
+  padding: 0 8px;
+  font-size: 12px;
+}
+@container (max-width: 620px) {
+  .discovery-account-actions {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .discovery-account-actions :deep(.n-tag) {
+    grid-row: 1 / 3;
+  }
+  .discovery-account-actions :deep(.n-button) {
+    grid-column: 2;
+  }
 }
 .discovery-login-hint {
   line-height: 1.7;
@@ -1842,18 +1883,9 @@ defineExpose({
   .discovery-account-layout {
     gap: 10px;
   }
-  .discovery-account-grid {
-    gap: 8px;
-  }
   .discovery-account {
     padding: 10px 8px;
     gap: 8px;
-  }
-  .discovery-account-name {
-    font-size: 12px;
-  }
-  .discovery-account :deep(.n-button) {
-    font-size: 11px;
   }
   .discovery-history-row {
     padding: 12px;
@@ -1885,9 +1917,6 @@ defineExpose({
   .discovery-back-list {
     display: inline-flex;
     align-self: flex-start;
-  }
-  .discovery-account-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

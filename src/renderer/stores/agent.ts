@@ -181,8 +181,14 @@ export const useAgentStore = defineStore('agent', () => {
     const state = session(id)
     const request = ++state.historyRequest
     const jobAtRequest = state.jobId
+    const sequenceAtRequest = state.sequence
     const history = await window.zhijiApi.agent.history(id)
-    if (state.historyRequest !== request || state.jobId !== jobAtRequest) return
+    if (
+      state.historyRequest !== request ||
+      state.jobId !== jobAtRequest ||
+      state.sequence !== sequenceAtRequest
+    )
+      return
     applyHistory(id, history)
   }
 
@@ -359,11 +365,12 @@ export const useAgentStore = defineStore('agent', () => {
       }
       if (event.sequence !== undefined) {
         if (event.sequence <= state.sequence) return
-        if (state.sequence && event.sequence !== state.sequence + 1)
+        const missedEvents = state.sequence > 0 && event.sequence !== state.sequence + 1
+        state.sequence = event.sequence
+        if (missedEvents)
           void loadHistory(event.conversationId).catch((cause) =>
             reportRendererFault('agent.load-history', cause),
           )
-        state.sequence = event.sequence
       }
     }
     if (event.kind === 'title' && event.text) {

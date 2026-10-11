@@ -159,7 +159,7 @@ const contextPercent = computed(() =>
       ),
 )
 const contextTitle = computed(() =>
-  t(usage.value?.contextEstimated ? 'agent.contextUsedEstimated' : 'agent.contextUsed', {
+  t(usage.value?.contextTokens == null ? 'agent.contextUnavailable' : 'agent.contextUsed', {
     percent: contextPercent.value,
   }),
 )
@@ -752,7 +752,9 @@ onBeforeUnmount(() => {
                 />
               </svg>
             </div>
-            <span :title="contextTitle">{{ contextPercent }}%</span>
+            <span :title="contextTitle">{{
+              usage.contextTokens === null ? '—' : contextPercent + '%'
+            }}</span>
             <span>{{ t('agent.usageInput') }} {{ formatK(usage.inputTokens) }}</span>
             <span>{{ t('agent.usageOutput') }} {{ formatK(usage.outputTokens) }}</span>
             <span>{{ t('agent.usageCached') }} {{ formatK(usage.cacheReadTokens) }}</span>

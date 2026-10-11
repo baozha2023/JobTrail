@@ -258,7 +258,7 @@ async function checkSession(transport: AccountTransport): Promise<boolean> {
   const token = await transport.cookie(origin, '__token__')
   return !!token && account(transport, token)
 }
-function createQr(transport: QrTransport, method: QrLoginMethod = 'app'): QrProtocol {
+function createQr(transport: QrTransport, method: QrLoginMethod = 'wechat'): QrProtocol {
   let key = ''
   return {
     async initialize() {
@@ -338,10 +338,10 @@ export const iguopinAdapter: PlatformAdapter = {
   createSearch: (page, query) => new IguopinSearch(page, query),
   pageScript: (detail) => pageScript(rules, detail),
   qr: {
-    scanHint: appHint,
+    scanHint: wechatHint,
     methods: [
-      { id: 'app', label: { 'zh-CN': '国聘 APP', 'en-US': 'Guopin app' }, scanHint: appHint },
       { id: 'wechat', label: { 'zh-CN': '微信', 'en-US': 'WeChat' }, scanHint: wechatHint },
+      { id: 'app', label: { 'zh-CN': '国聘 APP', 'en-US': 'Guopin app' }, scanHint: appHint },
     ],
     create: createQr,
     headers: () => ({ ...headers, 'X-Requested-With': 'XMLHttpRequest' }),

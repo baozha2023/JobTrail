@@ -122,7 +122,10 @@ it.each([
   },
   {
     platform: 'zhilian' as const,
-    responses: [{ code: 100000, data: { validateId: 'private-id', path: png } }, { code: 102004 }],
+    responses: [
+      { code: 200, data: { validateId: 'private-id', path: png } },
+      { code: 200, data: { code: 102004 } },
+    ],
   },
   {
     platform: 'wuyou' as const,
@@ -136,6 +139,7 @@ it.each([
     platform: 'iguopin' as const,
     responses: [
       { code: 200, data: { qcode: 'private-key' } },
+      { code: 200, data: { url: 'aGVsbG8=' } },
       { code: 200, data: { is_scan: false } },
     ],
   },
@@ -144,7 +148,12 @@ it.each([
   async ({ platform, responses }) => {
     vi.useFakeTimers()
     const f = fixture(responses)
-    expect((await f.manager.start(platform)).state).toBe('waiting')
+    const initial = await f.manager.start(platform)
+    expect(initial.state).toBe('waiting')
+    if (platform !== 'wuyou') {
+      expect(initial.method).toBe('wechat')
+      expect(initial.methods.map(({ id }) => id)).toEqual(['wechat', 'app'])
+    }
     const initialCalls = f.fetch.mock.calls.length
     await vi.advanceTimersByTimeAsync(2000)
     expect(f.fetch.mock.calls.length).toBeGreaterThan(initialCalls)
@@ -203,7 +212,7 @@ it('writes Zhaopin login tokens only to the platform cookie store', async () => 
     { code: 100000, data: { validateId: 'private-id', path: png } },
     { code: 100000, data: { at: 'private-at', rt: 'private-rt', atExpire: 3600, rtExpire: 86400 } },
   ])
-  await f.manager.start('zhilian')
+  await f.manager.start('zhilian', 'app')
   await vi.advanceTimersByTimeAsync(2000)
   expect(f.set).toHaveBeenCalledTimes(2)
   expect(f.set.mock.calls[0][0]).toMatchObject({
@@ -221,7 +230,7 @@ it('does not report Zhaopin success when the token exchange is incomplete', asyn
     { code: 100000, data: { validateId: 'id', path: png } },
     { code: 100000, data: { at: 'at' } },
   ])
-  await f.manager.start('zhilian')
+  await f.manager.start('zhilian', 'app')
   await vi.advanceTimersByTimeAsync(2000)
   expect(f.manager.get('zhilian')?.state).toBe('error')
   expect(f.authenticated).not.toHaveBeenCalled()
@@ -488,7 +497,7 @@ it('sends the required Liepin web client ID on QR creation, post-verification re
 
 it('exposes adapter-owned scan instructions without exposing its private protocol state', async () => {
   const f = fixture([{ code: 100000, data: { validateId: 'private-id', path: png } }])
-  const state = await f.manager.start('zhilian')
+  const state = await f.manager.start('zhilian', 'app')
   expect(state.scanHint['zh-CN']).toContain('智联招聘 App')
   expect(state.scanHint['en-US']).toContain('Zhaopin app')
   expect(JSON.stringify(state)).not.toContain('private-id')
@@ -498,7 +507,7 @@ it('exposes adapter-owned scan instructions without exposing its private protoco
 it('does not write tokens or signal success from a cancelled pending login response', async () => {
   vi.useFakeTimers()
   const f = fixture([{ code: 100000, data: { validateId: 'id', path: png } }])
-  const state = await f.manager.start('zhilian')
+  const state = await f.manager.start('zhilian', 'app')
   let respond!: (value: Response) => void
   f.fetch.mockImplementationOnce(
     () =>
@@ -537,4 +546,222 @@ it('isolates simultaneous platform protocols, credentials and cancellation', asy
   expect(init.body).toContain('liepin-private')
   expect(init.body).not.toContain('boss-private')
   expect(new Headers(f.fetch.mock.calls[0][1].headers).has('X-Fscp-Std-Info')).toBe(false)
+})
+
+it('replaces the BOSS App QR and requires confirmation plus a successful dispatcher', async () => {
+  vi.useFakeTimers()
+  const f = fixture([
+    { code: 0, zpData: { qrId: 'app-private', shortRandKey: 'wechat-private' } },
+    { scaned: true },
+    { code: 0, zpData: { qrId: 'second-private' } },
+    { scaned: false, login: false },
+    { scaned: true, login: true },
+    { code: 0 },
+  ])
+  const first = await f.manager.start('boss', 'app')
+  expect(first).toMatchObject({
+    method: 'app',
+    state: 'waiting',
+    methods: [{ id: 'wechat' }, { id: 'app' }],
+  })
+  expect(first.image).toMatch(/^data:image\/png;base64,/)
+  expect(first.expiresAt - Date.now()).toBe(30000)
+  await vi.advanceTimersByTimeAsync(2000)
+  await vi.waitFor(() => expect(f.manager.get('boss')?.state).toBe('scanned'))
+  const second = f.manager.get('boss')!
+  expect(second).toMatchObject({ state: 'scanned', attemptId: first.attemptId })
+  expect(second.image).not.toBe(first.image)
+  expect(second.expiresAt - Date.now()).toBeGreaterThan(179000)
+  expect(second.expiresAt - Date.now()).toBeLessThanOrEqual(180000)
+  expect(f.authenticated).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.manager.get('boss')?.state).toBe('scanned')
+  expect(f.authenticated).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('boss')
+  expect(f.flushStore).toHaveBeenCalledOnce()
+  expect(f.manager.get('boss')?.image).toBeNull()
+  const urls = f.fetch.mock.calls.map(([url]) => new URL(url))
+  expect(urls.map((url) => url.pathname)).toEqual([
+    '/wapi/zppassport/captcha/randkey',
+    '/wapi/zppassport/qrcode/scan',
+    '/wapi/zppassport/captcha/getSecondKey',
+    '/wapi/zppassport/qrcode/scanLogin',
+    '/wapi/zppassport/qrcode/scanLogin',
+    '/wapi/zppassport/qrcode/dispatcher',
+  ])
+  expect(urls[1].searchParams.get('uuid')).toBe('app-private')
+  expect(urls[2].searchParams.get('uuid')).toBe('app-private')
+  expect(urls[5].searchParams.get('qrId')).toBe('app-private')
+  expect(urls[5].searchParams.get('pk')).toBe('cpc_user_sign_up')
+  expect(JSON.stringify(f.manager.get('boss'))).not.toContain('private')
+})
+
+it.each([
+  { confirm: { scaned: true, login: false }, dispatcher: undefined, state: 'expired' },
+  { confirm: { scaned: true }, dispatcher: undefined, state: 'error' },
+  { confirm: { scaned: true, login: true }, dispatcher: { code: 4942 }, state: 'challenge' },
+])(
+  'does not authenticate a refused or blocked BOSS App login ($state)',
+  async ({ confirm, dispatcher, state }) => {
+    vi.useFakeTimers()
+    const f = fixture([
+      { code: 0, zpData: { qrId: 'app-key' } },
+      { scaned: true },
+      { code: 0, zpData: { qrId: 'second-key' } },
+      confirm,
+      ...(dispatcher ? [dispatcher] : []),
+    ])
+    await f.manager.start('boss', 'app')
+    await vi.advanceTimersByTimeAsync(2000)
+    await vi.waitFor(() => expect(f.manager.get('boss')?.state).toBe('scanned'))
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.manager.get('boss')?.state).toBe(state)
+    expect(f.authenticated).not.toHaveBeenCalled()
+  },
+)
+
+it('does not let a late BOSS App replacement overwrite a new WeChat attempt', async () => {
+  vi.useFakeTimers()
+  const f = fixture([{ code: 0, zpData: { qrId: 'old-key' } }, { scaned: true }])
+  await f.manager.start('boss', 'app')
+  const fetch = f.fetch.getMockImplementation()!
+  let release!: (value: Response) => void
+  f.fetch.mockImplementation((url, init) =>
+    url.includes('getSecondKey')
+      ? new Promise((resolve) => {
+          release = resolve
+        })
+      : fetch(url, init),
+  )
+  await vi.advanceTimersByTimeAsync(2000)
+  f.fetch.mockImplementation(fetch)
+  f.fetch.mockResolvedValueOnce(
+    new Response(JSON.stringify({ code: 0, zpData: { shortRandKey: 'new-key' } })),
+  )
+  f.fetch.mockResolvedValueOnce(
+    new Response(JSON.stringify({ code: 0, zpData: { mpCodeUrl: png } })),
+  )
+  const next = f.manager.start('boss', 'wechat')
+  release(new Response(JSON.stringify({ code: 0, zpData: { qrId: 'late-key' } })))
+  const value = await next
+  expect(value).toMatchObject({ method: 'wechat', state: 'waiting', image: png })
+  expect(f.manager.get('boss')).toEqual(value)
+  expect(f.authenticated).not.toHaveBeenCalled()
+})
+
+it.each(['app', 'wechat'] as const)(
+  'uses the selected Liepin %s protocol across verification retry and confirmation',
+  async (method) => {
+    vi.useFakeTimers()
+    const host = verificationHost()
+    const f = fixture(
+      [
+        challenge(),
+        { flag: 1, data: { key: 'private-key', qrcode: png } },
+        { flag: 1, data: { status: '10006' } },
+        { flag: 1, data: { status: '0' } },
+      ],
+      host,
+    )
+    const first = await f.manager.start('liepin', method)
+    await f.manager.verify('liepin', first.attemptId)
+    host.open.mock.calls[0][0].onUserClosed()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.manager.get('liepin')).toMatchObject({
+      attemptId: first.attemptId,
+      method,
+      state: 'scanned',
+    })
+    expect(f.authenticated).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('liepin')
+    const route = method === 'app' ? 'get-qrcode' : 'get-mini-qrcode'
+    expect(f.fetch.mock.calls[0][0]).toContain(route)
+    expect(f.fetch.mock.calls[1][0]).toContain(route)
+    for (const [, init] of f.fetch.mock.calls) {
+      const params = new URLSearchParams(String(init.body))
+      expect(params.has('backurl')).toBe(true)
+      expect(params.get('programCode')).toBe(method === 'wechat' ? 'wxmini_lp01' : null)
+    }
+  },
+)
+
+it('keeps Zhaopin WeChat waiting on envelope success and writes tokens only after business confirmation', async () => {
+  vi.useFakeTimers()
+  const f = fixture([
+    { code: 200, data: { validateId: 'private-id', path: png } },
+    { code: 200, data: { code: 102004, at: null, rt: null } },
+    { code: 200, data: { code: 102001 } },
+    {
+      code: 200,
+      data: { code: 100000, at: 'private-at', rt: 'private-rt', atExpire: 3600, rtExpire: 86400 },
+    },
+  ])
+  const first = await f.manager.start('zhilian', 'wechat')
+  expect(first).toMatchObject({ method: 'wechat', methods: [{ id: 'wechat' }, { id: 'app' }] })
+  expect(first.scanHint['zh-CN']).toContain('公众号')
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.manager.get('zhilian')?.state).toBe('waiting')
+  expect(f.set).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.manager.get('zhilian')?.state).toBe('scanned')
+  expect(f.authenticated).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(2000)
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('zhilian')
+  expect(f.set).toHaveBeenCalledTimes(2)
+  expect(f.set.mock.calls[0][0]).toMatchObject({ domain: '.zhaopin.com', name: 'at', secure: true })
+  expect(new URL(f.fetch.mock.calls[0][0]).pathname).toBe('/napi/wechat-qrcode')
+  for (const [url] of f.fetch.mock.calls.slice(1)) {
+    expect(new URL(url).pathname).toBe('/napi/wechat-qrcode-login')
+    expect(new URL(url).searchParams.get('validateId')).toBe('private-id')
+  }
+  expect(JSON.stringify(f.manager.get('zhilian'))).not.toContain('private')
+})
+
+it.each([
+  { data: { code: 102003 }, state: 'expired' },
+  { data: { code: 101004 }, state: 'challenge' },
+  { data: { code: 100000, at: 'incomplete' }, state: 'error' },
+  { data: {}, state: 'error' },
+])(
+  'rejects incomplete, expired or binding-required Zhaopin WeChat responses ($state)',
+  async ({ data, state }) => {
+    vi.useFakeTimers()
+    const f = fixture([
+      { code: 200, data: { validateId: 'id', path: png } },
+      { code: 200, data },
+    ])
+    await f.manager.start('zhilian', 'wechat')
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.manager.get('zhilian')?.state).toBe(state)
+    expect(f.set).not.toHaveBeenCalled()
+    expect(f.authenticated).not.toHaveBeenCalled()
+  },
+)
+
+it('cancels a pending Zhaopin WeChat confirmation when switching to App', async () => {
+  vi.useFakeTimers()
+  const f = fixture([{ code: 200, data: { validateId: 'old-id', path: png } }])
+  await f.manager.start('zhilian', 'wechat')
+  let release!: (value: Response) => void
+  f.fetch.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = resolve
+      }),
+  )
+  await vi.advanceTimersByTimeAsync(2000)
+  f.fetch.mockResolvedValueOnce(
+    new Response(JSON.stringify({ code: 100000, data: { validateId: 'new-id', path: png } })),
+  )
+  const next = f.manager.start('zhilian', 'app')
+  release(
+    new Response(
+      JSON.stringify({ code: 200, data: { code: 100000, at: 'late-at', rt: 'late-rt' } }),
+    ),
+  )
+  expect(await next).toMatchObject({ method: 'app', state: 'waiting' })
+  expect(f.set).not.toHaveBeenCalled()
+  expect(f.authenticated).not.toHaveBeenCalled()
 })

@@ -8,10 +8,10 @@
 
 - **求职记录**：管理岗位信息、投递状态和进度，关联简历与日程。
 - **公司管理**：查找公司、浏览招聘官网，管理多个办公地点，按行业与办公地点组合筛选并收藏感兴趣的公司。
+- **岗位发现（Beta）**：BOSS 直聘、猎聘、智联招聘、前程无忧、国聘和实习僧统一搜索，按平台提供微信或 App 扫码登录，支持薪资筛选、相关性排序、岗位详情、内置网页、搜索历史、保存求职记录及 MCP。查询规则、账号管理及接口契约见[岗位发现说明](docs/job-discovery.md)。
 - **简历管理**：保存多份简历，记录每次投递使用的版本。
 - **日历提醒**：安排面试、笔试和截止日期，接收本地提醒。
-- **岗位发现（Beta）**：BOSS 直聘、猎聘、智联招聘、前程无忧、国聘和实习僧统一搜索，支持薪资筛选、相关性排序、岗位详情、内置网页、搜索历史、保存求职记录及 MCP。查询规则、账号管理及接口契约见[岗位发现说明](docs/job-discovery.md)。
-- **智能体助手**：连接自选模型，围绕简历和岗位展开对话；支持通过 MCP 连接外部 AI 工具。
+- **智能体助手**：连接自选模型，引用简历与岗位、分析匹配度、生成笔试练习；支持上下文用量显示、对话压缩，以及通过 MCP 连接外部 AI 工具。
 - **数据备份**：在设置中导出、导入完整备份，保存记录、配置、简历与聊天附件。
 
 支持简体中文与 English、浅色与深色主题、系统托盘、开机启动和应用内更新。
@@ -30,15 +30,19 @@
 
 ## 界面预览
 
-以下为中文界面，求职记录、日程和简历使用示例数据。点击图片可查看大图。
+以下为当前客户端中文界面，使用示例数据。点击图片可查看大图。
 
-| 求职记录                                                                            | 日历日程                                                                        |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [![求职记录](docs/screenshots/applications.png)](docs/screenshots/applications.png) | [![日历日程](docs/screenshots/calendar.png)](docs/screenshots/calendar.png)     |
-| 公司管理                                                                            | 行业分类                                                                        |
-| [![公司管理](docs/screenshots/companies.png)](docs/screenshots/companies.png)       | [![行业分类](docs/screenshots/industries.png)](docs/screenshots/industries.png) |
-| 简历版本                                                                            | 智能体助手                                                                      |
-| [![简历版本](docs/screenshots/resumes.png)](docs/screenshots/resumes.png)           | [![智能体助手](docs/screenshots/assistant.png)](docs/screenshots/assistant.png) |
+| 求职记录                                                                            | 日历日程                                                                              |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [![求职记录](docs/screenshots/applications.png)](docs/screenshots/applications.png) | [![日历日程](docs/screenshots/calendar.png)](docs/screenshots/calendar.png)           |
+| 公司管理                                                                            | 岗位发现（Beta）                                                                      |
+| [![公司管理](docs/screenshots/companies.png)](docs/screenshots/companies.png)       | [![岗位发现（Beta）](docs/screenshots/discovery.png)](docs/screenshots/discovery.png) |
+| 行业分类                                                                            | 简历版本                                                                              |
+| [![行业分类](docs/screenshots/industries.png)](docs/screenshots/industries.png)     | [![简历版本](docs/screenshots/resumes.png)](docs/screenshots/resumes.png)             |
+
+**智能体助手**
+
+[![智能体助手](docs/screenshots/assistant.png)](docs/screenshots/assistant.png)
 
 ## 下载与使用
 

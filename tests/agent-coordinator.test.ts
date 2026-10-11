@@ -122,6 +122,7 @@ function fixture(failInit = false) {
     { cancelInvalid: vi.fn(), suspend: vi.fn(), resume: vi.fn() } as unknown as ExamGrader,
   )
   return {
+    agent,
     coordinator,
     workers,
     events,
@@ -138,6 +139,34 @@ async function tick(): Promise<void> {
 beforeEach(() => mocks.fork.mockReset())
 
 describe('agent coordinator', () => {
+  it('does not label an earlier history read with the cursor of a later usage event', async () => {
+    const f = fixture()
+    await f.coordinator.send(ids[0], [{ kind: 'text', text: 'hello' }], [], jobIds[0])
+    await tick()
+    let resolveHistory!: (history: AgentHistory) => void
+    vi.spyOn(f.agent, 'history').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveHistory = resolve
+        }),
+    )
+    const pending = f.coordinator.history(ids[0])
+    f.workers[0].event(jobIds[0], {
+      conversationId: ids[0],
+      kind: 'usage',
+      usage: { ...usage, contextTokens: 36000 },
+    })
+    const latestSequence = f.events.at(-1)!.sequence!
+    resolveHistory({
+      messages: [],
+      pending: null,
+      usage: { ...usage, contextTokens: 20000 },
+      running: true,
+    })
+    const result = await pending
+    expect(result.job!.sequence).toBeLessThan(latestSequence)
+    await f.coordinator.close()
+  })
   it('returns the original diagnostic reference when submitting a worker job fails', async () => {
     const cause = new Error('Worker channel unavailable')
     const original = FakeWorker.prototype.postMessage

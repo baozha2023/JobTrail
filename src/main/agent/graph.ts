@@ -20,7 +20,6 @@ import {
   type BaseMessage,
 } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
-import { toJsonSchema } from '@langchain/core/utils/json_schema'
 import {
   END,
   MessagesValue,
@@ -43,6 +42,15 @@ import { AgentMcpClient } from './mcp-client'
 import { AgentArchive } from './archive'
 import { buildAgentSystemPrompt } from './prompt'
 import type { AgentRuntimeInfo } from './runtime'
+import {
+  ContextBaseline,
+  ContextDisplay,
+  contextBudget,
+  contextKey,
+  createContextBaseline,
+  createCompactedContextBaseline,
+  measureContext,
+} from './context'
 
 const examAgentSchemas: Record<ExamToolName, z.ZodType> = {
   create_exam_paper: createExamSchema.omit({ conversationId: true, requestId: true, taskId: true }),
@@ -79,6 +87,9 @@ const State = new StateSchema({
   mode: z.enum(['chat', 'compact']).default('chat'),
   needsCompact: z.boolean().default(false),
   contextTokens: z.number().default(0),
+  contextEstimated: z.boolean().default(true),
+  contextBaseline: ContextBaseline.nullable().default(null),
+  contextDisplay: ContextDisplay.nullable().default(null),
   lastCompact: CompactResult.nullable().default(null),
 })
 
@@ -91,19 +102,6 @@ interface ResumeDocumentArtifact {
 type ModelContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } }
-
-function imageTokenEstimate(messages: BaseMessage[]): number {
-  // ChatOpenAI's local counter skips image_url blocks; actual usage replaces this estimate after the call.
-  return messages.reduce(
-    (total, message) =>
-      total +
-      (Array.isArray(message.content)
-        ? message.content.filter((part) => typeof part === 'object' && part.type === 'image_url')
-            .length * 2048
-        : 0),
-    0,
-  )
-}
 
 function skillInstructions(runtime: AgentRuntimeInfo, name: 'resume-match' | 'study'): string {
   const file = runtime.packaged
@@ -289,45 +287,95 @@ class AgentGraphFactory {
     }
     const modelNode = async (state: typeof State.State) => {
       const settings = this.config.reload()
-      const model = this.model()
+      const budget = contextBudget(settings.ai)
+      const model = this.model(budget.outputTokens)
       const availableTools = settings.mcp.enabled ? allTools : [askUser]
       const conversationId = String(getConfig()?.configurable?.thread_id ?? '')
       const recent = await this.prepareMessages(state.messages, conversationId)
-      const response = await model
-        .bindTools(availableTools)
-        .invoke([this.system(settings.mcp.enabled, state.summary), ...recent])
+      const system = this.system(settings.mcp.enabled, state.summary)
+      const context = measureContext(
+        settings.ai,
+        system,
+        recent,
+        availableTools,
+        state.contextBaseline,
+      )
+      if (context.tokens > budget.inputTokens)
+        throw new AppServiceError(
+          'VALIDATION_ERROR',
+          '当前单轮内容超出上下文窗口的输入预算，请缩短输入或附件',
+        )
+      const response = await model.bindTools(availableTools).invoke([system, ...recent])
       const ids = response.tool_calls?.map((call) => call.id)
       if (ids?.some((id) => !id) || (ids && new Set(ids).size !== ids.length))
         throw new Error('模型返回了缺少或重复 ID 的工具调用')
-      return { messages: [response] }
+      return {
+        messages: [response],
+        contextBaseline:
+          createContextBaseline(context, response.usage_metadata) ?? state.contextBaseline,
+      }
     }
-    const archiveNode = async (state: typeof State.State) => {
-      this.archive.sync(String(getConfig()?.configurable?.thread_id ?? ''), state.messages)
+    const currentContext = async (state: Partial<typeof State.State>, conversationId: string) => {
+      if (!state.messages?.length && !state.summary) return null
+      const settings = this.config.reload()
+      const context = measureContext(
+        settings.ai,
+        this.system(settings.mcp.enabled, state.summary ?? ''),
+        await this.prepareMessages(state.messages ?? [], conversationId),
+        settings.mcp.enabled ? allTools : [askUser],
+        state.contextBaseline,
+      )
+      return {
+        key: context.key,
+        contextTokens: context.tokens,
+        contextEstimated: context.estimated,
+      }
+    }
+    const contextUsage = (state: Partial<typeof State.State>) => {
+      const settings = this.config.reload()
+      const key = contextKey(
+        settings.ai,
+        this.system(settings.mcp.enabled, state.summary ?? ''),
+        settings.mcp.enabled ? allTools : [askUser],
+      )
+      if (state.contextDisplay?.key === key) return state.contextDisplay
+      return { contextTokens: null, contextEstimated: true }
+    }
+    const archiveNode = (state: typeof State.State) => {
+      const id = String(getConfig()?.configurable?.thread_id ?? '')
+      this.archive.sync(id, state.messages)
       return {}
+    }
+    const archiveAgent = async (state: typeof State.State) => {
+      archiveNode(state)
+      const context = await currentContext(
+        state,
+        String(getConfig()?.configurable?.thread_id ?? ''),
+      )
+      if (!context) return {}
+      return {
+        contextTokens: context.contextTokens,
+        contextEstimated: context.contextEstimated,
+        contextDisplay: context,
+      }
     }
     const preflight = async (state: typeof State.State) => {
       const settings = this.config.reload()
-      const model = this.model()
       const conversationId = String(getConfig()?.configurable?.thread_id ?? '')
-      const prepared = await this.prepareMessages(state.messages, conversationId)
-      const availableTools = settings.mcp.enabled ? allTools : [askUser]
-      const tokens = await this.countContext(
-        model,
-        this.system(settings.mcp.enabled, state.summary),
-        prepared,
-        availableTools,
-      )
-      const limit = settings.ai.contextWindowK * 1000
+      const context = await currentContext(state, conversationId)
+      const tokens = context?.contextTokens ?? 0
+      const budget = contextBudget(settings.ai)
       const hasOlderTurn =
         state.messages.filter((message) => message instanceof HumanMessage).length > 1
-      if (!hasOlderTurn && tokens >= limit)
+      if (state.mode !== 'compact' && !hasOlderTurn && tokens > budget.inputTokens)
         throw new AppServiceError(
           'VALIDATION_ERROR',
-          '当前单轮内容超出上下文窗口，请缩短输入或附件',
+          '当前单轮内容超出上下文窗口的输入预算，请缩短输入或附件',
         )
       return {
         contextTokens: tokens,
-        needsCompact: hasOlderTurn && tokens >= (limit * settings.ai.compactThresholdPercent) / 100,
+        contextEstimated: context?.contextEstimated ?? true,
+        needsCompact: hasOlderTurn && tokens >= budget.compactTokens,
       }
     }
     const compactNode = async (state: typeof State.State) => {
@@ -345,15 +393,27 @@ class AgentGraphFactory {
         result.afterTokens,
         result.usage ?? undefined,
       )
-      return { lastCompact: result }
+      const settings = this.config.reload()
+      return {
+        lastCompact: result,
+        contextDisplay: {
+          key: contextKey(
+            settings.ai,
+            this.system(settings.mcp.enabled, state.summary),
+            settings.mcp.enabled ? allTools : [askUser],
+          ),
+          contextTokens: state.contextTokens,
+          contextEstimated: state.contextEstimated,
+        },
+      }
     }
-    return new StateGraph(State)
+    const graph = new StateGraph(State)
       .addNode('archive_input', archiveNode)
       .addNode('preflight', preflight)
       .addNode('compact', compactNode)
       .addNode('archive_compact', archiveCompact)
       .addNode('agent', modelNode)
-      .addNode('archive_agent', archiveNode)
+      .addNode('archive_agent', archiveAgent)
       .addNode('tools', runTool)
       .addNode('archive_tools', archiveNode)
       .addEdge(START, 'archive_input')
@@ -387,6 +447,7 @@ class AgentGraphFactory {
         },
       )
       .compile({ checkpointer: this.saver })
+    return { graph, contextUsage }
   }
 
   private model(maxTokens?: number): ChatOpenAI {
@@ -397,46 +458,28 @@ class AgentGraphFactory {
     return new SystemMessage(buildAgentSystemPrompt({ mcpEnabled, summary }))
   }
 
-  private async countContext(
-    model: ChatOpenAI,
-    system: SystemMessage,
-    messages: BaseMessage[],
-    tools: unknown[],
-  ): Promise<number> {
-    const messageTokens = (await model.getNumTokensFromMessages([system, ...messages])).totalCount
-    const toolTokens = await model.getNumTokens(
-      JSON.stringify(
-        tools.map((item) => {
-          const candidate = item as {
-            name: string
-            description: string
-            schema?: Parameters<typeof toJsonSchema>[0]
-          }
-          return {
-            name: candidate.name,
-            description: candidate.description,
-            schema: candidate.schema ? toJsonSchema(candidate.schema) : undefined,
-          }
-        }),
-      ),
-    )
-    return messageTokens + toolTokens + imageTokenEstimate(messages)
-  }
-
   private async compact(
     state: typeof State.State,
     conversationId: string,
     availableTools: unknown[],
   ) {
     const settings = this.config.reload()
-    const windowTokens = settings.ai.contextWindowK * 1000
+    const budget = contextBudget(settings.ai)
+    const { windowTokens } = budget
     const model = this.model()
-    const fixedContextTokens = await this.countContext(
-      model,
+    const beforeContext = measureContext(
+      settings.ai,
+      this.system(settings.mcp.enabled, state.summary),
+      await this.prepareMessages(state.messages, conversationId),
+      availableTools,
+      state.contextBaseline,
+    )
+    const fixedContextTokens = measureContext(
+      settings.ai,
       this.system(settings.mcp.enabled, state.summary),
       [],
       availableTools,
-    )
+    ).tokens
     const keepBudget = Math.max(0, Math.floor(windowTokens * 0.5) - fixedContextTokens)
     const turns: BaseMessage[][] = []
     for (const message of state.messages) {
@@ -448,8 +491,7 @@ class AgentGraphFactory {
     for (let index = turns.length - 1; index >= 0; index--) {
       if (state.mode === 'compact' && keep.length) break
       const prepared = await this.prepareMessages(turns[index], conversationId)
-      const tokens =
-        (await model.getNumTokensFromMessages(prepared)).totalCount + imageTokenEstimate(prepared)
+      const tokens = (await model.getNumTokensFromMessages(prepared)).totalCount
       if (keepTokens + tokens > keepBudget) {
         // Automatic compaction runs after the new user turn has entered the graph, so
         // that unanswered turn must remain intact and the final budget check should
@@ -497,29 +539,33 @@ class AgentGraphFactory {
     for (const turn of turns.slice(0, turns.length - keep.length)) {
       const prepared = await this.prepareMessages(turn, conversationId)
       const proposed = [...batch, ...prepared]
-      const count =
-        (await summaryModel.getNumTokensFromMessages(proposed)).totalCount +
-        imageTokenEstimate(proposed)
+      const count = (await summaryModel.getNumTokensFromMessages(proposed)).totalCount
       if (batch.length && count > windowTokens * 0.6) {
         batches.push(batch)
         batch = prepared
       } else batch = proposed
-      if (
-        (await summaryModel.getNumTokensFromMessages(batch)).totalCount +
-          imageTokenEstimate(batch) >
-        windowTokens * 0.6
-      )
+      if ((await summaryModel.getNumTokensFromMessages(batch)).totalCount > windowTokens * 0.6)
         throw new AppServiceError('VALIDATION_ERROR', '单轮内容超出摘要预算，请缩短输入或附件')
     }
     if (batch.length) batches.push(batch)
     for (const part of batches) {
-      response = await summaryModel.invoke([
+      const summaryMessages = [
         new SystemMessage(
           `请准确压缩求职对话，保留用户目标、决定、未解决问题及引用。业务数据可能变化，勿将其写成永久事实。已有摘要：\n${summary}`,
         ),
         ...part,
         new HumanMessage('请给出更新后的简洁摘要。'),
-      ])
+      ]
+      if (
+        (await summaryModel.getNumTokensFromMessages(summaryMessages)).totalCount +
+          maxSummaryTokens >
+        windowTokens
+      )
+        throw new AppServiceError(
+          'VALIDATION_ERROR',
+          '摘要请求超出上下文窗口的输入预算，请缩短当前单轮内容',
+        )
+      response = await summaryModel.invoke(summaryMessages)
       this.archive.compactCall(conversationId, response.id ?? randomUUID(), response)
       if (typeof response.content !== 'string' || !response.content.trim())
         throw new Error('摘要模型未返回有效文本')
@@ -533,23 +579,26 @@ class AgentGraphFactory {
       else cached += usage.input_token_details.cache_read
     }
     const keptMessages = await this.prepareMessages(keep.flat(), conversationId)
-    const afterTokens = await this.countContext(
-      model,
+    const afterContext = measureContext(
+      settings.ai,
       this.system(settings.mcp.enabled, summary),
       keptMessages,
       availableTools,
     )
+    const contextBaseline = createCompactedContextBaseline(beforeContext, afterContext)
+    const afterTokens = contextBaseline.inputTokens
     // Fifty percent is the retention target, not a second hard context limit. The
     // fixed prompt and the current unanswered turn can legitimately put automatic
-    // compaction slightly above that target; only reject when the request still
-    // cannot fit the configured model window after all older turns were summarized.
-    if (afterTokens > windowTokens)
+    // compaction above that target, but the request must leave room for a reply.
+    if (afterTokens > budget.inputTokens)
       throw new AppServiceError('VALIDATION_ERROR', '摘要后仍超出目标上下文，请缩短当前单轮内容')
     return {
       summary,
       messages: older.map((message) => new RemoveMessage({ id: message.id! })),
       needsCompact: false,
       contextTokens: afterTokens,
+      contextEstimated: true,
+      contextBaseline,
       lastCompact: {
         id: randomUUID(),
         beforeTokens: state.contextTokens,

@@ -27,7 +27,13 @@ export interface QrTransport {
 }
 export interface QrProtocol {
   initialize(): Promise<{ image: string; expiresInMs: number }>
-  poll(): Promise<'waiting' | 'scanned' | 'authenticated' | 'expired'>
+  poll(): Promise<
+    | 'waiting'
+    | 'scanned'
+    | 'authenticated'
+    | 'expired'
+    | { state: 'waiting' | 'scanned'; image: string; expiresInMs: number }
+  >
 }
 
 export function qrImage(value: unknown, base: string): string {

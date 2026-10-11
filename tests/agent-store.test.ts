@@ -27,6 +27,107 @@ const usage: AgentHistory['usage'] = {
 beforeEach(() => setActivePinia(createPinia()))
 
 describe('agent session store', () => {
+  it('applies history fetched to recover an event sequence gap', async () => {
+    let listener!: (event: AgentEvent) => void
+    const recovered: AgentHistory = {
+      messages: [{ id: 'saved', role: 'assistant', text: '完整回复', attachments: [] }],
+      pending: null,
+      usage,
+      running: true,
+      job: {
+        jobId: 'active-job',
+        conversationId: 'chat-a',
+        status: 'running',
+        sequence: 4,
+        liveText: '',
+      },
+    }
+    const history = vi.fn(async () => recovered)
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations.map((conversation) => ({ ...conversation })),
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+          history,
+        },
+      },
+    })
+    const store = useAgentStore()
+    await store.start()
+    const state = store.session('chat-a')
+    state.jobId = 'active-job'
+    state.sequence = 2
+    state.activity = 'running'
+    listener({
+      conversationId: 'chat-a',
+      jobId: 'active-job',
+      sequence: 4,
+      kind: 'usage',
+      usage,
+    })
+    await vi.waitFor(() => expect(state.messages).toEqual(recovered.messages))
+    expect(history).toHaveBeenCalledOnce()
+    expect(state.sequence).toBe(4)
+    store.stop()
+  })
+  it('does not overwrite newer usage with a history request started before the event', async () => {
+    let listener!: (event: AgentEvent) => void
+    let resolveHistory!: (history: AgentHistory) => void
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations.map((conversation) => ({ ...conversation })),
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+          history: () =>
+            new Promise<AgentHistory>((resolve) => {
+              resolveHistory = resolve
+            }),
+        },
+      },
+    })
+    const store = useAgentStore()
+    await store.start()
+    const state = store.session('chat-a')
+    state.jobId = 'active-job'
+    state.sequence = 2
+    state.activity = 'running'
+    const loading = store.select('chat-a')
+    const currentUsage = { ...usage, contextTokens: 36000 }
+    listener({
+      conversationId: 'chat-a',
+      jobId: 'active-job',
+      sequence: 3,
+      kind: 'usage',
+      usage: currentUsage,
+    })
+    resolveHistory({
+      messages: [],
+      pending: null,
+      usage: { ...usage, contextTokens: 20000 },
+      running: true,
+      job: {
+        jobId: 'active-job',
+        conversationId: 'chat-a',
+        status: 'running',
+        sequence: 3,
+        liveText: '',
+      },
+    })
+    await loading
+    expect(state.usage).toEqual(currentUsage)
+    expect(state.sequence).toBe(3)
+    store.stop()
+  })
   it('releases both event subscriptions when startup fails before retrying', async () => {
     const stopAgent = vi.fn()
     const stopExternal = vi.fn()

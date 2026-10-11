@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import type { QrLoginMethod } from '../../../shared/job-discovery'
 import { allowedUrl } from '../identity'
 import type { VerificationPage } from '../adapter'
 import { z } from 'zod'
@@ -265,26 +266,31 @@ const qrParams = {
   appId: '6dp2Re4xQVd69gSD',
   keepLogin: 'true',
   backurl: '',
-  programCode: 'wxmini_lp01',
 }
 const qrResponse = z.object({
   flag: z.number().optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
-function createQr(transport: QrTransport): QrProtocol {
+function createQr(transport: QrTransport, method: QrLoginMethod = 'wechat'): QrProtocol {
+  if (method !== 'app' && method !== 'wechat') throw new LoginError('protocol')
+  const params = method === 'wechat' ? { ...qrParams, programCode: 'wxmini_lp01' } : qrParams
   let key = ''
   return {
     async initialize() {
-      const r = await transport.json(passport + 'get-mini-qrcode', qrResponse.parse, {
-        data: qrParams,
-      })
+      const r = await transport.json(
+        passport + (method === 'app' ? 'get-qrcode' : 'get-mini-qrcode'),
+        qrResponse.parse,
+        {
+          data: params,
+        },
+      )
       if (r.flag !== 1 || typeof r.data?.key !== 'string') throw new LoginError('protocol')
       key = r.data.key
       return { image: qrImage(r.data.qrcode, 'https://www.liepin.com'), expiresInMs: 180000 }
     },
     async poll() {
       const r = await transport.json(passport + 'ack', qrResponse.parse, {
-        data: { ...qrParams, key },
+        data: { ...params, key },
       })
       if (r.flag !== 1) throw new LoginError('protocol')
       const state = String(r.data?.status)
@@ -295,6 +301,14 @@ function createQr(transport: QrTransport): QrProtocol {
       return 'waiting'
     },
   }
+}
+const wechatHint = {
+  'zh-CN': '使用微信扫一扫，在猎聘小程序中确认。',
+  'en-US': 'Scan with WeChat and confirm in the Liepin mini program.',
+}
+const appHint = {
+  'zh-CN': '使用猎聘 App 扫码并确认登录。',
+  'en-US': 'Scan and confirm using the Liepin app.',
 }
 export const liepinAdapter: PlatformAdapter = {
   cities,
@@ -319,10 +333,11 @@ export const liepinAdapter: PlatformAdapter = {
     pageScript: verificationPageScript,
   },
   qr: {
-    scanHint: {
-      'zh-CN': '使用微信扫一扫，在猎聘小程序中确认。',
-      'en-US': 'Scan with WeChat and confirm in the Liepin mini program.',
-    },
+    scanHint: wechatHint,
+    methods: [
+      { id: 'wechat', label: { 'zh-CN': '微信', 'en-US': 'WeChat' }, scanHint: wechatHint },
+      { id: 'app', label: { 'zh-CN': '猎聘 App', 'en-US': 'Liepin app' }, scanHint: appHint },
+    ],
     create: createQr,
     headers: (url): Record<string, string> =>
       url.startsWith(passport)

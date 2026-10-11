@@ -1,40 +1,21 @@
 import { ChatOpenAI, type ChatOpenAICallOptions, type ChatOpenAIFields } from '@langchain/openai'
-import type { MessageContent } from '@langchain/core/messages'
-import { Tiktoken } from 'js-tiktoken/lite'
-import gpt2 from 'js-tiktoken/ranks/gpt2'
+import type { BaseMessage, MessageContent } from '@langchain/core/messages'
 import type { AppConfig } from '../../shared/types'
 import { AppServiceError } from '../services/errors'
-
-let encoding: Tiktoken | undefined
-
-async function countTokens(content: MessageContent): Promise<number> {
-  const text =
-    typeof content === 'string'
-      ? content
-      : content
-          .map((part) => {
-            if (typeof part === 'string') return part
-            return part.type === 'text' && 'text' in part ? part.text : ''
-          })
-          .join('')
-  // Keep the installed ChatOpenAI counter's GPT-2 estimate, without its CDN download.
-  encoding ??= new Tiktoken(gpt2)
-  try {
-    return encoding.encode(text).length
-  } catch {
-    // Literal special-token markers use the same estimate as LangChain's counter.
-    return Math.ceil(text.length / 4)
-  }
-}
+import { countMessageTokens, countTextTokens } from './token-count'
 
 class LocalTokenChatOpenAI extends ChatOpenAI {
   constructor(fields?: ChatOpenAIFields) {
     super(fields)
-    this.completions.getNumTokens = countTokens
-    this.responses.getNumTokens = countTokens
+    this.completions.getNumTokens = this.getNumTokens
+    this.responses.getNumTokens = this.getNumTokens
+    this.completions.getNumTokensFromMessages = this.getNumTokensFromMessages
+    this.responses.getNumTokensFromMessages = this.getNumTokensFromMessages
   }
 
-  override getNumTokens = countTokens
+  override getNumTokens = async (content: MessageContent) => countTextTokens(this.model, content)
+  override getNumTokensFromMessages = async (messages: BaseMessage[]) =>
+    countMessageTokens(this.model, messages)
 
   override withConfig(config: Partial<ChatOpenAICallOptions>): LocalTokenChatOpenAI {
     // ChatOpenAI.withConfig constructs a base instance and would lose the local counter.

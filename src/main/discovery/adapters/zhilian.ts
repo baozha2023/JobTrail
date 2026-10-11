@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import type { QrLoginMethod } from '../../../shared/job-discovery'
+import { allowedUrl } from '../identity'
 import {
   SourceError,
   type PlatformAdapter,
@@ -247,27 +249,40 @@ const qrResponse = z.object({
 function qrUrl(route: string, params: Record<string, string>) {
   return `${passport}${route}?${new URLSearchParams({ appID, refer: '121126445', clientType: 'n', businessSystem: '1', ...params, time: String(Date.now()) })}`
 }
-function createQr(transport: QrTransport): QrProtocol {
+function createQr(transport: QrTransport, method: QrLoginMethod = 'wechat'): QrProtocol {
+  if (method !== 'app' && method !== 'wechat') throw new LoginError('protocol')
+  const wechat = method === 'wechat'
   let key = ''
   return {
     async initialize() {
       const r = await transport.json(
-        qrUrl('/v4/appScan/init', { scene: '10000060' }),
+        qrUrl(
+          wechat ? '/napi/wechat-qrcode' : '/v4/appScan/init',
+          wechat ? {} : { scene: '10000060' },
+        ),
         qrResponse.parse,
       )
-      if (r.code !== 100000 || typeof r.data?.validateId !== 'string')
-        throw new LoginError('verification')
+      if (r.code !== (wechat ? 200 : 100000)) throw new LoginError('verification')
+      if (typeof r.data?.validateId !== 'string' || !r.data.validateId)
+        throw new LoginError('protocol')
       key = r.data.validateId
       return { image: qrImage(r.data.path, passport), expiresInMs: 300000 }
     },
     async poll() {
       const r = await transport.json(
-        qrUrl('/v4/appScan/login', { validateId: key, rememberMe: 'true' }),
+        qrUrl(wechat ? '/napi/wechat-qrcode-login' : '/v4/appScan/login', {
+          validateId: key,
+          rememberMe: 'true',
+        }),
         qrResponse.parse,
       )
-      if ([102002, 102003].includes(r.code ?? -1)) return 'expired'
-      if (r.code === 102001) return 'scanned'
-      if (r.code === 100000) {
+      // NAPI's HTTP/envelope success is not login success. Its business code is nested.
+      if (wechat && r.code !== 200) throw new LoginError('verification')
+      const code = wechat ? r.data?.code : r.code
+      if (typeof code !== 'number') throw new LoginError('protocol')
+      if ([102002, 102003].includes(code)) return 'expired'
+      if (code === 102001) return 'scanned'
+      if (code === 100000 || (wechat && code === 101011)) {
         if (
           typeof r.data?.at !== 'string' ||
           !r.data.at ||
@@ -292,10 +307,20 @@ function createQr(transport: QrTransport): QrProtocol {
         }
         return 'authenticated'
       }
-      if (r.code !== 102004) throw new LoginError('verification')
+      if (code !== 102004) throw new LoginError('verification')
       return 'waiting'
     },
   }
+}
+const appHint = {
+  'zh-CN': '使用智联招聘 App 扫一扫并确认。',
+  'en-US': 'Scan and confirm using the Zhaopin app.',
+}
+const wechatHint = {
+  'zh-CN':
+    '使用微信扫一扫，按官方提示关注“智联招聘APP”公众号并完成登录；如需绑定账号，请在官方流程中完成。',
+  'en-US':
+    'Scan with WeChat, follow the official Zhaopin account and complete login. Complete account linking in the official flow if requested.',
 }
 export const zhilianAdapter: PlatformAdapter = {
   cities,
@@ -314,18 +339,27 @@ export const zhilianAdapter: PlatformAdapter = {
   pageScript: (detail) => pageScript(pageRules, detail),
   createSearch: (page, query) => new ZhilianSearch(page, query),
   qr: {
-    scanHint: {
-      'zh-CN': '使用智联招聘 App 扫一扫并确认。',
-      'en-US': 'Scan and confirm using the Zhaopin app.',
-    },
+    scanHint: wechatHint,
+    methods: [
+      { id: 'wechat', label: { 'zh-CN': '微信', 'en-US': 'WeChat' }, scanHint: wechatHint },
+      { id: 'app', label: { 'zh-CN': '智联招聘 App', 'en-US': 'Zhaopin app' }, scanHint: appHint },
+    ],
     create: createQr,
-    headers: () => ({
-      'X-Requested-With': 'XMLHttpRequest',
-      'x-zp-passport-appid': appID,
-      'x-zp-refer': '121126445',
-      'x-zp-client-type': 'n',
-      'x-zp-business-system': '1',
-    }),
+    allowsImageUrl: (value) => {
+      if (!allowedUrl(['mp.weixin.qq.com'], value)) return false
+      const url = new URL(value)
+      return url.hostname === 'mp.weixin.qq.com' && url.pathname === '/cgi-bin/showqrcode'
+    },
+    headers: (url): Record<string, string> =>
+      new URL(url).origin === passport
+        ? {
+            'X-Requested-With': 'XMLHttpRequest',
+            'x-zp-passport-appid': appID,
+            'x-zp-refer': '121126445',
+            'x-zp-client-type': 'n',
+            'x-zp-business-system': '1',
+          }
+        : {},
   },
 }
 const pageRules: PageRules = {

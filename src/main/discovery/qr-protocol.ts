@@ -8,13 +8,15 @@ export class LoginError extends Error {
     super(reason, options)
   }
 }
-export interface QrRequestOptions {
+export type QrRequestOptions = {
   headers?: Record<string, string>
-  data?: Record<string, string>
-  jsonBody?: boolean
   timeoutMs?: number
-}
+} & (
+  | { jsonBody: true; data?: Record<string, string | null> }
+  | { jsonBody?: false; data?: Record<string, string> }
+)
 export interface QrTransport {
+  cookie(url: string, name: string): Promise<string | null>
   text(url: string, options?: QrRequestOptions): Promise<string>
   json<T>(
     url: string,

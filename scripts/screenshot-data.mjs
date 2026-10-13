@@ -150,7 +150,11 @@ export function installScreenshotData(version) {
     pageSize: query.pageSize ?? 10,
   })
   const config = {
-    configVersion: 1,
+    configVersion: 2,
+    onboarding: {
+      app: { status: 'completed', stepId: null },
+      discovery: { status: 'completed', stepId: null },
+    },
     themeMode: 'light',
     statusFlowTheme: 'ocean',
     locale: 'zh-CN',

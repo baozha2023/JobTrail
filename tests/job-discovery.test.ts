@@ -16,6 +16,7 @@ import {
 } from '../src/shared/job-discovery'
 import { normalizeJob, salaryExclusion, parseSalary } from '../src/main/discovery/normalization'
 import { wuyouResponse } from '../src/main/discovery/adapters/wuyou'
+import { yupaoResponse } from '../src/main/discovery/adapters/yupao'
 
 import { canonicalJob, jobIdentity, allowedPage } from '../src/main/discovery/platforms'
 import { createServiceContainer } from '../src/main/service-container'
@@ -63,6 +64,43 @@ function fixture() {
     false,
   )
 }
+
+it('persists Yupao highlighted titles as plain text through discovery and opportunity saving', () => {
+  const c = fixture()
+  try {
+    const repo = c.services.discovery.repository
+    const run = repo.create(query({ platforms: ['yupao'] }), randomUUID())
+    const parsed = yupaoResponse(
+      {
+        code: 0,
+        data: {
+          total: 2,
+          list: [
+            { jobId: 485431773, title: "<span style='color:#0099ff'>Java</span>" },
+            { jobId: 485431774, title: "金蝶<span style='color:#0099ff'>java</span>开发工程师" },
+          ],
+        },
+      },
+      1,
+    )
+    c.unitOfWork.run(() => {
+      for (const item of parsed.jobs) repo.observe(item, run.id)
+    })
+    const list = repo.list({ runId: run.id })
+    expect(list.items.map((item) => item.title).sort()).toEqual(['Java', '金蝶java开发工程师'])
+    for (const item of list.items) {
+      const saved = c.services.discovery.saveSync({
+        jobId: item.id,
+        observationId: item.observationId,
+        newCompanyName: '高亮解析测试公司 ' + item.externalId,
+        statusId: c.services.statuses.list()[0].id,
+      })
+      expect(c.services.opportunities.get(saved.opportunityId).title).toBe(item.title)
+    }
+  } finally {
+    c.database.close()
+  }
+})
 
 describe('monthly salary normalization and admission', () => {
   it.each(['北京', ''])(
@@ -357,7 +395,7 @@ describe('durable discovery and transactional save', () => {
         rank.mock.calls.some(([sql]) => sql.startsWith('UPDATE discovery_results SET relevance=')),
       ).toBe(false)
       rank.mockRestore()
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -464,7 +502,7 @@ describe('durable discovery and transactional save', () => {
       return prepare(sql)
     })
     try {
-      expect(() => validateDatabaseVersion(db, 5)).not.toThrow()
+      expect(() => validateDatabaseVersion(db, 6)).not.toThrow()
       expect(changed).toBe(true)
       expect(repo.sourceCount(run.id, 'boss')).toBe(2)
     } finally {
@@ -534,7 +572,7 @@ describe('durable discovery and transactional save', () => {
         n: 0,
       })
       expect(() => r.source(run.id, run.sources[0])).toThrow('Search run not found')
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -572,7 +610,7 @@ describe('durable discovery and transactional save', () => {
       )
       expect(r.list({ runId: second.id }).total).toBe(1)
       expect(r.list({ runId: first.id }).total).toBe(25)
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -623,10 +661,10 @@ describe('durable discovery and transactional save', () => {
         r.remove([run.id])
       })
       expect(c.services.opportunities.get(saved.opportunityId).title).toBe('用户改过的岗位')
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
       c.services.opportunities.delete(saved.opportunityId)
       expect(r.saved(id)).toBeNull()
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -650,7 +688,7 @@ describe('durable discovery and transactional save', () => {
       expect(c.database.db.prepare('SELECT COUNT(*) n FROM discovery_results').get()).toEqual({
         n: 0,
       })
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -707,7 +745,7 @@ describe('durable discovery and transactional save', () => {
       expect(r.run(b.id).sources[0].count).toBe(0)
       expect(c.services.opportunities.get(saved.opportunityId)).toEqual(opportunity)
       expect(c.services.companies.get(opportunity.companyId).name).toBe('需要保留的公司')
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
     } finally {
       c.database.close()
     }
@@ -732,7 +770,7 @@ describe('durable discovery and transactional save', () => {
           .prepare('SELECT ordinal FROM discovery_view_items WHERE view_id=? ORDER BY ordinal')
           .all(view.viewId),
       ).toEqual([{ ordinal: 1 }, { ordinal: 3 }])
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
       c.unitOfWork.run(() =>
         r.observe(
           job({ externalId: 'four', url: 'https://www.zhipin.com/job_detail/four.html' }),
@@ -744,7 +782,7 @@ describe('durable discovery and transactional save', () => {
         view.items[2].id,
         jobIdentity('boss', 'https://www.zhipin.com/job_detail/four.html').id,
       ])
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
     } finally {
       c.database.close()
     }
@@ -822,7 +860,7 @@ describe('durable discovery and transactional save', () => {
   })
 })
 
-describe('current v5 observation integrity', () => {
+describe('current v6 observation integrity', () => {
   it.each([
     ['missing city', { keyword: 'Java', platforms: ['boss'] }],
     ['untrimmed keyword', { keyword: ' Java ', city: '上海', platforms: ['boss'] }],
@@ -836,7 +874,7 @@ describe('current v5 observation integrity', () => {
         c.services.discovery.repository.create(query(), 'stored-query')
         const payload = JSON.stringify(invalid)
         db.prepare('UPDATE discovery_runs SET query=?').run(payload)
-        expect(() => validateDatabaseVersion(db, 5)).toThrow('Invalid persisted discovery query')
+        expect(() => validateDatabaseVersion(db, 6)).toThrow('Invalid persisted discovery query')
         expect(db.prepare('SELECT query FROM discovery_runs').get()).toEqual({ query: payload })
       } finally {
         c.database.close()
@@ -855,7 +893,7 @@ describe('current v5 observation integrity', () => {
       db.exec(
         "UPDATE discovery_views SET id='legacy-view'; UPDATE discovery_view_items SET view_id='legacy-view'",
       )
-      expect(() => validateDatabaseVersion(db, 5)).toThrow()
+      expect(() => validateDatabaseVersion(db, 6)).toThrow()
     } finally {
       c.database.close()
     }
@@ -882,7 +920,7 @@ describe('current v5 observation integrity', () => {
       })
       expect(r.observe(job({ salary: '100元/天' }), a.id)).toBeNull()
       expect(r.list({ runId: b.id }).total).toBe(1)
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -907,7 +945,7 @@ describe('current v5 observation integrity', () => {
         salaryMin: 12500,
       })
       expect(r.list({ runId: run.id }).items[0]).toMatchObject({ readAt: 200, salaryMin: 30000 })
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -924,7 +962,7 @@ describe('current v5 observation integrity', () => {
       const id = jobIdentity('boss', job().url).id
       expect(r.get(id)).toMatchObject({ detailReadAt: 200, readAt: 200 })
       expect(r.get(id, b.id)).toMatchObject({ detailReadAt: null, readAt: 100 })
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -949,7 +987,7 @@ describe('current v5 observation integrity', () => {
         statusId: c.services.statuses.list()[0].id,
       })
       expect(saved.alreadySaved).toBe(false)
-      validateDatabaseVersion(c.database.db, 5)
+      validateDatabaseVersion(c.database.db, 6)
     } finally {
       c.database.close()
     }
@@ -973,7 +1011,7 @@ describe('current v5 observation integrity', () => {
       r.remove([b.id])
       expect(db.prepare('SELECT COUNT(*) n FROM discovery_jobs').get()).toEqual({ n: 0 })
       expect(db.prepare('SELECT COUNT(*) n FROM discovery_observations').get()).toEqual({ n: 0 })
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
     } finally {
       c.database.close()
     }
@@ -1000,7 +1038,7 @@ describe('current v5 observation integrity', () => {
           ).payload,
         ),
       ).toBe(MAX_OBSERVATION_BYTES)
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
       expect(() => r.observe(job({ jd: jd + '中' }), run.id, 101)).toThrow('Oversized')
       const old = db.prepare('SELECT payload FROM discovery_observations WHERE id=?').get(id) as {
         payload: string
@@ -1031,12 +1069,12 @@ describe('current v5 observation integrity', () => {
       expect(() => db.exec('UPDATE discovery_view_items SET ordinal=1.5')).toThrow()
       expect(() => db.exec('UPDATE discovery_view_items SET observation_id=0')).toThrow()
       db.exec("UPDATE discovery_jobs SET identity='wrong'")
-      expect(() => validateDatabaseVersion(db, 5)).toThrow('identity')
+      expect(() => validateDatabaseVersion(db, 6)).toThrow('identity')
       db.prepare('UPDATE discovery_jobs SET identity=?').run(
         jobIdentity('boss', job().url, job().externalId).identity,
       )
       db.prepare('DELETE FROM discovery_requests WHERE request_id=?').run('integrity')
-      expect(() => validateDatabaseVersion(db, 5)).toThrow('binding')
+      expect(() => validateDatabaseVersion(db, 6)).toThrow('binding')
     } finally {
       c.database.close()
     }

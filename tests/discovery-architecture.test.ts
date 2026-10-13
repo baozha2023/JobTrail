@@ -208,12 +208,12 @@ it.each([
   },
 )
 
-it('queues a fifth and sixth source without exceeding four concurrent collectors', async () => {
+it('queues seven sources without exceeding four concurrent collectors', async () => {
   const releases: (() => void)[] = [],
     started: number[] = []
   let active = 0,
     peak = 0
-  const work = runSourceTasks([0, 1, 2, 3, 4, 5], async (value) => {
+  const work = runSourceTasks([0, 1, 2, 3, 4, 5, 6], async (value) => {
     started.push(value)
     peak = Math.max(peak, ++active)
     await new Promise<void>((resolve) => releases.push(resolve))
@@ -222,7 +222,8 @@ it('queues a fifth and sixth source without exceeding four concurrent collectors
   expect(started).toEqual([0, 1, 2, 3])
   releases[0]()
   releases[1]()
-  await vi.waitFor(() => expect(started).toEqual([0, 1, 2, 3, 4, 5]))
+  releases[2]()
+  await vi.waitFor(() => expect(started).toEqual([0, 1, 2, 3, 4, 5, 6]))
   releases.forEach((release) => release())
   await work
   expect(peak).toBe(4)

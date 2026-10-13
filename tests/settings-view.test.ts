@@ -107,7 +107,11 @@ describe('内置公司更新弹窗', () => {
 describe('设置页', () => {
   it('saves model settings and forwards failures for message feedback without inline errors', async () => {
     const config: AppConfig = {
-      configVersion: 1,
+      configVersion: 2,
+      onboarding: {
+        app: { status: 'completed', stepId: null },
+        discovery: { status: 'completed', stepId: null },
+      },
       themeMode: 'light',
       statusFlowTheme: 'violet',
       locale: 'zh-CN',
@@ -183,7 +187,11 @@ describe('设置页', () => {
 
   it('keeps preference and MCP changes connected to their original settings actions', () => {
     const config: AppConfig = {
-      configVersion: 1,
+      configVersion: 2,
+      onboarding: {
+        app: { status: 'completed', stepId: null },
+        discovery: { status: 'completed', stepId: null },
+      },
       themeMode: 'light',
       statusFlowTheme: 'violet',
       locale: 'zh-CN',

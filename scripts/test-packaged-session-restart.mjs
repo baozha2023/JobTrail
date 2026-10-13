@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 fs.mkdirSync(path.join(project, 'dist/qa'), { recursive: true })
@@ -39,6 +39,7 @@ try {
   let page = await app.firstWindow()
   page.setDefaultTimeout(15000)
   await page.locator('.sidebar').waitFor()
+  await skipToursForTest(page)
   await page.waitForLoadState('load')
   await page.waitForFunction(() => !!window.zhijiApi?.discovery)
   const initial = await page.evaluate(() => window.zhijiApi.discovery.status())
@@ -118,7 +119,7 @@ try {
       () =>
         [...document.querySelectorAll('.discovery-account .n-tag')].filter(
           (e) => e.textContent.trim() === '已登录',
-        ).length === 6,
+        ).length === 7,
     )
     assert.equal(
       await page.locator('.discovery-account').getByText('尚未确认', { exact: true }).count(),
@@ -130,7 +131,7 @@ try {
       states: statuses.map((s) => ({ platform: s.platform, state: s.state })),
       sessions,
     })
-    console.log(`Restart ${round}: six confirmed states and six local sessions retained`)
+    console.log(`Restart ${round}: seven confirmed states and seven local sessions retained`)
   }
   await page.screenshot({
     path: path.join(project, 'dist/qa/session-restart.png'),

@@ -207,7 +207,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'get_job_platform_status',
     title: '招聘平台状态',
     description:
-      '读取六个平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
+      '读取各招聘平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,

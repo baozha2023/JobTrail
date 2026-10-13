@@ -4,7 +4,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const source = path.join(project, 'dist', 'win-unpacked')
@@ -173,6 +173,7 @@ try {
   let page = await application.firstWindow()
   page.setDefaultTimeout(15_000)
   await page.locator('.sidebar').waitFor()
+  await skipToursForTest(page)
   await application.evaluate(
     ({ utilityProcess }, { bootstrap, report }) => {
       const fork = utilityProcess.fork

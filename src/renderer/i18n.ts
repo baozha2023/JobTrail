@@ -1,3 +1,4 @@
+import { onboardingMessages } from './onboarding-messages'
 import { discoveryMessages } from './discovery-messages'
 import { cityNamesEn } from './discovery-city-names'
 import { featureErrors } from '../shared/feature-errors'
@@ -5,6 +6,7 @@ import { createI18n } from 'vue-i18n'
 
 const messages = {
   'zh-CN': {
+    onboarding: onboardingMessages['zh-CN'],
     discovery: discoveryMessages['zh-CN'],
     discoveryCities: Object.fromEntries(Object.keys(cityNamesEn).map((name) => [name, name])),
     exam: {
@@ -483,6 +485,7 @@ const messages = {
     weekdays: ['日', '一', '二', '三', '四', '五', '六'],
   },
   'en-US': {
+    onboarding: onboardingMessages['en-US'],
     discovery: discoveryMessages['en-US'],
     discoveryCities: cityNamesEn,
     exam: {

@@ -2,6 +2,7 @@ import { runOperation } from './diagnostics'
 import { ExamRepository } from './repositories/exam-repository'
 import { DiscoveryRepository } from './discovery/repository'
 import { CONFIG_V1_SCHEMA } from './persistence/config-v1'
+import { CONFIG_V2_SCHEMA } from './persistence/config-v2'
 import { validateDatabaseVersion } from './persistence/validation'
 export { validateDatabaseVersion } from './persistence/validation'
 import { recoverRestore, recoverBackupWork } from './backup-restore'
@@ -14,6 +15,7 @@ import { decryptConfig, encryptConfig } from './config-crypto'
 import { MIGRATE_V1_V2 } from './persistence/schema-v2'
 import { MIGRATE_V3_V4 } from './persistence/schema-v4'
 import { MIGRATE_V4_V5 } from './persistence/schema-v5'
+import { MIGRATE_V5_V6 } from './persistence/schema-v6'
 import { MIGRATE_V2_V3 } from './persistence/schema-v3'
 import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from './persistence/versions'
 import { updateFreezePath, waitForMcpSessions } from './update-freeze'
@@ -63,8 +65,30 @@ export const DATABASE_MIGRATIONS: MigrationStep<Db>[] = [
       return db
     },
   },
+  {
+    from: 5,
+    to: 6,
+    apply: (db) => {
+      validateDatabaseVersion(db, 5)
+      db.exec(MIGRATE_V5_V6)
+      return db
+    },
+  },
 ]
-export const CONFIG_MIGRATIONS: MigrationStep<unknown>[] = []
+export const CONFIG_MIGRATIONS: MigrationStep<unknown>[] = [
+  {
+    from: 1,
+    to: 2,
+    apply: (value) => ({
+      ...CONFIG_V1_SCHEMA.parse(value),
+      configVersion: 2,
+      onboarding: {
+        app: { status: 'pending', stepId: null },
+        discovery: { status: 'pending', stepId: null },
+      },
+    }),
+  },
+]
 
 export function migrationChain<T>(
   from: number,
@@ -96,14 +120,14 @@ export function planPersistenceUpgrade(
 
 export function validateConfigVersion(value: unknown, version: number) {
   if (
-    version !== 1 ||
+    (version !== 1 && version !== 2) ||
     !value ||
     typeof value !== 'object' ||
     !('configVersion' in value) ||
     value.configVersion !== version
   )
     throw new AppServiceError('PERSISTENCE_UNSUPPORTED', 'Unsupported configuration version')
-  const parsed = CONFIG_V1_SCHEMA.safeParse(value)
+  const parsed = (version === 1 ? CONFIG_V1_SCHEMA : CONFIG_V2_SCHEMA).safeParse(value)
   if (!parsed.success)
     throw new AppServiceError('PERSISTENCE_INVALID', 'Invalid source configuration')
   return parsed.data

@@ -579,7 +579,7 @@ it('selects only signed-in platforms and disables every other platform', async (
       .findComponent(NCheckboxGroup)
       .findAllComponents(NCheckbox)
       .map((item) => item.props('disabled')),
-  ).toEqual([false, true, false, true, true, true])
+  ).toEqual([false, true, false, true, true, true, true])
 })
 
 function searchButton() {
@@ -963,7 +963,7 @@ it('preserves manual deselection across polling, selects new logins and removes 
       .findComponent(NCheckboxGroup)
       .findAllComponents(NCheckbox)
       .map((item) => item.props('disabled')),
-  ).toEqual([false, true, true, true, true, true])
+  ).toEqual([false, true, true, true, true, true, true])
 })
 
 it('shows the original locked conditions when opening history even if a platform is signed out', async () => {
@@ -1173,6 +1173,16 @@ it('keeps a loading indicator until the current webpage finishes and ignores old
   browserLoading({ requestId: opening.requestId, loading: false })
   await flushPromises()
   expect(wrapper!.find('.discovery-browser-loading').exists()).toBe(false)
+  expect(api.region).toHaveBeenLastCalledWith(expect.objectContaining({ visible: true }))
+
+  await wrapper!.setProps({ tourActive: true })
+  await (
+    wrapper!.vm as unknown as { prepareTour(step: null, signal: AbortSignal): Promise<void> }
+  ).prepareTour(null, new AbortController().signal)
+  expect(api.region).toHaveBeenLastCalledWith(expect.objectContaining({ visible: false }))
+  await wrapper!.setProps({ tourActive: false })
+  browserLoading({ requestId: opening.requestId, loading: false })
+  await flushPromises()
   expect(api.region).toHaveBeenLastCalledWith(expect.objectContaining({ visible: true }))
 
   // In-page navigation and toolbar actions use the same native loading events.

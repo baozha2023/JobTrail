@@ -39,8 +39,12 @@ function fixture() {
     resumes: path.join(root, 'resumes'),
     chatUploads: path.join(root, 'chat-uploads'),
   }
+  const upgraded = preparePersistenceUpgrade(
+    paths.database,
+    decryptConfig(fs.readFileSync(paths.config, 'utf8')),
+  )
+  fs.writeFileSync(paths.config, encryptConfig(upgraded.config))
   const config = new ConfigService(paths)
-  preparePersistenceUpgrade(paths.database, config.get())
   const container = createServiceContainer(paths, false)
   containers.push(container)
   const work = fs.mkdtempSync(path.join(root, 'work-'))
@@ -109,8 +113,8 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
   )
 }
 
-it.each([1, 2, 3, 4])(
-  'imports an authentic v%i payload, migrates it, exports v5 and restores again',
+it.each([1, 2, 3, 4, 5])(
+  'imports an authentic v%i payload, migrates it, exports v6 and restores again',
   async (version) => {
     const f = fixture()
     const sourceRoot = path.join(f.paths.root, 'released-source')
@@ -125,7 +129,7 @@ it.each([1, 2, 3, 4])(
         step.apply(source)
         source.pragma(`user_version=${step.to}`)
       }
-      if (version === 4) {
+      if (version >= 4) {
         seedDiscoveryV4(source)
         discovery = Object.fromEntries(
           [
@@ -159,7 +163,15 @@ it.each([1, 2, 3, 4])(
       manifest.databaseVersion = version
       manifest.configVersion = 1
       manifest.appVersion =
-        version === 1 ? '1.0.0' : version === 2 ? '1.4.0' : version === 3 ? '1.6.0' : '2.0.0'
+        version === 1
+          ? '1.0.0'
+          : version === 2
+            ? '1.4.0'
+            : version === 3
+              ? '1.6.0'
+              : version === 4
+                ? '2.0.0'
+                : '2.1.0'
       for (const item of manifest.files) {
         const data = entries.get(item.path)!
         item.size = data.length
@@ -176,7 +188,7 @@ it.each([1, 2, 3, 4])(
     recoverRestore(f.paths)
     const restored = createServiceContainer(f.paths, false)
     containers.push(restored)
-    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(5)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(6)
     for (const [table, rows] of Object.entries(discovery))
       expect(restored.database.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).toEqual(
         rows,
@@ -202,7 +214,7 @@ it.each([1, 2, 3, 4])(
       secondArchive,
       importWork(f.paths.root),
     )
-    expect(manifest.databaseVersion).toBe(5)
+    expect(manifest.databaseVersion).toBe(6)
     const second = await importBackup(secondArchive, importWork(f.paths.root))
     restored.database.close()
     stageRestore(f.paths, second.directory)
@@ -447,9 +459,14 @@ describe('complete backup and restore', () => {
   it('round-trips configuration, WAL records, resumes, chats and attachments across client versions', async () => {
     const f = fixture()
     const company = f.container.services.companies.create({ name: 'Only in exported WAL' })
+    const onboarding = {
+      app: { status: 'completed', stepId: null },
+      discovery: { status: 'inProgress', stepId: 'qr-panel' },
+    } as const
     f.config.update({
       locale: 'en-US',
       ai: { ...f.config.get().ai, apiKey: 'synthetic-backup-key' },
+      onboarding,
     })
     const before = f.container.database.db.prepare('SELECT * FROM agent_chat_events').all()
     const manifest = await backup(f, '1.4.2')
@@ -459,7 +476,10 @@ describe('complete backup and restore', () => {
     const prepared = await importBackup(f.archive, importWork(f.paths.root))
     expect(prepared.manifest.appVersion).toBe('1.4.2')
     f.container.services.companies.create({ name: 'Must disappear after restore' })
-    f.config.update({ locale: 'zh-CN' })
+    f.config.update({
+      locale: 'zh-CN',
+      onboarding: { discovery: { status: 'skipped', stepId: null } },
+    })
     f.container.database.close()
     fs.mkdirSync(path.dirname(updateFreezePath(f.paths.root)), { recursive: true })
     fs.writeFileSync(updateFreezePath(f.paths.root), '')
@@ -474,6 +494,8 @@ describe('complete backup and restore', () => {
     expect(restored.database.db.prepare('SELECT * FROM agent_chat_events').all()).toEqual(before)
     expect(new ConfigService(f.paths).get().locale).toBe('en-US')
     expect(new ConfigService(f.paths).get().ai.apiKey).toBe('synthetic-backup-key')
+    expect(new ConfigService(f.paths).get().onboarding).toEqual(onboarding)
+    expect(prepared.manifest.configVersion).toBe(2)
     for (const item of manifest.files.filter((item) =>
       /^(resumes|chat-uploads)\//.test(item.path),
     )) {

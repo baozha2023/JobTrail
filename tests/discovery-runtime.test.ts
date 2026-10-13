@@ -20,6 +20,16 @@ import { MCP_TOOLS } from '../src/main/mcp-contracts'
 import { platformCities } from '../src/shared/discovery-cities'
 import { platforms } from '../src/shared/job-discovery'
 import { platformAdapter } from '../src/main/discovery/adapter-registry'
+import {
+  closeDiagnostics,
+  flushDiagnostics,
+  getDiagnosticsHealth,
+  initializeDiagnostics,
+  withDiagnosticContext,
+} from '../src/main/diagnostics'
+import { newDiagnosticContext, validateDiagnosticEvent } from '../src/shared/diagnostics'
+import { diagnosticRecords } from './helpers/diagnostics'
+import { version } from '../package.json'
 
 // Account rechecks include the runtime's bounded page-settle interval.
 const waitFor: typeof vi.waitFor = (callback, options) =>
@@ -220,6 +230,7 @@ beforeEach(() => {
 afterEach(async () => {
   for (const f of fixtures.splice(0)) {
     await f.runtime.suspend()
+    closeDiagnostics()
     f.container.database.close()
     fs.rmSync(f.root, { recursive: true, force: true })
   }
@@ -267,6 +278,109 @@ async function settled(f: ReturnType<typeof fixture>, id: string) {
 const input = { query: { keyword: 'Java', city: '北京', platforms: ['boss'] as const } }
 const start = (f: ReturnType<typeof fixture>) =>
   f.service.start({ requestId: randomUUID(), query: { ...input.query, platforms: ['boss'] } })
+
+function collectDiagnostics(root: string) {
+  initializeDiagnostics('main', version, true, root)
+  flushDiagnostics()
+  const baseline = getDiagnosticsHealth()
+  const context = newDiagnosticContext()
+  return {
+    context,
+    records() {
+      flushDiagnostics()
+      expect(getDiagnosticsHealth()).toMatchObject({
+        dropped: baseline.dropped,
+        writeFailures: baseline.writeFailures,
+        transportFailures: baseline.transportFailures,
+      })
+      const records = diagnosticRecords(root).filter((record) => record.traceId === context.traceId)
+      for (const record of records) {
+        expect(validateDiagnosticEvent(record)).not.toBeNull()
+        expect(record.spanId).toBe(context.spanId)
+      }
+      return records
+    },
+  }
+}
+
+it.each([
+  ['login_required', 'login-required', 0, 0],
+  ['session_expired', 'session-expired', 0, 0],
+  ['unsupported_city', 'unsupported-city', 2, 1],
+  ['scope_unverified', 'scope-unverified', 2, 1],
+  ['parse_error', 'parse-error', 2, 1],
+  ['network_error', 'network-error', 2, 1],
+  ['challenge', 'challenge', 2, 1],
+  ['timeout', 'timeout', 2, 1],
+  ['cancelled', 'cancelled', 2, 1],
+  ['completed', 'completed', 2, 1],
+  ['partial', 'partial', 6, 3],
+] as const)(
+  'persists %s collection diagnostics without dropping events',
+  async (state, suffix, count, batches) => {
+    const f = fixture(undefined, state !== 'login_required')
+    const diagnostics = collectDiagnostics(f.root)
+    if (state === 'session_expired') pageState.accountSnapshot = { login: true }
+    if (state === 'completed') endPage = 1
+    else if (state === 'partial') endPage = 4
+    else
+      beforeRead = async (page) => {
+        if (page === 2)
+          throw new SourceError(state, state, { cause: new Error('Synthetic source failure') })
+      }
+    const run = await withDiagnosticContext(diagnostics.context, () => start(f))
+    const result = await settled(f, run.id)
+    expect(result.sources[0]).toMatchObject({ state, count, batches, rejectedCount: 0 })
+    const records = diagnostics.records()
+    const endings = records.filter((record) =>
+      record.operation.startsWith('discovery.boss.collect.'),
+    )
+    expect(endings).toHaveLength(1)
+    expect(endings[0]).toMatchObject({
+      operation: `discovery.boss.collect.${suffix}`,
+      kind: 'operation',
+      level: 'info',
+      attributes: { count, failedCount: 0, attempt: batches },
+    })
+    const failures = records.filter((record) => record.operation === 'discovery.boss.collect')
+    if (state === 'completed' || state === 'partial') expect(failures).toHaveLength(0)
+    else {
+      expect(failures).toHaveLength(1)
+      if (state === 'cancelled') expect(failures[0]).toMatchObject({ outcome: 'cancelled' })
+      else {
+        expect(failures[0]).toMatchObject({ level: 'warn', error: { message: state } })
+        if (batches) expect(failures[0].error?.cause?.message).toBe('Synthetic source failure')
+      }
+    }
+  },
+)
+
+it.each([
+  ['login_required', 'login-required', { login: true }],
+  ['parse_error', 'parse-error', { detail: {} }],
+  ['challenge', 'challenge', { challenge: true }],
+] as const)(
+  'persists %s detail diagnostics without dropping events',
+  async (reason, suffix, snapshot) => {
+    const f = fixture()
+    const job = batch(1).jobs[0]
+    f.service.work.run(() => f.service.repository.observe(job))
+    const diagnostics = collectDiagnostics(f.root)
+    pageState.snapshot = snapshot
+    const detail = await withDiagnosticContext(diagnostics.context, () =>
+      f.service.detail({ jobId: jobIdentity(job.platform, job.url).id, mode: 'refresh' }),
+    )
+    expect(detail.detailRead).toBe(false)
+    expect(detail.missing.jd).toBe(reason)
+    const records = diagnostics.records()
+    expect(records).toHaveLength(1)
+    expect(records[0]).toMatchObject({
+      operation: `discovery.boss.detail.${suffix}`,
+      kind: 'operation',
+      level: 'info',
+    })
+  },
+)
 
 it('enforces Shixiseng login through backend and MCP without contacting the search page', async () => {
   const f = fixture(undefined, false),

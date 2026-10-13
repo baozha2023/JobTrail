@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 fs.mkdirSync(path.join(project, 'dist/qa'), { recursive: true })
@@ -107,9 +107,10 @@ try {
   page.setDefaultTimeout(15000)
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
+  await skipToursForTest(page)
   await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
   const checks = page.locator('.discovery-platforms').getByRole('checkbox')
-  assert.equal(await checks.count(), 6)
+  assert.equal(await checks.count(), 7)
   for (const check of await checks.all()) {
     assert.equal(await check.isDisabled(), true)
     assert.equal(await check.isChecked(), false)
@@ -161,7 +162,7 @@ try {
       ({ enabled, selected }) => {
         const controls = [...document.querySelectorAll('.discovery-platforms [role="checkbox"]')]
         return (
-          controls.length === 6 &&
+          controls.length === 7 &&
           controls.every(
             (control, i) =>
               (control.getAttribute('aria-checked') === 'true') === selected.includes(i) &&
@@ -401,7 +402,7 @@ try {
         }
       }),
     )
-    assert.equal(rects.length, 6)
+    assert.equal(rects.length, 7)
     for (const row of rects) {
       assert.ok(row.statusRight < row.actionLeft, 'The login status must sit left of the action')
       assert.equal(row.statusRight, rects[0].statusRight, 'Login status labels must align')

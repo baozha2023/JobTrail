@@ -1,0 +1,2990 @@
+{
+  "verifiedAt": "2026-10-11",
+  "sources": ["https://yupao-prod.yupaowang.com/lbs/v2/area/tree", "https://www.yupao.com/"],
+  "cities": [
+    {
+      "name": "北京",
+      "province": "北京",
+      "initial": "B",
+      "code": "2",
+      "platformName": "北京",
+      "parentCode": "2"
+    },
+    {
+      "name": "安庆",
+      "province": "安徽",
+      "initial": "A",
+      "code": "36",
+      "platformName": "安庆",
+      "parentCode": "3"
+    },
+    {
+      "name": "蚌埠",
+      "province": "安徽",
+      "initial": "B",
+      "code": "37",
+      "platformName": "蚌埠",
+      "parentCode": "3"
+    },
+    {
+      "name": "池州",
+      "province": "安徽",
+      "initial": "C",
+      "code": "39",
+      "platformName": "池州",
+      "parentCode": "3"
+    },
+    {
+      "name": "滁州",
+      "province": "安徽",
+      "initial": "C",
+      "code": "40",
+      "platformName": "滁州",
+      "parentCode": "3"
+    },
+    {
+      "name": "阜阳",
+      "province": "安徽",
+      "initial": "F",
+      "code": "41",
+      "platformName": "阜阳",
+      "parentCode": "3"
+    },
+    {
+      "name": "淮北",
+      "province": "安徽",
+      "initial": "H",
+      "code": "42",
+      "platformName": "淮北",
+      "parentCode": "3"
+    },
+    {
+      "name": "淮南",
+      "province": "安徽",
+      "initial": "H",
+      "code": "43",
+      "platformName": "淮南",
+      "parentCode": "3"
+    },
+    {
+      "name": "黄山",
+      "province": "安徽",
+      "initial": "H",
+      "code": "44",
+      "platformName": "黄山",
+      "parentCode": "3"
+    },
+    {
+      "name": "六安",
+      "province": "安徽",
+      "initial": "L",
+      "code": "45",
+      "platformName": "六安",
+      "parentCode": "3"
+    },
+    {
+      "name": "马鞍山",
+      "province": "安徽",
+      "initial": "M",
+      "code": "46",
+      "platformName": "马鞍山",
+      "parentCode": "3"
+    },
+    {
+      "name": "宿州",
+      "province": "安徽",
+      "initial": "S",
+      "code": "47",
+      "platformName": "宿州",
+      "parentCode": "3"
+    },
+    {
+      "name": "铜陵",
+      "province": "安徽",
+      "initial": "T",
+      "code": "48",
+      "platformName": "铜陵",
+      "parentCode": "3"
+    },
+    {
+      "name": "芜湖",
+      "province": "安徽",
+      "initial": "W",
+      "code": "49",
+      "platformName": "芜湖",
+      "parentCode": "3"
+    },
+    {
+      "name": "宣城",
+      "province": "安徽",
+      "initial": "X",
+      "code": "50",
+      "platformName": "宣城",
+      "parentCode": "3"
+    },
+    {
+      "name": "亳州",
+      "province": "安徽",
+      "initial": "B",
+      "code": "51",
+      "platformName": "亳州",
+      "parentCode": "3"
+    },
+    {
+      "name": "合肥",
+      "province": "安徽",
+      "initial": "H",
+      "code": "3401",
+      "platformName": "合肥",
+      "parentCode": "3"
+    },
+    {
+      "name": "福州",
+      "province": "福建",
+      "initial": "F",
+      "code": "53",
+      "platformName": "福州",
+      "parentCode": "4"
+    },
+    {
+      "name": "龙岩",
+      "province": "福建",
+      "initial": "L",
+      "code": "54",
+      "platformName": "龙岩",
+      "parentCode": "4"
+    },
+    {
+      "name": "南平",
+      "province": "福建",
+      "initial": "N",
+      "code": "55",
+      "platformName": "南平",
+      "parentCode": "4"
+    },
+    {
+      "name": "宁德",
+      "province": "福建",
+      "initial": "N",
+      "code": "56",
+      "platformName": "宁德",
+      "parentCode": "4"
+    },
+    {
+      "name": "莆田",
+      "province": "福建",
+      "initial": "P",
+      "code": "57",
+      "platformName": "莆田",
+      "parentCode": "4"
+    },
+    {
+      "name": "泉州",
+      "province": "福建",
+      "initial": "Q",
+      "code": "58",
+      "platformName": "泉州",
+      "parentCode": "4"
+    },
+    {
+      "name": "三明",
+      "province": "福建",
+      "initial": "S",
+      "code": "59",
+      "platformName": "三明",
+      "parentCode": "4"
+    },
+    {
+      "name": "厦门",
+      "province": "福建",
+      "initial": "X",
+      "code": "60",
+      "platformName": "厦门",
+      "parentCode": "4"
+    },
+    {
+      "name": "漳州",
+      "province": "福建",
+      "initial": "Z",
+      "code": "61",
+      "platformName": "漳州",
+      "parentCode": "4"
+    },
+    {
+      "name": "兰州",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "62",
+      "platformName": "兰州",
+      "parentCode": "5"
+    },
+    {
+      "name": "白银",
+      "province": "甘肃",
+      "initial": "B",
+      "code": "63",
+      "platformName": "白银",
+      "parentCode": "5"
+    },
+    {
+      "name": "定西",
+      "province": "甘肃",
+      "initial": "D",
+      "code": "64",
+      "platformName": "定西",
+      "parentCode": "5"
+    },
+    {
+      "name": "甘南",
+      "province": "甘肃",
+      "initial": "G",
+      "code": "65",
+      "platformName": "甘南",
+      "parentCode": "5"
+    },
+    {
+      "name": "嘉峪关",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "66",
+      "platformName": "嘉峪关",
+      "parentCode": "5"
+    },
+    {
+      "name": "金昌",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "67",
+      "platformName": "金昌",
+      "parentCode": "5"
+    },
+    {
+      "name": "酒泉",
+      "province": "甘肃",
+      "initial": "J",
+      "code": "68",
+      "platformName": "酒泉",
+      "parentCode": "5"
+    },
+    {
+      "name": "临夏",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "69",
+      "platformName": "临夏",
+      "parentCode": "5"
+    },
+    {
+      "name": "陇南",
+      "province": "甘肃",
+      "initial": "L",
+      "code": "70",
+      "platformName": "陇南",
+      "parentCode": "5"
+    },
+    {
+      "name": "平凉",
+      "province": "甘肃",
+      "initial": "P",
+      "code": "71",
+      "platformName": "平凉",
+      "parentCode": "5"
+    },
+    {
+      "name": "庆阳",
+      "province": "甘肃",
+      "initial": "Q",
+      "code": "72",
+      "platformName": "庆阳",
+      "parentCode": "5"
+    },
+    {
+      "name": "天水",
+      "province": "甘肃",
+      "initial": "T",
+      "code": "73",
+      "platformName": "天水",
+      "parentCode": "5"
+    },
+    {
+      "name": "武威",
+      "province": "甘肃",
+      "initial": "W",
+      "code": "74",
+      "platformName": "武威",
+      "parentCode": "5"
+    },
+    {
+      "name": "张掖",
+      "province": "甘肃",
+      "initial": "Z",
+      "code": "75",
+      "platformName": "张掖",
+      "parentCode": "5"
+    },
+    {
+      "name": "广州",
+      "province": "广东",
+      "initial": "G",
+      "code": "76",
+      "platformName": "广州",
+      "parentCode": "6"
+    },
+    {
+      "name": "深圳",
+      "province": "广东",
+      "initial": "S",
+      "code": "77",
+      "platformName": "深圳",
+      "parentCode": "6"
+    },
+    {
+      "name": "潮州",
+      "province": "广东",
+      "initial": "C",
+      "code": "78",
+      "platformName": "潮州",
+      "parentCode": "6"
+    },
+    {
+      "name": "东莞",
+      "province": "广东",
+      "initial": "D",
+      "code": "79",
+      "platformName": "东莞",
+      "parentCode": "6"
+    },
+    {
+      "name": "佛山",
+      "province": "广东",
+      "initial": "F",
+      "code": "80",
+      "platformName": "佛山",
+      "parentCode": "6"
+    },
+    {
+      "name": "河源",
+      "province": "广东",
+      "initial": "H",
+      "code": "81",
+      "platformName": "河源",
+      "parentCode": "6"
+    },
+    {
+      "name": "惠州",
+      "province": "广东",
+      "initial": "H",
+      "code": "82",
+      "platformName": "惠州",
+      "parentCode": "6"
+    },
+    {
+      "name": "江门",
+      "province": "广东",
+      "initial": "J",
+      "code": "83",
+      "platformName": "江门",
+      "parentCode": "6"
+    },
+    {
+      "name": "揭阳",
+      "province": "广东",
+      "initial": "J",
+      "code": "84",
+      "platformName": "揭阳",
+      "parentCode": "6"
+    },
+    {
+      "name": "茂名",
+      "province": "广东",
+      "initial": "M",
+      "code": "85",
+      "platformName": "茂名",
+      "parentCode": "6"
+    },
+    {
+      "name": "梅州",
+      "province": "广东",
+      "initial": "M",
+      "code": "86",
+      "platformName": "梅州",
+      "parentCode": "6"
+    },
+    {
+      "name": "清远",
+      "province": "广东",
+      "initial": "Q",
+      "code": "87",
+      "platformName": "清远",
+      "parentCode": "6"
+    },
+    {
+      "name": "汕头",
+      "province": "广东",
+      "initial": "S",
+      "code": "88",
+      "platformName": "汕头",
+      "parentCode": "6"
+    },
+    {
+      "name": "汕尾",
+      "province": "广东",
+      "initial": "S",
+      "code": "89",
+      "platformName": "汕尾",
+      "parentCode": "6"
+    },
+    {
+      "name": "韶关",
+      "province": "广东",
+      "initial": "S",
+      "code": "90",
+      "platformName": "韶关",
+      "parentCode": "6"
+    },
+    {
+      "name": "阳江",
+      "province": "广东",
+      "initial": "Y",
+      "code": "91",
+      "platformName": "阳江",
+      "parentCode": "6"
+    },
+    {
+      "name": "云浮",
+      "province": "广东",
+      "initial": "Y",
+      "code": "92",
+      "platformName": "云浮",
+      "parentCode": "6"
+    },
+    {
+      "name": "湛江",
+      "province": "广东",
+      "initial": "Z",
+      "code": "93",
+      "platformName": "湛江",
+      "parentCode": "6"
+    },
+    {
+      "name": "肇庆",
+      "province": "广东",
+      "initial": "Z",
+      "code": "94",
+      "platformName": "肇庆",
+      "parentCode": "6"
+    },
+    {
+      "name": "中山",
+      "province": "广东",
+      "initial": "Z",
+      "code": "95",
+      "platformName": "中山",
+      "parentCode": "6"
+    },
+    {
+      "name": "珠海",
+      "province": "广东",
+      "initial": "Z",
+      "code": "96",
+      "platformName": "珠海",
+      "parentCode": "6"
+    },
+    {
+      "name": "南宁",
+      "province": "广西",
+      "initial": "N",
+      "code": "97",
+      "platformName": "南宁",
+      "parentCode": "7"
+    },
+    {
+      "name": "桂林",
+      "province": "广西",
+      "initial": "G",
+      "code": "98",
+      "platformName": "桂林",
+      "parentCode": "7"
+    },
+    {
+      "name": "百色",
+      "province": "广西",
+      "initial": "B",
+      "code": "99",
+      "platformName": "百色",
+      "parentCode": "7"
+    },
+    {
+      "name": "北海",
+      "province": "广西",
+      "initial": "B",
+      "code": "100",
+      "platformName": "北海",
+      "parentCode": "7"
+    },
+    {
+      "name": "崇左",
+      "province": "广西",
+      "initial": "C",
+      "code": "101",
+      "platformName": "崇左",
+      "parentCode": "7"
+    },
+    {
+      "name": "防城港",
+      "province": "广西",
+      "initial": "F",
+      "code": "102",
+      "platformName": "防城港",
+      "parentCode": "7"
+    },
+    {
+      "name": "贵港",
+      "province": "广西",
+      "initial": "G",
+      "code": "103",
+      "platformName": "贵港",
+      "parentCode": "7"
+    },
+    {
+      "name": "河池",
+      "province": "广西",
+      "initial": "H",
+      "code": "104",
+      "platformName": "河池",
+      "parentCode": "7"
+    },
+    {
+      "name": "贺州",
+      "province": "广西",
+      "initial": "H",
+      "code": "105",
+      "platformName": "贺州",
+      "parentCode": "7"
+    },
+    {
+      "name": "来宾",
+      "province": "广西",
+      "initial": "L",
+      "code": "106",
+      "platformName": "来宾",
+      "parentCode": "7"
+    },
+    {
+      "name": "柳州",
+      "province": "广西",
+      "initial": "L",
+      "code": "107",
+      "platformName": "柳州",
+      "parentCode": "7"
+    },
+    {
+      "name": "钦州",
+      "province": "广西",
+      "initial": "Q",
+      "code": "108",
+      "platformName": "钦州",
+      "parentCode": "7"
+    },
+    {
+      "name": "梧州",
+      "province": "广西",
+      "initial": "W",
+      "code": "109",
+      "platformName": "梧州",
+      "parentCode": "7"
+    },
+    {
+      "name": "玉林",
+      "province": "广西",
+      "initial": "Y",
+      "code": "110",
+      "platformName": "玉林",
+      "parentCode": "7"
+    },
+    {
+      "name": "贵阳",
+      "province": "贵州",
+      "initial": "G",
+      "code": "111",
+      "platformName": "贵阳",
+      "parentCode": "8"
+    },
+    {
+      "name": "安顺",
+      "province": "贵州",
+      "initial": "A",
+      "code": "112",
+      "platformName": "安顺",
+      "parentCode": "8"
+    },
+    {
+      "name": "毕节",
+      "province": "贵州",
+      "initial": "B",
+      "code": "113",
+      "platformName": "毕节",
+      "parentCode": "8"
+    },
+    {
+      "name": "六盘水",
+      "province": "贵州",
+      "initial": "L",
+      "code": "114",
+      "platformName": "六盘水",
+      "parentCode": "8"
+    },
+    {
+      "name": "黔东南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "115",
+      "platformName": "黔东南",
+      "parentCode": "8"
+    },
+    {
+      "name": "黔南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "116",
+      "platformName": "黔南",
+      "parentCode": "8"
+    },
+    {
+      "name": "黔西南",
+      "province": "贵州",
+      "initial": "Q",
+      "code": "117",
+      "platformName": "黔西南",
+      "parentCode": "8"
+    },
+    {
+      "name": "铜仁",
+      "province": "贵州",
+      "initial": "T",
+      "code": "118",
+      "platformName": "铜仁",
+      "parentCode": "8"
+    },
+    {
+      "name": "遵义",
+      "province": "贵州",
+      "initial": "Z",
+      "code": "119",
+      "platformName": "遵义",
+      "parentCode": "8"
+    },
+    {
+      "name": "海口",
+      "province": "海南",
+      "initial": "H",
+      "code": "120",
+      "platformName": "海口",
+      "parentCode": "9"
+    },
+    {
+      "name": "三亚",
+      "province": "海南",
+      "initial": "S",
+      "code": "121",
+      "platformName": "三亚",
+      "parentCode": "9"
+    },
+    {
+      "name": "白沙",
+      "province": "海南",
+      "initial": "B",
+      "code": "122",
+      "platformName": "白沙",
+      "parentCode": "9"
+    },
+    {
+      "name": "保亭",
+      "province": "海南",
+      "initial": "B",
+      "code": "123",
+      "platformName": "保亭",
+      "parentCode": "9"
+    },
+    {
+      "name": "昌江",
+      "province": "海南",
+      "initial": "C",
+      "code": "124",
+      "platformName": "昌江",
+      "parentCode": "9"
+    },
+    {
+      "name": "澄迈",
+      "province": "海南",
+      "initial": "C",
+      "code": "125",
+      "platformName": "澄迈",
+      "parentCode": "9"
+    },
+    {
+      "name": "定安",
+      "province": "海南",
+      "initial": "D",
+      "code": "126",
+      "platformName": "定安",
+      "parentCode": "9"
+    },
+    {
+      "name": "东方",
+      "province": "海南",
+      "initial": "D",
+      "code": "127",
+      "platformName": "东方",
+      "parentCode": "9"
+    },
+    {
+      "name": "乐东",
+      "province": "海南",
+      "initial": "L",
+      "code": "128",
+      "platformName": "乐东",
+      "parentCode": "9"
+    },
+    {
+      "name": "临高",
+      "province": "海南",
+      "initial": "L",
+      "code": "129",
+      "platformName": "临高",
+      "parentCode": "9"
+    },
+    {
+      "name": "陵水",
+      "province": "海南",
+      "initial": "L",
+      "code": "130",
+      "platformName": "陵水",
+      "parentCode": "9"
+    },
+    {
+      "name": "琼海",
+      "province": "海南",
+      "initial": "Q",
+      "code": "131",
+      "platformName": "琼海",
+      "parentCode": "9"
+    },
+    {
+      "name": "琼中",
+      "province": "海南",
+      "initial": "Q",
+      "code": "132",
+      "platformName": "琼中",
+      "parentCode": "9"
+    },
+    {
+      "name": "屯昌",
+      "province": "海南",
+      "initial": "T",
+      "code": "133",
+      "platformName": "屯昌",
+      "parentCode": "9"
+    },
+    {
+      "name": "万宁",
+      "province": "海南",
+      "initial": "W",
+      "code": "134",
+      "platformName": "万宁",
+      "parentCode": "9"
+    },
+    {
+      "name": "文昌",
+      "province": "海南",
+      "initial": "W",
+      "code": "135",
+      "platformName": "文昌",
+      "parentCode": "9"
+    },
+    {
+      "name": "五指山",
+      "province": "海南",
+      "initial": "W",
+      "code": "136",
+      "platformName": "五指山",
+      "parentCode": "9"
+    },
+    {
+      "name": "儋州",
+      "province": "海南",
+      "initial": "D",
+      "code": "137",
+      "platformName": "儋州",
+      "parentCode": "9"
+    },
+    {
+      "name": "三沙",
+      "province": "海南",
+      "initial": "S",
+      "code": "6198",
+      "platformName": "三沙",
+      "parentCode": "9"
+    },
+    {
+      "name": "石家庄",
+      "province": "河北",
+      "initial": "S",
+      "code": "138",
+      "platformName": "石家庄",
+      "parentCode": "10"
+    },
+    {
+      "name": "保定",
+      "province": "河北",
+      "initial": "B",
+      "code": "139",
+      "platformName": "保定",
+      "parentCode": "10"
+    },
+    {
+      "name": "沧州",
+      "province": "河北",
+      "initial": "C",
+      "code": "140",
+      "platformName": "沧州",
+      "parentCode": "10"
+    },
+    {
+      "name": "承德",
+      "province": "河北",
+      "initial": "C",
+      "code": "141",
+      "platformName": "承德",
+      "parentCode": "10"
+    },
+    {
+      "name": "邯郸",
+      "province": "河北",
+      "initial": "H",
+      "code": "142",
+      "platformName": "邯郸",
+      "parentCode": "10"
+    },
+    {
+      "name": "衡水",
+      "province": "河北",
+      "initial": "H",
+      "code": "143",
+      "platformName": "衡水",
+      "parentCode": "10"
+    },
+    {
+      "name": "廊坊",
+      "province": "河北",
+      "initial": "L",
+      "code": "144",
+      "platformName": "廊坊",
+      "parentCode": "10"
+    },
+    {
+      "name": "秦皇岛",
+      "province": "河北",
+      "initial": "Q",
+      "code": "145",
+      "platformName": "秦皇岛",
+      "parentCode": "10"
+    },
+    {
+      "name": "唐山",
+      "province": "河北",
+      "initial": "T",
+      "code": "146",
+      "platformName": "唐山",
+      "parentCode": "10"
+    },
+    {
+      "name": "邢台",
+      "province": "河北",
+      "initial": "X",
+      "code": "147",
+      "platformName": "邢台",
+      "parentCode": "10"
+    },
+    {
+      "name": "张家口",
+      "province": "河北",
+      "initial": "Z",
+      "code": "148",
+      "platformName": "张家口",
+      "parentCode": "10"
+    },
+    {
+      "name": "郑州",
+      "province": "河南",
+      "initial": "Z",
+      "code": "149",
+      "platformName": "郑州",
+      "parentCode": "11"
+    },
+    {
+      "name": "洛阳",
+      "province": "河南",
+      "initial": "L",
+      "code": "150",
+      "platformName": "洛阳",
+      "parentCode": "11"
+    },
+    {
+      "name": "开封",
+      "province": "河南",
+      "initial": "K",
+      "code": "151",
+      "platformName": "开封",
+      "parentCode": "11"
+    },
+    {
+      "name": "安阳",
+      "province": "河南",
+      "initial": "A",
+      "code": "152",
+      "platformName": "安阳",
+      "parentCode": "11"
+    },
+    {
+      "name": "鹤壁",
+      "province": "河南",
+      "initial": "H",
+      "code": "153",
+      "platformName": "鹤壁",
+      "parentCode": "11"
+    },
+    {
+      "name": "济源",
+      "province": "河南",
+      "initial": "J",
+      "code": "154",
+      "platformName": "济源",
+      "parentCode": "11"
+    },
+    {
+      "name": "焦作",
+      "province": "河南",
+      "initial": "J",
+      "code": "155",
+      "platformName": "焦作",
+      "parentCode": "11"
+    },
+    {
+      "name": "南阳",
+      "province": "河南",
+      "initial": "N",
+      "code": "156",
+      "platformName": "南阳",
+      "parentCode": "11"
+    },
+    {
+      "name": "平顶山",
+      "province": "河南",
+      "initial": "P",
+      "code": "157",
+      "platformName": "平顶山",
+      "parentCode": "11"
+    },
+    {
+      "name": "三门峡",
+      "province": "河南",
+      "initial": "S",
+      "code": "158",
+      "platformName": "三门峡",
+      "parentCode": "11"
+    },
+    {
+      "name": "商丘",
+      "province": "河南",
+      "initial": "S",
+      "code": "159",
+      "platformName": "商丘",
+      "parentCode": "11"
+    },
+    {
+      "name": "新乡",
+      "province": "河南",
+      "initial": "X",
+      "code": "160",
+      "platformName": "新乡",
+      "parentCode": "11"
+    },
+    {
+      "name": "信阳",
+      "province": "河南",
+      "initial": "X",
+      "code": "161",
+      "platformName": "信阳",
+      "parentCode": "11"
+    },
+    {
+      "name": "许昌",
+      "province": "河南",
+      "initial": "X",
+      "code": "162",
+      "platformName": "许昌",
+      "parentCode": "11"
+    },
+    {
+      "name": "周口",
+      "province": "河南",
+      "initial": "Z",
+      "code": "163",
+      "platformName": "周口",
+      "parentCode": "11"
+    },
+    {
+      "name": "驻马店",
+      "province": "河南",
+      "initial": "Z",
+      "code": "164",
+      "platformName": "驻马店",
+      "parentCode": "11"
+    },
+    {
+      "name": "漯河",
+      "province": "河南",
+      "initial": "L",
+      "code": "165",
+      "platformName": "漯河",
+      "parentCode": "11"
+    },
+    {
+      "name": "濮阳",
+      "province": "河南",
+      "initial": "P",
+      "code": "166",
+      "platformName": "濮阳",
+      "parentCode": "11"
+    },
+    {
+      "name": "哈尔滨",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "167",
+      "platformName": "哈尔滨",
+      "parentCode": "12"
+    },
+    {
+      "name": "大庆",
+      "province": "黑龙江",
+      "initial": "D",
+      "code": "168",
+      "platformName": "大庆",
+      "parentCode": "12"
+    },
+    {
+      "name": "大兴安岭",
+      "province": "黑龙江",
+      "initial": "D",
+      "code": "169",
+      "platformName": "大兴安岭",
+      "parentCode": "12"
+    },
+    {
+      "name": "鹤岗",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "170",
+      "platformName": "鹤岗",
+      "parentCode": "12"
+    },
+    {
+      "name": "黑河",
+      "province": "黑龙江",
+      "initial": "H",
+      "code": "171",
+      "platformName": "黑河",
+      "parentCode": "12"
+    },
+    {
+      "name": "鸡西",
+      "province": "黑龙江",
+      "initial": "J",
+      "code": "172",
+      "platformName": "鸡西",
+      "parentCode": "12"
+    },
+    {
+      "name": "佳木斯",
+      "province": "黑龙江",
+      "initial": "J",
+      "code": "173",
+      "platformName": "佳木斯",
+      "parentCode": "12"
+    },
+    {
+      "name": "牡丹江",
+      "province": "黑龙江",
+      "initial": "M",
+      "code": "174",
+      "platformName": "牡丹江",
+      "parentCode": "12"
+    },
+    {
+      "name": "七台河",
+      "province": "黑龙江",
+      "initial": "Q",
+      "code": "175",
+      "platformName": "七台河",
+      "parentCode": "12"
+    },
+    {
+      "name": "齐齐哈尔",
+      "province": "黑龙江",
+      "initial": "Q",
+      "code": "176",
+      "platformName": "齐齐哈尔",
+      "parentCode": "12"
+    },
+    {
+      "name": "双鸭山",
+      "province": "黑龙江",
+      "initial": "S",
+      "code": "177",
+      "platformName": "双鸭山",
+      "parentCode": "12"
+    },
+    {
+      "name": "绥化",
+      "province": "黑龙江",
+      "initial": "S",
+      "code": "178",
+      "platformName": "绥化",
+      "parentCode": "12"
+    },
+    {
+      "name": "伊春",
+      "province": "黑龙江",
+      "initial": "Y",
+      "code": "179",
+      "platformName": "伊春",
+      "parentCode": "12"
+    },
+    {
+      "name": "武汉",
+      "province": "湖北",
+      "initial": "W",
+      "code": "180",
+      "platformName": "武汉",
+      "parentCode": "13"
+    },
+    {
+      "name": "仙桃",
+      "province": "湖北",
+      "initial": "X",
+      "code": "181",
+      "platformName": "仙桃",
+      "parentCode": "13"
+    },
+    {
+      "name": "鄂州",
+      "province": "湖北",
+      "initial": "E",
+      "code": "182",
+      "platformName": "鄂州",
+      "parentCode": "13"
+    },
+    {
+      "name": "黄冈",
+      "province": "湖北",
+      "initial": "H",
+      "code": "183",
+      "platformName": "黄冈",
+      "parentCode": "13"
+    },
+    {
+      "name": "黄石",
+      "province": "湖北",
+      "initial": "H",
+      "code": "184",
+      "platformName": "黄石",
+      "parentCode": "13"
+    },
+    {
+      "name": "荆门",
+      "province": "湖北",
+      "initial": "J",
+      "code": "185",
+      "platformName": "荆门",
+      "parentCode": "13"
+    },
+    {
+      "name": "荆州",
+      "province": "湖北",
+      "initial": "J",
+      "code": "186",
+      "platformName": "荆州",
+      "parentCode": "13"
+    },
+    {
+      "name": "潜江",
+      "province": "湖北",
+      "initial": "Q",
+      "code": "187",
+      "platformName": "潜江",
+      "parentCode": "13"
+    },
+    {
+      "name": "神农架",
+      "province": "湖北",
+      "initial": "S",
+      "code": "188",
+      "platformName": "神农架",
+      "parentCode": "13"
+    },
+    {
+      "name": "十堰",
+      "province": "湖北",
+      "initial": "S",
+      "code": "189",
+      "platformName": "十堰",
+      "parentCode": "13"
+    },
+    {
+      "name": "随州",
+      "province": "湖北",
+      "initial": "S",
+      "code": "190",
+      "platformName": "随州",
+      "parentCode": "13"
+    },
+    {
+      "name": "天门",
+      "province": "湖北",
+      "initial": "T",
+      "code": "191",
+      "platformName": "天门",
+      "parentCode": "13"
+    },
+    {
+      "name": "咸宁",
+      "province": "湖北",
+      "initial": "X",
+      "code": "192",
+      "platformName": "咸宁",
+      "parentCode": "13"
+    },
+    {
+      "name": "襄阳",
+      "province": "湖北",
+      "initial": "X",
+      "code": "193",
+      "platformName": "襄阳",
+      "parentCode": "13"
+    },
+    {
+      "name": "孝感",
+      "province": "湖北",
+      "initial": "X",
+      "code": "194",
+      "platformName": "孝感",
+      "parentCode": "13"
+    },
+    {
+      "name": "宜昌",
+      "province": "湖北",
+      "initial": "Y",
+      "code": "195",
+      "platformName": "宜昌",
+      "parentCode": "13"
+    },
+    {
+      "name": "恩施",
+      "province": "湖北",
+      "initial": "E",
+      "code": "196",
+      "platformName": "恩施",
+      "parentCode": "13"
+    },
+    {
+      "name": "长沙",
+      "province": "湖南",
+      "initial": "C",
+      "code": "197",
+      "platformName": "长沙",
+      "parentCode": "14"
+    },
+    {
+      "name": "张家界",
+      "province": "湖南",
+      "initial": "Z",
+      "code": "198",
+      "platformName": "张家界",
+      "parentCode": "14"
+    },
+    {
+      "name": "常德",
+      "province": "湖南",
+      "initial": "C",
+      "code": "199",
+      "platformName": "常德",
+      "parentCode": "14"
+    },
+    {
+      "name": "郴州",
+      "province": "湖南",
+      "initial": "C",
+      "code": "200",
+      "platformName": "郴州",
+      "parentCode": "14"
+    },
+    {
+      "name": "衡阳",
+      "province": "湖南",
+      "initial": "H",
+      "code": "201",
+      "platformName": "衡阳",
+      "parentCode": "14"
+    },
+    {
+      "name": "怀化",
+      "province": "湖南",
+      "initial": "H",
+      "code": "202",
+      "platformName": "怀化",
+      "parentCode": "14"
+    },
+    {
+      "name": "娄底",
+      "province": "湖南",
+      "initial": "L",
+      "code": "203",
+      "platformName": "娄底",
+      "parentCode": "14"
+    },
+    {
+      "name": "邵阳",
+      "province": "湖南",
+      "initial": "S",
+      "code": "204",
+      "platformName": "邵阳",
+      "parentCode": "14"
+    },
+    {
+      "name": "湘潭",
+      "province": "湖南",
+      "initial": "X",
+      "code": "205",
+      "platformName": "湘潭",
+      "parentCode": "14"
+    },
+    {
+      "name": "湘西",
+      "province": "湖南",
+      "initial": "X",
+      "code": "206",
+      "platformName": "湘西",
+      "parentCode": "14"
+    },
+    {
+      "name": "益阳",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "207",
+      "platformName": "益阳",
+      "parentCode": "14"
+    },
+    {
+      "name": "永州",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "208",
+      "platformName": "永州",
+      "parentCode": "14"
+    },
+    {
+      "name": "岳阳",
+      "province": "湖南",
+      "initial": "Y",
+      "code": "209",
+      "platformName": "岳阳",
+      "parentCode": "14"
+    },
+    {
+      "name": "株洲",
+      "province": "湖南",
+      "initial": "Z",
+      "code": "210",
+      "platformName": "株洲",
+      "parentCode": "14"
+    },
+    {
+      "name": "长春",
+      "province": "吉林",
+      "initial": "C",
+      "code": "211",
+      "platformName": "长春",
+      "parentCode": "15"
+    },
+    {
+      "name": "吉林",
+      "province": "吉林",
+      "initial": "J",
+      "code": "212",
+      "platformName": "吉林",
+      "parentCode": "15"
+    },
+    {
+      "name": "白城",
+      "province": "吉林",
+      "initial": "B",
+      "code": "213",
+      "platformName": "白城",
+      "parentCode": "15"
+    },
+    {
+      "name": "白山",
+      "province": "吉林",
+      "initial": "B",
+      "code": "214",
+      "platformName": "白山",
+      "parentCode": "15"
+    },
+    {
+      "name": "辽源",
+      "province": "吉林",
+      "initial": "L",
+      "code": "215",
+      "platformName": "辽源",
+      "parentCode": "15"
+    },
+    {
+      "name": "四平",
+      "province": "吉林",
+      "initial": "S",
+      "code": "216",
+      "platformName": "四平",
+      "parentCode": "15"
+    },
+    {
+      "name": "松原",
+      "province": "吉林",
+      "initial": "S",
+      "code": "217",
+      "platformName": "松原",
+      "parentCode": "15"
+    },
+    {
+      "name": "通化",
+      "province": "吉林",
+      "initial": "T",
+      "code": "218",
+      "platformName": "通化",
+      "parentCode": "15"
+    },
+    {
+      "name": "延边",
+      "province": "吉林",
+      "initial": "Y",
+      "code": "219",
+      "platformName": "延边",
+      "parentCode": "15"
+    },
+    {
+      "name": "南京",
+      "province": "江苏",
+      "initial": "N",
+      "code": "220",
+      "platformName": "南京",
+      "parentCode": "16"
+    },
+    {
+      "name": "苏州",
+      "province": "江苏",
+      "initial": "S",
+      "code": "221",
+      "platformName": "苏州",
+      "parentCode": "16"
+    },
+    {
+      "name": "无锡",
+      "province": "江苏",
+      "initial": "W",
+      "code": "222",
+      "platformName": "无锡",
+      "parentCode": "16"
+    },
+    {
+      "name": "常州",
+      "province": "江苏",
+      "initial": "C",
+      "code": "223",
+      "platformName": "常州",
+      "parentCode": "16"
+    },
+    {
+      "name": "淮安",
+      "province": "江苏",
+      "initial": "H",
+      "code": "224",
+      "platformName": "淮安",
+      "parentCode": "16"
+    },
+    {
+      "name": "连云港",
+      "province": "江苏",
+      "initial": "L",
+      "code": "225",
+      "platformName": "连云港",
+      "parentCode": "16"
+    },
+    {
+      "name": "南通",
+      "province": "江苏",
+      "initial": "N",
+      "code": "226",
+      "platformName": "南通",
+      "parentCode": "16"
+    },
+    {
+      "name": "宿迁",
+      "province": "江苏",
+      "initial": "S",
+      "code": "227",
+      "platformName": "宿迁",
+      "parentCode": "16"
+    },
+    {
+      "name": "泰州",
+      "province": "江苏",
+      "initial": "T",
+      "code": "228",
+      "platformName": "泰州",
+      "parentCode": "16"
+    },
+    {
+      "name": "徐州",
+      "province": "江苏",
+      "initial": "X",
+      "code": "229",
+      "platformName": "徐州",
+      "parentCode": "16"
+    },
+    {
+      "name": "盐城",
+      "province": "江苏",
+      "initial": "Y",
+      "code": "230",
+      "platformName": "盐城",
+      "parentCode": "16"
+    },
+    {
+      "name": "扬州",
+      "province": "江苏",
+      "initial": "Y",
+      "code": "231",
+      "platformName": "扬州",
+      "parentCode": "16"
+    },
+    {
+      "name": "镇江",
+      "province": "江苏",
+      "initial": "Z",
+      "code": "232",
+      "platformName": "镇江",
+      "parentCode": "16"
+    },
+    {
+      "name": "南昌",
+      "province": "江西",
+      "initial": "N",
+      "code": "233",
+      "platformName": "南昌",
+      "parentCode": "17"
+    },
+    {
+      "name": "抚州",
+      "province": "江西",
+      "initial": "F",
+      "code": "234",
+      "platformName": "抚州",
+      "parentCode": "17"
+    },
+    {
+      "name": "赣州",
+      "province": "江西",
+      "initial": "G",
+      "code": "235",
+      "platformName": "赣州",
+      "parentCode": "17"
+    },
+    {
+      "name": "吉安",
+      "province": "江西",
+      "initial": "J",
+      "code": "236",
+      "platformName": "吉安",
+      "parentCode": "17"
+    },
+    {
+      "name": "景德镇",
+      "province": "江西",
+      "initial": "J",
+      "code": "237",
+      "platformName": "景德镇",
+      "parentCode": "17"
+    },
+    {
+      "name": "九江",
+      "province": "江西",
+      "initial": "J",
+      "code": "238",
+      "platformName": "九江",
+      "parentCode": "17"
+    },
+    {
+      "name": "萍乡",
+      "province": "江西",
+      "initial": "P",
+      "code": "239",
+      "platformName": "萍乡",
+      "parentCode": "17"
+    },
+    {
+      "name": "上饶",
+      "province": "江西",
+      "initial": "S",
+      "code": "240",
+      "platformName": "上饶",
+      "parentCode": "17"
+    },
+    {
+      "name": "新余",
+      "province": "江西",
+      "initial": "X",
+      "code": "241",
+      "platformName": "新余",
+      "parentCode": "17"
+    },
+    {
+      "name": "宜春",
+      "province": "江西",
+      "initial": "Y",
+      "code": "242",
+      "platformName": "宜春",
+      "parentCode": "17"
+    },
+    {
+      "name": "鹰潭",
+      "province": "江西",
+      "initial": "Y",
+      "code": "243",
+      "platformName": "鹰潭",
+      "parentCode": "17"
+    },
+    {
+      "name": "沈阳",
+      "province": "辽宁",
+      "initial": "S",
+      "code": "244",
+      "platformName": "沈阳",
+      "parentCode": "18"
+    },
+    {
+      "name": "大连",
+      "province": "辽宁",
+      "initial": "D",
+      "code": "245",
+      "platformName": "大连",
+      "parentCode": "18"
+    },
+    {
+      "name": "鞍山",
+      "province": "辽宁",
+      "initial": "A",
+      "code": "246",
+      "platformName": "鞍山",
+      "parentCode": "18"
+    },
+    {
+      "name": "本溪",
+      "province": "辽宁",
+      "initial": "B",
+      "code": "247",
+      "platformName": "本溪",
+      "parentCode": "18"
+    },
+    {
+      "name": "朝阳",
+      "province": "辽宁",
+      "initial": "C",
+      "code": "248",
+      "platformName": "朝阳",
+      "parentCode": "18"
+    },
+    {
+      "name": "丹东",
+      "province": "辽宁",
+      "initial": "D",
+      "code": "249",
+      "platformName": "丹东",
+      "parentCode": "18"
+    },
+    {
+      "name": "抚顺",
+      "province": "辽宁",
+      "initial": "F",
+      "code": "250",
+      "platformName": "抚顺",
+      "parentCode": "18"
+    },
+    {
+      "name": "阜新",
+      "province": "辽宁",
+      "initial": "F",
+      "code": "251",
+      "platformName": "阜新",
+      "parentCode": "18"
+    },
+    {
+      "name": "葫芦岛",
+      "province": "辽宁",
+      "initial": "H",
+      "code": "252",
+      "platformName": "葫芦岛",
+      "parentCode": "18"
+    },
+    {
+      "name": "锦州",
+      "province": "辽宁",
+      "initial": "J",
+      "code": "253",
+      "platformName": "锦州",
+      "parentCode": "18"
+    },
+    {
+      "name": "辽阳",
+      "province": "辽宁",
+      "initial": "L",
+      "code": "254",
+      "platformName": "辽阳",
+      "parentCode": "18"
+    },
+    {
+      "name": "盘锦",
+      "province": "辽宁",
+      "initial": "P",
+      "code": "255",
+      "platformName": "盘锦",
+      "parentCode": "18"
+    },
+    {
+      "name": "铁岭",
+      "province": "辽宁",
+      "initial": "T",
+      "code": "256",
+      "platformName": "铁岭",
+      "parentCode": "18"
+    },
+    {
+      "name": "营口",
+      "province": "辽宁",
+      "initial": "Y",
+      "code": "257",
+      "platformName": "营口",
+      "parentCode": "18"
+    },
+    {
+      "name": "呼和浩特",
+      "province": "内蒙古",
+      "initial": "H",
+      "code": "258",
+      "platformName": "呼和浩特",
+      "parentCode": "19"
+    },
+    {
+      "name": "阿拉善",
+      "province": "内蒙古",
+      "initial": "A",
+      "code": "259",
+      "platformName": "阿拉善",
+      "parentCode": "19"
+    },
+    {
+      "name": "巴彦淖尔",
+      "province": "内蒙古",
+      "initial": "B",
+      "code": "260",
+      "platformName": "巴彦淖尔",
+      "parentCode": "19"
+    },
+    {
+      "name": "包头",
+      "province": "内蒙古",
+      "initial": "B",
+      "code": "261",
+      "platformName": "包头",
+      "parentCode": "19"
+    },
+    {
+      "name": "赤峰",
+      "province": "内蒙古",
+      "initial": "C",
+      "code": "262",
+      "platformName": "赤峰",
+      "parentCode": "19"
+    },
+    {
+      "name": "鄂尔多斯",
+      "province": "内蒙古",
+      "initial": "E",
+      "code": "263",
+      "platformName": "鄂尔多斯",
+      "parentCode": "19"
+    },
+    {
+      "name": "呼伦贝尔",
+      "province": "内蒙古",
+      "initial": "H",
+      "code": "264",
+      "platformName": "呼伦贝尔",
+      "parentCode": "19"
+    },
+    {
+      "name": "通辽",
+      "province": "内蒙古",
+      "initial": "T",
+      "code": "265",
+      "platformName": "通辽",
+      "parentCode": "19"
+    },
+    {
+      "name": "乌海",
+      "province": "内蒙古",
+      "initial": "W",
+      "code": "266",
+      "platformName": "乌海",
+      "parentCode": "19"
+    },
+    {
+      "name": "乌兰察布",
+      "province": "内蒙古",
+      "initial": "W",
+      "code": "267",
+      "platformName": "乌兰察布",
+      "parentCode": "19"
+    },
+    {
+      "name": "锡林郭勒",
+      "province": "内蒙古",
+      "initial": "X",
+      "code": "268",
+      "platformName": "锡林郭勒",
+      "parentCode": "19"
+    },
+    {
+      "name": "兴安",
+      "province": "内蒙古",
+      "initial": "X",
+      "code": "269",
+      "platformName": "兴安",
+      "parentCode": "19"
+    },
+    {
+      "name": "银川",
+      "province": "宁夏",
+      "initial": "Y",
+      "code": "270",
+      "platformName": "银川",
+      "parentCode": "20"
+    },
+    {
+      "name": "固原",
+      "province": "宁夏",
+      "initial": "G",
+      "code": "271",
+      "platformName": "固原",
+      "parentCode": "20"
+    },
+    {
+      "name": "石嘴山",
+      "province": "宁夏",
+      "initial": "S",
+      "code": "272",
+      "platformName": "石嘴山",
+      "parentCode": "20"
+    },
+    {
+      "name": "吴忠",
+      "province": "宁夏",
+      "initial": "W",
+      "code": "273",
+      "platformName": "吴忠",
+      "parentCode": "20"
+    },
+    {
+      "name": "中卫",
+      "province": "宁夏",
+      "initial": "Z",
+      "code": "274",
+      "platformName": "中卫",
+      "parentCode": "20"
+    },
+    {
+      "name": "西宁",
+      "province": "青海",
+      "initial": "X",
+      "code": "275",
+      "platformName": "西宁",
+      "parentCode": "21"
+    },
+    {
+      "name": "果洛",
+      "province": "青海",
+      "initial": "G",
+      "code": "276",
+      "platformName": "果洛",
+      "parentCode": "21"
+    },
+    {
+      "name": "海北",
+      "province": "青海",
+      "initial": "H",
+      "code": "277",
+      "platformName": "海北",
+      "parentCode": "21"
+    },
+    {
+      "name": "海东",
+      "province": "青海",
+      "initial": "H",
+      "code": "278",
+      "platformName": "海东",
+      "parentCode": "21"
+    },
+    {
+      "name": "海南",
+      "province": "青海",
+      "initial": "H",
+      "code": "279",
+      "platformName": "海南州",
+      "parentCode": "21"
+    },
+    {
+      "name": "海西",
+      "province": "青海",
+      "initial": "H",
+      "code": "280",
+      "platformName": "海西",
+      "parentCode": "21"
+    },
+    {
+      "name": "黄南",
+      "province": "青海",
+      "initial": "H",
+      "code": "281",
+      "platformName": "黄南",
+      "parentCode": "21"
+    },
+    {
+      "name": "玉树",
+      "province": "青海",
+      "initial": "Y",
+      "code": "282",
+      "platformName": "玉树",
+      "parentCode": "21"
+    },
+    {
+      "name": "济南",
+      "province": "山东",
+      "initial": "J",
+      "code": "283",
+      "platformName": "济南",
+      "parentCode": "22"
+    },
+    {
+      "name": "青岛",
+      "province": "山东",
+      "initial": "Q",
+      "code": "284",
+      "platformName": "青岛",
+      "parentCode": "22"
+    },
+    {
+      "name": "滨州",
+      "province": "山东",
+      "initial": "B",
+      "code": "285",
+      "platformName": "滨州",
+      "parentCode": "22"
+    },
+    {
+      "name": "德州",
+      "province": "山东",
+      "initial": "D",
+      "code": "286",
+      "platformName": "德州",
+      "parentCode": "22"
+    },
+    {
+      "name": "东营",
+      "province": "山东",
+      "initial": "D",
+      "code": "287",
+      "platformName": "东营",
+      "parentCode": "22"
+    },
+    {
+      "name": "菏泽",
+      "province": "山东",
+      "initial": "H",
+      "code": "288",
+      "platformName": "菏泽",
+      "parentCode": "22"
+    },
+    {
+      "name": "济宁",
+      "province": "山东",
+      "initial": "J",
+      "code": "289",
+      "platformName": "济宁",
+      "parentCode": "22"
+    },
+    {
+      "name": "聊城",
+      "province": "山东",
+      "initial": "L",
+      "code": "291",
+      "platformName": "聊城",
+      "parentCode": "22"
+    },
+    {
+      "name": "临沂",
+      "province": "山东",
+      "initial": "L",
+      "code": "292",
+      "platformName": "临沂",
+      "parentCode": "22"
+    },
+    {
+      "name": "日照",
+      "province": "山东",
+      "initial": "R",
+      "code": "293",
+      "platformName": "日照",
+      "parentCode": "22"
+    },
+    {
+      "name": "泰安",
+      "province": "山东",
+      "initial": "T",
+      "code": "294",
+      "platformName": "泰安",
+      "parentCode": "22"
+    },
+    {
+      "name": "威海",
+      "province": "山东",
+      "initial": "W",
+      "code": "295",
+      "platformName": "威海",
+      "parentCode": "22"
+    },
+    {
+      "name": "潍坊",
+      "province": "山东",
+      "initial": "W",
+      "code": "296",
+      "platformName": "潍坊",
+      "parentCode": "22"
+    },
+    {
+      "name": "烟台",
+      "province": "山东",
+      "initial": "Y",
+      "code": "297",
+      "platformName": "烟台",
+      "parentCode": "22"
+    },
+    {
+      "name": "枣庄",
+      "province": "山东",
+      "initial": "Z",
+      "code": "298",
+      "platformName": "枣庄",
+      "parentCode": "22"
+    },
+    {
+      "name": "淄博",
+      "province": "山东",
+      "initial": "Z",
+      "code": "299",
+      "platformName": "淄博",
+      "parentCode": "22"
+    },
+    {
+      "name": "太原",
+      "province": "山西",
+      "initial": "T",
+      "code": "300",
+      "platformName": "太原",
+      "parentCode": "23"
+    },
+    {
+      "name": "长治",
+      "province": "山西",
+      "initial": "C",
+      "code": "301",
+      "platformName": "长治",
+      "parentCode": "23"
+    },
+    {
+      "name": "大同",
+      "province": "山西",
+      "initial": "D",
+      "code": "302",
+      "platformName": "大同",
+      "parentCode": "23"
+    },
+    {
+      "name": "晋城",
+      "province": "山西",
+      "initial": "J",
+      "code": "303",
+      "platformName": "晋城",
+      "parentCode": "23"
+    },
+    {
+      "name": "晋中",
+      "province": "山西",
+      "initial": "J",
+      "code": "304",
+      "platformName": "晋中",
+      "parentCode": "23"
+    },
+    {
+      "name": "临汾",
+      "province": "山西",
+      "initial": "L",
+      "code": "305",
+      "platformName": "临汾",
+      "parentCode": "23"
+    },
+    {
+      "name": "吕梁",
+      "province": "山西",
+      "initial": "L",
+      "code": "306",
+      "platformName": "吕梁",
+      "parentCode": "23"
+    },
+    {
+      "name": "朔州",
+      "province": "山西",
+      "initial": "S",
+      "code": "307",
+      "platformName": "朔州",
+      "parentCode": "23"
+    },
+    {
+      "name": "忻州",
+      "province": "山西",
+      "initial": "X",
+      "code": "308",
+      "platformName": "忻州",
+      "parentCode": "23"
+    },
+    {
+      "name": "阳泉",
+      "province": "山西",
+      "initial": "Y",
+      "code": "309",
+      "platformName": "阳泉",
+      "parentCode": "23"
+    },
+    {
+      "name": "运城",
+      "province": "山西",
+      "initial": "Y",
+      "code": "310",
+      "platformName": "运城",
+      "parentCode": "23"
+    },
+    {
+      "name": "西安",
+      "province": "陕西",
+      "initial": "X",
+      "code": "311",
+      "platformName": "西安",
+      "parentCode": "24"
+    },
+    {
+      "name": "安康",
+      "province": "陕西",
+      "initial": "A",
+      "code": "312",
+      "platformName": "安康",
+      "parentCode": "24"
+    },
+    {
+      "name": "宝鸡",
+      "province": "陕西",
+      "initial": "B",
+      "code": "313",
+      "platformName": "宝鸡",
+      "parentCode": "24"
+    },
+    {
+      "name": "汉中",
+      "province": "陕西",
+      "initial": "H",
+      "code": "314",
+      "platformName": "汉中",
+      "parentCode": "24"
+    },
+    {
+      "name": "商洛",
+      "province": "陕西",
+      "initial": "S",
+      "code": "315",
+      "platformName": "商洛",
+      "parentCode": "24"
+    },
+    {
+      "name": "铜川",
+      "province": "陕西",
+      "initial": "T",
+      "code": "316",
+      "platformName": "铜川",
+      "parentCode": "24"
+    },
+    {
+      "name": "渭南",
+      "province": "陕西",
+      "initial": "W",
+      "code": "317",
+      "platformName": "渭南",
+      "parentCode": "24"
+    },
+    {
+      "name": "咸阳",
+      "province": "陕西",
+      "initial": "X",
+      "code": "318",
+      "platformName": "咸阳",
+      "parentCode": "24"
+    },
+    {
+      "name": "延安",
+      "province": "陕西",
+      "initial": "Y",
+      "code": "319",
+      "platformName": "延安",
+      "parentCode": "24"
+    },
+    {
+      "name": "榆林",
+      "province": "陕西",
+      "initial": "Y",
+      "code": "320",
+      "platformName": "榆林",
+      "parentCode": "24"
+    },
+    {
+      "name": "上海",
+      "province": "上海",
+      "initial": "S",
+      "code": "25",
+      "platformName": "上海",
+      "parentCode": "25"
+    },
+    {
+      "name": "成都",
+      "province": "四川",
+      "initial": "C",
+      "code": "322",
+      "platformName": "成都",
+      "parentCode": "26"
+    },
+    {
+      "name": "绵阳",
+      "province": "四川",
+      "initial": "M",
+      "code": "323",
+      "platformName": "绵阳",
+      "parentCode": "26"
+    },
+    {
+      "name": "阿坝",
+      "province": "四川",
+      "initial": "A",
+      "code": "324",
+      "platformName": "阿坝",
+      "parentCode": "26"
+    },
+    {
+      "name": "巴中",
+      "province": "四川",
+      "initial": "B",
+      "code": "325",
+      "platformName": "巴中",
+      "parentCode": "26"
+    },
+    {
+      "name": "达州",
+      "province": "四川",
+      "initial": "D",
+      "code": "326",
+      "platformName": "达州",
+      "parentCode": "26"
+    },
+    {
+      "name": "德阳",
+      "province": "四川",
+      "initial": "D",
+      "code": "327",
+      "platformName": "德阳",
+      "parentCode": "26"
+    },
+    {
+      "name": "甘孜",
+      "province": "四川",
+      "initial": "G",
+      "code": "328",
+      "platformName": "甘孜",
+      "parentCode": "26"
+    },
+    {
+      "name": "广安",
+      "province": "四川",
+      "initial": "G",
+      "code": "329",
+      "platformName": "广安",
+      "parentCode": "26"
+    },
+    {
+      "name": "广元",
+      "province": "四川",
+      "initial": "G",
+      "code": "330",
+      "platformName": "广元",
+      "parentCode": "26"
+    },
+    {
+      "name": "乐山",
+      "province": "四川",
+      "initial": "L",
+      "code": "331",
+      "platformName": "乐山",
+      "parentCode": "26"
+    },
+    {
+      "name": "凉山",
+      "province": "四川",
+      "initial": "L",
+      "code": "332",
+      "platformName": "凉山",
+      "parentCode": "26"
+    },
+    {
+      "name": "眉山",
+      "province": "四川",
+      "initial": "M",
+      "code": "333",
+      "platformName": "眉山",
+      "parentCode": "26"
+    },
+    {
+      "name": "南充",
+      "province": "四川",
+      "initial": "N",
+      "code": "334",
+      "platformName": "南充",
+      "parentCode": "26"
+    },
+    {
+      "name": "内江",
+      "province": "四川",
+      "initial": "N",
+      "code": "335",
+      "platformName": "内江",
+      "parentCode": "26"
+    },
+    {
+      "name": "攀枝花",
+      "province": "四川",
+      "initial": "P",
+      "code": "336",
+      "platformName": "攀枝花",
+      "parentCode": "26"
+    },
+    {
+      "name": "遂宁",
+      "province": "四川",
+      "initial": "S",
+      "code": "337",
+      "platformName": "遂宁",
+      "parentCode": "26"
+    },
+    {
+      "name": "雅安",
+      "province": "四川",
+      "initial": "Y",
+      "code": "338",
+      "platformName": "雅安",
+      "parentCode": "26"
+    },
+    {
+      "name": "宜宾",
+      "province": "四川",
+      "initial": "Y",
+      "code": "339",
+      "platformName": "宜宾",
+      "parentCode": "26"
+    },
+    {
+      "name": "资阳",
+      "province": "四川",
+      "initial": "Z",
+      "code": "340",
+      "platformName": "资阳",
+      "parentCode": "26"
+    },
+    {
+      "name": "自贡",
+      "province": "四川",
+      "initial": "Z",
+      "code": "341",
+      "platformName": "自贡",
+      "parentCode": "26"
+    },
+    {
+      "name": "泸州",
+      "province": "四川",
+      "initial": "L",
+      "code": "342",
+      "platformName": "泸州",
+      "parentCode": "26"
+    },
+    {
+      "name": "天津",
+      "province": "天津",
+      "initial": "T",
+      "code": "27",
+      "platformName": "天津",
+      "parentCode": "27"
+    },
+    {
+      "name": "拉萨",
+      "province": "西藏",
+      "initial": "L",
+      "code": "344",
+      "platformName": "拉萨",
+      "parentCode": "28"
+    },
+    {
+      "name": "阿里",
+      "province": "西藏",
+      "initial": "A",
+      "code": "345",
+      "platformName": "阿里",
+      "parentCode": "28"
+    },
+    {
+      "name": "昌都",
+      "province": "西藏",
+      "initial": "C",
+      "code": "346",
+      "platformName": "昌都",
+      "parentCode": "28"
+    },
+    {
+      "name": "林芝",
+      "province": "西藏",
+      "initial": "L",
+      "code": "347",
+      "platformName": "林芝",
+      "parentCode": "28"
+    },
+    {
+      "name": "那曲",
+      "province": "西藏",
+      "initial": "N",
+      "code": "348",
+      "platformName": "那曲",
+      "parentCode": "28"
+    },
+    {
+      "name": "日喀则",
+      "province": "西藏",
+      "initial": "R",
+      "code": "349",
+      "platformName": "日喀则",
+      "parentCode": "28"
+    },
+    {
+      "name": "山南",
+      "province": "西藏",
+      "initial": "S",
+      "code": "350",
+      "platformName": "山南",
+      "parentCode": "28"
+    },
+    {
+      "name": "乌鲁木齐",
+      "province": "新疆",
+      "initial": "W",
+      "code": "351",
+      "platformName": "乌鲁木齐",
+      "parentCode": "29"
+    },
+    {
+      "name": "阿克苏",
+      "province": "新疆",
+      "initial": "A",
+      "code": "352",
+      "platformName": "阿克苏",
+      "parentCode": "29"
+    },
+    {
+      "name": "阿拉尔",
+      "province": "新疆",
+      "initial": "A",
+      "code": "353",
+      "platformName": "阿拉尔",
+      "parentCode": "29"
+    },
+    {
+      "name": "巴音郭楞",
+      "province": "新疆",
+      "initial": "B",
+      "code": "354",
+      "platformName": "巴音郭楞",
+      "parentCode": "29"
+    },
+    {
+      "name": "博尔塔拉",
+      "province": "新疆",
+      "initial": "B",
+      "code": "355",
+      "platformName": "博尔塔拉",
+      "parentCode": "29"
+    },
+    {
+      "name": "昌吉",
+      "province": "新疆",
+      "initial": "C",
+      "code": "356",
+      "platformName": "昌吉",
+      "parentCode": "29"
+    },
+    {
+      "name": "哈密",
+      "province": "新疆",
+      "initial": "H",
+      "code": "357",
+      "platformName": "哈密",
+      "parentCode": "29"
+    },
+    {
+      "name": "和田",
+      "province": "新疆",
+      "initial": "H",
+      "code": "358",
+      "platformName": "和田",
+      "parentCode": "29"
+    },
+    {
+      "name": "喀什",
+      "province": "新疆",
+      "initial": "K",
+      "code": "359",
+      "platformName": "喀什",
+      "parentCode": "29"
+    },
+    {
+      "name": "克拉玛依",
+      "province": "新疆",
+      "initial": "K",
+      "code": "360",
+      "platformName": "克拉玛依",
+      "parentCode": "29"
+    },
+    {
+      "name": "克孜勒苏柯尔克孜",
+      "province": "新疆",
+      "initial": "K",
+      "code": "361",
+      "platformName": "克孜勒苏",
+      "parentCode": "29"
+    },
+    {
+      "name": "石河子",
+      "province": "新疆",
+      "initial": "S",
+      "code": "362",
+      "platformName": "石河子",
+      "parentCode": "29"
+    },
+    {
+      "name": "图木舒克",
+      "province": "新疆",
+      "initial": "T",
+      "code": "363",
+      "platformName": "图木舒克",
+      "parentCode": "29"
+    },
+    {
+      "name": "吐鲁番",
+      "province": "新疆",
+      "initial": "T",
+      "code": "364",
+      "platformName": "吐鲁番",
+      "parentCode": "29"
+    },
+    {
+      "name": "五家渠",
+      "province": "新疆",
+      "initial": "W",
+      "code": "365",
+      "platformName": "五家渠",
+      "parentCode": "29"
+    },
+    {
+      "name": "伊犁",
+      "province": "新疆",
+      "initial": "Y",
+      "code": "366",
+      "platformName": "伊犁",
+      "parentCode": "29"
+    },
+    {
+      "name": "塔城",
+      "province": "新疆",
+      "initial": "T",
+      "code": "6156",
+      "platformName": "塔城",
+      "parentCode": "29"
+    },
+    {
+      "name": "阿勒泰",
+      "province": "新疆",
+      "initial": "A",
+      "code": "6157",
+      "platformName": "阿勒泰",
+      "parentCode": "29"
+    },
+    {
+      "name": "北屯",
+      "province": "新疆",
+      "initial": "B",
+      "code": "6205",
+      "platformName": "北屯",
+      "parentCode": "29"
+    },
+    {
+      "name": "铁门关",
+      "province": "新疆",
+      "initial": "T",
+      "code": "6206",
+      "platformName": "铁门关",
+      "parentCode": "29"
+    },
+    {
+      "name": "双河",
+      "province": "新疆",
+      "initial": "S",
+      "code": "6207",
+      "platformName": "双河",
+      "parentCode": "29"
+    },
+    {
+      "name": "可克达拉",
+      "province": "新疆",
+      "initial": "K",
+      "code": "6208",
+      "platformName": "可克达拉",
+      "parentCode": "29"
+    },
+    {
+      "name": "昆玉",
+      "province": "新疆",
+      "initial": "K",
+      "code": "6209",
+      "platformName": "昆玉",
+      "parentCode": "29"
+    },
+    {
+      "name": "胡杨河",
+      "province": "新疆",
+      "initial": "H",
+      "code": "6210",
+      "platformName": "胡杨河",
+      "parentCode": "29"
+    },
+    {
+      "name": "新星",
+      "province": "新疆",
+      "initial": "X",
+      "code": "6211",
+      "platformName": "新星",
+      "parentCode": "29"
+    },
+    {
+      "name": "白杨",
+      "province": "新疆",
+      "initial": "B",
+      "code": "6212",
+      "platformName": "白杨",
+      "parentCode": "29"
+    },
+    {
+      "name": "草湖",
+      "province": "新疆",
+      "initial": "C",
+      "code": "6227",
+      "platformName": "草湖市",
+      "parentCode": "29"
+    },
+    {
+      "name": "昆明",
+      "province": "云南",
+      "initial": "K",
+      "code": "367",
+      "platformName": "昆明",
+      "parentCode": "30"
+    },
+    {
+      "name": "怒江",
+      "province": "云南",
+      "initial": "N",
+      "code": "368",
+      "platformName": "怒江",
+      "parentCode": "30"
+    },
+    {
+      "name": "普洱",
+      "province": "云南",
+      "initial": "P",
+      "code": "369",
+      "platformName": "普洱",
+      "parentCode": "30"
+    },
+    {
+      "name": "丽江",
+      "province": "云南",
+      "initial": "L",
+      "code": "370",
+      "platformName": "丽江",
+      "parentCode": "30"
+    },
+    {
+      "name": "保山",
+      "province": "云南",
+      "initial": "B",
+      "code": "371",
+      "platformName": "保山",
+      "parentCode": "30"
+    },
+    {
+      "name": "楚雄",
+      "province": "云南",
+      "initial": "C",
+      "code": "372",
+      "platformName": "楚雄",
+      "parentCode": "30"
+    },
+    {
+      "name": "大理",
+      "province": "云南",
+      "initial": "D",
+      "code": "373",
+      "platformName": "大理",
+      "parentCode": "30"
+    },
+    {
+      "name": "德宏",
+      "province": "云南",
+      "initial": "D",
+      "code": "374",
+      "platformName": "德宏",
+      "parentCode": "30"
+    },
+    {
+      "name": "迪庆",
+      "province": "云南",
+      "initial": "D",
+      "code": "375",
+      "platformName": "迪庆",
+      "parentCode": "30"
+    },
+    {
+      "name": "红河",
+      "province": "云南",
+      "initial": "H",
+      "code": "376",
+      "platformName": "红河",
+      "parentCode": "30"
+    },
+    {
+      "name": "临沧",
+      "province": "云南",
+      "initial": "L",
+      "code": "377",
+      "platformName": "临沧",
+      "parentCode": "30"
+    },
+    {
+      "name": "曲靖",
+      "province": "云南",
+      "initial": "Q",
+      "code": "378",
+      "platformName": "曲靖",
+      "parentCode": "30"
+    },
+    {
+      "name": "文山",
+      "province": "云南",
+      "initial": "W",
+      "code": "379",
+      "platformName": "文山",
+      "parentCode": "30"
+    },
+    {
+      "name": "西双版纳",
+      "province": "云南",
+      "initial": "X",
+      "code": "380",
+      "platformName": "西双版纳",
+      "parentCode": "30"
+    },
+    {
+      "name": "玉溪",
+      "province": "云南",
+      "initial": "Y",
+      "code": "381",
+      "platformName": "玉溪",
+      "parentCode": "30"
+    },
+    {
+      "name": "昭通",
+      "province": "云南",
+      "initial": "Z",
+      "code": "382",
+      "platformName": "昭通",
+      "parentCode": "30"
+    },
+    {
+      "name": "杭州",
+      "province": "浙江",
+      "initial": "H",
+      "code": "383",
+      "platformName": "杭州",
+      "parentCode": "31"
+    },
+    {
+      "name": "湖州",
+      "province": "浙江",
+      "initial": "H",
+      "code": "384",
+      "platformName": "湖州",
+      "parentCode": "31"
+    },
+    {
+      "name": "嘉兴",
+      "province": "浙江",
+      "initial": "J",
+      "code": "385",
+      "platformName": "嘉兴",
+      "parentCode": "31"
+    },
+    {
+      "name": "金华",
+      "province": "浙江",
+      "initial": "J",
+      "code": "386",
+      "platformName": "金华",
+      "parentCode": "31"
+    },
+    {
+      "name": "丽水",
+      "province": "浙江",
+      "initial": "L",
+      "code": "387",
+      "platformName": "丽水",
+      "parentCode": "31"
+    },
+    {
+      "name": "宁波",
+      "province": "浙江",
+      "initial": "N",
+      "code": "388",
+      "platformName": "宁波",
+      "parentCode": "31"
+    },
+    {
+      "name": "绍兴",
+      "province": "浙江",
+      "initial": "S",
+      "code": "389",
+      "platformName": "绍兴",
+      "parentCode": "31"
+    },
+    {
+      "name": "台州",
+      "province": "浙江",
+      "initial": "T",
+      "code": "390",
+      "platformName": "台州",
+      "parentCode": "31"
+    },
+    {
+      "name": "温州",
+      "province": "浙江",
+      "initial": "W",
+      "code": "391",
+      "platformName": "温州",
+      "parentCode": "31"
+    },
+    {
+      "name": "舟山",
+      "province": "浙江",
+      "initial": "Z",
+      "code": "392",
+      "platformName": "舟山",
+      "parentCode": "31"
+    },
+    {
+      "name": "衢州",
+      "province": "浙江",
+      "initial": "Q",
+      "code": "393",
+      "platformName": "衢州",
+      "parentCode": "31"
+    },
+    {
+      "name": "重庆",
+      "province": "重庆",
+      "initial": "C",
+      "code": "32",
+      "platformName": "重庆",
+      "parentCode": "32"
+    },
+    {
+      "name": "香港",
+      "province": "香港",
+      "initial": "X",
+      "code": "33",
+      "platformName": "香港",
+      "parentCode": "33"
+    },
+    {
+      "name": "澳门",
+      "province": "澳门",
+      "initial": "A",
+      "code": "34",
+      "platformName": "澳门",
+      "parentCode": "34"
+    },
+    {
+      "name": "台湾",
+      "province": "台湾",
+      "initial": "T",
+      "code": "35",
+      "platformName": "台湾",
+      "parentCode": "35"
+    }
+  ]
+}

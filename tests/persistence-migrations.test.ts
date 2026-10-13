@@ -9,8 +9,11 @@ import {
   preparePersistenceUpgrade,
   validateDatabaseVersion,
   DATABASE_MIGRATIONS,
+  CONFIG_MIGRATIONS,
+  planPersistenceUpgrade,
+  validateConfigVersion,
 } from '../src/main/persistence-migrations'
-import { decryptConfig } from '../src/main/config-crypto'
+import { decryptConfig, encryptConfig } from '../src/main/config-crypto'
 import { createHash } from 'node:crypto'
 import { DatabaseManager } from '../src/main/database'
 import { DiscoveryRepository } from '../src/main/discovery/repository'
@@ -35,6 +38,53 @@ function fixture(version = 1) {
   }
 }
 describe('persistent version upgrades', () => {
+  it('uses a separate continuous config chain and validates the source and every target', () => {
+    const paths = fixture()
+    const source = decryptConfig(fs.readFileSync(paths.config, 'utf8'))
+    expect(planPersistenceUpgrade(6, 1)).toMatchObject({
+      database: [],
+      config: [{ from: 1, to: 2 }],
+    })
+    expect(planPersistenceUpgrade(6, 2)).toEqual({ database: [], config: [] })
+    const migrated = migrationChain(1, 2, CONFIG_MIGRATIONS).reduce(
+      (value, step) => validateConfigVersion(step.apply(value), step.to),
+      source,
+    )
+    expect(migrated).toEqual({
+      ...validateConfigVersion(source, 1),
+      configVersion: 2,
+      onboarding: {
+        app: { status: 'pending', stepId: null },
+        discovery: { status: 'pending', stepId: null },
+      },
+    })
+    expect(() => CONFIG_MIGRATIONS[0].apply({ configVersion: 1 })).toThrow()
+    expect(() => validateConfigVersion({ ...(migrated as object), onboarding: {} }, 2)).toThrow()
+    expect(() => planPersistenceUpgrade(6, 3)).toThrow()
+  })
+
+  it('rolls database changes back when the config migration fails', () => {
+    const paths = fixture()
+    const before = fs.readFileSync(paths.config)
+    const original = CONFIG_MIGRATIONS[0].apply
+    CONFIG_MIGRATIONS[0].apply = () => {
+      throw new Error('config step failed')
+    }
+    try {
+      expect(() =>
+        preparePersistenceUpgrade(paths.database, decryptConfig(before.toString())),
+      ).toThrow('config step failed')
+      expect(fs.readFileSync(paths.config)).toEqual(before)
+      const db = new Database(paths.database)
+      try {
+        validateDatabaseVersion(db, 1)
+      } finally {
+        db.close()
+      }
+    } finally {
+      CONFIG_MIGRATIONS[0].apply = original
+    }
+  })
   it('checks the agreed v4 tables, columns, constraints and explicit indexes', () => {
     const db = new Database(':memory:')
     try {
@@ -85,7 +135,7 @@ describe('persistent version upgrades', () => {
   })
 
   it.each([1, 2, 3])(
-    'upgrades v%i without changing existing rows and matches a fresh v5 schema',
+    'upgrades v%i without changing existing rows and matches a fresh v6 schema',
     async (version) => {
       const paths = fixture(version === 3 ? 2 : version)
       if (version === 3) {
@@ -125,7 +175,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(read(paths.database, Object.keys(before))).toEqual(before)
       const upgraded = new Database(paths.database)
-      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v5-'))
+      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v6-'))
       roots.push(freshRoot)
       const fresh = new DatabaseManager({
         ...paths,
@@ -133,7 +183,7 @@ describe('persistent version upgrades', () => {
         database: path.join(freshRoot, 'data/zhiji.db'),
       })
       try {
-        validateDatabaseVersion(upgraded, 5)
+        validateDatabaseVersion(upgraded, 6)
         if (version < 3) expect(upgraded.prepare('SELECT * FROM locations').all()).toEqual([])
         const schema = (db: Database.Database) =>
           db
@@ -179,7 +229,7 @@ describe('persistent version upgrades', () => {
   it('requires desktop migration before a v2 database can be opened for business', () => {
     const paths = fixture(2)
     const before = fs.readFileSync(paths.database)
-    expect(() => new DatabaseManager(paths)).toThrow('需要版本 5')
+    expect(() => new DatabaseManager(paths)).toThrow('需要版本 6')
     expect(fs.readFileSync(paths.database)).toEqual(before)
   })
 
@@ -191,7 +241,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths, true)
     expect(fs.existsSync(freeze)).toBe(true)
     const db = new Database(paths.database)
-    validateDatabaseVersion(db, 5)
+    validateDatabaseVersion(db, 6)
     db.close()
   })
   it('refuses a second live migration owner without changing user data', async () => {
@@ -271,15 +321,20 @@ describe('persistent version upgrades', () => {
       const configuration = decryptConfig(fs.readFileSync(paths.config, 'utf8'))
       fs.copyFileSync(paths.database, path.join(work, 'previous.db'))
       fs.copyFileSync(paths.config, path.join(work, 'previous.config'))
-      if (phase !== 'prepared') preparePersistenceUpgrade(paths.database, configuration)
+      if (phase !== 'prepared') {
+        const result = preparePersistenceUpgrade(paths.database, configuration)
+        if (phase === 'committed') fs.writeFileSync(paths.config, encryptConfig(result.config))
+      }
       if (phase === 'applying') fs.writeFileSync(paths.config, 'interrupted replacement')
       fs.writeFileSync(path.join(work, 'journal.json'), JSON.stringify({ phase }))
       fs.writeFileSync(path.join(work, 'owner.json'), JSON.stringify({ pid: 2147483647 }))
       fs.writeFileSync(path.join(paths.root, '.runtime/state/update-freeze'), '')
       await ensurePersistenceReady(paths)
-      expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(configuration)
+      expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(
+        CONFIG_MIGRATIONS[0].apply(configuration),
+      )
       const db = new Database(paths.database)
-      validateDatabaseVersion(db, 5)
+      validateDatabaseVersion(db, 6)
       db.close()
       expect(fs.existsSync(path.join(work, 'journal.json'))).toBe(false)
       expect(fs.existsSync(path.join(paths.root, '.runtime/state/update-freeze'))).toBe(false)
@@ -311,22 +366,22 @@ describe('persistent version upgrades', () => {
       }),
     ).toEqual({ configVersion: 2, key: 'keep' })
   })
-  it('upgrades the formal baseline at startup, preserves config bytes and is repeatable', async () => {
+  it('upgrades the formal baseline, preserves settings and does not rewrite current config', async () => {
     const paths = fixture(),
       config = fs.readFileSync(paths.config)
     await ensurePersistenceReady(paths)
     let db = new Database(paths.database)
-    validateDatabaseVersion(db, 5)
+    validateDatabaseVersion(db, 6)
     expect(db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
     db.close()
     expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(
-      decryptConfig(config.toString()),
+      CONFIG_MIGRATIONS[0].apply(decryptConfig(config.toString())),
     )
     const upgraded = fs.readFileSync(paths.config)
     await ensurePersistenceReady(paths)
     expect(fs.readFileSync(paths.config)).toEqual(upgraded)
     db = new Database(paths.database)
-    validateDatabaseVersion(db, 5)
+    validateDatabaseVersion(db, 6)
     db.close()
   })
   it('rolls back a failed migration transaction without stamping a new version', () => {

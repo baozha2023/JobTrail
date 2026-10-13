@@ -48,9 +48,14 @@ function contents(db: Database.Database) {
 it('migrates populated v4 without changing any raw row and matches fresh v5', () => {
   const f = fixture(),
     before = contents(f.db)
+  f.db
+    .transaction(() => {
+      DATABASE_MIGRATIONS.find((step) => step.from === 4)!.apply(f.db)
+      f.db.pragma('user_version = 5')
+      validateDatabaseVersion(f.db, 5)
+    })
+    .immediate()
   f.db.close()
-  const result = preparePersistenceUpgrade(f.file, f.config)
-  expect(result).toBeDefined()
   const db = new Database(f.file),
     fresh = new Database(':memory:')
   try {

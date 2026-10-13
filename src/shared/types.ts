@@ -50,8 +50,41 @@ export interface CompanyCatalogUpdateResult {
   unchanged: number
 }
 
+export type AppTourStepId =
+  | 'opportunities'
+  | 'calendar'
+  | 'statuses'
+  | 'industries'
+  | 'resumes'
+  | 'companies'
+  | 'discovery'
+  | 'agent'
+  | 'settings'
+export type DiscoveryTourStepId =
+  | 'accounts'
+  | 'account-list'
+  | 'qr-panel'
+  | 'platforms'
+  | 'keyword'
+  | 'city'
+  | 'salary'
+  | 'search'
+  | 'results'
+  | 'details'
+  | 'new-search'
+  | 'history'
+export type TourProgress<T extends string> =
+  | { status: 'pending' | 'completed' | 'skipped'; stepId: null }
+  | { status: 'inProgress'; stepId: T }
+export interface OnboardingProgress {
+  app: TourProgress<AppTourStepId>
+  discovery: TourProgress<DiscoveryTourStepId>
+}
+export type TourId = keyof OnboardingProgress
+
 export interface AppConfig {
-  configVersion: number
+  configVersion: 2
+  onboarding: OnboardingProgress
   themeMode: ThemeMode
   statusFlowTheme: StatusFlowTheme
   locale: Locale
@@ -72,7 +105,10 @@ export interface AppConfig {
   }
 }
 
-export type AppConfigUpdate = Partial<Omit<AppConfig, 'configVersion' | 'mcp' | 'ai'>> & {
+export type AppConfigUpdate = Partial<
+  Omit<AppConfig, 'configVersion' | 'mcp' | 'ai' | 'onboarding'>
+> & {
+  onboarding?: Partial<OnboardingProgress>
   mcp?: Partial<AppConfig['mcp']>
   ai?: Partial<AppConfig['ai']>
 }

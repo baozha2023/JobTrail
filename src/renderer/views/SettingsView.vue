@@ -24,6 +24,7 @@ import type {
   CompanyCatalogStatus,
   CompanyCatalogUpdateResult,
   McpConnectionInfo,
+  TourId,
 } from '../../shared/types'
 
 const props = defineProps<{
@@ -49,6 +50,7 @@ const props = defineProps<{
   backupAction: (kind: 'export' | 'import') => Promise<void>
 }>()
 const emit = defineEmits<{
+  restartTour: [id: TourId]
   updateConfig: [input: AppConfigUpdate]
   aiSaved: [config: AppConfig]
   error: [error: unknown]
@@ -165,6 +167,25 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
   <section class="page-section settings-page" :class="{ 'is-dark': dark }">
     <div class="settings-layout">
       <p class="settings-lead">{{ $t('settings.intro') }}</p>
+
+      <section class="settings-section" aria-labelledby="settings-tours-title">
+        <header class="settings-section-header">
+          <div>
+            <h2 id="settings-tours-title">{{ $t('onboarding.title') }}</h2>
+            <p>{{ $t('onboarding.description') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <n-space>
+            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'app')">{{
+              $t('onboarding.restartApp')
+            }}</n-button>
+            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'discovery')">{{
+              $t('onboarding.restartDiscovery')
+            }}</n-button>
+          </n-space>
+        </div>
+      </section>
 
       <section class="settings-section" aria-labelledby="settings-preferences-title">
         <header class="settings-section-header">

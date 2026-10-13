@@ -10,7 +10,7 @@ const staging = fs.mkdtempSync(path.join(root, 'dist', '.startup-error-'))
 try {
   for (const [name, contents, token, expected] of [
     ['corrupt', '{invalid', false, '配置文件损坏'],
-    ['missing-fields', encodeTestConfig({ configVersion: 1 }), false, '配置文件损坏'],
+    ['missing-fields', encodeTestConfig({ configVersion: 2 }), false, '配置文件损坏'],
     [
       'wrong-key',
       encodeTestConfig({ configVersion: 1 }, Buffer.alloc(32, 0x53)),

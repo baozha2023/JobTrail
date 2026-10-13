@@ -11,6 +11,7 @@ const emit = defineEmits<{ 'update:value': [value: string] }>()
     <n-menu
       :value="value"
       :options="options"
+      :node-props="(option) => ({ 'data-tour': `app-${option.key}` })"
       @update:value="(next: string) => emit('update:value', next)"
     />
   </n-layout-sider>

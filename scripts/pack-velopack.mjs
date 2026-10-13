@@ -9,6 +9,7 @@ import { downloadPreviousVelopackFull } from './resolve-velopack-baseline.mjs'
 import { releaseProxyUrl } from './release-proxy.mjs'
 import { buildCompanyCatalogAssets } from './company-catalog-assets.mjs'
 import { finalizeVelopackAssets } from './finalize-velopack-assets.mjs'
+import { cleanupReleaseOutput } from './cleanup-release-output.mjs'
 import { smokeLauncherUpdate } from './test-launcher-update.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -143,4 +144,6 @@ await finalizeVelopackAssets(output, pkg.version, baseline)
 for (const name of ['zhiji-win-Setup.exe', 'RELEASES', 'assets.win.json'])
   fs.rmSync(path.join(output, name), { force: true })
 buildCompanyCatalogAssets(root, output)
+const removed = cleanupReleaseOutput(root)
+console.log(`Cleaned release intermediates: ${removed.join(', ') || 'none'}`)
 console.log(`Release ready: ${output}`)

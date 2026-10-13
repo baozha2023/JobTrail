@@ -15,6 +15,16 @@ export function isUpdateFrozen(root: string): boolean {
   return fs.existsSync(updateFreezePath(root))
 }
 
+export async function waitForStartupThaw(root: string): Promise<void> {
+  const deadline = Date.now() + 15_000
+  while (isUpdateFrozen(root) && Date.now() < deadline)
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 50)
+      timer.unref()
+    })
+  // Never remove a supervisor's freeze. A timed-out write is rejected by assertUpdateWritable.
+}
+
 export function assertUpdateWritable(root: string): void {
   if (isUpdateFrozen(root))
     throw new AppServiceError('VALIDATION_ERROR', '应用正在更新，请稍后重试')

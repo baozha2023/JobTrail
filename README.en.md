@@ -8,7 +8,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
-- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin and Shixiseng, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng and Yupao, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
 - **AI assistant**: Connect your chosen model, reference resumes and roles, assess resume fit, and generate practice exams. View context usage, compact conversations, or connect external AI tools through MCP.
@@ -62,6 +62,10 @@ Chromium handles job discovery using the system DNS, proxy/PAC, TLS and connecti
 
 Local reminders require the app to remain running. You can hide the window in the system tray.
 
+### v2.3.0 guided tours
+
+New and upgrading users receive an app navigation tour and a separate tour on their first visit to Job discovery. Both support previous/next, skipping, saved progress and restarting from Settings. The discovery tour explains account management without signing in or searching automatically. v2.3.0 finalizes database v6 and configuration v2. Upgrading from v2.2.0 uses formal `5 → 6` database and `1 → 2` configuration migrations; earlier releases follow the continuous migration chain. Existing data and settings are preserved, and full backups include tour progress.
+
 ## Data and privacy
 
 JobTrail requires no application account and does not provide cloud sync. Application records, resumes, and chat history are stored locally. When you use the AI assistant, relevant conversations and selected content are sent to the model service you configure.
@@ -72,7 +76,7 @@ Export a complete backup from Settings and save it outside the installation fold
 
 ## Local development
 
-Set up Windows, Node.js, pnpm, and Microsoft Edge Stable, then follow the [configuration guide](CLAUDE.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
+Set up Windows, Node.js, pnpm, and Microsoft Edge Stable, then follow the [configuration guide](AGENTS.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -89,13 +93,13 @@ Common commands:
 | `pnpm build`        | Build the app               |
 | `pnpm release:win`  | Build the Windows installer |
 
-Building the installer also requires Rust with the MSVC toolchain, Visual Studio C++ Build Tools, the .NET SDK, and the Velopack CLI. See the [development guidelines](CLAUDE.md) (in Chinese) for development and release conventions.
+Building the installer also requires Rust with the MSVC toolchain, Visual Studio C++ Build Tools, the .NET SDK, and the Velopack CLI. See the [development guidelines](AGENTS.md) (in Chinese) for development and release conventions.
 
 ## Project documentation
 
 The following documents are in Chinese:
 
-- [Development guidelines](CLAUDE.md)
+- [Development guidelines](AGENTS.md)
 - [Job discovery](docs/job-discovery.md)
 - [Database structure](docs/database.md)
 - [Persistence upgrades](docs/persistence-upgrade-guide.md)

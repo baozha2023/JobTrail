@@ -4,6 +4,7 @@ import { SCHEMA_V1 } from './schema-v1'
 import { SCHEMA_V2 } from './schema-v2'
 import { SCHEMA_V4 } from './schema-v4'
 import { SCHEMA_V5 } from './schema-v5'
+import { SCHEMA_V6 } from './schema-v6'
 import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
@@ -41,7 +42,9 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
             ? SCHEMA_V4
             : version === 5
               ? SCHEMA_V5
-              : null
+              : version === 6
+                ? SCHEMA_V6
+                : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -92,7 +95,9 @@ function validateDiscoveryData(db: Db, version: number): void {
   const allowedPlatforms = new Set(
     version === 4
       ? ['boss', 'liepin', 'zhilian', 'wuyou']
-      : ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng'],
+      : version === 5
+        ? ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
+        : ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao'],
   )
   const platform = (value: string) => {
     if (!allowedPlatforms.has(value)) throw new Error('Invalid persistent platform')

@@ -371,15 +371,15 @@ export async function importBackup(
     const actual = await inventory(directory)
     if (actual.length !== declared.size || actual.some((name) => !declared.has(name)))
       throw invalid()
-    let configuration: import('../shared/types').AppConfig = validateConfigVersion(
+    const sourceConfiguration = validateConfigVersion(
       JSON.parse(await fsp.readFile(path.join(directory, 'config.json'), 'utf8')),
       manifest.configVersion,
     )
     validateSnapshot(path.join(directory, 'data', 'zhiji.db'), manifest.databaseVersion, declared)
     // The portable configuration exists only inside the encrypted archive / temporary staging.
-    configuration = preparePersistenceUpgrade(
+    const configuration = preparePersistenceUpgrade(
       path.join(directory, 'data', 'zhiji.db'),
-      configuration,
+      sourceConfiguration,
     ).config
     validateSnapshot(path.join(directory, 'data', 'zhiji.db'), DB_SCHEMA_VERSION, declared)
     await fsp.writeFile(path.join(directory, 'config.json'), encryptConfig(configuration))

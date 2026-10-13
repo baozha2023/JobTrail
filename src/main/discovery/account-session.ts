@@ -283,6 +283,7 @@ export function accountLoginTransport(
         })
       }
     },
+    cookie: (url, name) => login(() => requests.cookie(url, name)),
     setCookie: (cookie) => login(() => requests.setCookie(cookie)),
     async flush() {
       signal.throwIfAborted()
@@ -304,6 +305,27 @@ export function accountLoginTransport(
       const result = await body(value, {}, images)
       // Normalize the JPEG MIME alias before passing the image to the renderer.
       if (result.mime === 'image/jpg') result.mime = 'image/jpeg'
+      // Some official CDNs label raster images as generic binary files. Accept
+      // only a recognized raster signature, never infer a type from the URL.
+      if (result.mime === 'application/octet-stream') {
+        const bytes = result.bytes
+        if (bytes.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex')))
+          result.mime = 'image/png'
+        else if (
+          bytes.length >= 5 &&
+          bytes.subarray(0, 3).equals(Buffer.from('ffd8ff', 'hex')) &&
+          bytes.subarray(-2).equals(Buffer.from('ffd9', 'hex'))
+        )
+          result.mime = 'image/jpeg'
+        else if (/^GIF8[79]a$/.test(bytes.subarray(0, 6).toString('ascii')))
+          result.mime = 'image/gif'
+        else if (
+          bytes.length >= 12 &&
+          bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
+          bytes.subarray(8, 12).toString('ascii') === 'WEBP'
+        )
+          result.mime = 'image/webp'
+      }
       if (
         !result.mime ||
         !['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(result.mime)

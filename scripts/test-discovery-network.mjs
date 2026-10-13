@@ -47,7 +47,7 @@ try {
   })
   const page = await application.firstWindow()
   await page.locator('.sidebar').waitFor()
-  const platforms = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
+  const platforms = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao']
   await application.evaluate(
     ({ session }, { root, platforms }) => {
       const path = process.getBuiltinModule('path')
@@ -231,7 +231,7 @@ try {
   )
   assert.ok(result.requests.includes('/redirected'))
   console.log(
-    'Packaged discovery system networking passed: six platform policies, Chromium TLS, Session fetch, renderer, Service Worker, cookies, redirects and cancellation',
+    'Packaged discovery system networking passed: seven platform policies, Chromium TLS, Session fetch, renderer, Service Worker, cookies, redirects and cancellation',
   )
 } finally {
   await application?.close()

@@ -1,5 +1,5 @@
 import { registerDiagnosticSecrets } from '../shared/diagnostics'
-import { CONFIG_V1_DEFAULTS, CONFIG_V1_SCHEMA } from './persistence/config-v1'
+import { CONFIG_V2_DEFAULTS, CONFIG_V2_SCHEMA } from './persistence/config-v2'
 import { TARGET_CONFIG_VERSION } from './persistence/versions'
 import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
@@ -11,7 +11,7 @@ import { AppServiceError } from './services/errors'
 import { assertUpdateWritable } from './update-freeze'
 import { encryptConfig, decryptConfig } from './config-crypto'
 
-export const DEFAULT_CONFIG: AppConfig = CONFIG_V1_DEFAULTS
+export const DEFAULT_CONFIG: AppConfig = CONFIG_V2_DEFAULTS
 
 export class ConfigLoadError extends Error {
   readonly code: 'CONFIG_INVALID' | 'CONFIG_VERSION_UNSUPPORTED'
@@ -51,7 +51,7 @@ export function getAppPaths(): AppPaths {
   }
 }
 
-const settingsSchema = CONFIG_V1_SCHEMA.omit({ configVersion: true })
+const settingsSchema = CONFIG_V2_SCHEMA.omit({ configVersion: true })
 const versionSchema = z.object({ configVersion: z.number().int().positive() })
 
 function hasDefinedFields(value: object): boolean {
@@ -61,6 +61,10 @@ function hasDefinedFields(value: object): boolean {
 const updateSchema = settingsSchema
   .partial()
   .extend({
+    onboarding: settingsSchema.shape.onboarding
+      .partial()
+      .refine(hasDefinedFields, '引导配置没有有效更新字段')
+      .optional(),
     mcp: settingsSchema.shape.mcp
       .partial()
       .refine(hasDefinedFields, 'MCP 配置没有有效更新字段')
@@ -76,7 +80,7 @@ export function validateConfig(value: unknown): AppConfig {
   const version = versionSchema.safeParse(value)
   if (version.success && version.data.configVersion !== TARGET_CONFIG_VERSION)
     throw new ConfigLoadError('CONFIG_VERSION_UNSUPPORTED')
-  const parsed = CONFIG_V1_SCHEMA.safeParse(value)
+  const parsed = CONFIG_V2_SCHEMA.safeParse(value)
   if (!parsed.success) throw new ConfigLoadError('CONFIG_INVALID', { cause: parsed.error })
   return parsed.data
 }
@@ -111,6 +115,7 @@ export class ConfigService {
       ...patch,
       mcp: { ...this.config.mcp, ...patch.mcp },
       ai: { ...this.config.ai, ...patch.ai },
+      onboarding: { ...this.config.onboarding, ...patch.onboarding },
     }
     this.write(next)
     this.config = next

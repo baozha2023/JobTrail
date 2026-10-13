@@ -1,0 +1,107 @@
+.jobtrail-tour {
+  --tour-bg: #fff;
+  --tour-text: #333639;
+  --tour-border: #e0e0e6;
+  --tour-primary: #18a058;
+  --tour-muted: #767c82;
+  width: 450px;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 22px 24px;
+  border-radius: 10px;
+  background: var(--tour-bg);
+  color: var(--tour-text);
+  font-family: Inter, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  box-shadow: 0 4px 20px #0003;
+  -webkit-app-region: no-drag;
+}
+.jobtrail-tour.is-dark {
+  --tour-bg: #2c2c32;
+  --tour-text: #ffffffd1;
+  --tour-border: #ffffff3d;
+  --tour-primary: #63e2b7;
+  --tour-muted: #ffffff85;
+}
+.jobtrail-tour .driver-popover-title {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.jobtrail-tour .driver-popover-description {
+  font-size: 14px;
+  line-height: 1.8;
+  max-height: max(80px, calc(100vh - 220px));
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.jobtrail-tour .driver-popover-footer {
+  gap: 16px;
+  margin-top: 20px;
+}
+.jobtrail-tour .driver-popover-progress-text {
+  white-space: nowrap;
+  color: var(--tour-muted);
+}
+.jobtrail-tour .driver-popover-navigation-btns {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.jobtrail-tour .driver-popover-navigation-btns button + button {
+  margin-left: 0;
+}
+.jobtrail-tour .driver-popover-footer-btn {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 7px 14px;
+  border: 1px solid var(--tour-border);
+  border-radius: 5px;
+  background: var(--tour-bg);
+  color: var(--tour-text);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.jobtrail-tour .driver-popover-next-btn {
+  background: var(--tour-primary);
+  border-color: var(--tour-primary);
+  color: #fff;
+}
+.jobtrail-tour.is-dark .driver-popover-next-btn {
+  color: #17251f;
+}
+.jobtrail-tour .driver-popover-footer-btn:hover {
+  filter: brightness(0.96);
+  background: var(--tour-bg);
+}
+.jobtrail-tour .driver-popover-next-btn:hover {
+  background: var(--tour-primary);
+}
+.jobtrail-tour .driver-popover-footer-btn:focus-visible {
+  outline: 2px solid var(--tour-primary);
+  outline-offset: 3px;
+}
+.jobtrail-tour .driver-popover-footer-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.jobtrail-tour .driver-popover-arrow-side-left {
+  border-left-color: var(--tour-bg);
+}
+.jobtrail-tour .driver-popover-arrow-side-right {
+  border-right-color: var(--tour-bg);
+}
+.jobtrail-tour .driver-popover-arrow-side-top {
+  border-top-color: var(--tour-bg);
+}
+.jobtrail-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--tour-bg);
+}
+.jobtrail-tour .tour-error {
+  font-size: 13px;
+  color: #d03050;
+}
+.jobtrail-tour.is-dark .tour-error {
+  color: #e88080;
+}

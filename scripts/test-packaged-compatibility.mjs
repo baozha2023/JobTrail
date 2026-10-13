@@ -6,7 +6,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { build } from 'vite'
 import { _electron as electron } from 'playwright'
 import { decodeTestConfig, encodeTestConfig, privateTestKey } from './config-test-helpers.mjs'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 // Use the original release exporters, never relabel an archive produced by the new exporter.
 const releases = [
@@ -19,6 +19,7 @@ const releases = [
   { version: '1.6.0', commit: '448e494', databaseVersion: 3 },
   { version: '2.0.0', commit: 'c2fefde', databaseVersion: 4 },
   { version: '2.1.0', commit: '605ee60', databaseVersion: 5 },
+  { version: '2.2.0', commit: '1fc8ac8', databaseVersion: 5 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -30,7 +31,18 @@ const evidence = []
 let application
 fs.mkdirSync(artifacts, { recursive: true })
 
-async function launch(root, supervisedUpgrade = false) {
+function migratedConfig(source, status = 'pending') {
+  return {
+    ...source,
+    configVersion: 2,
+    onboarding: {
+      app: { status, stepId: null },
+      discovery: { status, stepId: null },
+    },
+  }
+}
+
+async function launch(root, supervisedUpgrade = false, expectedMigratedConfig) {
   const runtime = path.join(root, '.runtime', 'current')
   if (!fs.existsSync(runtime)) {
     linkPackagedProgram(path.join(project, 'dist', 'win-unpacked'), runtime)
@@ -59,9 +71,15 @@ async function launch(root, supervisedUpgrade = false) {
   assert.equal(await page.locator('.n-message--error').count(), 0)
   if (supervisedUpgrade) {
     assert.ok(fs.existsSync(freeze), 'the desktop must preserve the root supervisor freeze')
+    assert.deepEqual(
+      decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
+      expectedMigratedConfig,
+      'Migration preserves every v1 setting and initializes both tours before UI progress writes',
+    )
     // The supervising launcher owns this file and releases it after startup health succeeds.
     fs.rmSync(freeze)
   }
+  await skipToursForTest(page)
   return page
 }
 
@@ -89,11 +107,11 @@ async function verify(root, expected) {
     },
     { root, tables: Object.keys(expected.rows) },
   )
-  assert.equal(actual.version, 5)
+  assert.equal(actual.version, 6)
   assert.deepEqual(actual.rows, expected.rows)
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
-    expected.config,
+    migratedConfig(expected.config, 'skipped'),
   )
   for (const [relative, hash] of Object.entries(expected.files))
     assert.equal(
@@ -117,7 +135,8 @@ async function verify(root, expected) {
   )
 }
 
-async function importAndRestart(root, archive) {
+async function importAndRestart(root, archive, expectedMigratedConfig) {
+  const archiveHash = createHash('sha256').update(fs.readFileSync(archive)).digest('hex')
   await application.evaluate(({ app, dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
     // Let production IPC quit; Playwright starts the new process so it remains observable.
@@ -141,6 +160,18 @@ async function importAndRestart(root, archive) {
   )
   await closed
   application = undefined
+  assert.deepEqual(
+    decodeTestConfig(
+      fs.readFileSync(path.join(root, '.runtime/data-restore/incoming/config.json'), 'utf8'),
+    ),
+    expectedMigratedConfig,
+    'The staged restore contains the complete migrated v2 config before restarting',
+  )
+  assert.equal(
+    createHash('sha256').update(fs.readFileSync(archive)).digest('hex'),
+    archiveHash,
+    'Import must not modify the source backup',
+  )
   await launch(root)
 }
 
@@ -229,10 +260,12 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 60000, stdio: 'pipe' },
     )
     const expected = JSON.parse(fs.readFileSync(archive + '.expected.json', 'utf8'))
+    assert.equal(expected.config.configVersion, 1)
     const manifest = JSON.parse(fs.readFileSync(archive + '.manifest.json', 'utf8'))
     assert.equal(manifest.databaseVersion, release.databaseVersion)
     assert.equal(manifest.configVersion, 1)
-    if (release.databaseVersion < 5) {
+    // A v5 database also needs desktop migration when its config is still v1.
+    {
       const beforeMcp = fs.readFileSync(path.join(root, 'data/zhiji.db'))
       const beforeConfig = fs.readFileSync(path.join(root, 'config.json'))
       const prematureMcp = spawnSync(
@@ -265,21 +298,34 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       'exam_answers',
     ])
       expected.rows[table] ??= []
-    if (release.version !== '1.0.0') {
-      await launch(root, true)
+    {
+      await launch(root, true, migratedConfig(expected.config))
       await verify(root, expected)
       await application.close()
       application = undefined
+      const firstLaunchConfig = fs.readFileSync(path.join(root, 'config.json'))
       await launch(root)
       await verify(root, expected)
       await application.close()
       application = undefined
+      assert.deepEqual(
+        fs.readFileSync(path.join(root, 'config.json')),
+        firstLaunchConfig,
+        'A second launch must neither repeat the migration nor rewrite valid v2 configuration',
+      )
       evidence.push({
         version: release.version,
         commit: release.commit,
         scenario: 'supervised-startup-upgrade-and-second-launch',
-        databaseVersion: 5,
-        configVersion: 1,
+        databaseVersion: 6,
+        configVersion: 2,
+        checks: [
+          'all-v1-settings-preserved',
+          'both-tours-initially-pending',
+          'second-launch-no-config-rewrite',
+          'business-data-and-file-hashes-preserved',
+          'MCP-refuses-config-v1',
+        ],
         result: 'PASS',
       })
     }
@@ -288,7 +334,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
     await page.evaluate(() =>
       window.zhijiApi.companies.create({ name: 'Must be replaced by import' }),
     )
-    await importAndRestart(target, archive)
+    await importAndRestart(target, archive, migratedConfig(expected.config))
     await verify(target, expected)
     const upgraded = path.join(artifacts, `${release.version}-via-${clientVersion}.jobtrail-backup`)
     await application.evaluate(({ dialog }, file) => {
@@ -298,7 +344,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       await (await application.firstWindow()).evaluate(() => window.zhijiApi.backup.export()),
       'exported',
     )
-    await importAndRestart(target, upgraded)
+    await importAndRestart(target, upgraded, migratedConfig(expected.config, 'skipped'))
     await verify(target, expected)
     await application.close()
     application = undefined
@@ -306,12 +352,21 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       version: release.version,
       commit: release.commit,
       scenario: 'historical-export-import-restart-reexport-reimport-restart',
-      databaseVersion: 5,
-      configVersion: 1,
+      databaseVersion: 6,
+      configVersion: 2,
+      checks: [
+        'original-v1-exporter',
+        'staged-v2-config-complete',
+        'all-v1-settings-preserved',
+        'both-tours-initially-pending',
+        'source-backup-unchanged',
+        'business-data-and-file-hashes-preserved',
+        'v2-reexport-reimport',
+      ],
       result: 'PASS',
     })
     console.log(
-      `PASS: ${release.version} original export → ${clientVersion} import/restart → export/import/restart${release.version === '1.0.0' ? '' : '; startup upgrade twice'}`,
+      `PASS: ${release.version} config v1 → v2; original export → ${clientVersion} import/restart → export/import/restart; startup upgrade twice; all settings preserved`,
     )
     fs.rmSync(archive + '.expected.json')
   }

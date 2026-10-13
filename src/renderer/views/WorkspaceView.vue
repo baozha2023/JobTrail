@@ -73,6 +73,7 @@ import { useCalendarWorkspace } from '../composables/useCalendarWorkspace'
 import { useOpportunityWorkspace } from '../composables/useOpportunityWorkspace'
 import { useManagementWorkspace } from '../composables/useManagementWorkspace'
 import { useBackupWorkspace } from '../composables/useBackupWorkspace'
+import { useOnboarding } from '../composables/useOnboarding'
 import type { ViewKey } from '../types'
 
 const OFFICIAL_WEBSITE_URL = 'http://jobtrail.bzgames.top/'
@@ -94,6 +95,7 @@ const viewportWidth = ref(window.innerWidth)
 const discoveryView = ref<InstanceType<typeof JobDiscoveryView>>()
 const activeView = ref<ViewKey>('opportunities')
 const loading = ref(false)
+const onboardingReady = ref(false)
 const checkingForUpdates = ref(false)
 const availableUpdateVersion = ref<string | null>(null)
 const currentVersion = ref('—')
@@ -948,6 +950,7 @@ async function loadAll(): Promise<void> {
     }),
   )
   loading.value = false
+  onboardingReady.value = true
 }
 
 async function onDiscoveredJobSaved(): Promise<void> {
@@ -1129,6 +1132,25 @@ async function uninstallApp(): Promise<void> {
   }
 }
 
+const { active: tourActive, restart: restartTour } = useOnboarding({
+  config,
+  activeView,
+  dark: isDarkTheme,
+  locale,
+  discovery: discoveryView,
+  ready: computed(
+    () =>
+      onboardingReady.value &&
+      !loading.value &&
+      !backupBusy.value &&
+      !availableUpdateVersion.value &&
+      !catalogUpdating.value,
+  ),
+  save: settingsStore.update,
+  t,
+  showError,
+})
+
 let removeReminderClickListener: (() => void) | undefined
 let removeExternalDataChangeListener: (() => void) | undefined
 let readStatusTimer: number | undefined
@@ -1221,17 +1243,24 @@ onBeforeUnmount(() => {
               </div>
               <div class="page-header-actions">
                 <template v-if="activeView === 'discovery'">
-                  <n-button :disabled="discoveryView?.busy" @click="discoveryView?.newSearch()">{{
-                    t('discovery.newSearch')
-                  }}</n-button>
                   <n-button
+                    data-tour="discovery-new-search"
+                    :disabled="discoveryView?.busy"
+                    @click="discoveryView?.newSearch()"
+                    >{{ t('discovery.newSearch') }}</n-button
+                  >
+                  <n-button
+                    data-tour="discovery-accounts"
                     :disabled="discoveryView?.busy"
                     @click="discoveryView?.openAccounts()"
                     >{{ t('discovery.accounts') }}</n-button
                   >
-                  <n-button :disabled="discoveryView?.busy" @click="discoveryView?.openHistory()">{{
-                    t('discovery.history')
-                  }}</n-button>
+                  <n-button
+                    data-tour="discovery-history"
+                    :disabled="discoveryView?.busy"
+                    @click="discoveryView?.openHistory()"
+                    >{{ t('discovery.history') }}</n-button
+                  >
                 </template>
                 <n-button
                   v-if="activeView === 'opportunities'"
@@ -1267,6 +1296,7 @@ onBeforeUnmount(() => {
               ref="discoveryView"
               v-show="activeView === 'discovery'"
               :active="activeView === 'discovery'"
+              :tour-active="tourActive"
               :companies="companies"
               :statuses="statuses"
               :resumes="resumes"
@@ -1349,6 +1379,7 @@ onBeforeUnmount(() => {
               @update:selected-locations="selectedCompanyLocations = $event"
             />
             <SettingsView
+              @restart-tour="restartTour"
               v-if="activeView === 'settings'"
               :config="config"
               :dark="isDarkTheme"

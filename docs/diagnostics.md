@@ -108,3 +108,5 @@ BOSS 的有效岗位缺少薪资文本时返回 `session_expired`，当前批次
 网络预检的 `WEB_INVALID_URL` 区分“网页地址过长”“网页地址无效”和协议、端口或地址格式限制。URL 最长 10240 字符；HTTP/HTTPS、80/443 端口、禁止内嵌凭据及公网地址校验分别执行。页面统计上报、WebSocket 等子请求同样受网络规则约束。`network-check` 记录单个请求校验失败，不能根据其条数推断岗位数量或整轮搜索失败；采集结果以 `collect.<state>` 及来源进度为准。日志不包含请求参数或认证材料。
 
 采集每轮结束记录 `discovery.<platform>.collect.<state>` 及岗位数、跳过数和本轮批次数，用于区分正常预算停止与异常；失败保留 `discovery.<platform>.collect` 的具体异常。扫码失败记录 `discovery.<platform>.qr`，扫码验证窗口失败记录 `discovery.<platform>.qr-verification`；搜索验证复核复用采集日志。网络预检和页面加载分别记录 `network-check`、`navigation`。管道服务端拒绝/执行失败、连接重试、启动锁及清理异常记录在 `discovery.broker.*` 下，包装错误保留 cause。正常启动时尚无管道描述文件只记录 startup 事件，不作为异常。IPC/MCP 继续负责上抛异常的最终记录；纯计算和 Repository 不重复建立日志入口。人工验证成功后的续跑沿相同采集日志记录，取消仍为操作结果。
+
+操作名须符合 `^[a-z][a-z0-9.-]{0,95}$`，岗位发现仅在生成日志操作名时将状态中的下划线转换为连字符，例如 `discovery.iguopin.collect.session-expired`、`discovery.boss.collect.network-error`。详情页遇到登录、解析或验证阻断时分别记录 `discovery.<platform>.detail.login-required`、`discovery.<platform>.detail.parse-error`、`discovery.<platform>.detail.challenge`。业务状态、数据库及 IPC/MCP 返回值仍使用原有下划线形式，异常原因和 trace/span 不转换；该命名修正不改变日志结构版本，也无法恢复此前被丢弃的记录。

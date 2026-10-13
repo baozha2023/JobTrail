@@ -32,13 +32,15 @@ import {
   type SourceState,
   type SourceProgress,
 } from '../../shared/job-discovery'
-import type { CompanySummary, Status, ResumeVersion } from '../../shared/types'
+import type { CompanySummary, Status, ResumeVersion, DiscoveryTourStepId } from '../../shared/types'
+import { waitForTourLayout } from '../utils/tour-dom'
 import { commonCities, platformCity } from '../../shared/discovery-cities'
 import { cityNamesEn } from '../discovery-city-names'
 import { errorCode, getErrorMessage } from '../utils/errors'
 import DiscoveryLoginPanel from '../components/DiscoveryLoginPanel.vue'
 const props = defineProps<{
   active: boolean
+  tourActive?: boolean
   companies: CompanySummary[]
   statuses: Status[]
   resumes: ResumeVersion[]
@@ -81,6 +83,9 @@ const qrState = ref<QrLoginState | null>(null),
   qrBusy = ref(false),
   qrError = ref('')
 const sourceLogin = ref<{ runId: string; platform: JobPlatform } | null>(null)
+const tourAccounts = ref(false)
+const tourAccountsEntered = ref(false)
+let tourLayout: { filters: boolean; details: boolean } | undefined
 let qrSequence = 0
 const accountStates = ref<PlatformStatus[]>([]),
   history = ref<SearchRun[]>([]),
@@ -269,6 +274,7 @@ async function syncRegion() {
     visible:
       !!target &&
       props.active &&
+      !props.tourActive &&
       !browserLoading.value &&
       !historyOpen.value &&
       !saveOpen.value &&
@@ -891,7 +897,10 @@ watch(
       })
   },
 )
-watch([historyOpen, saveOpen, clearPlatform, deleteHistory, narrowDetails], scheduleRegion)
+watch(
+  [historyOpen, saveOpen, clearPlatform, deleteHistory, narrowDetails, () => props.tourActive],
+  scheduleRegion,
+)
 onMounted(() => {
   removeBrowserLoadingListener = api.onBrowserLoading((state) => {
     if (disposed || !webMode.value || state.requestId !== browserRequestId) return
@@ -930,7 +939,54 @@ onBeforeUnmount(() => {
   document.removeEventListener('scroll', scheduleRegion, true)
   void api.browser({ action: 'close' }).catch(() => {})
 })
+const tourBlocked = computed(
+  () =>
+    busy.value ||
+    !!verificationState.value ||
+    !!sourceLogin.value ||
+    (accounts.value && !tourAccounts.value) ||
+    historyOpen.value ||
+    saveOpen.value ||
+    !!clearPlatform.value ||
+    deleteHistory.value,
+)
+async function prepareTour(step: DiscoveryTourStepId | null, signal: AbortSignal) {
+  signal.throwIfAborted()
+  // Only presentation state is changed. Never call login, search, or newSearch here.
+  if (step !== null) {
+    tourLayout ??= { filters: filtersOpen.value, details: narrowDetails.value }
+    const inAccounts = step === 'account-list' || step === 'qr-panel'
+    if (inAccounts && !accounts.value) {
+      tourAccountsEntered.value = false
+      tourAccounts.value = true
+      accounts.value = true
+    } else if (!inAccounts && tourAccounts.value) {
+      accounts.value = false
+      tourAccountsEntered.value = false
+    }
+    filtersOpen.value = step === 'salary' || tourLayout.filters
+    narrowDetails.value = step === 'details'
+    if (inAccounts) await waitForTourLayout(() => tourAccountsEntered.value, signal)
+  }
+  await syncRegion()
+  signal.throwIfAborted()
+}
+function endTour() {
+  if (tourAccounts.value) accounts.value = false
+  tourAccounts.value = false
+  tourAccountsEntered.value = false
+  if (tourLayout) {
+    filtersOpen.value = tourLayout.filters
+    narrowDetails.value = tourLayout.details
+    tourLayout = undefined
+  }
+  scheduleRegion()
+}
+
 defineExpose({
+  prepareTour,
+  endTour,
+  tourBlocked,
   openAccounts: () => safely(openAccounts),
   openHistory: () => safely(showHistory),
   newSearch,
@@ -969,12 +1025,14 @@ defineExpose({
       <div class="discovery-list">
         <div class="discovery-search">
           <n-input
+            data-tour="discovery-keyword"
             v-model:value="keyword"
             :disabled="inputsDisabled"
             :placeholder="label('keyword')"
             @keyup.enter="submitSearch"
           />
           <n-select
+            data-tour="discovery-city"
             :key="citySelectionVersion"
             v-model:value="city"
             :disabled="inputsDisabled || !selectedPlatforms.length || !cityOptions.length"
@@ -996,6 +1054,7 @@ defineExpose({
           />
           <div class="discovery-search-buttons">
             <n-button
+              data-tour="discovery-search"
               type="primary"
               :loading="busy"
               :disabled="!running && (run ? !!verificationState : !selectedPlatforms.length)"
@@ -1037,6 +1096,7 @@ defineExpose({
           )
         }}</small>
         <n-checkbox-group
+          data-tour="discovery-platforms"
           :value="selectedPlatforms"
           class="discovery-platforms"
           @update:value="selectPlatforms"
@@ -1048,7 +1108,7 @@ defineExpose({
             :disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
             :aria-disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
         /></n-checkbox-group>
-        <div v-if="filtersOpen" class="discovery-filters">
+        <div v-if="filtersOpen" class="discovery-filters" data-tour="discovery-salary">
           <n-input-number
             v-model:value="salaryMin"
             :disabled="inputsDisabled"
@@ -1087,8 +1147,7 @@ defineExpose({
             label('refreshResults')
           }}</n-button>
         </div>
-        <p v-if="run" class="discovery-subtitle">{{ label('appendOrder') }}</p>
-        <div class="discovery-cards">
+        <div class="discovery-cards" data-tour="discovery-results">
           <p v-if="!results?.items.length" class="discovery-empty">
             {{ label(run ? 'empty' : 'intro') }}
           </p>
@@ -1131,7 +1190,11 @@ defineExpose({
         @keydown.left="split = Math.max(28, split - 2)"
         @keydown.right="split = Math.min(65, split + 2)"
       />
-      <div class="discovery-detail" :class="{ 'discovery-detail-web': webMode && selected }">
+      <div
+        class="discovery-detail"
+        data-tour="discovery-details"
+        :class="{ 'discovery-detail-web': webMode && selected }"
+      >
         <n-button
           v-if="!webMode || !selected"
           class="discovery-back-list"
@@ -1199,16 +1262,30 @@ defineExpose({
         </template>
       </div>
     </div>
-    <n-modal :show="accounts" :mask-closable="false" @update:show="!$event && closeAccounts()">
+    <n-modal
+      :show="accounts"
+      :mask-closable="false"
+      :trap-focus="!tourAccounts"
+      :auto-focus="!tourAccounts"
+      :close-on-esc="!tourAccounts"
+      :show-mask="!tourAccounts"
+      @after-enter="tourAccountsEntered = true"
+      @update:show="!$event && closeAccounts()"
+    >
       <n-card
         class="discovery-dialog discovery-accounts"
+        :data-tour-owned-modal="tourAccounts ? '' : undefined"
         :class="{ 'discovery-source-login': sourceLogin }"
         :title="label(sourceLogin ? 'qrPanelTitle' : 'accounts')"
         closable
         @close="closeAccounts"
       >
         <div class="discovery-account-layout">
-          <div v-if="!sourceLogin" class="discovery-account-left">
+          <div
+            v-if="!sourceLogin"
+            class="discovery-account-left"
+            data-tour="discovery-account-list"
+          >
             <ul class="discovery-account-list">
               <li
                 v-for="item in accountStates"
@@ -1259,6 +1336,7 @@ defineExpose({
             <p class="discovery-subtitle discovery-login-hint">{{ label('loginHint') }}</p>
           </div>
           <DiscoveryLoginPanel
+            data-tour="discovery-qr-panel"
             :platform="loginPlatform"
             :account="selectedAccount"
             :state="qrState"

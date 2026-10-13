@@ -2,6 +2,30 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
+// Unrelated smoke tests use the public controls/settings, never a product test-mode bypass.
+export async function skipToursForTest(page) {
+  await page.locator('.sidebar').waitFor()
+  // Vue can mount before the first load finishes. Reloading then aborts Main's
+  // initial loadFile promise and takes its fatal renderer-load failure path.
+  await page.waitForLoadState('load')
+  const config = await page.evaluate(() => window.zhijiApi.config.get())
+  if (['pending', 'inProgress'].includes(config.onboarding.app.status)) {
+    const skip = page.locator('.jobtrail-tour .driver-popover-close-btn')
+    await skip.waitFor()
+    await skip.click()
+    await page.locator('.jobtrail-tour').waitFor({ state: 'hidden' })
+  }
+  if (['pending', 'inProgress'].includes(config.onboarding.discovery.status)) {
+    await page.evaluate(() =>
+      window.zhijiApi.config.update({
+        onboarding: { discovery: { status: 'skipped', stepId: null } },
+      }),
+    )
+    await page.reload()
+    await page.locator('.sidebar').waitFor()
+  }
+}
+
 export async function waitFor(predicate, description, timeout = 15_000) {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {

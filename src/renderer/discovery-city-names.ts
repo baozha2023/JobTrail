@@ -1,5 +1,6 @@
 // Display translations only. Canonical query names stay in the platform catalogs.
 export const cityNamesEn: Readonly<Record<string, string>> = {
+  草湖: 'Caohu',
   阿坝: 'Aba',
   阿克苏: 'Aksu',
   阿拉尔: 'Alar',

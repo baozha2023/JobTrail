@@ -34,6 +34,46 @@ afterEach(async () => {
   for (const m of managers.splice(0)) await m.stop()
   vi.useRealTimers()
 })
+it.each(['wechat', 'app'] as const)(
+  'keeps Yupao %s credentials inside the Session transport',
+  async (method) => {
+    vi.useFakeTimers()
+    const f = fixture([
+      {
+        code: 0,
+        data: {
+          sunCode: 'mini-fixture',
+          sunCodeImg: png,
+          expireTime: 95,
+          qrCode: 'app-fixture',
+          qrCodeImg: png,
+        },
+      },
+      ...(method === 'app' ? [{ code: 0, data: { role: 2 } }] : []),
+      { code: 0, data: { token: 'synthetic-yupao-token' } },
+      {
+        code: 0,
+        data: [
+          {
+            url: 'https://passport-prod.yupao.com/account/v1/login/setCookie?ticket=synthetic-ticket',
+          },
+        ],
+      },
+      { code: 0 },
+      { code: 0, data: { userId: 123456, role: { nowRole: 2 } } },
+    ])
+    f.session.cookies.get = vi.fn().mockResolvedValue([{ value: 'synthetic-yupao-token' }])
+    const value = await f.manager.start('yupao', method)
+    expect(value).toMatchObject({ state: 'waiting', method })
+    await vi.advanceTimersByTimeAsync(method === 'app' ? 4000 : 2000)
+    expect(f.manager.get('yupao')).toMatchObject({ state: 'authenticated', image: null })
+    expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('yupao')
+    expect(f.flushStore).toHaveBeenCalledOnce()
+    expect(JSON.stringify(f.manager.get('yupao'))).not.toMatch(
+      /synthetic-yupao-token|synthetic-ticket|mini-fixture|app-fixture/,
+    )
+  },
+)
 it('requires Shixiseng scan confirmation, account identity and completed official binding', async () => {
   vi.useFakeTimers()
   const f = fixture([

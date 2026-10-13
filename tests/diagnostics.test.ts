@@ -103,6 +103,18 @@ describe('diagnostic protocol and normalization', () => {
       validateDiagnosticInput({ ...input, error: { ...input.error, request: 'private' } }),
     ).toBeNull()
   })
+  it.each([
+    'collect.session-expired',
+    'collect.network-error',
+    'detail.login-required',
+    'detail.parse-error',
+  ])('accepts hyphenated operation %s while rejecting underscores', (suffix) => {
+    const input = createErrorInput('main', `discovery.boss.${suffix}`, new Error('failure'))
+    expect(validateDiagnosticInput(input)?.operation).toBe(input.operation)
+    expect(
+      validateDiagnosticInput({ ...input, operation: input.operation.replaceAll('-', '_') }),
+    ).toBeNull()
+  })
   it('does not execute getters in exception diagnostic references', () => {
     initializeDiagnostics('main', '1.4.0', true, root())
     const getter = vi.fn(() => {

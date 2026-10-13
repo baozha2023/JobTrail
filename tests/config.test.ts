@@ -8,11 +8,16 @@ import { encryptConfig, decryptConfig } from '../src/main/config-crypto'
 import type { AppConfig, AppConfigUpdate } from '../src/shared/types'
 const readStored = (file: string): AppConfig =>
   decryptConfig(fs.readFileSync(file, 'utf8')) as AppConfig
-import { updateFreezePath } from '../src/main/update-freeze'
+import {
+  assertUpdateWritable,
+  updateFreezePath,
+  waitForStartupThaw,
+} from '../src/main/update-freeze'
 
 describe('config service', () => {
   const roots: string[] = []
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
     for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
   })
@@ -61,9 +66,48 @@ describe('config service', () => {
     })
   })
 
+  it('persists independent tour progress and rejects invalid nested state without repairing it', () => {
+    const paths = createPaths()
+    const service = new ConfigService(paths)
+    expect(service.get().configVersion).toBe(2)
+    service.update({ onboarding: { app: { status: 'inProgress', stepId: 'companies' } } })
+    service.update({ onboarding: { discovery: { status: 'inProgress', stepId: 'qr-panel' } } })
+    service.update({ locale: 'en-US' })
+    expect(new ConfigService(paths).get().onboarding).toEqual({
+      app: { status: 'inProgress', stepId: 'companies' },
+      discovery: { status: 'inProgress', stepId: 'qr-panel' },
+    })
+    const original = fs.readFileSync(paths.config)
+    for (const onboarding of [
+      {},
+      { unknown: {} },
+      { app: {} },
+      { app: { status: 'pending' } },
+      { app: { status: 'inProgress', stepId: null } },
+      { app: { status: 'inProgress', stepId: 'qr-panel' } },
+      { discovery: { status: 'inProgress', stepId: 'companies' } },
+      { app: { status: 'completed', stepId: 'settings' } },
+      { app: { status: 'skipped', stepId: null, extra: true } },
+      { app: { status: 'unknown', stepId: null } },
+    ]) {
+      expect(() => service.update({ onboarding } as AppConfigUpdate)).toThrow()
+      expect(fs.readFileSync(paths.config)).toEqual(original)
+    }
+    const invalid = encryptConfig({
+      ...service.get(),
+      onboarding: {
+        ...service.get().onboarding,
+        app: { status: 'inProgress', stepId: 'removed-step' },
+      },
+    })
+    fs.writeFileSync(paths.config, invalid)
+    expect(() => new ConfigService(paths)).toThrow('CONFIG_INVALID')
+    expect(fs.readFileSync(paths.config, 'utf8')).toBe(invalid)
+  })
+
   it('rejects every missing or unknown persisted field without repairing the file', () => {
     const paths = createPaths()
-    for (const group of [null, 'mcp', 'ai'] as const) {
+    for (const group of [null, 'mcp', 'ai', 'onboarding'] as const) {
       const fields = Object.keys(group === null ? DEFAULT_CONFIG : DEFAULT_CONFIG[group])
       for (const field of [...fields, 'unknownExtension']) {
         const value = structuredClone(DEFAULT_CONFIG) as unknown as Record<string, unknown>
@@ -122,6 +166,38 @@ describe('config service', () => {
     expect(fs.readFileSync(paths.config)).toEqual(original)
   })
 
+  it('waits for the startup supervisor to thaw without lifting a maintenance freeze itself', async () => {
+    vi.useFakeTimers()
+    const paths = createPaths()
+    const config = new ConfigService(paths)
+    const freeze = updateFreezePath(paths.root)
+    fs.mkdirSync(path.dirname(freeze), { recursive: true })
+    fs.writeFileSync(freeze, '')
+    let ready = false
+    const startup = waitForStartupThaw(paths.root).then(() => {
+      ready = true
+    })
+    await vi.advanceTimersByTimeAsync(100)
+    expect(ready).toBe(false)
+    expect(fs.existsSync(freeze)).toBe(true)
+    fs.rmSync(freeze)
+    await vi.advanceTimersByTimeAsync(50)
+    await startup
+    expect(ready).toBe(true)
+    expect(
+      config.update({ onboarding: { app: { status: 'inProgress', stepId: 'calendar' } } })
+        .onboarding.app.stepId,
+    ).toBe('calendar')
+    // A later maintenance operation still prevents writes after the one-shot startup wait.
+    fs.writeFileSync(freeze, '')
+    expect(() => assertUpdateWritable(paths.root)).toThrow('应用正在更新')
+    const timedOut = waitForStartupThaw(paths.root)
+    await vi.advanceTimersByTimeAsync(15_000)
+    await timedOut
+    expect(fs.existsSync(freeze)).toBe(true)
+    expect(() => config.update({ locale: 'en-US' })).toThrow('应用正在更新')
+  })
+
   it('preserves malformed and unsupported-version config files without resetting settings', () => {
     const paths = createPaths()
     const malformed = '{ broken'
@@ -130,7 +206,7 @@ describe('config service', () => {
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(malformed)
     expect(fs.readdirSync(paths.root)).toEqual(['config.json'])
 
-    const future = encryptConfig({ configVersion: 2, ai: { apiKey: 'preserve-me' } })
+    const future = encryptConfig({ configVersion: 3, ai: { apiKey: 'preserve-me' } })
     fs.writeFileSync(paths.config, future)
     expect(() => new ConfigService(paths)).toThrow('CONFIG_VERSION_UNSUPPORTED')
     expect(fs.readFileSync(paths.config, 'utf8')).toBe(future)

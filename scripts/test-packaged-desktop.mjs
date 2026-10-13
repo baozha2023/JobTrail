@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram, withoutSystemEdge } from './packaged-test-helpers.mjs'
+import {
+  skipToursForTest,
+  linkPackagedProgram,
+  withoutSystemEdge,
+} from './packaged-test-helpers.mjs'
 import { checkWorkspaceHeader } from './workspace-header-check.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
@@ -27,6 +31,7 @@ async function launch() {
   page.setDefaultTimeout(15000)
   page.on('pageerror', (error) => errors.push(error.message))
   await page.locator('.sidebar').waitFor()
+  await skipToursForTest(page)
   assert.equal(await page.evaluate(() => window.velopackApi.getVersion()), version)
   await page.locator('.n-spin-body').waitFor({ state: 'hidden' })
   await page.locator('.n-data-table-loading-wrapper').waitFor({ state: 'hidden' })

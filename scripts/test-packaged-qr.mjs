@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram, waitFor } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 fs.mkdirSync(path.join(project, 'dist/qa'), { recursive: true })
@@ -21,10 +21,11 @@ try {
   })
   const page = await app.firstWindow()
   const mainWindow = await app.browserWindow(page)
+  await skipToursForTest(page)
   await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   const report = []
-  const candidates = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
+  const candidates = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao']
   const selected = process.argv[2]
   const selectedMethod = process.argv[3]
   assert.ok(!selected || candidates.includes(selected), 'Unknown QR test platform')

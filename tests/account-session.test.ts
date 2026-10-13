@@ -73,6 +73,29 @@ it('permits the official Zhaopin WeChat image endpoint only for image downloads'
   expect(f.fetch).toHaveBeenCalledOnce()
   expect(f.cookies.set).not.toHaveBeenCalled()
 })
+it('reads binary QR images by raster signature without granting the CDN account access', async () => {
+  const f = fixture(),
+    url = 'https://stat108.cdqlkj.cn/r/synthetic.jpg'
+  const login = accountLoginTransport('yupao', f.session, f.controller.signal, f.callbacks)
+  const jpeg = new Uint8Array([255, 216, 255, 224, 255, 217])
+  f.fetch.mockImplementation(
+    async () => new Response(jpeg, { headers: { 'content-type': 'application/octet-stream' } }),
+  )
+  expect(await login.image(url)).toBe(
+    `data:image/jpeg;base64,${Buffer.from(jpeg).toString('base64')}`,
+  )
+  expect(allowedPage('yupao', url)).toBe(false)
+  await expect(login.json(url, (value) => value)).rejects.toMatchObject({ reason: 'protocol' })
+  await expect(login.cookie(url, 'TOKEN')).rejects.toMatchObject({ reason: 'protocol' })
+  expect(f.fetch).toHaveBeenCalledOnce()
+  for (const invalid of ['<html>登录页</html>', '<svg onload="alert(1)"></svg>', 'not an image']) {
+    f.fetch.mockImplementation(
+      async () =>
+        new Response(invalid, { headers: { 'content-type': 'application/octet-stream' } }),
+    )
+    await expect(login.image(url)).rejects.toMatchObject({ reason: 'protocol' })
+  }
+})
 
 it.each(platforms)(
   'checks %s using the shared account boundary and its own adapter',
@@ -84,14 +107,16 @@ it.each(platforms)(
           JSON.stringify(
             platform === 'iguopin'
               ? { code: 200, data: { id: 'personal-account', user_type: 'personal' } }
-              : { code: 100, msg: { uuid: 'personal-account' } },
+              : platform === 'yupao'
+                ? { code: 0, data: { userId: 12345, role: { nowRole: 2 } } }
+                : { code: 100, msg: { uuid: 'personal-account' } },
           ),
         ),
     )
     expect(await checkAccountSession(platform, f.session, f.controller.signal, f.page)).toBe(
       'authenticated',
     )
-    if (platform === 'iguopin' || platform === 'shixiseng') {
+    if (platformAdapter(platform).sessionCheck === 'batch') {
       expect(f.fetch).toHaveBeenCalledOnce()
       expect(f.page).not.toHaveBeenCalled()
     } else {

@@ -9,6 +9,9 @@
 | `pack-velopack.mjs`                                          | `pnpm release:win`：生成安装器与更新资产                       |
 | `resolve-velopack-baseline.mjs`、`release-proxy.mjs`         | `pack-velopack.mjs`：基线资产解析与发布网络访问                |
 | `finalize-velopack-assets.mjs`、`company-catalog-assets.mjs` | `pack-velopack.mjs`：整理更新资产、校验并生成公司目录 manifest |
+| `cleanup-release-output.mjs`                                 | `pack-velopack.mjs`：发布成功后按固定清单清理中间产物          |
+
+`pnpm release:win` 在全部验收、安装器和更新资产生成及校验成功后，自动删除 `dist/win-unpacked/`、`dist/qa/`、`dist/compatibility/`、`builder-debug.yml`、`builder-effective-config.yaml`、`exam-smoke.png` 和 `exam-smoke-failure.png`（文件均位于 `dist/`），以及 `dist` 下以 `.discovery-dialogs-`、`.discovery-mcp-`、`.session-restart-`、`.onboarding-` 开头并带六位字母数字随机后缀的隔离验收目录。保留 `dist/velopack/` 发布资产和清单外文件；构建失败时不执行此收尾清理，便于排查。清理拒绝链接目录或类型异常，失败使发布命令非零退出。需要保留的验收报告应事先另存；发布成功后若要单独运行安装包验收，先重新执行 `pnpm package:win`。
 
 这些模块对应的 `*.test.mjs` 由 `pnpm test` 自动发现，不需要逐个加入命令。测试不执行发布。
 
@@ -24,7 +27,7 @@
 | `pnpm test:mcp:package`                              | `test-packaged-mcp.mjs` 验证独立 MCP、系统 Edge 与 sandbox、动态网页、无 Edge 错误及协议行为                                                          |
 | `pnpm test:mcp:launcher`                             | `test-mcp-launcher.mjs` 用 Cargo 锁文件构建启动器，再验证更新与 MCP 启动                                                                              |
 | `pnpm test:agent:package`、`pnpm test:exams:package` | `test-packaged-agent.mjs`、`test-packaged-exams.mjs` 验证智能体和试卷完整流程；智能体 worker 通过测试专用 bootstrap 禁止外部 fetch，验证随包本地分词  |
-| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.1.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
+| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.2.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
 | `pnpm test:diagnostics:package`                      | `test-packaged-diagnostics.mjs` 验证 MCP / Agent 文件诊断与输出隔离                                                                                   |
 | `pnpm test:discovery:local`                          | 岗位发现连接安全、界面、合成会话重启、MCP 冷启动及已有桌面复用；全部使用隔离安装目录，不访问招聘网站                                                  |
 
@@ -38,16 +41,17 @@
 
 岗位发现发布验收还包含以下入口；数据与会话均使用独立临时目录：
 
-- `node scripts/test-discovery-network.mjs`：在真实安装包与隔离 Session 中确认六个平台均采用系统网络配置，再以临时本机代理和 HTTPS 服务验证 Chromium 的 TLS、Session.fetch、页面、Service Worker、Cookie、重定向和取消。模拟代理只作用于测试 Session，不改变 Windows 设置、不安装系统证书、不访问招聘网站，属于 `test:discovery:local`。账号会话单元测试覆盖系统配置初始化、并发、失败重试及关闭/恢复。
+- `pnpm test:onboarding:package`：验证全应用 9 步和岗位发现 12 步引导、重启续接、两套独立进度、真实账号弹窗前后切换、空结果、中英文、深浅色、窄窗口缩放、焦点与设置页重新开始，截图保存到 `dist/qa/onboarding-*.png`。另用合成岗位与隔离本地 HTTPS 页面验证同一原生网页在引导期间隐藏、退出后恢复。不申请二维码、不登录、不提交搜索。属于 `test:desktop:package`；其他安装包脚本通过真实引导入口跳过基础引导，并通过正式配置 IPC 结束专项引导，避免干扰各自业务验收。
+- `node scripts/test-discovery-network.mjs`：在真实安装包与隔离 Session 中确认所有平台均采用系统网络配置，再以临时本机代理和 HTTPS 服务验证 Chromium 的 TLS、Session.fetch、页面、Service Worker、Cookie、重定向和取消。模拟代理只作用于测试 Session，不改变 Windows 设置、不安装系统证书、不访问招聘网站，属于 `test:discovery:local`。账号会话单元测试覆盖系统配置初始化、并发、失败重试及关闭/恢复。
 - `node scripts/test-discovery-dialogs.mjs`：合成数据验证登录平台默认勾选、未登录禁用、手动取消选择保留、退出同步、搜索/取消共用按钮和旋转图标，以及账号/历史弹窗、城市选择和历史删除。尺寸与缩放检查前先恢复最小化或隐藏的窗口、退出最大化，等待原生尺寸与渲染视口同步；失败时记录目标尺寸、实际尺寸、缩放和窗口状态。登录和会话失效提示验证共享扫码面板、二维码解码、无额外网站窗口及取消后保留提示；网站验证提示使用隔离 Session 的本地 HTTPS 页面验证同行按钮、独立窗口安全设置、重复点击、关窗不误消提示及队列推进。这些合成场景不代表真实网站验证成功。属于 `test:discovery:local`。
 - `node scripts/test-packaged-session-restart.mjs`：合成会话材料验证重启保留，运行时不访问真实账号。属于 `test:discovery:local`。
 - `node scripts/test-discovery-mcp-startup.mjs` 及追加 `--existing`：验证 MCP 后台启动、并发启动合并和复用已有桌面。两个模式都属于 `test:discovery:local`。
 - `node scripts/test-desktop-lifecycle.mjs`：验证隐藏后台页面存在时的退出、托盘和重复启动；属于 `test:desktop:package`。
-- `pnpm test:discovery:package`：在隔离安装目录检查六平台账号界面、匿名搜索的后端登录准入、零批次/零结果以及历史查看；不访问真实账号，不宣称已验证登录后的列表、JD 或保存链路。
+- `pnpm test:discovery:package`：在隔离安装目录检查各平台账号界面、匿名搜索的后端登录准入、零批次/零结果以及历史查看；不访问真实账号，不宣称已验证登录后的列表、JD 或保存链路。
 - `node scripts/test-packaged-qr.mjs [平台] [app|wechat]`、`node scripts/test-packaged-qr-verification.mjs`：真实二维码及官方验证窗口，需要公网连接。二维码脚本可指定平台和方式，检查界面切换、图片解码、未扫码状态、刷新后保留方式及关闭取消，例如 `boss app`、`liepin app`、`zhilian wechat`；单方式报告分别保存，避免覆盖。网站阻断不表示搜索、JD 或登录验收通过。官方验证脚本在未触发 challenge 时会明确记录验证路径未执行，不代表验证交互通过。
 - `node scripts/test-discovery-live.mjs [平台|all] [用例|all]`：源码级手动联网诊断，调用 `discovery-live-worker.ts`；每次建立全新的匿名数据和 Session，不读取开发目录配置、数据库或登录态。独立观察来源响应并按生产适配器解析结果核对数据库身份集合、薪资准入、续查和 10/20/50 条稳定分页；不能作为解析器正确性的独立证据，不覆盖 JD 或真实扫码登录。用例为 `salary`、`salary-min`、`salary-max`、`agent`、`java-beijing`、`java-shanghai`、`no-city`、`empty`。阻断结果使进程非零退出，并保存脱敏报告至 `dist/qa/`。
 
-`release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。已知发布阻断以 `CLAUDE.md` 和 `docs/job-discovery.md` 为准。
+`release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。已知发布阻断以 `AGENTS.md` 和 `docs/job-discovery.md` 为准。
 
 使用真实开发环境已有登录会话测试招聘网站，仅属于用户本次指定的专项检查，不随开发启动、构建、打包、常规测试或发布自动执行。后续构建不重复使用本次账号检查授权；自动回归使用隔离数据、合成会话和本地测试页面。
 
@@ -59,7 +63,7 @@
 
 `test-launcher-update.mjs` 由启动器测试和发布脚本共同调用。`assert-root-error-dialog.ps1` 由 MCP 安装包测试调用，负责 Windows 原生错误对话框断言。
 
-涉及 IPC 的异步条件使用 `packaged-test-helpers.mjs` 的 `waitFor` 等待 Promise 完成；DOM 条件使用 `page.waitForFunction`。二维码图片使用解码结果确认可用，未执行的验证、详情或保存路径明确记录为未通过。
+涉及 IPC 的异步条件使用 `packaged-test-helpers.mjs` 的 `waitFor` 等待 Promise 完成；DOM 条件使用 `page.waitForFunction`。`skipToursForTest` 在首屏 `load` 完成后才操作引导及刷新页面，避免 Vue 已挂载但 Main 初始导航尚未完成时中断加载。二维码图片使用解码结果确认可用，未执行的验证、详情或保存路径明确记录为未通过。
 
 公共网络 URL 边界由 `tests/web-retrieval.test.ts` 覆盖：10240 字符接受、超过上限拒绝，长 URL 仍须通过协议、端口、凭据及公网地址检查。岗位响应分类、登录阻断优先级及已提交批次保留由岗位发现适配器和运行时测试覆盖。
 

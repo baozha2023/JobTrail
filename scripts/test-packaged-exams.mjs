@@ -5,7 +5,7 @@ import http from 'node:http'
 import * as yauzl from 'yauzl'
 import { _electron as electron } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')).version
@@ -189,6 +189,7 @@ try {
   let page = await application.firstWindow()
   page.setDefaultTimeout(60000)
   await page.locator('.sidebar').waitFor()
+  await skipToursForTest(page)
   assert.equal(await page.evaluate(() => window.velopackApi.getVersion()), version)
   fs.writeFileSync(path.join(root, '.jobtrail-root'), 'jobtrail-root-v1\n')
   fs.writeFileSync(
@@ -417,7 +418,7 @@ try {
   })
   const manifest = JSON.parse(entries['manifest.json'])
   assert.equal(manifest.schemaVersion, 1)
-  assert.equal(manifest.environment.databaseVersion, 5)
+  assert.equal(manifest.environment.databaseVersion, 6)
   assert.equal(manifest.health.degraded, false)
   assert.ok(
     Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),

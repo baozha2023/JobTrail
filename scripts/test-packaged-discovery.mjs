@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.discovery-smoke-'))
@@ -31,12 +31,13 @@ try {
   page.setDefaultTimeout(20000)
   page.on('pageerror', (e) => errors.push(e.message))
   await page.locator('.sidebar').waitFor()
+  await skipToursForTest(page)
   await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
   await page.getByPlaceholder('关键词', { exact: true }).fill('Java')
   await page.screenshot({ path: path.join(qa, 'discovery-empty.png') })
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   await page.locator('.discovery-account').first().waitFor()
-  assert.equal(await page.locator('.discovery-account').count(), 6)
+  assert.equal(await page.locator('.discovery-account').count(), 7)
   await page.screenshot({ path: path.join(qa, 'discovery-accounts.png') })
   await page
     .locator('.discovery-accounts')
@@ -49,7 +50,7 @@ try {
       query: {
         keyword: 'Java',
         city: '上海',
-        platforms: ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng'],
+        platforms: ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao'],
       },
     }),
   )
@@ -72,7 +73,7 @@ try {
     ),
   )
   report.run = result
-  assert.equal(result.sources.length, 6)
+  assert.equal(result.sources.length, 7)
   for (const source of result.sources) {
     assert.equal(source.state, 'login_required')
     assert.equal(source.count, 0)
@@ -95,7 +96,7 @@ try {
   )
   report.passed = true
   console.log(
-    'All six packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
+    'All seven packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
     staging,
   )
 } finally {

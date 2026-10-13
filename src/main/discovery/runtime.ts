@@ -627,7 +627,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
       update()
     } finally {
       recordEvent({
-        operation: `discovery.${p}.collect.${progress.state}`,
+        operation: `discovery.${p}.collect.${progress.state.replaceAll('_', '-')}`,
         attributes: {
           count: progress.count,
           failedCount: progress.rejectedCount,
@@ -934,7 +934,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
         }
         if (snapshot.challenge || snapshot.login || !raw.detailRead)
           recordEvent({
-            operation: `discovery.${job.platform}.detail.${snapshot.challenge ? 'challenge' : snapshot.login ? 'login_required' : 'parse_error'}`,
+            operation: `discovery.${job.platform}.detail.${snapshot.challenge ? 'challenge' : snapshot.login ? 'login-required' : 'parse-error'}`,
           })
         this.service.work.run(() =>
           this.service.repository.observe(raw, runId, Date.now(), 'detail'),

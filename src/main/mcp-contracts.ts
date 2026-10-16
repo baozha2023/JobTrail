@@ -207,7 +207,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'get_job_platform_status',
     title: '招聘平台状态',
     description:
-      '读取各招聘平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话；登录和网站验证必须由用户在岗位发现的账号管理中完成。',
+      '读取各招聘平台的会话、能力及字段限制。check=true 时检查桌面 Chromium 会话。login_required/session_expired 需要扫码登录，challenge 需要用户完成网站验证。内置智能体提供聊天处理卡片；外接 MCP 客户端应告知受阻平台，引导用户打开职迹的岗位发现处理登录或网站验证。MCP 不提供二维码、验证地址或浏览器控制。',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,
@@ -231,7 +231,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'get_job_search',
     title: '查询搜索进度',
     description:
-      '读取任务及各来源覆盖、阻断和恢复提示。login_required/session_expired 需用户登录；challenge 需用户验证；scope_unverified 不应解释为零结果。',
+      '读取任务及各来源覆盖、阻断和恢复提示。login_required/session_expired 需用户扫码登录；challenge 需用户在官方窗口完成验证并手动关窗。内置智能体提供聊天处理卡片；外接 MCP 客户端应引导用户打开职迹岗位发现的对应搜索历史，点击平台异常提示。完成后用本工具复核任务，可用 continue_job_search 继续原任务。遇到人工阻断时停止反复轮询，保留并使用已有结果，不解释为零结果。scope_unverified 不应解释为零结果。',
     readOnly: true,
     inputSchema: z.strictObject({ runId: z.string().uuid() }),
     outputSchema: z.strictObject({ item: discoveryRunOutputSchema }),
@@ -279,7 +279,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'get_discovered_job',
     title: '读取发现岗位详情',
     description:
-      'mode=snapshot（默认）读取指定 viewId/observationId 或当前搜索观察；mode=ensure 按需补全，复用最新完整详情的30分钟缓存；mode=refresh 强制重新读取网站。补全不改变固定视图顺序与观察，不符合原薪资条件时移除当前结果并返回 removedFromCurrentSearch。确认下架后删除发现岗位及所有结果、视图和观察，保留已有求职记录，返回 DISCOVERY_JOB_OFFLINE。',
+      'jobId 必须使用 list_discovered_jobs 返回的 items[].id，不得使用 externalId 或网址中的平台岗位 ID。mode=snapshot（默认）读取指定 viewId/observationId 或当前搜索观察；mode=ensure 按需补全，复用最新完整详情的30分钟缓存；mode=refresh 强制重新读取网站。补全不改变固定视图顺序与观察，不符合原薪资条件时移除当前结果并返回 removedFromCurrentSearch。确认下架后删除发现岗位及所有结果、视图和观察，保留已有求职记录，返回 DISCOVERY_JOB_OFFLINE。',
     readOnly: true,
     readOnlyHint: false,
     openWorld: true,

@@ -215,6 +215,11 @@ function createWindow(config: ConfigService): void {
   })
   mainWindow = window
   trustWindow(window)
+  window.webContents.on('did-start-navigation', (_event, _url, inPlace, mainFrame) => {
+    if (mainFrame && !inPlace) agent?.releaseQueueEdits()
+  })
+  window.webContents.on('render-process-gone', () => agent?.releaseQueueEdits())
+  window.on('closed', () => agent?.releaseQueueEdits())
   window.once('ready-to-show', () => {
     if (isQuitting) return
     ensureDevelopmentTaskbarIdentity()

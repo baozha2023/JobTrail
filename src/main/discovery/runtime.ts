@@ -659,6 +659,25 @@ export class DiscoveryRuntime implements DiscoveryLive {
   }
   private recheckVerification(attempt: VerificationAttempt) {
     attempt.phase = 'checking'
+    const runId = attempt.runId
+    if (runId === null) {
+      const task = this.lane(attempt.platform, async () => {
+        await this.checkAuthentication(
+          attempt.platform,
+          AbortSignal.any([attempt.controller.signal, AbortSignal.timeout(15000)]),
+        )
+      })
+        .catch((error) => {
+          if (!attempt.controller.signal.aborted)
+            captureError(error, { operation: 'discovery.verification.recheck', level: 'warn' })
+        })
+        .finally(() => {
+          if (this.verificationAttempt === attempt) this.verificationAttempt = undefined
+          this.tasks.delete(task)
+        })
+      this.tasks.add(task)
+      return
+    }
     // Both official QR confirmation and a user-closed challenge window require
     // a fresh committed search batch before the source warning can be cleared.
     const task = bounded(
@@ -669,11 +688,11 @@ export class DiscoveryRuntime implements DiscoveryLive {
         this.lane(attempt.platform, async () => {
           attempt.controller.signal.throwIfAborted()
           this.writable(attempt.platform)
-          const run = this.service.repository.run(attempt.runId)
+          const run = this.service.repository.run(runId)
           const source = run.sources.find((s) => s.platform === attempt.platform)!
           if (run.state === 'cancelled' || !needsHumanAction(source.state)) return
-          this.controllers.set(attempt.runId, attempt.controller)
-          this.service.work.run(() => this.service.repository.state(attempt.runId, 'running'))
+          this.controllers.set(runId, attempt.controller)
+          this.service.work.run(() => this.service.repository.state(runId, 'running'))
           const timer = setTimeout(
             () => attempt.controller.abort(new SourceError('timeout')),
             90000,
@@ -681,16 +700,16 @@ export class DiscoveryRuntime implements DiscoveryLive {
           try {
             this.releaseQueries(undefined, attempt.platform)
             this.cache.clear()
-            await this.collect(attempt.runId, run.query, source, attempt.controller.signal, () => {
+            await this.collect(runId, run.query, source, attempt.controller.signal, () => {
               attempt.phase = 'resuming'
             })
           } finally {
             clearTimeout(timer)
-            const updated = this.service.repository.run(attempt.runId)
+            const updated = this.service.repository.run(runId)
             if (updated.state !== 'cancelled')
               this.service.work.run(() =>
                 this.service.repository.state(
-                  attempt.runId,
+                  runId,
                   updated.sources.every((s) => s.state === 'completed') ? 'completed' : 'partial',
                 ),
               )
@@ -703,8 +722,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
       })
       .finally(() => {
         if (this.verificationAttempt === attempt) this.verificationAttempt = undefined
-        if (this.controllers.get(attempt.runId) === attempt.controller)
-          this.controllers.delete(attempt.runId)
+        if (this.controllers.get(runId) === attempt.controller) this.controllers.delete(runId)
         this.tasks.delete(task)
       })
     this.runTail = task
@@ -714,14 +732,15 @@ export class DiscoveryRuntime implements DiscoveryLive {
     input: Parameters<DiscoveryApi['verification']>[0],
   ): Promise<SourceVerificationState | null> {
     const args = sourceVerificationSchema.parse(input)
-    if (args.action !== 'open' && args.action !== 'recheck') {
+    if (args.action !== 'open' && args.action !== 'recheck' && args.action !== 'account') {
       if (args.action === 'close') this.closeVerification()
       return this.verificationState()
     }
     this.writable(args.platform)
+    const runId = args.action === 'account' ? null : args.runId
     const current = this.verificationAttempt
     if (current) {
-      if (current.runId !== args.runId || current.platform !== args.platform)
+      if (current.runId !== runId || current.platform !== args.platform)
         throw new AppServiceError(
           'DISCOVERY_UNAVAILABLE',
           'Complete the current verification first',
@@ -734,14 +753,17 @@ export class DiscoveryRuntime implements DiscoveryLive {
       current.window?.focus()
       return this.verificationState()
     }
-    const run = this.service.repository.run(args.runId)
-    const source = run.sources.find((s) => s.platform === args.platform)
+    const run = runId ? this.service.repository.run(runId) : null
+    const source = run?.sources.find((s) => s.platform === args.platform)
+    const account = this.service.repository.status().find((s) => s.platform === args.platform)
     if (
-      run.state === 'cancelled' ||
-      !source ||
-      (args.action === 'open'
-        ? source.state !== 'challenge'
-        : source.state !== 'login_required' && source.state !== 'session_expired')
+      args.action === 'account'
+        ? account?.state !== 'challenge'
+        : run?.state === 'cancelled' ||
+          !source ||
+          (args.action === 'open'
+            ? source.state !== 'challenge'
+            : source.state !== 'login_required' && source.state !== 'session_expired')
     )
       throw new AppServiceError('VALIDATION_ERROR', 'This source does not need human verification')
     if (args.action === 'recheck') {
@@ -757,7 +779,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
       this.recheckVerification(attempt)
       return this.verificationState()
     }
-    const key = args.runId + ':' + args.platform
+    const key = runId + ':' + args.platform
     const context = this.queries.get(key)
     const detailChallenge = this.detailChallenges.get(key)
     this.detailChallenges.delete(key)
@@ -765,7 +787,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
     // view reloads its exact official address in the same platform Session.
     this.queries.delete(key)
     const attempt: VerificationAttempt = {
-      runId: args.runId,
+      runId,
       platform: args.platform,
       phase: 'open',
       view:

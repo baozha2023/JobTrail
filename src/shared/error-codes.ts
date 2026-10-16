@@ -1,4 +1,16 @@
 export const ERROR_CODES = {
+  AGENT_QUEUE_FULL: {
+    category: 'validation',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.AGENT_QUEUE_FULL',
+  },
+  AGENT_QUEUE_CHANGED: {
+    category: 'business',
+    level: 'info',
+    ui: true,
+    translationKey: 'error.AGENT_QUEUE_CHANGED',
+  },
   DISCOVERY_UNSUPPORTED_CITY: {
     category: 'validation',
     level: 'warn',

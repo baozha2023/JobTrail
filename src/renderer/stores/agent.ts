@@ -2,8 +2,12 @@ import { useExamsStore } from './exams'
 import { isExamTool } from '../../shared/exam-tools'
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
+import { type DiscoveryRecoveryTarget } from '../../shared/job-discovery'
 import type {
   AgentAttachment,
+  AgentQueueSnapshot,
+  AgentQueueEdit,
+  AgentJobSnapshot,
   AgentConversation,
   AgentDraftPart,
   AgentEvent,
@@ -12,7 +16,7 @@ import type {
   AgentPending,
   AgentUsage,
 } from '../../shared/types'
-import { getErrorMessage } from '../utils/errors'
+import { errorCode, getErrorMessage } from '../utils/errors'
 import { i18n } from '../i18n'
 import { reportRendererFault } from '../diagnostics'
 
@@ -23,6 +27,8 @@ interface SubmittedMessage {
   attachments: AgentAttachment[]
 }
 export interface AgentSession {
+  queue: AgentQueueSnapshot
+  enqueueing: boolean
   messages: AgentMessage[]
   usage: AgentUsage | null
   pending: AgentPending | null
@@ -46,6 +52,8 @@ export interface AgentSession {
 
 function emptySession(): AgentSession {
   return {
+    queue: { revision: 0, internal: [], external: [], failed: [], blocked: null },
+    enqueueing: false,
     messages: [],
     usage: null,
     pending: null,
@@ -84,12 +92,14 @@ export const useAgentStore = defineStore('agent', () => {
   const conversations = ref<AgentConversation[]>([])
   const currentId = ref<string | null>(null)
   const sessions = reactive<Record<string, AgentSession>>({})
+  const retiredJobs = new Map<string, Set<string>>()
   let unsubscribe: (() => void) | undefined
   let unsubscribeExternal: (() => void) | undefined
   let started: Promise<void> | undefined
 
   function session(id: string): AgentSession {
-    return (sessions[id] ??= emptySession())
+    sessions[id] ??= emptySession()
+    return sessions[id]
   }
 
   async function start(): Promise<void> {
@@ -128,17 +138,60 @@ export const useAgentStore = defineStore('agent', () => {
     })
   }
 
+  function applyQueue(id: string, queue: AgentQueueSnapshot): void {
+    const state = session(id)
+    if (queue.revision < state.queue.revision) return
+    state.queue = queue
+    const failed = new Set(queue.failed.map((item) => `optimistic:${item.id}`))
+    state.messages = state.messages.filter((item) => !failed.has(item.id))
+    state.unverified = !!queue.blocked || !!state.submitted
+  }
+
+  function activeJob(id: string, job: AgentJobSnapshot | null): void {
+    const state = session(id)
+    if (state.jobId && state.jobId !== job?.jobId) {
+      const retired = retiredJobs.get(id) ?? new Set<string>()
+      retired.add(state.jobId)
+      retiredJobs.set(id, retired)
+    }
+    if (!job) {
+      state.jobId = null
+      state.sequence = 0
+      state.compacting = false
+      return
+    }
+    if (state.jobId !== job.jobId) {
+      state.jobId = job.jobId
+      state.sequence = job.sequence
+    }
+    state.compacting = job.operation === 'compact'
+    const optimistic = state.messages.find((message) => message.id === `optimistic:${job.jobId}`)
+    if (job.submittedParts && optimistic?.role === 'user') {
+      optimistic.parts = job.submittedParts
+      optimistic.attachments = job.submittedAttachments ?? []
+    }
+    if (
+      job.submittedParts &&
+      !state.messages.some(
+        (message) => message.id === job.jobId || message.id === `optimistic:${job.jobId}`,
+      )
+    )
+      state.messages.push({
+        id: `optimistic:${job.jobId}`,
+        role: 'user',
+        parts: job.submittedParts,
+        attachments: job.submittedAttachments ?? [],
+      })
+  }
+
   function applyHistory(id: string, history: AgentHistory): void {
     const state = session(id)
+    if (history.queue && history.queue.revision < state.queue.revision) return
+    if (history.queue) applyQueue(id, history.queue)
     const job = history.job
     if (job && state.jobId === job.jobId && state.sequence > job.sequence) return
     const messages = [...history.messages]
     if (job?.submittedParts && !messages.some((message) => message.id === job.jobId)) {
-      state.submitted = {
-        jobId: job.jobId,
-        parts: job.submittedParts,
-        attachments: job.submittedAttachments ?? [],
-      }
       messages.push({
         id: `optimistic:${job.jobId}`,
         role: 'user',
@@ -164,9 +217,11 @@ export const useAgentStore = defineStore('agent', () => {
         ? job.status
         : history.pending
           ? 'waiting'
-          : 'idle'
+          : state.queue.internal.length || state.queue.external.length
+            ? 'queued'
+            : 'idle'
     state.queuePosition = job?.queuePosition
-    if (!job) state.compacting = false
+    state.compacting = job?.operation === 'compact'
     if (
       !job &&
       state.submitted &&
@@ -189,6 +244,9 @@ export const useAgentStore = defineStore('agent', () => {
       state.sequence !== sequenceAtRequest
     )
       return
+    // Queue position changes also advance its revision without emitting a new
+    // job event. Fetch again so selecting a queued chat cannot leave history blank.
+    if (history.queue && history.queue.revision < state.queue.revision) return loadHistory(id)
     applyHistory(id, history)
   }
 
@@ -216,45 +274,48 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  function restoreSubmission(id: string, submitted: SubmittedMessage): void {
+  async function verifySubmission(id: string): Promise<boolean> {
     const state = session(id)
-    state.messages = state.messages.filter(
-      (message) => message.id !== `optimistic:${submitted.jobId}`,
-    )
-    state.uploads = submitted.attachments
-    state.draftParts = submitted.parts
-    state.draftVersion++
-    state.submitted = null
-    state.unverified = false
-    state.activity = 'idle'
-    state.jobId = null
-  }
-
-  async function verifySubmission(id: string): Promise<void> {
-    const state = session(id)
-    const submitted = state.submitted
-    if (!submitted || state.verifying) return
+    if (state.verifying) return false
     state.verifying = true
     try {
+      if (state.queue.blocked) applyQueue(id, await window.zhijiApi.agent.reconcileQueue(id))
       const history = await window.zhijiApi.agent.history(id)
-      if (
-        history.messages.some(
-          (message) => message.role === 'user' && message.id === submitted.jobId,
-        )
-      ) {
+      const submitted = state.submitted
+      let received = false
+      if (submitted) {
+        const receipt = await window.zhijiApi.agent.submission(id, submitted.jobId)
+        received =
+          !!receipt ||
+          history.job?.jobId === submitted.jobId ||
+          history.messages.some((message) => message.id === submitted.jobId) ||
+          [
+            ...(history.queue?.internal ?? []),
+            ...(history.queue?.external ?? []),
+            ...(history.queue?.failed ?? []),
+            ...(history.queue?.blocked ? [history.queue.blocked] : []),
+          ].some((item) => item.id === submitted.jobId)
         state.submitted = null
-        state.unverified = false
-        applyHistory(id, history)
-        state.error = ''
-      } else if (history.job?.jobId !== submitted.jobId) {
-        restoreSubmission(id, submitted)
-        state.error = i18n.global.t('agent.sendNotSaved')
-      } else state.unverified = true
+        if (
+          received &&
+          JSON.stringify(state.draftParts) === JSON.stringify(submitted.parts) &&
+          JSON.stringify(state.uploads.map((file) => file.id)) ===
+            JSON.stringify(submitted.attachments.map((file) => file.id))
+        ) {
+          state.draftParts = []
+          state.uploads = []
+          state.draftVersion++
+        }
+        if (!received) state.error = i18n.global.t('agent.sendNotSaved')
+      }
+      state.unverified = !!history.queue?.blocked
+      applyHistory(id, history)
+      return received
     } catch (cause) {
-      if (state.sequence === 0) state.activity = 'idle'
       state.unverified = true
       state.error = i18n.global.t('agent.sendUnverified')
       reportRendererFault('agent.verify-submission', cause)
+      return false
     } finally {
       state.verifying = false
     }
@@ -264,66 +325,82 @@ export const useAgentStore = defineStore('agent', () => {
     id: string,
     parts: AgentDraftPart[],
     attachments: AgentAttachment[],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const state = session(id)
-    if (
-      state.activity === 'running' ||
-      state.activity === 'queued' ||
-      state.pending ||
-      state.unverified
-    )
-      return
+    if (state.enqueueing || state.unverified || state.verifying) return false
     const jobId = crypto.randomUUID()
-    state.submitted = { jobId, parts, attachments }
-    state.messages.push({
-      id: `optimistic:${jobId}`,
-      role: 'user',
-      parts,
-      attachments,
-    })
-    state.uploads = []
-    state.draftParts = []
-    state.activity = 'queued'
-    state.jobId = jobId
-    state.sequence = 0
+    state.enqueueing = true
     state.error = ''
-    let receipt
     try {
-      receipt = await window.zhijiApi.agent.send(
+      await window.zhijiApi.agent.send(
         id,
         parts,
         attachments.map((attachment) => attachment.id),
         jobId,
       )
+      state.uploads = []
+      state.draftParts = []
+      return true
     } catch (cause) {
       state.error = getErrorMessage(cause, i18n.global.t)
-      await verifySubmission(id)
-      return
+      if (errorCode(cause)) return false
+      // A failed transport may have hidden an accepted receipt. Query Main before allowing a retry.
+      state.submitted = { jobId, parts, attachments }
+      return await verifySubmission(id)
+    } finally {
+      state.enqueueing = false
     }
-    if (state.jobId === jobId && state.sequence === 0)
-      state.activity = receipt.status === 'running' ? 'running' : 'queued'
-    void refreshList().catch((cause) => reportRendererFault('agent.refresh-list', cause))
   }
 
-  async function compact(id: string, parts: AgentDraftPart[]): Promise<void> {
-    const state = session(id)
-    if (state.activity === 'running' || state.activity === 'queued') return
+  async function queueDiscoveryContinuation(
+    id: string,
+    target: DiscoveryRecoveryTarget,
+  ): Promise<void> {
     const jobId = crypto.randomUUID()
-    state.activity = 'queued'
-    state.compacting = true
-    state.jobId = jobId
-    state.sequence = 0
-    state.draftParts = []
-    state.error = ''
+    try {
+      await window.zhijiApi.agent.notifyDiscovery(
+        id,
+        {
+          platform: target.platform,
+          ...(target.runId ? { runId: target.runId } : {}),
+        },
+        jobId,
+      )
+    } catch (cause) {
+      if (!errorCode(cause)) {
+        try {
+          if (await window.zhijiApi.agent.submission(id, jobId)) {
+            await loadHistory(id)
+            return
+          }
+        } catch (verificationError) {
+          reportRendererFault('agent.verify-discovery-notification', verificationError)
+        }
+      }
+      session(id).error = getErrorMessage(cause, i18n.global.t)
+    }
+  }
+
+  async function editQueue(id: string, edit: AgentQueueEdit): Promise<void> {
+    applyQueue(id, await window.zhijiApi.agent.editQueue(id, edit))
+  }
+
+  async function compact(id: string, parts: AgentDraftPart[]): Promise<boolean> {
+    const state = session(id)
+    if (state.enqueueing || state.unverified || state.verifying) return false
+    state.enqueueing = true
+    const jobId = crypto.randomUUID()
     try {
       await window.zhijiApi.agent.compact(id, jobId)
+      state.draftParts = []
+      return true
     } catch (cause) {
-      state.activity = 'idle'
-      state.compacting = false
-      state.jobId = null
-      state.draftParts = parts
-      state.draftVersion++
       state.error = getErrorMessage(cause, i18n.global.t)
+      if (errorCode(cause)) return false
+      state.submitted = { jobId, parts, attachments: [] }
+      return await verifySubmission(id)
+    } finally {
+      state.enqueueing = false
     }
   }
 
@@ -347,17 +424,30 @@ export const useAgentStore = defineStore('agent', () => {
     }
   }
 
-  async function cancel(id: string): Promise<void> {
-    try {
-      await window.zhijiApi.agent.cancel(id)
-    } catch (cause) {
-      session(id).error = getErrorMessage(cause, i18n.global.t)
-    }
-  }
-
   function receiveEvent(event: AgentEvent): void {
     const state = session(event.conversationId)
+    if (event.kind === 'queue' && event.queue) {
+      if (event.queue.revision < state.queue.revision) return
+      const previousJob = state.jobId
+      applyQueue(event.conversationId, event.queue)
+      activeJob(event.conversationId, event.job ?? null)
+      state.activity = event.state ?? 'idle'
+      state.queuePosition = event.queuePosition
+      const conversation = conversations.value.find((item) => item.id === event.conversationId)
+      if (conversation) {
+        conversation.activity = state.activity
+        conversation.queuePosition = state.queuePosition
+      }
+      // The terminal queue snapshot retires the previous event cursor. Refresh
+      // after that transition so its committed history is not discarded as stale.
+      if (previousJob && !state.jobId)
+        void loadHistory(event.conversationId).catch((cause) =>
+          reportRendererFault('agent.queue-history', cause),
+        )
+      return
+    }
     if (event.jobId) {
+      if (retiredJobs.get(event.conversationId)?.has(event.jobId)) return
       if (state.jobId && state.jobId !== event.jobId && state.activity !== 'idle') return
       if (state.jobId !== event.jobId) {
         state.jobId = event.jobId
@@ -446,16 +536,11 @@ export const useAgentStore = defineStore('agent', () => {
         { code: event.errorCode, diagnostic: event.diagnostic },
         i18n.global.t,
       )
-      if (event.submissionState === 'not-saved' && state.submitted)
-        restoreSubmission(event.conversationId, state.submitted)
-      else if (event.submissionState === 'unknown') state.unverified = true
+      if (event.submissionState === 'unknown') state.unverified = true
     } else if (event.kind === 'state') {
       state.activity = event.state ?? 'idle'
       state.queuePosition = event.queuePosition
-      if (event.submissionState === 'not-saved' && state.submitted) {
-        restoreSubmission(event.conversationId, state.submitted)
-        state.error = i18n.global.t('agent.sendNotSaved')
-      } else if (event.submissionState === 'unknown' && state.submitted) state.unverified = true
+      if (event.submissionState === 'unknown') state.unverified = true
       if (event.state === 'idle' || event.state === 'waiting') {
         state.compacting = false
         void loadHistory(event.conversationId)
@@ -487,7 +572,8 @@ export const useAgentStore = defineStore('agent', () => {
     send,
     compact,
     resume,
-    cancel,
+    queueDiscoveryContinuation,
+    editQueue,
     verifySubmission,
   }
 })

@@ -1,4 +1,5 @@
 import { dialog, shell } from 'electron'
+import { z } from 'zod'
 import type { AgentCoordinator } from '../agent/coordinator'
 import { AppServiceError } from '../services/errors'
 import { registerChannel } from './register-channel'
@@ -37,6 +38,23 @@ export function registerAgentIpc(agent: AgentCoordinator): void {
   )
   registerChannel('agent:compact', (id, jobId) => agent.compact(id, jobId))
   registerChannel('agent:resume', (id, answer, jobId) => agent.resume(id, answer, jobId))
-  registerChannel('agent:cancel', (id) => agent.cancel(id))
+  registerChannel('agent:cancel', (id, jobId) => {
+    z.string().uuid().parse(id)
+    if (jobId !== undefined) z.string().uuid().parse(jobId)
+    agent.cancel(id, jobId)
+  })
+  registerChannel('agent:queue-edit', (id, edit) => {
+    z.string().uuid().parse(id)
+    return agent.editQueue(id, edit)
+  })
+  registerChannel('agent:queue-release-edits', () => agent.releaseQueueEdits())
+  registerChannel('agent:queue-reconcile', (id) => {
+    z.string().uuid().parse(id)
+    return agent.reconcileQueue(id)
+  })
+  registerChannel('agent:submission', (id, jobId) => agent.submission(id, jobId))
+  registerChannel('agent:notify-discovery', (id, target, jobId) =>
+    agent.notifyDiscovery(id, target, jobId),
+  )
   registerChannel('agent:save-settings', (ai) => agent.saveSettings(ai))
 }

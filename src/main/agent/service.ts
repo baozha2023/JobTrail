@@ -23,6 +23,7 @@ import { createAgentGraph } from './graph'
 import { AgentArchive } from './archive'
 import { AgentMcpClient } from './mcp-client'
 import { prepareUserMessage } from './message'
+import { discoveryRecoveryTargetSchema, platformNames } from '../../shared/job-discovery'
 import type { AgentRuntimeInfo } from './runtime'
 
 type SqliteDatabase = InstanceType<typeof Database>
@@ -149,7 +150,7 @@ export class AgentService {
     assertUpdateWritable(this.paths.root)
   }
 
-  private async rawPending(id: string): Promise<AgentPending | null> {
+  async rawPending(id: string): Promise<AgentPending | null> {
     const state = await this.graph.getState({ configurable: { thread_id: id } })
     const value = state.tasks?.flatMap((task) => task.interrupts ?? []).at(0)?.value
     if (!value || typeof value !== 'object') return null
@@ -329,13 +330,50 @@ export class AgentService {
     return this.track(id, () => this.sendMessage(id, inputParts, attachmentIds, messageId))
   }
 
-  async validateSend(
-    id: string,
-    inputParts: AgentDraftPart[],
-    attachmentIds: string[],
-  ): Promise<void> {
+  async validateSend(id: string, parts: AgentDraftPart[], attachmentIds: string[]): Promise<void> {
     this.assertWritable()
-    await this.prepareSend(id, inputParts, attachmentIds)
+    this.ensure(id)
+    this.prepareInput(id, parts, attachmentIds)
+  }
+
+  async discoveryContinuation(input: unknown): Promise<AgentDraftPart[]> {
+    const target = discoveryRecoveryTargetSchema.parse(input)
+    if (!this.config.reload().mcp.enabled)
+      throw new AppServiceError('VALIDATION_ERROR', 'MCP 连接已关闭')
+    if (target.runId) {
+      const run = await this.services.discovery.run(target.runId)
+      const source = run.sources.find((item) => item.platform === target.platform)
+      if (
+        run.state === 'cancelled' ||
+        run.state === 'interrupted' ||
+        !source ||
+        !['completed', 'partial'].includes(source.state)
+      )
+        throw new AppServiceError('VALIDATION_ERROR', '原搜索尚未完成复核')
+    } else {
+      const statuses = await this.services.discovery.status()
+      if (
+        !statuses.some(
+          (item) => item.platform === target.platform && item.state === 'authenticated',
+        )
+      )
+        throw new AppServiceError('VALIDATION_ERROR', '账号尚未通过验证')
+    }
+    const platform = platformNames[target.platform]
+    const english = this.config.get().locale === 'en-US'
+    const text = target.runId
+      ? english
+        ? `${platform} verification has completed and recovery of search ${target.runId} has finished. Read that original search's latest status and jobs, then continue my task. Keep its query; do not create a duplicate search.`
+        : `${platform} 的人工处理已通过职迹复核，原搜索任务 ${target.runId} 的恢复轮次已结束。请读取该任务最新状态及已有岗位，继续完成我的原任务；保留原搜索条件，不重复新建搜索。`
+      : english
+        ? `${platform} login or account verification has completed. Read the latest platform status and continue my original task, reusing the original search when applicable.`
+        : `${platform} 的官方登录或账号验证已完成。请重新读取平台状态，继续完成我的原任务；需要恢复已有搜索时沿用原任务，不重复新建搜索。`
+    return [{ kind: 'text', text }]
+  }
+
+  validateQueuedCompact(id: string): void {
+    this.assertWritable()
+    this.ensure(id)
   }
 
   private async prepareSend(
@@ -347,6 +385,15 @@ export class AgentService {
     this.ensure(id)
     if (await this.rawPending(id))
       throw new AppServiceError('VALIDATION_ERROR', '请先回答当前问题或确认请求')
+    return this.prepareInput(id, inputParts, attachmentIds, messageId)
+  }
+
+  private prepareInput(
+    id: string,
+    inputParts: AgentDraftPart[],
+    attachmentIds: string[],
+    messageId?: string,
+  ): { message: HumanMessage; title: string } {
     const prepared = prepareUserMessage(
       inputParts,
       attachmentIds,

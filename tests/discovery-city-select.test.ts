@@ -5,8 +5,10 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import JobDiscoveryView from '../src/renderer/views/JobDiscoveryView.vue'
 import { commonCities, platformCities } from '../src/shared/discovery-cities'
 import { platforms } from '../src/shared/job-discovery'
-import { cityNamesEn } from '../src/renderer/discovery-city-names'
+import enUs from '../src/renderer/locales/en-us'
 import { i18n } from '../src/renderer/i18n'
+
+const cityNamesEn: Readonly<Record<string, string>> = enUs.discoveryCities
 
 // Install before Naive UI initializes its shared observer; jsdom has no layout engine.
 const { MockResizeObserver } = vi.hoisted(() => {

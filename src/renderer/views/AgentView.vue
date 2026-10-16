@@ -23,6 +23,8 @@ import AgentComposerEditor from '../components/AgentComposerEditor.vue'
 import AgentMarkdown from '../components/AgentMarkdown.vue'
 import AgentMessageBody from '../components/AgentMessageBody.vue'
 import AgentToolGroup from '../components/AgentToolGroup.vue'
+import AgentDiscoveryRecovery from '../components/AgentDiscoveryRecovery.vue'
+import AgentInputQueue from '../components/AgentInputQueue.vue'
 
 type ToolMessage = Extract<AgentMessage, { role: 'tool' }>
 type TimelineEntry =
@@ -327,9 +329,10 @@ async function refreshList(): Promise<void> {
 function saveDraft(id: string | null): void {
   if (!id || !composer.value) return
   const state = agentStore.session(id)
-  if (state.activity !== 'queued' && state.activity !== 'running')
-    state.draftParts = composer.value.readParts()
+  state.draftParts = composer.value.readParts()
 }
+
+watch(draft, () => saveDraft(currentId.value))
 
 async function restoreDraft(id: string): Promise<void> {
   if (currentId.value !== id) return
@@ -415,7 +418,7 @@ async function verifySubmission(): Promise<void> {
 async function send(): Promise<void> {
   if (
     submitting.value ||
-    busy.value ||
+    activeState.value.queue.external.length >= 3 ||
     uploading.value ||
     pending.value ||
     unverifiedSubmission.value ||
@@ -441,17 +444,19 @@ async function send(): Promise<void> {
         return
       }
       const id = currentId.value ?? (await agentStore.create())
-      composer.value?.clear()
-      draft.value = ''
-      await agentStore.compact(id, parts)
+      if ((await agentStore.compact(id, parts)) && currentId.value === id) {
+        composer.value?.clear()
+        draft.value = ''
+      }
       return
     }
     if (!draft.value.trim() && !uploads.value.length) return
     const id = currentId.value ?? (await agentStore.create())
     const attachments = [...agentStore.session(id).uploads]
-    composer.value?.clear()
-    draft.value = ''
-    await agentStore.send(id, parts, attachments)
+    if ((await agentStore.send(id, parts, attachments)) && currentId.value === id) {
+      composer.value?.clear()
+      draft.value = ''
+    }
   } catch (cause) {
     error.value = getErrorMessage(cause, t)
   } finally {
@@ -463,10 +468,6 @@ async function respond(value: string[] | boolean): Promise<void> {
   if (!currentId.value || !pending.value || busy.value) return
   if (pending.value.kind === 'question' && !canReply.value) return
   await agentStore.resume(currentId.value, value)
-}
-
-async function cancel(): Promise<void> {
-  if (currentId.value) await agentStore.cancel(currentId.value)
 }
 
 watch(
@@ -576,6 +577,12 @@ onBeforeUnmount(() => {
             </div>
           </article>
         </template>
+        <AgentDiscoveryRecovery
+          :messages="messages"
+          :conversation-id="currentId"
+          :enabled="mcpEnabled"
+          @recovered="currentId && agentStore.queueDiscoveryContinuation(currentId, $event)"
+        />
         <div v-if="compacting" class="agent-compact-running" role="status">
           <span class="agent-compact-running-icon" aria-hidden="true">⌘</span>
           <span class="agent-compact-running-name">compact</span>
@@ -592,6 +599,17 @@ onBeforeUnmount(() => {
           t('agent.verifySend')
         }}</n-button>
       </div>
+      <AgentInputQueue
+        v-if="currentId"
+        :key="currentId"
+        :conversation-id="currentId"
+        :mcp-enabled="mcpEnabled"
+        :resumes="resumes"
+        :opportunities="opportunities"
+        :companies="companies"
+        :industries="industries"
+        :dark="dark"
+      />
       <div v-if="pending" class="agent-pending">
         <div class="agent-pending-heading">
           <strong>{{
@@ -727,7 +745,7 @@ onBeforeUnmount(() => {
           ref="composer"
           v-model="draft"
           :placeholder="t('agent.messagePlaceholder')"
-          :disabled="busy || !!unverifiedSubmission || verifyingSubmission"
+          :disabled="submitting"
           :mcp-enabled="mcpEnabled"
           :resumes="resumes"
           :opportunities="opportunities"
@@ -761,15 +779,15 @@ onBeforeUnmount(() => {
           </div>
           <n-space>
             <n-button
-              :disabled="busy || uploading || !!unverifiedSubmission || verifyingSubmission"
+              :disabled="submitting || uploading || !!unverifiedSubmission || verifyingSubmission"
               @click="upload"
               >{{ t('agent.upload') }}</n-button
             >
-            <n-button v-if="busy" @click="cancel">{{ t('agent.stop') }}</n-button>
             <n-button
-              v-else
               type="primary"
               :disabled="
+                submitting ||
+                activeState.queue.external.length >= 3 ||
                 uploading ||
                 !!unverifiedSubmission ||
                 verifyingSubmission ||

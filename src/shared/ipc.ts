@@ -41,6 +41,8 @@ import type {
   AgentEvent,
   AgentDraftPart,
   AgentJobReceipt,
+  AgentQueueEdit,
+  AgentQueueSnapshot,
   AppUpdateProgress,
   BackupImportConfirmation,
 } from './types'
@@ -134,7 +136,15 @@ export interface IpcChannelMap {
     args: [id: string, answer: string[] | boolean, jobId: string]
     result: AgentJobReceipt
   }
-  'agent:cancel': { args: [id: string]; result: void }
+  'agent:cancel': { args: [id: string, jobId?: string]; result: void }
+  'agent:queue-edit': { args: [id: string, edit: AgentQueueEdit]; result: AgentQueueSnapshot }
+  'agent:queue-release-edits': { args: []; result: void }
+  'agent:queue-reconcile': { args: [id: string]; result: AgentQueueSnapshot }
+  'agent:submission': { args: [id: string, jobId: string]; result: AgentJobReceipt | null }
+  'agent:notify-discovery': {
+    args: [id: string, target: import('./job-discovery').DiscoveryRecoveryTarget, jobId: string]
+    result: AgentJobReceipt
+  }
   'agent:save-settings': {
     args: [ai: AppConfig['ai']]
     result: AppConfig

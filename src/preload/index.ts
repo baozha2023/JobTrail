@@ -147,7 +147,12 @@ const zhijiApi: ZhijiApi = {
       invoke('agent:send', id, parts, attachmentIds, jobId),
     compact: (id, jobId) => invoke('agent:compact', id, jobId),
     resume: (id, answer, jobId) => invoke('agent:resume', id, answer, jobId),
-    cancel: (id) => invoke('agent:cancel', id),
+    cancel: (id, jobId) => invoke('agent:cancel', id, jobId),
+    editQueue: (id, edit) => invoke('agent:queue-edit', id, edit),
+    releaseQueueEdits: () => invoke('agent:queue-release-edits'),
+    reconcileQueue: (id) => invoke('agent:queue-reconcile', id),
+    submission: (id, jobId) => invoke('agent:submission', id, jobId),
+    notifyDiscovery: (id, target, jobId) => invoke('agent:notify-discovery', id, target, jobId),
     saveSettings: (ai) => invoke('agent:save-settings', ai),
     onEvent: (listener) => {
       const handler = (

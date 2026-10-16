@@ -104,7 +104,10 @@ export const sourceStates = [
   'interrupted',
 ] as const
 export type SourceState = (typeof sourceStates)[number]
-export function needsHumanAction(state: SourceState): boolean {
+export type HumanActionState = 'login_required' | 'session_expired' | 'challenge'
+export function needsHumanAction(
+  state: SourceState | PlatformStatus['state'],
+): state is HumanActionState {
   return state === 'login_required' || state === 'session_expired' || state === 'challenge'
 }
 export const salaryExclusionReasons = ['out_of_range', 'day', 'hour', 'foreign', 'unknown'] as const
@@ -150,7 +153,13 @@ export const startSearchSchema = z.strictObject({
 })
 export const jobDetailSchema = z
   .strictObject({
-    jobId: z.string().min(1).max(100),
+    jobId: z
+      .string()
+      .min(1)
+      .max(100)
+      .describe(
+        '使用 list_discovered_jobs 返回的 items[].id；不是 externalId，也不是岗位网址中的平台 ID',
+      ),
     runId: z.string().uuid().optional(),
     viewId: z.string().uuid().optional(),
     observationId: z.number().int().positive().optional(),
@@ -238,6 +247,7 @@ export const qrLoginSchema = z.discriminatedUnion('action', [
 export const MAX_OBSERVATION_BYTES = 128 * 1024
 export const sourceVerificationSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('open'), runId: z.string().uuid(), platform: platformSchema }),
+  z.strictObject({ action: z.literal('account'), platform: platformSchema }),
   z.strictObject({
     action: z.literal('recheck'),
     runId: z.string().uuid(),
@@ -247,10 +257,15 @@ export const sourceVerificationSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.enum(['get', 'close']) }),
 ])
 export interface SourceVerificationState {
-  runId: string
+  runId: string | null
   platform: JobPlatform
   phase: 'open' | 'checking' | 'resuming'
 }
+export const discoveryRecoveryTargetSchema = z.strictObject({
+  platform: platformSchema,
+  runId: z.string().uuid().optional(),
+})
+export type DiscoveryRecoveryTarget = z.infer<typeof discoveryRecoveryTargetSchema>
 const timestamp = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 const count = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER)
 export const observationSchema = z

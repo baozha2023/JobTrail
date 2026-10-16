@@ -262,6 +262,9 @@ describe('platform identities and scoped evidence', () => {
       expect(qrLoginSchema.safeParse(value).success).toBe(false)
     for (const value of [
       { action: 'open', platform: 'boss' },
+      { action: 'account' },
+      { action: 'account', platform: 'boss', runId: randomUUID() },
+      { action: 'account', platform: 'boss', url: 'https://example.com' },
       { action: 'open', runId: 'not-a-uuid', platform: 'boss' },
       {
         action: 'open',

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAgentStore } from '../src/renderer/stores/agent'
 import { i18n } from '../src/renderer/i18n'
 import { getErrorMessage } from '../src/renderer/utils/errors'
-import type { AgentEvent, AgentHistory, AgentJobSnapshot } from '../src/shared/types'
+import type { AgentEvent, AgentHistory, AgentJobSnapshot, AgentMessage } from '../src/shared/types'
 
 const eventSubscriptions = {
   data: { onExternalChange: () => () => {} },
@@ -26,7 +26,290 @@ const usage: AgentHistory['usage'] = {
 
 beforeEach(() => setActivePinia(createPinia()))
 
+it('submits internal notifications to Main while running, preserves drafts, and never calls ordinary send', async () => {
+  const notifyDiscovery = vi.fn().mockResolvedValue({ status: 'queued' })
+  const send = vi.fn()
+  Object.defineProperty(window, 'zhijiApi', {
+    configurable: true,
+    value: { agent: { notifyDiscovery, send } },
+  })
+  const store = useAgentStore(),
+    state = store.session('chat-a')
+  state.activity = 'running'
+  state.draftParts = [{ kind: 'text', text: 'keep draft' }]
+  const card = { platform: 'boss' as const, state: 'challenge', reason: 'visible UI only' }
+  await store.queueDiscoveryContinuation('chat-a', card)
+  expect(notifyDiscovery).toHaveBeenCalledWith('chat-a', { platform: 'boss' }, expect.any(String))
+  expect(send).not.toHaveBeenCalled()
+  expect(state.draftParts).toEqual([{ kind: 'text', text: 'keep draft' }])
+})
+
+it('retains drafts on a rejected notification without retrying or reconciling ordinary submissions', async () => {
+  const notifyDiscovery = vi.fn().mockRejectedValue({ code: 'VALIDATION_ERROR' })
+  const history = vi.fn()
+  Object.defineProperty(window, 'zhijiApi', {
+    configurable: true,
+    value: { agent: { notifyDiscovery, history } },
+  })
+  const store = useAgentStore(),
+    state = store.session('chat-a')
+  state.draftParts = [{ kind: 'text', text: 'keep' }]
+  await store.queueDiscoveryContinuation('chat-a', { platform: 'boss' })
+  expect(notifyDiscovery).toHaveBeenCalledOnce()
+  expect(history).not.toHaveBeenCalled()
+  expect(state.draftParts).toEqual([{ kind: 'text', text: 'keep' }])
+})
+
+it('reconciles a lost discovery notification receipt without sending a duplicate or clearing the draft', async () => {
+  const notifyDiscovery = vi.fn().mockRejectedValue(new Error('receipt lost'))
+  const submission = vi.fn(async (id: string, jobId: string) => ({
+    conversationId: id,
+    jobId,
+    status: 'queued',
+  }))
+  const history = vi.fn(async () => ({ messages: [], pending: null, usage, running: false }))
+  Object.defineProperty(window, 'zhijiApi', {
+    configurable: true,
+    value: { agent: { notifyDiscovery, submission, history } },
+  })
+  const store = useAgentStore(),
+    state = store.session('chat-a')
+  state.draftParts = [{ kind: 'text', text: 'keep' }]
+  await store.queueDiscoveryContinuation('chat-a', { platform: 'boss' })
+  expect(notifyDiscovery).toHaveBeenCalledOnce()
+  expect(submission).toHaveBeenCalledWith('chat-a', notifyDiscovery.mock.calls[0][2])
+  expect(history).toHaveBeenCalledOnce()
+  expect(state.error).toBe('')
+  expect(state.draftParts).toEqual([{ kind: 'text', text: 'keep' }])
+})
+
 describe('agent session store', () => {
+  it('restores the running operation from history after a Renderer reload', async () => {
+    const job: AgentJobSnapshot = {
+      jobId: 'compact-job',
+      conversationId: 'chat-a',
+      status: 'running',
+      operation: 'compact',
+      sequence: 0,
+      liveText: '',
+    }
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        agent: { history: async () => ({ messages: [], pending: null, usage, job }) },
+      },
+    })
+    const store = useAgentStore()
+    await store.select('chat-a')
+    expect(store.session('chat-a').compacting).toBe(true)
+    job.operation = 'send'
+    await store.loadHistory('chat-a')
+    expect(store.session('chat-a').compacting).toBe(false)
+  })
+
+  it('updates a direct notification bubble from the execution snapshot without showing it in the queue or duplicating it', async () => {
+    let listener!: (event: AgentEvent) => void
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations,
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+        },
+      },
+    })
+    const store = useAgentStore()
+    await store.start()
+    const job: AgentJobSnapshot = {
+      jobId: 'direct-notification',
+      conversationId: 'chat-a',
+      status: 'running',
+      operation: 'send',
+      sequence: 0,
+      liveText: '',
+      submittedParts: [{ kind: 'text', text: 'preview language' }],
+    }
+    listener({
+      conversationId: 'chat-a',
+      kind: 'queue',
+      job,
+      state: 'running',
+      queue: { revision: 1, internal: [], external: [], failed: [], blocked: null },
+    })
+    listener({
+      conversationId: 'chat-a',
+      kind: 'queue',
+      job: { ...job, sequence: 1, submittedParts: [{ kind: 'text', text: 'execution language' }] },
+      state: 'running',
+      queue: { revision: 2, internal: [], external: [], failed: [], blocked: null },
+    })
+    const state = store.session('chat-a')
+    expect(state.queue.internal).toEqual([])
+    expect(state.queue.external).toEqual([])
+    expect(state.messages).toEqual([
+      {
+        id: 'optimistic:direct-notification',
+        role: 'user',
+        parts: [{ kind: 'text', text: 'execution language' }],
+        attachments: [],
+      },
+    ])
+    store.stop()
+  })
+
+  it('refreshes history again when only the queue position changes during the read', async () => {
+    let listener!: (event: AgentEvent) => void
+    let resolveHistory!: (history: AgentHistory) => void
+    const messages: AgentMessage[] = [
+      { id: 'saved', role: 'assistant', text: 'saved history', attachments: [] },
+    ]
+    const queue = { revision: 2, internal: [], external: [], failed: [], blocked: null }
+    const history = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<AgentHistory>((resolve) => {
+            resolveHistory = resolve
+          }),
+      )
+      .mockResolvedValue({ messages, pending: null, usage, running: false, job: null, queue })
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations,
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+          history,
+        },
+      },
+    })
+    const store = useAgentStore()
+    await store.start()
+    const reading = store.select('chat-a')
+    listener({ kind: 'queue', conversationId: 'chat-a', state: 'queued', job: null, queue })
+    resolveHistory({
+      messages,
+      pending: null,
+      usage,
+      running: false,
+      job: null,
+      queue: { ...queue, revision: 1 },
+    })
+    await reading
+    expect(history).toHaveBeenCalledTimes(2)
+    expect(store.session('chat-a').messages).toEqual(messages)
+    store.stop()
+  })
+
+  it('refreshes committed history after the terminal queue snapshot retires the running cursor', async () => {
+    let listener!: (event: AgentEvent) => void
+    const messages: AgentMessage[] = [
+      { id: 'saved-reply', role: 'assistant', text: 'committed reply', attachments: [] },
+    ]
+    Object.defineProperty(window, 'zhijiApi', {
+      configurable: true,
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations,
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+          history: async () => ({
+            messages,
+            pending: null,
+            usage,
+            running: false,
+            job: null,
+            queue: { revision: 2, internal: [], external: [], failed: [], blocked: null },
+          }),
+        },
+      },
+    })
+    const store = useAgentStore()
+    await store.start()
+    const state = store.session('chat-a')
+    state.jobId = 'finishing-job'
+    state.sequence = 10
+    state.activity = 'running'
+    listener({
+      conversationId: 'chat-a',
+      jobId: 'finishing-job',
+      sequence: 11,
+      kind: 'state',
+      state: 'idle',
+    })
+    listener({
+      conversationId: 'chat-a',
+      kind: 'queue',
+      job: null,
+      state: 'idle',
+      queue: { revision: 2, internal: [], external: [], failed: [], blocked: null },
+    })
+    await vi.waitFor(() => expect(state.messages).toEqual(messages))
+    expect(state.jobId).toBeNull()
+    listener({
+      conversationId: 'chat-a',
+      jobId: 'finishing-job',
+      sequence: 12,
+      kind: 'token',
+      text: 'stale reply',
+    })
+    expect(state.messages).toEqual(messages)
+    store.stop()
+  })
+
+  it.each(['send', 'compact'] as const)(
+    'reconciles an uncertain %s receipt once without resending or replacing a new draft',
+    async (operation) => {
+      let release!: () => void
+      const submit = vi.fn(async () => {
+        throw new Error('receipt lost')
+      })
+      const submission = vi.fn(async (_id: string, jobId: string) => {
+        await new Promise<void>((resolve) => {
+          release = resolve
+        })
+        return { jobId, conversationId: 'chat-a', status: 'completed' as const }
+      })
+      Object.defineProperty(window, 'zhijiApi', {
+        configurable: true,
+        value: {
+          agent: {
+            [operation]: submit,
+            history: async () => ({ messages: [], pending: null, usage, running: false }),
+            submission,
+          },
+        },
+      })
+      const store = useAgentStore(),
+        state = store.session('chat-a')
+      const parts =
+        operation === 'compact'
+          ? [{ kind: 'command' as const, name: 'compact' as const }]
+          : [{ kind: 'text' as const, text: 'original' }]
+      state.draftParts = parts
+      const pending =
+        operation === 'compact' ? store.compact('chat-a', parts) : store.send('chat-a', parts, [])
+      await vi.waitFor(() => expect(submission).toHaveBeenCalledOnce())
+      state.draftParts = [{ kind: 'text', text: 'new draft' }]
+      release()
+      expect(await pending).toBe(true)
+      expect(submit).toHaveBeenCalledOnce()
+      expect(state.draftParts).toEqual([{ kind: 'text', text: 'new draft' }])
+      expect(state.unverified).toBe(false)
+    },
+  )
+
   it('applies history fetched to recover an event sequence gap', async () => {
     let listener!: (event: AgentEvent) => void
     const recovered: AgentHistory = {
@@ -238,7 +521,7 @@ describe('agent session store', () => {
     await store.send('chat-a', [{ kind: 'text', text: '新消息' }], [])
     listener?.({
       conversationId: 'chat-a',
-      jobId: state.jobId!,
+      jobId: api.send.mock.calls[0][3],
       sequence: 1,
       kind: 'token',
       text: '新回复',
@@ -248,104 +531,105 @@ describe('agent session store', () => {
     store.stop()
   })
 
-  it('restores an unsaved draft from the terminal receipt even without an error event', async () => {
-    let listener: ((event: AgentEvent) => void) | undefined
-    const api = {
-      list: vi.fn(async () => conversations.map((conversation) => ({ ...conversation }))),
-      history: vi.fn(async () => ({
-        messages: [],
-        pending: null,
-        usage,
-        running: false,
-        job: null,
-      })),
-      send: vi.fn(async (id: string, _parts: unknown, _attachments: unknown, jobId: string) => ({
-        jobId,
-        conversationId: id,
-        status: 'running' as const,
-      })),
-      onEvent: vi.fn((next: (event: AgentEvent) => void) => {
-        listener = next
-        return () => undefined
-      }),
-    }
+  it('retains unsaved inputs in Main snapshots without overwriting new drafts, and ignores stale queue snapshots', async () => {
+    let listener!: (event: AgentEvent) => void
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
-      value: { ...eventSubscriptions, agent: api },
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations,
+          onEvent: (next: typeof listener) => {
+            listener = next
+            return () => {}
+          },
+          history: async () => ({ messages: [], pending: null, usage, running: false }),
+        },
+      },
     })
     const store = useAgentStore()
     await store.start()
-    const parts = [{ kind: 'text' as const, text: '未保存' }]
-    await store.send('chat-a', parts, [])
-    expect(api.send).toHaveBeenCalledOnce()
-    expect(store.session('chat-a').submitted).toMatchObject({ parts })
-    const jobId = store.session('chat-a').jobId!
-    listener?.({
+    const state = store.session('chat-a')
+    state.draftParts = [{ kind: 'text', text: 'next draft' }]
+    const item = {
+      id: 'failed-input',
+      origin: 'external' as const,
+      operation: 'send' as const,
+      parts: [{ kind: 'text' as const, text: 'not saved' }],
+      attachments: [],
+      editing: false,
+    }
+    listener({
+      kind: 'queue',
       conversationId: 'chat-a',
-      jobId,
-      sequence: 1,
-      kind: 'state',
       state: 'idle',
-      submissionState: 'not-saved',
+      job: null,
+      queue: { revision: 3, internal: [], external: [], failed: [item], blocked: null },
     })
-    expect(store.session('chat-a').draftParts).toEqual(parts)
-    expect(store.session('chat-a').messages).toEqual([])
-    expect(store.session('chat-a').error).toBeTruthy()
+    listener({
+      kind: 'queue',
+      conversationId: 'chat-a',
+      state: 'idle',
+      job: null,
+      queue: { revision: 2, internal: [], external: [], failed: [], blocked: null },
+    })
+    expect(state.queue.failed).toEqual([item])
+    expect(state.draftParts).toEqual([{ kind: 'text', text: 'next draft' }])
+    expect(state.messages).toEqual([])
+    expect(getErrorMessage({ code: 'AGENT_CANCELLED' }, (key) => key)).toBe('error.AGENT_CANCELLED')
     store.stop()
   })
 
-  it('restores an unsaved queued submission after renderer reload and cancellation', async () => {
-    const jobId = '10000000-0000-4000-8000-000000000001'
-    const parts = [{ kind: 'text' as const, text: '排队草稿' }]
-    let listener: ((event: AgentEvent) => void) | undefined
-    const api = {
-      list: vi.fn(async () => [{ ...conversations[0], activity: 'queued' as const }]),
-      history: vi.fn(async () => ({
-        messages: [],
-        pending: null,
-        usage,
-        running: true,
-        job: {
-          jobId,
-          conversationId: 'chat-a',
-          status: 'queued' as const,
-          sequence: 1,
-          liveText: '',
-          submittedParts: parts,
-          submittedAttachments: [],
-        },
-      })),
-      onEvent: vi.fn((next: (event: AgentEvent) => void) => {
-        listener = next
-        return () => undefined
-      }),
+  it('restores queued inputs after Renderer reload, then blocks on uncertain submissions until Main reconciliation', async () => {
+    const item = {
+      id: 'uncertain-input',
+      origin: 'external' as const,
+      operation: 'send' as const,
+      parts: [{ kind: 'text' as const, text: 'original' }],
+      attachments: [],
+      editing: false,
     }
+    const snapshot = {
+      revision: 3,
+      internal: [],
+      external: [item],
+      failed: [],
+      blocked: null as typeof item | null,
+    }
+    const reconcileQueue = vi.fn(async () => ({ ...snapshot, revision: 5, blocked: null }))
+    const history = vi.fn(async () => ({
+      messages: [],
+      pending: null,
+      usage,
+      running: false,
+      queue: structuredClone(snapshot),
+    }))
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
-      value: { ...eventSubscriptions, agent: api },
+      value: {
+        ...eventSubscriptions,
+        agent: {
+          list: async () => conversations,
+          onEvent: () => () => {},
+          history,
+          reconcileQueue,
+        },
+      },
     })
     const store = useAgentStore()
     await store.start()
     await store.select('chat-a')
-    expect(store.session('chat-a').messages.at(-1)).toMatchObject({ role: 'user', parts })
-    listener?.({
-      conversationId: 'chat-a',
-      jobId,
-      sequence: 2,
-      kind: 'error',
-      errorCode: 'AGENT_CANCELLED',
-      submissionState: 'not-saved',
-    })
-    expect(store.session('chat-a').draftParts).toEqual(parts)
-    expect(store.session('chat-a').uploads).toEqual([])
+    expect(store.session('chat-a').queue.external).toEqual([item])
     expect(store.session('chat-a').messages).toEqual([])
-    expect(store.session('chat-a').error).toBe(i18n.global.t('error.AGENT_CANCELLED'))
-    expect(getErrorMessage({ code: 'AGENT_CANCELLED' }, (key) => key)).toBe('error.AGENT_CANCELLED')
-    expect(
-      getErrorMessage({ code: 'AGENT_CANCELLED' }, (key) =>
-        i18n.global.t(key, {}, { locale: 'en-US' }),
-      ),
-    ).toBe('The agent task was stopped')
+    snapshot.blocked = item
+    snapshot.revision = 4
+    await store.loadHistory('chat-a')
+    expect(store.session('chat-a').unverified).toBe(true)
+    snapshot.blocked = null
+    snapshot.revision = 5
+    await store.verifySubmission('chat-a')
+    expect(reconcileQueue).toHaveBeenCalledOnce()
+    expect(store.session('chat-a').unverified).toBe(false)
     store.stop()
   })
 
@@ -363,6 +647,13 @@ describe('agent session store', () => {
       })),
       send: vi.fn(async (id: string, _parts: unknown, _attachments: unknown, jobId: string) => {
         jobs.set(id, { jobId, conversationId: id, status: 'running', sequence: 1, liveText: '' })
+        listener?.({
+          kind: 'queue',
+          conversationId: id,
+          state: 'running',
+          job: jobs.get(id),
+          queue: { revision: 1, internal: [], external: [], failed: [], blocked: null },
+        })
         return { jobId, conversationId: id, status: 'running' }
       }),
       onEvent: vi.fn((next: (event: AgentEvent) => void) => {

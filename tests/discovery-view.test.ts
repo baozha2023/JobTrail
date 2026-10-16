@@ -14,7 +14,7 @@ import {
 } from 'naive-ui'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import JobDiscoveryView from '../src/renderer/views/JobDiscoveryView.vue'
-import DiscoveryLoginPanel from '../src/renderer/components/DiscoveryLoginPanel.vue'
+import DiscoveryLoginDialog from '../src/renderer/components/DiscoveryLoginDialog.vue'
 import { i18n } from '../src/renderer/i18n'
 import { commonCities } from '../src/shared/discovery-cities'
 import * as cityCatalog from '../src/shared/discovery-cities'
@@ -308,7 +308,7 @@ it.each(['accounts', 'search warning'] as const)(
       wrapper!.find('.discovery-account').findComponent(NButton).vm.$emit('click')
     } else await vi.advanceTimersByTimeAsync(1800)
     await flushPromises()
-    const panel = () => wrapper!.findComponent(DiscoveryLoginPanel)
+    const panel = () => wrapper!.findComponent(DiscoveryLoginDialog)
     const click = async (text: string) => {
       panel()
         .findAllComponents(NButton)
@@ -316,7 +316,7 @@ it.each(['accounts', 'search warning'] as const)(
         .vm.$emit('click')
       await flushPromises()
     }
-    expect(wrapper!.findAllComponents(DiscoveryLoginPanel)).toHaveLength(1)
+    expect(wrapper!.findAllComponents(DiscoveryLoginDialog)).toHaveLength(1)
     expect(panel().find('.discovery-qr-image').attributes('src')).toBe(waiting.image)
     expect(wrapper!.find('.discovery-account-left').exists()).toBe(entry === 'accounts')
     i18n.global.locale.value = 'en-US'
@@ -485,7 +485,7 @@ async function fixture(
     global: {
       plugins: [i18n],
       renderStubDefaultSlot: true,
-      stubs: { DiscoveryLoginPanel: false },
+      stubs: { DiscoveryLoginDialog: false },
     },
   })
   wrapper!.findComponent(NInput).vm.$emit('update:value', 'Java')

@@ -20,6 +20,30 @@ import type {
   ResumeVersion,
 } from '../src/shared/types'
 
+let queueRevision = 0
+function startedInput(
+  id: string,
+  jobId: string,
+  parts: AgentDraftPart[] = [],
+  operation: 'send' | 'compact' = 'send',
+): AgentEvent {
+  return {
+    kind: 'queue',
+    conversationId: id,
+    state: 'running',
+    queue: { revision: ++queueRevision, internal: [], external: [], failed: [], blocked: null },
+    job: {
+      jobId,
+      conversationId: id,
+      status: 'running',
+      sequence: 0,
+      liveText: '',
+      submittedParts: operation === 'send' ? parts : undefined,
+      operation,
+    },
+  }
+}
+
 const eventSubscriptions = {
   data: { onExternalChange: () => () => {} },
   exams: { onChanged: () => () => {} },
@@ -149,7 +173,7 @@ describe('agent attachments', () => {
     }
   })
 
-  it('clears the composer and attachment tray as soon as sending starts', async () => {
+  it('keeps input until admission is acknowledged, then clears the composer and attachment tray', async () => {
     const conversation = { id: 'send-chat', title: '发送', createdAt: 1, updatedAt: 1 }
     const attachment: AgentAttachment = {
       id: 'send-image',
@@ -188,6 +212,7 @@ describe('agent attachments', () => {
           upload: async () => attachment,
           preview: async () => 'data:image/png;base64,iVBORw0KGgo=',
           send,
+          submission: async () => null,
           onEvent: () => () => {},
         },
       },
@@ -219,11 +244,13 @@ describe('agent attachments', () => {
       )
       await flushPromises()
       expect(send).toHaveBeenCalledOnce()
-      expect(editor.textContent).toBe('')
-      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(false)
+      expect(editor.textContent).toBe('立即清空')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(true)
       resolveSend()
       sendResolved = true
       await flushPromises()
+      expect(editor.textContent).toBe('')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(false)
     } finally {
       if (!sendResolved) resolveSend?.()
       wrapper.unmount()
@@ -275,24 +302,12 @@ describe('agent send recovery', () => {
     )
   }
 
-  it('locks resending until history confirms the message was not saved', async () => {
-    const send = vi.fn().mockRejectedValue(new Error('send failed'))
+  it('locks duplicate sending on uncertain admission while retaining editable input and attachments', async () => {
+    const send = vi.fn().mockRejectedValue(new Error('transport failed'))
     const history = vi
       .fn()
       .mockResolvedValueOnce(emptyHistory())
       .mockRejectedValueOnce(new Error('history unavailable'))
-      .mockImplementationOnce(async () => ({
-        ...emptyHistory(),
-        running: true,
-        job: {
-          jobId: send.mock.calls[0][3],
-          conversationId: conversation.id,
-          status: 'running',
-          sequence: 1,
-          liveText: '',
-        },
-      }))
-      .mockRejectedValueOnce(new Error('history still unavailable'))
       .mockResolvedValueOnce(emptyHistory())
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
@@ -302,14 +317,15 @@ describe('agent send recovery', () => {
           list: async () => [conversation],
           history,
           upload: async () => attachment,
-          preview: async () => 'data:image/png;base64,iVBORw0KGgo=',
+          preview: async () => null,
           send,
+          submission: async () => null,
           onEvent: () => () => {},
         },
       },
     })
-    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const wrapper = mountChat()
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined),
+      wrapper = mountChat()
     try {
       await flushPromises()
       await wrapper.find('.agent-actions button').trigger('click')
@@ -317,27 +333,15 @@ describe('agent send recovery', () => {
       enterMessage(wrapper, '请查看附件')
       await flushPromises()
       expect(send).toHaveBeenCalledOnce()
-      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
-      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(false)
-      expect(wrapper.find('.agent-send-unverified').text()).toContain('核对当前对话')
-      expect(wrapper.find('.agent-actions').text()).toContain('发送')
+      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('请查看附件')
+      expect(wrapper.find('[role="textbox"]').attributes('contenteditable')).toBe('true')
+      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(true)
       expect(wrapper.find('.agent-actions button:last-child').attributes('disabled')).toBeDefined()
-
-      await wrapper.find('.agent-send-unverified button').trigger('click')
-      await flushPromises()
-      expect(wrapper.find('.agent-send-unverified').exists()).toBe(true)
-      expect(send).toHaveBeenCalledOnce()
-
-      await wrapper.find('.agent-send-unverified button').trigger('click')
-      await flushPromises()
-      expect(wrapper.find('.agent-send-unverified').exists()).toBe(true)
-      expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
-
       await wrapper.find('.agent-send-unverified button').trigger('click')
       await flushPromises()
       expect(wrapper.find('.agent-send-unverified').exists()).toBe(false)
       expect(wrapper.find('[role="textbox"]').element.textContent).toBe('请查看附件')
-      expect(wrapper.find('.agent-compose-attachments').exists()).toBe(true)
+      expect(send).toHaveBeenCalledOnce()
     } finally {
       wrapper.unmount()
       log.mockRestore()
@@ -365,7 +369,13 @@ describe('agent send recovery', () => {
       configurable: true,
       value: {
         ...eventSubscriptions,
-        agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
+        agent: {
+          list: async () => [conversation],
+          history,
+          send,
+          submission: async () => null,
+          onEvent: () => () => {},
+        },
       },
     })
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -387,21 +397,33 @@ describe('agent send recovery', () => {
   })
 
   it('accepts a send immediately and leaves generation running in the background', async () => {
+    let listener: ((event: AgentEvent) => void) | undefined
     const history = vi.fn().mockResolvedValue(emptyHistory())
     const send = vi
       .fn()
       .mockImplementation(
-        async (id: string, _parts: AgentDraftPart[], _attachments: string[], jobId: string) => ({
-          jobId,
-          conversationId: id,
-          status: 'running',
-        }),
+        async (id: string, _parts: AgentDraftPart[], _attachments: string[], jobId: string) => {
+          listener?.(startedInput(id, jobId, _parts))
+          return {
+            jobId,
+            conversationId: id,
+            status: 'running',
+          }
+        },
       )
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
         ...eventSubscriptions,
-        agent: { list: async () => [conversation], history, send, onEvent: () => () => {} },
+        agent: {
+          list: async () => [conversation],
+          history,
+          send,
+          onEvent: (next: (event: AgentEvent) => void) => {
+            listener = next
+            return () => {}
+          },
+        },
       },
     })
     const wrapper = mountChat()
@@ -411,7 +433,12 @@ describe('agent send recovery', () => {
       await flushPromises()
       expect(wrapper.find('[role="textbox"]').element.textContent).toBe('')
       expect(wrapper.find('.agent-send-unverified').exists()).toBe(false)
-      expect(wrapper.find('.agent-actions').text()).toContain('停止')
+      expect(wrapper.findAll('.agent-message.user')).toHaveLength(1)
+      expect(wrapper.find('.agent-input-queue').exists()).toBe(false)
+      expect(wrapper.findAll('.agent-actions button').map((button) => button.text())).toEqual([
+        '上传附件',
+        '发送',
+      ])
       expect(history).toHaveBeenCalledTimes(1)
       expect(send).toHaveBeenCalledOnce()
     } finally {
@@ -582,7 +609,10 @@ describe('agent composer', () => {
     })
     try {
       await flushPromises()
-      expect(wrapper.find('.agent-actions').text()).toContain('停止')
+      expect(wrapper.findAll('.agent-actions button').map((button) => button.text())).toEqual([
+        '上传附件',
+        '发送',
+      ])
       expect(wrapper.find('.agent-history-spinner').exists()).toBe(true)
       onAgentEvent?.({
         conversationId: conversation.id,
@@ -764,7 +794,7 @@ describe('agent composer', () => {
       expect(resume).toHaveBeenCalledWith(conversation.id, ['数据分析', '上海'], expect.any(String))
       expect(wrapper.find('.agent-pending').exists()).toBe(false)
       expect(wrapper.find('.agent-composer [role="textbox"]').attributes('contenteditable')).toBe(
-        'false',
+        'true',
       )
       expect(send).not.toHaveBeenCalled()
       rejectResume(new Error('恢复失败'))
@@ -796,11 +826,14 @@ describe('agent composer', () => {
   it('clears /compact immediately and shows a tool-style running state', async () => {
     const conversation = { id: 'compact-chat', title: '压缩测试', createdAt: 1, updatedAt: 1 }
     let onAgentEvent: ((event: AgentEvent) => void) | undefined
-    const compact = vi.fn().mockImplementation(async (id: string, jobId: string) => ({
-      jobId,
-      conversationId: id,
-      status: 'running',
-    }))
+    const compact = vi.fn().mockImplementation(async (id: string, jobId: string) => {
+      onAgentEvent?.(startedInput(id, jobId, [], 'compact'))
+      return {
+        jobId,
+        conversationId: id,
+        status: 'running',
+      }
+    })
     Object.defineProperty(window, 'zhijiApi', {
       configurable: true,
       value: {
@@ -849,7 +882,7 @@ describe('agent composer', () => {
       editor.dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
       )
-      await wrapper.vm.$nextTick()
+      await flushPromises()
 
       expect(compact).toHaveBeenCalledWith(conversation.id, expect.any(String))
       expect(editor.textContent).toBe('')
@@ -1097,6 +1130,7 @@ describe('agent composer', () => {
     send.mockImplementationOnce(
       (_id: string, parts: AgentDraftPart[], _attachments: string[], jobId: string) =>
         new Promise((resolve) => {
+          onAgentEvent?.(startedInput(conversation.id, jobId, parts))
           finishPendingSend = () => {
             historyMessages.push(
               { id: jobId, role: 'user', parts, attachments: [] },
@@ -1290,7 +1324,7 @@ describe('agent composer', () => {
       expect.any(String),
     )
 
-    send.mockRejectedValueOnce(new Error('模型暂时不可用'))
+    send.mockRejectedValueOnce({ code: 'VALIDATION_ERROR' })
     typeAtCaret(editor, '保留这段草稿')
     editor.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),

@@ -27,7 +27,7 @@
 | `pnpm test:mcp:package`                              | `test-packaged-mcp.mjs` 验证独立 MCP、系统 Edge 与 sandbox、动态网页、无 Edge 错误及协议行为                                                          |
 | `pnpm test:mcp:launcher`                             | `test-mcp-launcher.mjs` 用 Cargo 锁文件构建启动器，再验证更新与 MCP 启动                                                                              |
 | `pnpm test:agent:package`、`pnpm test:exams:package` | `test-packaged-agent.mjs`、`test-packaged-exams.mjs` 验证智能体和试卷完整流程；智能体 worker 通过测试专用 bootstrap 禁止外部 fetch，验证随包本地分词  |
-| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.2.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
+| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.3.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
 | `pnpm test:diagnostics:package`                      | `test-packaged-diagnostics.mjs` 验证 MCP / Agent 文件诊断与输出隔离                                                                                   |
 | `pnpm test:discovery:local`                          | 岗位发现连接安全、界面、合成会话重启、MCP 冷启动及已有桌面复用；全部使用隔离安装目录，不访问招聘网站                                                  |
 
@@ -53,6 +53,8 @@
 
 `release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。已知发布阻断以 `AGENTS.md` 和 `docs/job-discovery.md` 为准。
 
+`node scripts/test-agent-discovery-live.mjs --live-model` 是用户明确授权后才运行的手动验收，不加入开发启动、常规测试或发布链。先运行 `pnpm build`；脚本只读当前开发环境加密配置，在内存中使用配置的 API 与模型，隔离启动完整 Electron 客户端、utility process 和 MCP 子进程。模型真实生成调用 ID 和参数，测试中按阶段限定岗位发现读取工具并明确当前步骤，每个恢复场景使用独立岗位身份，避免已有详情缓存跳过验收调用；招聘网站通过独立 Session 的本地官方域名合成页面提供阻断、二维码、搜索和完整详情。覆盖网站手动关窗、扫码取消与自动关窗、原任务复核与采集、一次性自动续聊及完整 JD 读取，报告和截图写入被忽略的 `.runtime/chat-recovery-qa/`。不输出 API Key，不读真实求职或聊天数据；合成官网通过不代表真实网站扫码／验证通过。
+
 使用真实开发环境已有登录会话测试招聘网站，仅属于用户本次指定的专项检查，不随开发启动、构建、打包、常规测试或发布自动执行。后续构建不重复使用本次账号检查授权；自动回归使用隔离数据、合成会话和本地测试页面。
 
 `discovery-account-audit.mjs` 是人工授权现有账号诊断的只读核对模块，需要调用方提供当前 Electron 应用及主页面；不会自行启动账号或提交搜索。它仅捕获招聘列表字段白名单，独立比对官方字段、SQLite 观察、10/20/50 条分页、城市、薪资及续查固定视图，不导出认证材料。`sourceRowsUncovered` 明确记录缺少原始来源证据的条目。真实网站验收限制见 [岗位发现说明](../docs/job-discovery.md)。安装包弹窗测试还覆盖官网自行关闭页面但原生窗口保持打开，以及仅手动关闭原生窗口才开始复核。
@@ -77,3 +79,7 @@
 - v1/v2 冻结样本、旧版本导出代码和 legacy MCP 用例仍是兼容性保障，不按版本号的新旧删除。legacy / modern 测试显式选择协议并断言协商结果。
 - 内置目录已有地点；字典清理、精确数量和性能测试须使用可控的合成目录，或采用专用地点前缀限定查询，不能假设新库的地点表为空。真实目录 seed 由独立用例核对完整关联和去重结果。
 - `out/`、`dist/`、依赖目录和忽略的个人文件不是待维护的源码脚本，不通过手工修改构建产物修复测试。
+
+内置智能体双队列的真实模型验收：`node scripts/test-agent-discovery-live.mjs --live-model --queue`。仅在用户明确授权后运行，读取开发环境模型设置但不输出密钥，使用隔离应用、数据库和合成官网页面。覆盖运行中排满三条外部消息、容量拒绝、原位编辑／删除、网站验证通知优先、Renderer 重载、停止和失败后续跑；模型回答及岗位工具参数来自真实 API。HTTP 失败由验收中继在收到真实模型回答后注入，网站验证由合成页面控制。结果写入 `.runtime/agent-queue-qa/`，不接入常规构建或发布。
+
+该脚本还检查首次进程启动和空闲进程复用时的直接发送：回执为运行中、Main 从未发布该消息的等待快照，真实聊天组件直接显示消息且不出现队列区域；结果记录在报告的 `directAdmissions`。协调器回归同时覆盖初始化期间仍可等待三条消息、初始化重试、初始化或执行前校验期间取消、三进程名额及跨聊天 FIFO。

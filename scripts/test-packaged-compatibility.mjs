@@ -10,16 +10,17 @@ import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.m
 
 // Use the original release exporters, never relabel an archive produced by the new exporter.
 const releases = [
-  { version: '1.0.0', commit: '3acb686', databaseVersion: 1 },
-  { version: '1.1.0', commit: 'd277149', databaseVersion: 1 },
-  { version: '1.2.0', commit: 'a430f37', databaseVersion: 1 },
-  { version: '1.3.0', commit: '466709b', databaseVersion: 2 },
-  { version: '1.4.0', commit: '4fd2727', databaseVersion: 2 },
-  { version: '1.5.0', commit: 'e4b6551', databaseVersion: 3 },
-  { version: '1.6.0', commit: '448e494', databaseVersion: 3 },
-  { version: '2.0.0', commit: 'c2fefde', databaseVersion: 4 },
-  { version: '2.1.0', commit: '605ee60', databaseVersion: 5 },
-  { version: '2.2.0', commit: '1fc8ac8', databaseVersion: 5 },
+  { version: '1.0.0', commit: '3acb686', databaseVersion: 1, configVersion: 1 },
+  { version: '1.1.0', commit: 'd277149', databaseVersion: 1, configVersion: 1 },
+  { version: '1.2.0', commit: 'a430f37', databaseVersion: 1, configVersion: 1 },
+  { version: '1.3.0', commit: '466709b', databaseVersion: 2, configVersion: 1 },
+  { version: '1.4.0', commit: '4fd2727', databaseVersion: 2, configVersion: 1 },
+  { version: '1.5.0', commit: 'e4b6551', databaseVersion: 3, configVersion: 1 },
+  { version: '1.6.0', commit: '448e494', databaseVersion: 3, configVersion: 1 },
+  { version: '2.0.0', commit: 'c2fefde', databaseVersion: 4, configVersion: 1 },
+  { version: '2.1.0', commit: '605ee60', databaseVersion: 5, configVersion: 1 },
+  { version: '2.2.0', commit: '1fc8ac8', databaseVersion: 5, configVersion: 1 },
+  { version: '2.3.0', commit: '2b887aa', databaseVersion: 6, configVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -216,16 +217,18 @@ try {
 import fs from 'node:fs'; import path from 'node:path'; import { createHash } from 'node:crypto';
 import { ConfigService } from './src/main/config'; import { DatabaseManager } from './src/main/database';
 import { exportBackup } from './src/main/backup-archive';
+${release.configVersion === 2 ? "import { encryptConfig, decryptConfig } from './src/main/config-crypto';" : ''}
 ${release.databaseVersion >= 4 ? "import { seedDiscoveryV4 } from './seed-discovery-v4';" : ''}
 ${release.databaseVersion >= 3 ? "import { CompanyLocationRepository } from './src/main/repositories/company-location-repository'; import { preparePersistenceUpgrade } from './src/main/persistence-migrations';" : ''}
 async function main() {
  const [root, archive, version] = process.argv.slice(2);
  const paths = {root,config:path.join(root,'config.json'),data:path.join(root,'data'),database:path.join(root,'data/zhiji.db'),resumes:path.join(root,'resumes'),chatUploads:path.join(root,'chat-uploads')};
+ ${release.configVersion === 2 ? "const prepared = preparePersistenceUpgrade(paths.database, decryptConfig(fs.readFileSync(paths.config, 'utf8'))); fs.writeFileSync(paths.config, encryptConfig(prepared.config));" : ''}
  const config=new ConfigService(paths);
  ${release.databaseVersion >= 3 ? 'preparePersistenceUpgrade(paths.database, config.get());' : ''}
  const database=new DatabaseManager(paths);
  try {
-  if(database.db.pragma('user_version',{simple:true})!==${release.databaseVersion} || config.get().configVersion!==1) throw new Error('Historical version mismatch');
+  if(database.db.pragma('user_version',{simple:true})!==${release.databaseVersion} || config.get().configVersion!==${release.configVersion}) throw new Error('Historical version mismatch');
   database.db.prepare('UPDATE companies SET name=? WHERE name=?').run('Compatibility '+version, 'V1 基线样例公司');
   ${release.databaseVersion >= 3 ? "const company=database.db.prepare('SELECT id FROM companies ORDER BY id LIMIT 1').get(); database.db.transaction(()=>new CompanyLocationRepository(database.db).synchronize(company.id,['升级验收地点甲','升级验收地点乙'],1))();" : ''}
   const tables=['builtin_company_catalog_state', 'opportunity_status_events', 'calendar_events', 'calendar_event_reminders', 'statuses','industries','companies','company_industries','company_aliases','resume_versions','opportunities','agent_conversations','agent_chat_events','agent_model_usage','chat_attachments','checkpoints','writes'];
@@ -260,12 +263,12 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 60000, stdio: 'pipe' },
     )
     const expected = JSON.parse(fs.readFileSync(archive + '.expected.json', 'utf8'))
-    assert.equal(expected.config.configVersion, 1)
+    assert.equal(expected.config.configVersion, release.configVersion)
     const manifest = JSON.parse(fs.readFileSync(archive + '.manifest.json', 'utf8'))
     assert.equal(manifest.databaseVersion, release.databaseVersion)
-    assert.equal(manifest.configVersion, 1)
+    assert.equal(manifest.configVersion, release.configVersion)
     // A v5 database also needs desktop migration when its config is still v1.
-    {
+    if (release.configVersion === 1) {
       const beforeMcp = fs.readFileSync(path.join(root, 'data/zhiji.db'))
       const beforeConfig = fs.readFileSync(path.join(root, 'config.json'))
       const prematureMcp = spawnSync(
@@ -320,11 +323,11 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
         databaseVersion: 6,
         configVersion: 2,
         checks: [
-          'all-v1-settings-preserved',
+          'all-settings-preserved',
           'both-tours-initially-pending',
           'second-launch-no-config-rewrite',
           'business-data-and-file-hashes-preserved',
-          'MCP-refuses-config-v1',
+          ...(release.configVersion === 1 ? ['MCP-refuses-config-v1'] : ['current-format-startup']),
         ],
         result: 'PASS',
       })
@@ -355,9 +358,9 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       databaseVersion: 6,
       configVersion: 2,
       checks: [
-        'original-v1-exporter',
+        'original-release-exporter',
         'staged-v2-config-complete',
-        'all-v1-settings-preserved',
+        'all-settings-preserved',
         'both-tours-initially-pending',
         'source-backup-unchanged',
         'business-data-and-file-hashes-preserved',
@@ -366,7 +369,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       result: 'PASS',
     })
     console.log(
-      `PASS: ${release.version} config v1 → v2; original export → ${clientVersion} import/restart → export/import/restart; startup upgrade twice; all settings preserved`,
+      `PASS: ${release.version} config v${release.configVersion} → v2; original export → ${clientVersion} import/restart → export/import/restart; startup twice; all settings preserved`,
     )
     fs.rmSync(archive + '.expected.json')
   }

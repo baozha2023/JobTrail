@@ -831,6 +831,20 @@ try {
         if (Number(getComputedStyle(element).opacity) < 1) return false
       return true
     })
+    const qrVisible = await dialog.locator('.discovery-qr-image').evaluate((image) => {
+      const panel = image.parentElement
+      const bounds = panel.getBoundingClientRect()
+      const top = bounds.top + panel.clientTop
+      panel.scrollTop = Math.max(0, image.getBoundingClientRect().top - top)
+      const qr = image.getBoundingClientRect()
+      return (
+        qr.width > 0 &&
+        Math.abs(qr.width - qr.height) < 1 &&
+        qr.top >= top - 1 &&
+        qr.bottom <= top + panel.clientHeight + 1
+      )
+    })
+    assert.ok(qrVisible, 'The complete source-login QR must fit within its scroll viewport')
     await screenshot(`discovery-${state}-qr.png`)
     await dialog.getByRole('button', { name: '关闭', exact: true }).click()
     await dialog.waitFor({ state: 'hidden' })

@@ -128,7 +128,30 @@ export interface AgentJobReceipt {
   status: 'queued' | 'running' | 'waiting' | 'completed' | 'failed' | 'cancelled'
 }
 
+export interface AgentQueueItem {
+  id: string
+  origin: 'internal' | 'external'
+  operation: 'send' | 'compact' | 'resume'
+  parts: AgentDraftPart[]
+  attachments: AgentAttachment[]
+  editing: boolean
+  errorCode?: AgentEventErrorCode
+}
+
+export interface AgentQueueSnapshot {
+  revision: number
+  internal: AgentQueueItem[]
+  external: AgentQueueItem[]
+  failed: AgentQueueItem[]
+  blocked: AgentQueueItem | null
+}
+
+export type AgentQueueEdit =
+  | { action: 'begin' | 'cancel' | 'delete' | 'retry'; itemId: string }
+  | { action: 'save'; itemId: string; parts: AgentDraftPart[]; attachmentIds: string[] }
+
 export interface AgentJobSnapshot extends AgentJobReceipt {
+  operation?: 'send' | 'compact' | 'resume'
   sequence: number
   queuePosition?: number
   liveText: string
@@ -193,6 +216,7 @@ export interface AgentUsage {
 }
 
 export interface AgentHistory {
+  queue?: AgentQueueSnapshot
   messages: AgentMessage[]
   pending: AgentPending | null
   usage: AgentUsage
@@ -216,6 +240,7 @@ export interface AgentEvent {
   sequence?: number
   errorCode?: AgentEventErrorCode
   kind:
+    | 'queue'
     | 'state'
     | 'title'
     | 'token'
@@ -238,6 +263,8 @@ export interface AgentEvent {
   state?: 'idle' | 'queued' | 'running' | 'waiting'
   queuePosition?: number
   submissionState?: 'saved' | 'not-saved' | 'unknown'
+  queue?: AgentQueueSnapshot
+  job?: AgentJobSnapshot | null
 }
 
 export interface Status {
@@ -509,7 +536,16 @@ export interface ZhijiApi {
     ): Promise<AgentJobReceipt>
     compact(id: string, jobId: string): Promise<AgentJobReceipt>
     resume(id: string, answer: string[] | boolean, jobId: string): Promise<AgentJobReceipt>
-    cancel(id: string): Promise<void>
+    cancel(id: string, jobId?: string): Promise<void>
+    editQueue(id: string, edit: AgentQueueEdit): Promise<AgentQueueSnapshot>
+    releaseQueueEdits(): Promise<void>
+    reconcileQueue(id: string): Promise<AgentQueueSnapshot>
+    submission(id: string, jobId: string): Promise<AgentJobReceipt | null>
+    notifyDiscovery(
+      id: string,
+      target: import('./job-discovery').DiscoveryRecoveryTarget,
+      jobId: string,
+    ): Promise<AgentJobReceipt>
     saveSettings(ai: AppConfig['ai']): Promise<AppConfig>
     onEvent(listener: (event: AgentEvent) => void): () => void
   }

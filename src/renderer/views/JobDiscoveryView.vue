@@ -26,18 +26,15 @@ import {
   type DiscoveredJob,
   type PlatformStatus,
   type JobPage,
-  type QrLoginState,
-  type QrLoginMethod,
-  type SourceVerificationState,
   type SourceState,
   type SourceProgress,
 } from '../../shared/job-discovery'
 import type { CompanySummary, Status, ResumeVersion, DiscoveryTourStepId } from '../../shared/types'
 import { waitForTourLayout } from '../utils/tour-dom'
 import { commonCities, platformCity } from '../../shared/discovery-cities'
-import { cityNamesEn } from '../discovery-city-names'
 import { errorCode, getErrorMessage } from '../utils/errors'
-import DiscoveryLoginPanel from '../components/DiscoveryLoginPanel.vue'
+import DiscoveryLoginDialog from '../components/DiscoveryLoginDialog.vue'
+import { useDiscoveryRecovery } from '../composables/useDiscoveryRecovery'
 const props = defineProps<{
   active: boolean
   tourActive?: boolean
@@ -74,19 +71,12 @@ const error = ref(''),
   split = ref(40)
 const queryLocked = ref(false)
 const inputsDisabled = computed(() => queryLocked.value || busy.value)
-const accounts = ref(false),
-  historyOpen = ref(false),
+const historyOpen = ref(false),
   saveOpen = ref(false),
-  clearPlatform = ref<JobPlatform | null>(null),
-  loginPlatform = ref<JobPlatform | null>(null)
-const qrState = ref<QrLoginState | null>(null),
-  qrBusy = ref(false),
-  qrError = ref('')
-const sourceLogin = ref<{ runId: string; platform: JobPlatform } | null>(null)
+  clearPlatform = ref<JobPlatform | null>(null)
 const tourAccounts = ref(false)
 const tourAccountsEntered = ref(false)
 let tourLayout: { filters: boolean; details: boolean } | undefined
-let qrSequence = 0
 const accountStates = ref<PlatformStatus[]>([]),
   history = ref<SearchRun[]>([]),
   historyPage = ref(1),
@@ -147,9 +137,33 @@ const sourceWarnings = computed(() =>
   ),
 )
 const warningQueue = ref<JobPlatform[]>([])
-const verificationState = ref<SourceVerificationState | null>(null)
-const verificationBusy = ref(false)
-let verificationSequence = 0
+const recovery = useDiscoveryRecovery({
+  refreshAccounts,
+  refreshRun,
+  hideBrowser: () => api.region({ x: 0, y: 0, width: 0, height: 0, visible: false }),
+  restoreBrowser: async () => {
+    lastRegion = ''
+    await syncRegion()
+  },
+  account: (platform) => accountStates.value.find((item) => item.platform === platform),
+  fail,
+})
+const {
+  accounts,
+  loginPlatform,
+  qrState,
+  qrBusy,
+  qrError,
+  sourceLogin,
+  verificationState,
+  verificationBusy,
+  openAccounts,
+  closeAccounts,
+  login,
+  chooseAccount,
+  verifyLogin,
+  closeVerification,
+} = recovery
 watch([() => run.value?.id, sourceWarnings], ([id, sources], [previousId]) => {
   const pending = sources
     .filter((source) => needsHumanAction(source.state))
@@ -201,9 +215,9 @@ function filterCity(pattern: string, option: SelectOption): boolean {
       .replace(/\p{M}|[\s'’]/gu, '')
       .toLowerCase()
   const name = String(option.value ?? '')
-  return [name, cityNamesEn[name] ?? name].some((text) =>
-    searchable(text).includes(searchable(pattern)),
-  )
+  const key = 'discoveryCities.' + name
+  const englishName = te(key, 'en-US') ? t(key, {}, { locale: 'en-US' }) : name
+  return [name, englishName].some((text) => searchable(text).includes(searchable(pattern)))
 }
 function selectPlatforms(value: readonly (string | number)[]) {
   if (queryLocked.value) return
@@ -362,26 +376,11 @@ function refreshAccounts(): Promise<void> {
 async function tick() {
   if (disposed) return
   try {
-    if (props.active && accounts.value) {
-      const current = qrState.value
-      if (current && ['loading', 'waiting', 'scanned', 'challenge'].includes(current.state)) {
-        const next = await api.qrLogin({
-          action: 'get',
-          platform: current.platform,
-          attemptId: current.attemptId,
-        })
-        if (qrState.value?.attemptId === current.attemptId) {
-          qrState.value = next
-          await resumeAfterLogin(next)
-        }
-      }
-    }
+    if (props.active) await recovery.pollQr()
     if (props.active) {
       const previous = verificationState.value
       if (previous || warningQueue.value.length) {
-        const seq = ++verificationSequence
-        const current = await api.verification({ action: 'get' })
-        if (seq === verificationSequence) verificationState.value = current
+        await recovery.pollVerification()
       }
       if (running.value || previous || warningQueue.value.length) await refreshRun()
       await refreshAccounts()
@@ -392,42 +391,13 @@ async function tick() {
     if (!disposed) poll = setTimeout(tick, 1600)
   }
 }
-async function closeVerification() {
-  ++verificationSequence
-  verificationState.value = null
-  await api.verification({ action: 'close' })
-}
 async function openVerification() {
   const source = currentWarning.value
-  if (!source || !run.value || verificationBusy.value) return
-  if (source.state === 'login_required' || source.state === 'session_expired') {
-    const target = { runId: run.value.id, platform: source.platform }
-    verificationBusy.value = true
-    await safely(async () => {
-      try {
-        await openAccounts(target)
-        if (accounts.value && sourceLogin.value?.runId === target.runId)
-          await login(target.platform)
-      } finally {
-        verificationBusy.value = false
-      }
-    })
-    return
-  }
-  const seq = ++verificationSequence
-  verificationBusy.value = true
-  await safely(async () => {
-    try {
-      const current = await api.verification({
-        action: 'open',
-        runId: run.value!.id,
-        platform: source.platform,
-      })
-      if (seq === verificationSequence) verificationState.value = current
-    } finally {
-      verificationBusy.value = false
-    }
-  })
+  if (source && run.value)
+    await recovery.openVerification(
+      { runId: run.value.id, platform: source.platform },
+      source.state,
+    )
 }
 async function submitSearch() {
   if (busy.value) return
@@ -473,7 +443,7 @@ function clearSearchPage() {
   // Invalidate reads before clearing the run so late results cannot restore the old page.
   detailSequence++
   listSequence++
-  verificationSequence++
+  recovery.reset()
   run.value = null
   viewId.value = undefined
   results.value = null
@@ -608,125 +578,13 @@ async function browserMode(value: boolean) {
 async function browserAction(action: 'back' | 'forward' | 'reload' | 'external') {
   await safely(() => api.browser({ action }))
 }
-async function openAccounts(target?: { runId: string; platform: JobPlatform }) {
-  await closeVerification()
-  sourceLogin.value = target ?? null
-  accounts.value = true
-  qrError.value = ''
-  loginPlatform.value = null
-  await api.region({ x: 0, y: 0, width: 0, height: 0, visible: false })
-  await refreshAccounts()
-}
-async function login(platform: JobPlatform, method?: QrLoginMethod) {
-  const seq = ++qrSequence
-  const previous = loginPlatform.value
-  loginPlatform.value = platform
-  qrBusy.value = true
-  qrError.value = ''
-  qrState.value = null
-  try {
-    if (previous) await api.qrLogin({ action: 'cancel', platform: previous })
-    if (seq !== qrSequence) return
-    const result = await api.qrLogin({ action: 'start', platform, ...(method ? { method } : {}) })
-    if (seq === qrSequence && accounts.value) {
-      qrState.value = result
-      await resumeAfterLogin(result)
-    } else if (result)
-      await api.qrLogin({ action: 'cancel', platform, attemptId: result.attemptId })
-  } catch (e) {
-    if (seq === qrSequence) qrError.value = getErrorMessage(e, t)
-  } finally {
-    if (seq === qrSequence) qrBusy.value = false
-  }
-}
-async function chooseAccount(platform: JobPlatform) {
-  if (accountStates.value.find((item) => item.platform === platform)?.state !== 'authenticated')
-    return login(platform)
-  ++qrSequence
-  const previous = loginPlatform.value
-  loginPlatform.value = platform
-  qrState.value = null
-  qrBusy.value = false
-  qrError.value = ''
-  if (previous) await api.qrLogin({ action: 'cancel', platform: previous })
-}
-async function verifyLogin(action: 'verify' | 'retry') {
-  const current = qrState.value
-  if (!current || qrBusy.value) return
-  const seq = ++qrSequence
-  qrError.value = ''
-  // Opening the window returns immediately; it never waits for human verification.
-  if (action === 'retry') qrBusy.value = true
-  try {
-    const result = await api.qrLogin({
-      action,
-      platform: current.platform,
-      attemptId: current.attemptId,
-    })
-    if (seq === qrSequence && accounts.value) qrState.value = result
-    else if (result && result.attemptId !== current.attemptId)
-      await api.qrLogin({
-        action: 'cancel',
-        platform: result.platform,
-        attemptId: result.attemptId,
-      })
-  } catch (e) {
-    if (seq === qrSequence) qrError.value = getErrorMessage(e, t)
-  } finally {
-    if (seq === qrSequence) qrBusy.value = false
-  }
-}
-async function closeAccounts() {
-  ++qrSequence
-  const platform = loginPlatform.value
-  const cancelledSource = sourceLogin.value
-  sourceLogin.value = null
-  accounts.value = false
-  loginPlatform.value = null
-  qrState.value = null
-  qrBusy.value = false
-  if (cancelledSource) await closeVerification()
-  if (platform) await api.qrLogin({ action: 'cancel', platform })
-  await refreshAccounts()
-  lastRegion = ''
-  await syncRegion()
-}
-async function resumeAfterLogin(state: QrLoginState | null) {
-  const target = sourceLogin.value
-  if (!accounts.value || state?.state !== 'authenticated' || state.platform !== loginPlatform.value)
-    return
-  // Account management stays open; only a search recovery login closes automatically.
-  if (!target) return
-  if (state.platform !== target.platform || run.value?.id !== target.runId) return
-  // Official login success closes the QR panel even if the following search
-  // recheck fails. Keep the attempt alive until Main validates its evidence.
-  accounts.value = false
-  const seq = ++verificationSequence
-  try {
-    const current = await api.verification({
-      action: 'recheck',
-      ...target,
-      attemptId: state.attemptId,
-    })
-    if (seq !== verificationSequence || sourceLogin.value !== target || disposed) return
-    verificationState.value = current
-    await refreshRun()
-  } finally {
-    if (sourceLogin.value === target) {
-      sourceLogin.value = null
-      await closeAccounts()
-    }
-  }
-}
 async function logout() {
   if (!clearPlatform.value) return
   const p = clearPlatform.value
   await safely(async () => {
     await api.browser({ action: 'clear', platform: p })
     if (loginPlatform.value === p) {
-      ++qrSequence
-      loginPlatform.value = null
-      qrState.value = null
+      recovery.forgetAccount()
       qrBusy.value = false
       qrError.value = ''
     }
@@ -925,10 +783,7 @@ onBeforeUnmount(() => {
   disposed = true
   browserRequestId = null
   removeBrowserLoadingListener?.()
-  ++verificationSequence
-  void api.verification({ action: 'close' }).catch(() => {})
-  ++qrSequence
-  if (loginPlatform.value) void api.qrLogin({ action: 'cancel', platform: loginPlatform.value })
+  void recovery.dispose().catch(fail)
   detailSequence++
   listSequence++
   clearTimeout(poll)
@@ -1262,98 +1117,23 @@ defineExpose({
         </template>
       </div>
     </div>
-    <n-modal
+    <DiscoveryLoginDialog
       :show="accounts"
-      :mask-closable="false"
-      :trap-focus="!tourAccounts"
-      :auto-focus="!tourAccounts"
-      :close-on-esc="!tourAccounts"
-      :show-mask="!tourAccounts"
+      :account-management="!sourceLogin"
+      :accounts="accountStates"
+      :tour-active="tourAccounts"
+      :platform="loginPlatform"
+      :account="selectedAccount"
+      :state="qrState"
+      :busy="qrBusy"
+      :error="qrError"
       @after-enter="tourAccountsEntered = true"
-      @update:show="!$event && closeAccounts()"
-    >
-      <n-card
-        class="discovery-dialog discovery-accounts"
-        :data-tour-owned-modal="tourAccounts ? '' : undefined"
-        :class="{ 'discovery-source-login': sourceLogin }"
-        :title="label(sourceLogin ? 'qrPanelTitle' : 'accounts')"
-        closable
-        @close="closeAccounts"
-      >
-        <div class="discovery-account-layout">
-          <div
-            v-if="!sourceLogin"
-            class="discovery-account-left"
-            data-tour="discovery-account-list"
-          >
-            <ul class="discovery-account-list">
-              <li
-                v-for="item in accountStates"
-                :key="item.platform"
-                class="discovery-account"
-                :class="{ selected: loginPlatform === item.platform }"
-              >
-                <div class="discovery-account-info">
-                  <n-button
-                    text
-                    class="discovery-account-name"
-                    :aria-pressed="loginPlatform === item.platform"
-                    @click="chooseAccount(item.platform)"
-                    >{{ platformNames[item.platform] }}</n-button
-                  >
-                </div>
-                <div class="discovery-account-actions">
-                  <n-tag
-                    size="small"
-                    :title="label(item.state)"
-                    :type="
-                      item.state === 'authenticated'
-                        ? 'success'
-                        : item.state === 'challenge'
-                          ? 'warning'
-                          : 'default'
-                    "
-                    >{{ label(item.state) }}</n-tag
-                  >
-                  <n-button
-                    size="small"
-                    :type="loginPlatform === item.platform ? 'primary' : 'default'"
-                    @click="chooseAccount(item.platform)"
-                    >{{
-                      item.state === 'authenticated' ? label('accountDetails') : label('login')
-                    }}</n-button
-                  >
-                  <n-button
-                    size="small"
-                    ghost
-                    :type="loginPlatform === item.platform ? 'primary' : 'default'"
-                    @click="clearPlatform = item.platform"
-                    >{{ label('logout') }}</n-button
-                  >
-                </div>
-              </li>
-            </ul>
-            <p class="discovery-subtitle discovery-login-hint">{{ label('loginHint') }}</p>
-          </div>
-          <DiscoveryLoginPanel
-            data-tour="discovery-qr-panel"
-            :platform="loginPlatform"
-            :account="selectedAccount"
-            :state="qrState"
-            :busy="qrBusy"
-            :error="qrError"
-            :hint="sourceLogin ? label('sourceLoginHint') : undefined"
-            @login="login"
-            @verify="verifyLogin"
-          />
-        </div>
-        <template #footer
-          ><div class="discovery-dialog-footer discovery-account-footer">
-            <n-button @click="closeAccounts">{{ label('close') }}</n-button>
-          </div></template
-        >
-      </n-card>
-    </n-modal>
+      @close="closeAccounts"
+      @select="chooseAccount"
+      @forget="clearPlatform = $event"
+      @login="login"
+      @verify="verifyLogin"
+    />
     <n-modal v-model:show="historyOpen" :mask-closable="!historyDeleting">
       <n-card
         class="discovery-dialog discovery-history"
@@ -1764,7 +1544,7 @@ defineExpose({
   justify-content: center;
   gap: 12px;
 }
-/* Both dialogs keep the requested viewport proportions; only their bodies scroll. */
+/* The history dialog keeps its viewport proportions; only its body scrolls. */
 .discovery-dialog {
   width: 70vw;
   height: 80vh;
@@ -1786,98 +1566,6 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   gap: 12px;
-}
-.discovery-account-footer {
-  justify-content: flex-end;
-}
-.discovery-account-layout {
-  container-type: size;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  flex: 1;
-  min-height: 0;
-}
-.discovery-source-login {
-  width: min(440px, 90vw);
-  height: min(600px, 90vh);
-}
-.discovery-source-login .discovery-account-layout {
-  grid-template-columns: minmax(0, 1fr);
-}
-.discovery-account-left {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-}
-.discovery-account-list {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.discovery-account {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #8883;
-  border-radius: 10px;
-  min-width: 0;
-}
-.discovery-account.selected {
-  border-color: #18a058;
-  background: #18a0580b;
-}
-.discovery-account-info {
-  min-width: 0;
-}
-.discovery-account-name {
-  max-width: 100%;
-  font-size: 14px;
-  font-weight: 650;
-  text-align: left;
-}
-.discovery-account-name :deep(.n-button__content) {
-  white-space: normal;
-}
-.discovery-account :deep(.n-tag) {
-  max-width: 100%;
-  justify-self: end;
-}
-.discovery-account :deep(.n-tag__content) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.discovery-account-actions {
-  display: grid;
-  grid-template-columns: auto repeat(2, minmax(0, 1fr));
-  align-items: center;
-  gap: 6px;
-}
-.discovery-account-actions :deep(.n-button) {
-  padding: 0 8px;
-  font-size: 12px;
-}
-@container (max-width: 620px) {
-  .discovery-account-actions {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .discovery-account-actions :deep(.n-tag) {
-    grid-row: 1 / 3;
-  }
-  .discovery-account-actions :deep(.n-button) {
-    grid-column: 2;
-  }
-}
-.discovery-login-hint {
-  line-height: 1.7;
-  margin: 12px 0 0;
 }
 .discovery-history-toolbar,
 .discovery-history-footer {
@@ -1957,13 +1645,6 @@ defineExpose({
   .discovery-dialog :deep(> .n-card__footer) {
     padding-left: 14px;
     padding-right: 14px;
-  }
-  .discovery-account-layout {
-    gap: 10px;
-  }
-  .discovery-account {
-    padding: 10px 8px;
-    gap: 8px;
   }
   .discovery-history-row {
     padding: 12px;

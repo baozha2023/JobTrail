@@ -731,6 +731,33 @@ it('opens the blocked page once and clears its warning only after a fresh offici
   expect(resolved.count).toBe(2)
   expect((await f.service.status()).find((s) => s.platform === 'boss')?.state).toBe('authenticated')
 })
+it('verifies an account without creating a search and rechecks only after the user closes its native window', async () => {
+  const f = fixture()
+  await expect(
+    f.service.verification({ action: 'account', platform: 'boss' }),
+  ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+  const account = f.service.repository.status().find((item) => item.platform === 'boss')!
+  f.service.work.run(() => f.service.repository.platform({ ...account, state: 'challenge' }))
+  expect(await f.service.verification({ action: 'account', platform: 'boss' })).toEqual({
+    runId: null,
+    platform: 'boss',
+    phase: 'open',
+  })
+  const host = BrowserWindow.getAllWindows().at(-1)!
+  const page = host.contentView.children[0] as WebContentsView
+  expect(page.webContents.getURL()).toBe(bossAdapter.accountCheckUrl)
+  page.webContents.close()
+  expect(host.isDestroyed()).toBe(false)
+  expect((await f.service.verification({ action: 'get' }))?.phase).toBe('open')
+  vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+  host.close()
+  await waitFor(async () => expect(await f.service.verification({ action: 'get' })).toBeNull())
+  expect((await f.service.status()).find((item) => item.platform === 'boss')?.state).toBe(
+    'authenticated',
+  )
+  expect((await f.service.history(1)).total).toBe(0)
+})
+
 it('ignores verification page evidence from a replaced login generation', async () => {
   const { f, run } = await blockedSearch()
   await f.service.verification({ action: 'open', runId: run.id, platform: 'boss' })

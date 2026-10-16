@@ -5,13 +5,21 @@ import type { Services } from '../service-container'
 import { AppServiceError } from '../services/errors'
 
 const AgentPartSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('text'), text: z.string() }),
-  z.object({ kind: z.literal('resume'), id: z.number().int().positive(), name: z.string() }),
-  z.object({ kind: z.literal('opportunity'), id: z.number().int().positive(), name: z.string() }),
-  z.object({ kind: z.literal('company'), id: z.number().int().positive(), name: z.string() }),
-  z.object({ kind: z.literal('industry'), id: z.number().int().positive(), name: z.string() }),
-  z.object({ kind: z.literal('skill'), name: z.enum(['resume-match', 'study']) }),
-  z.object({ kind: z.literal('command'), name: z.literal('compact') }),
+  z.strictObject({ kind: z.literal('text'), text: z.string() }),
+  z.strictObject({ kind: z.literal('resume'), id: z.number().int().positive(), name: z.string() }),
+  z.strictObject({
+    kind: z.literal('opportunity'),
+    id: z.number().int().positive(),
+    name: z.string(),
+  }),
+  z.strictObject({ kind: z.literal('company'), id: z.number().int().positive(), name: z.string() }),
+  z.strictObject({
+    kind: z.literal('industry'),
+    id: z.number().int().positive(),
+    name: z.string(),
+  }),
+  z.strictObject({ kind: z.literal('skill'), name: z.enum(['resume-match', 'study']) }),
+  z.strictObject({ kind: z.literal('command'), name: z.literal('compact') }),
 ])
 
 type DataReference = Extract<AgentReference, { id: number }>

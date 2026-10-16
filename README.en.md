@@ -52,6 +52,10 @@ You can start managing applications right away. To use the AI assistant, enter y
 
 Job discovery only enables platforms with a confirmed login. Login and expired-session prompts open the QR panel; website-verification prompts open a separate site window. After QR confirmation or the user closes the verification window, JobTrail checks the original query and resumes that platform when the check succeeds.
 
+The built-in assistant also shows sign-in and verification cards in chat using the same recovery flow. QR dialogs close after official confirmation; close the official verification window yourself when finished. After recovery, the assistant reads the original search's latest results and continues your task, preserving your draft and attachments. External MCP clients should direct you to JobTrail to complete the manual step.
+
+You can send another message while the assistant is running. Each chat can queue up to three messages, with viewing, editing and deletion available. Internal recovery notifications run first; pending questions, confirmations and uncertain submissions pause consumption. Queues survive page changes and Renderer reloads and are cleared when the app exits. v2.4.0 retains database v6 and configuration v2; upgrading from v2.3.0 requires no persistence migration.
+
 Live discovery tools reuse an already running JobTrail client from the same installation. If none is running, MCP starts it in the system tray without taking focus. Local history queries do not require the desktop to run.
 
 Dynamic web reading uses the installed **Microsoft Edge Stable**; the installer does not include a separate Playwright Chromium browser. Install Edge and keep it updated. If Edge cannot start, JobTrail reports the problem; local features and static web reading remain available. Automatic mode may return static content with an incomplete-result warning.

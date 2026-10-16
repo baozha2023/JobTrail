@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "catalogVersion": 8,
+  "catalogVersion": 9,
   "minimumAppVersion": "1.5.0",
   "industries": [
     {
@@ -44580,6 +44580,87 @@
         "全国"
       ],
       "builtinKey": "51389281-5000-4d6b-a51d-72c3852b8c1f"
+    },
+    {
+      "name": "特福国际",
+      "careerUrl": "https://mp.weixin.qq.com/s/rWnByvYPQKkJhuvwGPzXEA",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "佛山",
+        "海外"
+      ],
+      "builtinKey": "a4d1d418-50d5-49ab-ade5-d8bfa4a1e080"
+    },
+    {
+      "name": "德施曼",
+      "careerUrl": "https://desman.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "杭州"
+      ],
+      "builtinKey": "8f810f01-6646-4346-a00c-f7e6b91065e9"
+    },
+    {
+      "name": "悍高集团",
+      "careerUrl": "https://higold.zhiye.com/campus/jobs",
+      "aliases": [
+        "Higold"
+      ],
+      "industryKeys": [
+        "3ddaa57b-b135-4a07-9a51-06c02fb9fdad"
+      ],
+      "locations": [
+        "广东佛山"
+      ],
+      "builtinKey": "be2bd32a-e45c-4eef-9378-e19a7e5a7758"
+    },
+    {
+      "name": "新宝股份",
+      "careerUrl": "https://xxgattbvct5.feishu.cn/share/base/form/shrcnfvJ1iHl01jIBu6Tq8y4EPb",
+      "aliases": [],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "佛山"
+      ],
+      "builtinKey": "aea4173e-ca85-44f6-9eb6-a521c93aa8b9"
+    },
+    {
+      "name": "火星人",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/marssenger1/144790?locale=zh-CN",
+      "aliases": [
+        "火星人厨具股份有限公司"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "浙江嘉兴"
+      ],
+      "builtinKey": "b3ba388c-199a-4917-9486-59f6bc06b6c3"
+    },
+    {
+      "name": "创维集团",
+      "careerUrl": "https://skyworth.hotjob.cn/",
+      "aliases": [
+        "Skyworth"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ],
+      "locations": [
+        "深圳",
+        "苏州",
+        "全国其他"
+      ],
+      "builtinKey": "2d9c44b8-676a-4064-850b-7788153a5b48"
     }
   ]
 }

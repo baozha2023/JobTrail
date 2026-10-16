@@ -1,0 +1,21 @@
+export default {
+  AGENT_QUEUE_FULL: '当前聊天最多排队三条消息，请等待或删除一条。',
+  AGENT_QUEUE_CHANGED: '该排队消息已经开始执行或发生变化，请刷新队列。',
+  DISCOVERY_UNSUPPORTED_CITY: '所选城市不被全部招聘网站支持，请重新选择城市或调整网站。',
+  DISCOVERY_JOB_OFFLINE: '已下架',
+  DISCOVERY_UNAVAILABLE: '岗位发现运行时不可用，请启动桌面应用后重试',
+  DISCOVERY_FAILED: '岗位读取未完成，请查看来源状态并重试',
+  WEB_BROWSER_UNAVAILABLE:
+    '无法启动 Microsoft Edge，动态网页读取不可用。请确认已安装并更新 Edge；若仍失败，请修复安装或检查组织的浏览器策略。',
+  EXAM_INVALID: '题目或答案格式无效，请检查后重试',
+  EXAM_COUNTS_TOO_SMALL: '各题型的目标数量不能少于已生成的题目数量',
+  EXAM_CONFLICT: '答案已变化，请刷新试卷后重试',
+  EXAM_NOT_FOUND: '试卷或题目不存在',
+  EXAM_ALREADY_GRADING: '该题正在判题，请稍候',
+  EXAM_UNAVAILABLE: '判题暂不可用，请稍后重试',
+  EXAM_GRADING_FAILED: 'AI 判题失败，请重试',
+  PERSISTENCE_INVALID: '数据结构或配置损坏，已保留原数据',
+  PERSISTENCE_BUSY: '数据维护正在进行，请稍后重试',
+  PERSISTENCE_UNSUPPORTED: '此数据版本不受支持，请使用兼容的新版客户端',
+  PERSISTENCE_FAILED: '数据检查或升级失败，请查看日志后重新启动',
+} as const

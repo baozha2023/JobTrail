@@ -41,7 +41,7 @@ Main 的每个平台 adapter 仅加载自己的 JSON，使用 `discovery-city-ca
 
 ## 城市名称国际化
 
-英文展示名集中维护在 `src/renderer/discovery-city-names.ts`，覆盖七个平台目录并集的 413 个地区。`i18n.ts` 将其注册为 `discoveryCities` 文案；中文展示使用规范名称。新增城市时补充一次英文译名，无需给各平台目录重复添加译名。英文同名项显式附加省份，例如苏州和宿州分别显示 `Suzhou (Jiangsu)`、`Suzhou (Anhui)`。
+城市展示名按语言维护在 `src/renderer/locales/zh-cn.ts` 和 `src/renderer/locales/en-us.ts` 的 `discoveryCities` 中，覆盖七个平台目录并集的 413 个地区；中文展示使用规范名称。`i18n.ts` 只负责初始化与语言注册，选择器通过 vue-i18n 读取英文文案以支持双语搜索。新增城市时同步补充两个语言文件的展示名，无需给各平台目录重复添加译名。英文同名项显式附加省份，例如苏州和宿州分别显示 `Suzhou (Jiangsu)`、`Suzhou (Anhui)`。
 
 城市选择器和搜索历史标签随 `zh-CN` / `en-US` 切换；选择器在两种语言下都支持中文和英文搜索，忽略英文字母大小写、重音、空格和音节分隔符。切换语言只更新展示，保留已选值、平台集合和锁定状态。历史别名通过已有目录映射展示译名，未知历史城市保留原文。官网返回的岗位地点、公司名和 JD 不自动翻译。
 

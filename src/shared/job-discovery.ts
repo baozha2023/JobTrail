@@ -9,6 +9,7 @@ export const platformNames = {
   iguopin: '国聘',
   shixiseng: '实习僧',
   yupao: '鱼泡直聘',
+  nowcoder: '牛客',
 } as const
 export type JobPlatform = keyof typeof platformNames
 export const platforms = Object.keys(platformNames) as [JobPlatform, ...JobPlatform[]]

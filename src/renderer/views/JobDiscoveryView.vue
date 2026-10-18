@@ -959,7 +959,11 @@ defineExpose({
             v-for="p in platforms"
             :key="p"
             :value="p"
-            :label="platformNames[p]"
+            :label="
+              p === 'shixiseng'
+                ? t('discovery.internshipsOnlyPlatform', { platform: platformNames[p] })
+                : platformNames[p]
+            "
             :disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
             :aria-disabled="inputsDisabled || !authenticatedPlatforms.has(p)"
         /></n-checkbox-group>

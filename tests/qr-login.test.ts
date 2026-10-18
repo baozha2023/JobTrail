@@ -34,6 +34,26 @@ afterEach(async () => {
   for (const m of managers.splice(0)) await m.stop()
   vi.useRealTimers()
 })
+it('keeps Nowcoder App QR material private and confirms the official account before success', async () => {
+  vi.useFakeTimers()
+  const f = fixture([
+    { code: 0, data: { code: 'synthetic-nowcoder-code', expireSecs: 180 } },
+    new Response(Buffer.from('synthetic-image'), { headers: { 'content-type': 'image/png' } }),
+    { code: 1 },
+    { code: 0 },
+    { code: 0, data: { id: 123 } },
+  ])
+  expect(await f.manager.start('nowcoder')).toMatchObject({
+    state: 'waiting',
+    method: 'app',
+    methods: [{ id: 'app' }],
+  })
+  await vi.advanceTimersByTimeAsync(4000)
+  expect(f.manager.get('nowcoder')).toMatchObject({ state: 'authenticated', image: null })
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('nowcoder')
+  expect(JSON.stringify(f.manager.get('nowcoder'))).not.toContain('synthetic-nowcoder-code')
+  expect(f.flushStore).toHaveBeenCalledOnce()
+})
 it.each(['wechat', 'app'] as const)(
   'keeps Yupao %s credentials inside the Session transport',
   async (method) => {

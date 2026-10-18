@@ -37,7 +37,7 @@ try {
   await page.screenshot({ path: path.join(qa, 'discovery-empty.png') })
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   await page.locator('.discovery-account').first().waitFor()
-  assert.equal(await page.locator('.discovery-account').count(), 7)
+  assert.equal(await page.locator('.discovery-account').count(), 8)
   await page.screenshot({ path: path.join(qa, 'discovery-accounts.png') })
   await page
     .locator('.discovery-accounts')
@@ -50,7 +50,16 @@ try {
       query: {
         keyword: 'Java',
         city: '上海',
-        platforms: ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao'],
+        platforms: [
+          'boss',
+          'liepin',
+          'zhilian',
+          'wuyou',
+          'iguopin',
+          'shixiseng',
+          'yupao',
+          'nowcoder',
+        ],
       },
     }),
   )
@@ -73,7 +82,7 @@ try {
     ),
   )
   report.run = result
-  assert.equal(result.sources.length, 7)
+  assert.equal(result.sources.length, 8)
   for (const source of result.sources) {
     assert.equal(source.state, 'login_required')
     assert.equal(source.count, 0)
@@ -96,7 +105,7 @@ try {
   )
   report.passed = true
   console.log(
-    'All seven packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
+    'All eight packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
     staging,
   )
 } finally {

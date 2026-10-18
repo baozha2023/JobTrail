@@ -119,7 +119,7 @@ try {
       () =>
         [...document.querySelectorAll('.discovery-account .n-tag')].filter(
           (e) => e.textContent.trim() === '已登录',
-        ).length === 7,
+        ).length === 8,
     )
     assert.equal(
       await page.locator('.discovery-account').getByText('尚未确认', { exact: true }).count(),
@@ -131,7 +131,7 @@ try {
       states: statuses.map((s) => ({ platform: s.platform, state: s.state })),
       sessions,
     })
-    console.log(`Restart ${round}: seven confirmed states and seven local sessions retained`)
+    console.log(`Restart ${round}: eight confirmed states and eight local sessions retained`)
   }
   await page.screenshot({
     path: path.join(project, 'dist/qa/session-restart.png'),

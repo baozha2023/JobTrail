@@ -45,7 +45,7 @@
 - `node scripts/test-discovery-network.mjs`：在真实安装包与隔离 Session 中确认所有平台均采用系统网络配置，再以临时本机代理和 HTTPS 服务验证 Chromium 的 TLS、Session.fetch、页面、Service Worker、Cookie、重定向和取消。模拟代理只作用于测试 Session，不改变 Windows 设置、不安装系统证书、不访问招聘网站，属于 `test:discovery:local`。账号会话单元测试覆盖系统配置初始化、并发、失败重试及关闭/恢复。
 - `node scripts/test-discovery-dialogs.mjs`：合成数据验证登录平台默认勾选、未登录禁用、手动取消选择保留、退出同步、搜索/取消共用按钮和旋转图标，以及账号/历史弹窗、城市选择和历史删除。尺寸与缩放检查前先恢复最小化或隐藏的窗口、退出最大化，等待原生尺寸与渲染视口同步；失败时记录目标尺寸、实际尺寸、缩放和窗口状态。登录和会话失效提示验证共享扫码面板、二维码解码、无额外网站窗口及取消后保留提示；网站验证提示使用隔离 Session 的本地 HTTPS 页面验证同行按钮、独立窗口安全设置、重复点击、关窗不误消提示及队列推进。这些合成场景不代表真实网站验证成功。属于 `test:discovery:local`。
 - `node scripts/test-packaged-session-restart.mjs`：合成会话材料验证重启保留，运行时不访问真实账号。属于 `test:discovery:local`。
-- `node scripts/test-discovery-mcp-startup.mjs` 及追加 `--existing`：验证 MCP 后台启动、并发启动合并和复用已有桌面。两个模式都属于 `test:discovery:local`。
+- `node scripts/test-discovery-mcp-startup.mjs` 及追加 `--existing`：验证 MCP 后台启动、并发启动合并和复用已有桌面。两个模式都属于 `test:discovery:local`，并在 `finally` 中核对真实 HKCU 的职迹卸载登记与运行前完全一致。启动器只刷新属于本安装根的既有登记，未登记的验收目录不会创建或覆盖用户登记；`APPDATA` 不能隔离注册表。
 - `node scripts/test-desktop-lifecycle.mjs`：验证隐藏后台页面存在时的退出、托盘和重复启动；属于 `test:desktop:package`。
 - `pnpm test:discovery:package`：在隔离安装目录检查各平台账号界面、匿名搜索的后端登录准入、零批次/零结果以及历史查看；不访问真实账号，不宣称已验证登录后的列表、JD 或保存链路。
 - `node scripts/test-packaged-qr.mjs [平台] [app|wechat]`、`node scripts/test-packaged-qr-verification.mjs`：真实二维码及官方验证窗口，需要公网连接。二维码脚本可指定平台和方式，检查界面切换、图片解码、未扫码状态、刷新后保留方式及关闭取消，例如 `boss app`、`liepin app`、`zhilian wechat`；单方式报告分别保存，避免覆盖。网站阻断不表示搜索、JD 或登录验收通过。官方验证脚本在未触发 challenge 时会明确记录验证路径未执行，不代表验证交互通过。
@@ -83,3 +83,5 @@
 内置智能体双队列的真实模型验收：`node scripts/test-agent-discovery-live.mjs --live-model --queue`。仅在用户明确授权后运行，读取开发环境模型设置但不输出密钥，使用隔离应用、数据库和合成官网页面。覆盖运行中排满三条外部消息、容量拒绝、原位编辑／删除、网站验证通知优先、Renderer 重载、停止和失败后续跑；模型回答及岗位工具参数来自真实 API。HTTP 失败由验收中继在收到真实模型回答后注入，网站验证由合成页面控制。结果写入 `.runtime/agent-queue-qa/`，不接入常规构建或发布。
 
 该脚本还检查首次进程启动和空闲进程复用时的直接发送：回执为运行中、Main 从未发布该消息的等待快照，真实聊天组件直接显示消息且不出现队列区域；结果记录在报告的 `directAdmissions`。协调器回归同时覆盖初始化期间仍可等待三条消息、初始化重试、初始化或执行前校验期间取消、三进程名额及跨聊天 FIFO。
+
+牛客接入（数据库 v7）：`pnpm test` 覆盖混合请求缺省 `recruitType`、两类卡片、分页整批提交、账号与 App 扫码协议、详情排除推荐、七平台 v6 逐行保留及回滚。`persistence-v6.test.ts` 固定执行历史至 v6，`persistence-v7.test.ts` 验证当前正式链目标；冻结 v1/v2 文件不改写。备份测试覆盖 v1—v7，打包兼容验收的目标改为 v7，保留历史条目并补充 v2.4.0 原始导出基线。`test:discovery:local` 按八平台执行隔离网络、账号弹窗、重启与 MCP 测试，不使用真实账号。真实牛客扫码与搜索验收另行人工执行，不加入构建链。

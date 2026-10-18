@@ -579,7 +579,7 @@ it('selects only signed-in platforms and disables every other platform', async (
       .findComponent(NCheckboxGroup)
       .findAllComponents(NCheckbox)
       .map((item) => item.props('disabled')),
-  ).toEqual([false, true, false, true, true, true, true])
+  ).toEqual(platforms.map((p) => !['boss', 'zhilian'].includes(p)))
 })
 
 function searchButton() {
@@ -963,7 +963,7 @@ it('preserves manual deselection across polling, selects new logins and removes 
       .findComponent(NCheckboxGroup)
       .findAllComponents(NCheckbox)
       .map((item) => item.props('disabled')),
-  ).toEqual([false, true, true, true, true, true, true])
+  ).toEqual(platforms.map((p) => p !== 'boss'))
 })
 
 it('shows the original locked conditions when opening history even if a platform is signed out', async () => {

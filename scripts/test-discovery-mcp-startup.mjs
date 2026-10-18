@@ -5,9 +5,10 @@ import { execFileSync } from 'node:child_process'
 import { Client } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { _electron as electron } from 'playwright'
-import { linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { linkPackagedProgram, readInstallationRegistration } from './packaged-test-helpers.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
+const installationRegistration = readInstallationRegistration()
 const staging = fs.mkdtempSync(path.join(project, 'dist', '.discovery-mcp-'))
 const root = path.join(staging, 'JobTrail'),
   runtime = path.join(root, '.runtime', 'current')
@@ -107,20 +108,28 @@ try {
     `Packaged MCP: ${existing ? 'existing visible client reused without changing its window' : 'offline history and concurrent tray startup'}, request replay and cancellation passed.`,
   )
 } finally {
-  for (const c of clients) await c.close()
-  if (application) await application.close()
-  // Only the process identified by this fresh isolated installation is test-owned.
-  if (fs.existsSync(descriptor)) {
-    const { pid } = JSON.parse(fs.readFileSync(descriptor, 'utf8'))
-    const executable = execFileSync(
-      'powershell.exe',
-      ['-NoProfile', '-Command', `(Get-Process -Id ${Number(pid)}).Path`],
-      { encoding: 'utf8', windowsHide: true },
-    ).trim()
+  try {
+    for (const c of clients) await c.close()
+    if (application) await application.close()
+    // Only the process identified by this fresh isolated installation is test-owned.
+    if (fs.existsSync(descriptor)) {
+      const { pid } = JSON.parse(fs.readFileSync(descriptor, 'utf8'))
+      const executable = execFileSync(
+        'powershell.exe',
+        ['-NoProfile', '-Command', `(Get-Process -Id ${Number(pid)}).Path`],
+        { encoding: 'utf8', windowsHide: true },
+      ).trim()
+      assert.equal(
+        path.resolve(executable).toLowerCase(),
+        path.join(runtime, 'zhiji.exe').toLowerCase(),
+      )
+      process.kill(pid)
+    }
+  } finally {
     assert.equal(
-      path.resolve(executable).toLowerCase(),
-      path.join(runtime, 'zhiji.exe').toLowerCase(),
+      readInstallationRegistration(),
+      installationRegistration,
+      'Isolated MCP startup must preserve the current-user installation registration',
     )
-    process.kill(pid)
   }
 }

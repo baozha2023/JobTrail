@@ -8,7 +8,9 @@ use std::{
 };
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
+mod registration;
 pub mod shortcuts;
+pub use registration::{refresh_registration, register};
 
 pub const LAUNCHER: &str = "JobTrail.exe";
 pub const UNINSTALLER: &str = "JobTrail-Uninstall.exe";
@@ -123,34 +125,6 @@ pub fn ensure_not_installed() -> Result<()> {
     }
 }
 
-pub fn register(root: &Path, version: &str, create_shortcuts: bool) -> Result<()> {
-    semver::Version::parse(version)?;
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let (key, _) = hkcu.create_subkey(UNINSTALL_KEY)?;
-    key.set_value("DisplayName", &"职迹")?;
-    key.set_value("DisplayVersion", &version)?;
-    key.set_value("Publisher", &"JobTrail")?;
-    key.set_value("InstallLocation", &root.to_string_lossy().as_ref())?;
-    key.set_value(
-        "DisplayIcon",
-        &format!("{},0", root.join(LAUNCHER).display()),
-    )?;
-    key.set_value(
-        "UninstallString",
-        &format!("\"{}\"", root.join(UNINSTALLER).display()),
-    )?;
-    key.set_value("NoModify", &1u32)?;
-    key.set_value("NoRepair", &1u32)?;
-    let _ = key.delete_value("QuietUninstallString");
-    if create_shortcuts {
-        for file in shortcuts() {
-            fs::create_dir_all(file.parent().context("快捷方式父目录缺失")?)?;
-            mslnk::ShellLink::new(root.join(LAUNCHER))?.create_lnk(file)?;
-        }
-    }
-    Ok(())
-}
-
 pub fn unregister(root: &Path) -> Result<()> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     // Resolve each shortcut through Windows Shell; never delete another target.
@@ -187,7 +161,7 @@ pub fn unregister(root: &Path) -> Result<()> {
     // has succeeded. A later uninstall attempt can recover a partial run.
     if let Ok(key) = hkcu.open_subkey(UNINSTALL_KEY) {
         let location: String = key.get_value("InstallLocation").unwrap_or_default();
-        if Path::new(&location) == root || Path::new(&location) == root.join(".runtime") {
+        if registration::owns_registration(root, &location) {
             hkcu.delete_subkey_all(UNINSTALL_KEY)?;
         }
     }

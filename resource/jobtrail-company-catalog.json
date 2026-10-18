@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "catalogVersion": 9,
+  "catalogVersion": 10,
   "minimumAppVersion": "1.5.0",
   "industries": [
     {
@@ -44661,6 +44661,992 @@
         "全国其他"
       ],
       "builtinKey": "2d9c44b8-676a-4064-850b-7788153a5b48"
+    },
+    {
+      "builtinKey": "146ce58f-4957-4d65-a002-c5e58bf89721",
+      "name": "左尚明舍",
+      "careerUrl": "https://v.wjx.cn/vm/QoD3a0l.aspx",
+      "aliases": [],
+      "industryKeys": [
+        "1a15c92b-33e2-4bb6-ae91-f645b4cdf83c",
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "da473e47-a218-44a9-a72d-730fa58abeb0",
+      "name": "安吉尔",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/angelgroup/189893#/jobs",
+      "aliases": [
+        "深圳安吉尔饮水产业集团有限公司"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "全国",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "7ba2d365-0515-436f-8a4b-faf8eedc859b",
+      "name": "凤凰出版传媒集团",
+      "careerUrl": "https://campus.51job.com/ppmg2026/index4.html",
+      "aliases": [
+        "江苏凤凰出版传媒集团有限公司"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "南京"
+      ]
+    },
+    {
+      "builtinKey": "4743744e-a311-46a1-a089-14737c4d61c1",
+      "name": "剧星传媒",
+      "careerUrl": "https://visionstar.zhiye.com/campus/jobs",
+      "aliases": [
+        "超新星"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "广州",
+        "深圳",
+        "杭州",
+        "厦门",
+        "合肥",
+        "天津",
+        "郑州"
+      ]
+    },
+    {
+      "builtinKey": "8bfdfd6a-85ee-42ee-b924-1fbcb1f6aa09",
+      "name": "广西旅游发展集团",
+      "careerUrl": "https://job.gxtdg.com/",
+      "aliases": [
+        "广西旅游发展集团有限公司",
+        "广西旅游发展集"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "深圳",
+        "广州",
+        "南宁",
+        "北海",
+        "桂林",
+        "柳州"
+      ]
+    },
+    {
+      "builtinKey": "e35be21e-348b-4e20-940d-3864d7e90901",
+      "name": "湖南出版&中南传媒",
+      "careerUrl": "https://hncb.iguopin.com/job2",
+      "aliases": [
+        "湖南出版",
+        "中南传媒",
+        "湖南出版投资控股集团有限公司",
+        "中南出版传媒集团股份有限公司"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "长沙"
+      ]
+    },
+    {
+      "builtinKey": "5e6c9e11-0850-4dd9-b477-b9810065b89b",
+      "name": "中国旅游集团",
+      "careerUrl": "https://ctgjob.iguopin.com/job-campus",
+      "aliases": [
+        "中国旅游集团有限公司"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "廊坊",
+        "香港",
+        "澳门",
+        "深圳",
+        "广州",
+        "珠海",
+        "海口",
+        "三亚",
+        "文昌",
+        "琼海",
+        "上海",
+        "南京",
+        "杭州",
+        "宁波",
+        "武汉",
+        "重庆",
+        "成都",
+        "青岛",
+        "昆明",
+        "大理",
+        "丽江",
+        "吉林",
+        "崇左",
+        "咸阳",
+        "伊犁",
+        "中卫",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "2584f181-5b78-4d73-b4b2-a0d3b72e12ab",
+      "name": "人民教育出版社",
+      "careerUrl": "https://jybzp.chsi.com.cn/home/jobs?orgId=vqlfxsjaglzcnjaf",
+      "aliases": [
+        "人民教育出版社有限公司",
+        "人教社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "5085d698-fcfb-4e10-93d4-6cf397697bb3",
+      "name": "东方有线",
+      "careerUrl": "https://campus.51job.com/dfyx/2027/job.html",
+      "aliases": [],
+      "industryKeys": [
+        "9304414e-1fd8-436d-af7d-06ba38dac014"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "7dd5a057-4459-407f-a4be-6dc1f4e7b975",
+      "name": "中国出版集团",
+      "careerUrl": "https://cnpubg.iguopin.com/job",
+      "aliases": [
+        "中国出版集团有限公司"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "13387d1b-950f-4e7a-9802-c196fb1cf601",
+      "name": "外研社",
+      "careerUrl": "http://hr.fltrp.com/xzzw",
+      "aliases": [
+        "外语教学与研究出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "414a8436-aff3-4906-b818-dec85b6df599",
+      "name": "发光星球",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/yicu/146995?locale=zh-CN#/jobs",
+      "aliases": [
+        "上海发光星球集团有限公司"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "278e9b7b-8a7c-4896-b8d7-1ccaefa1a988",
+      "name": "成都文旅",
+      "careerUrl": "https://gq.cdrchr.cn/soe-job/portal/special?activeTab=2&bgep11=848754493616710",
+      "aliases": [
+        "成都文化旅游发展集团有限责任公司"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "0b58c5b1-3c22-4886-96f7-627c1a24f644",
+      "name": "浙江出版联合集团",
+      "careerUrl": "https://xym.51job.com/wechat/vuectmjobs/#/index?id=5B608844-B39F-4393-BFBE-B1C726E4E22B&color=31BE88&prd=yddzy",
+      "aliases": [
+        "浙江出版集团"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "杭州"
+      ]
+    },
+    {
+      "builtinKey": "053edd28-6c34-4c9f-a943-048c3e1230e1",
+      "name": "听潮阁传媒",
+      "careerUrl": "https://tingchaoge.zhiye.com/",
+      "aliases": [
+        "听潮阁"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "杭州"
+      ]
+    },
+    {
+      "builtinKey": "5902f730-4c76-4a39-b1f5-9782b1e49f5a",
+      "name": "MDPI",
+      "careerUrl": "https://mdpi.cn/career/recruit/campus-recruit/position",
+      "aliases": [
+        "曼迪匹艾"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京",
+        "南京",
+        "武汉",
+        "成都",
+        "天津",
+        "大连",
+        "上海",
+        "深圳",
+        "全国其他"
+      ]
+    },
+    {
+      "builtinKey": "053b0574-227b-4212-88bd-a953e633b474",
+      "name": "姚品国际",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/ypgj/164305#/jobs",
+      "aliases": [
+        "上海姚品国际商贸有限公司"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "大连",
+        "广州",
+        "深圳",
+        "南京",
+        "武汉",
+        "长沙",
+        "西安",
+        "合肥",
+        "东北",
+        "川渝等"
+      ]
+    },
+    {
+      "builtinKey": "f3895b4e-b203-4139-8354-6f7c85240b76",
+      "name": "儒意电影",
+      "careerUrl": "https://ruyifilm.zhiye.com/campus/jobs",
+      "aliases": [
+        "万达电影"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "深圳",
+        "杭州",
+        "成都",
+        "武汉",
+        "南京",
+        "西安",
+        "济南",
+        "郑州",
+        "合肥",
+        "厦门",
+        "沈阳"
+      ]
+    },
+    {
+      "builtinKey": "f5eef63e-c70c-4f33-a61f-e7d53f2ab4de",
+      "name": "宜客数字科技",
+      "careerUrl": "https://s.xinrenxinshi.com/recruitGate/list#/ey=0ebdb0048c4b766f8f15cda6cc3b5b4182c86d",
+      "aliases": [
+        "宜客数字科技（深圳）有限公司"
+      ],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ],
+      "locations": [
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "a6f893ce-034a-4dbc-a87b-0bdb44439777",
+      "name": "南方财经全媒体集团",
+      "careerUrl": "https://app.21jingji.com/recruitment/#/campus",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0",
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "6117ed6f-1bb7-4301-b6e2-5367b2699659",
+      "name": "彭博",
+      "careerUrl": "https://bloomberg.avature.net/careers/Private?jobId=21390&source=WeChat",
+      "aliases": [
+        "Bloomberg",
+        "彭博Bloomberg"
+      ],
+      "industryKeys": [
+        "f3f241f1-dc56-4e5d-bece-20b8f164a3b3"
+      ],
+      "locations": [
+        "北京",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "7383a26e-ca97-4013-b609-4447d605317c",
+      "name": "仙工智能",
+      "careerUrl": "https://seer-group.jobs.feishu.cn/campus/",
+      "aliases": [],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065",
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "7e9dc7ad-95ad-4bf1-a377-31ef6d196ca3",
+      "name": "湖南卫视",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/hntv/150532?locale=zh-CN#/home",
+      "aliases": [
+        "湖南广播影视集团有限公司卫视频道分公司"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "长沙"
+      ]
+    },
+    {
+      "builtinKey": "f7bdc447-7373-42e1-af4f-7e7e96d92a8c",
+      "name": "虎扑",
+      "careerUrl": "https://hupu.zhiye.com/social",
+      "aliases": [],
+      "industryKeys": [
+        "f3f241f1-dc56-4e5d-bece-20b8f164a3b3"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "39d3ea3b-ffa3-4632-8468-8d27e7b1b903",
+      "name": "芒果TV",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/mgtv/118889?locale=zh-CN#/",
+      "aliases": [],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "长沙"
+      ]
+    },
+    {
+      "builtinKey": "569c3879-f44a-4c2d-b6e3-85ce2b52a80c",
+      "name": "中国广电",
+      "careerUrl": "https://xyzp.51job.com/cbncjsz2026/",
+      "aliases": [
+        "中国广播电视网络集团有限公司",
+        "中国广电集团"
+      ],
+      "industryKeys": [
+        "9304414e-1fd8-436d-af7d-06ba38dac014"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "94f00784-8b6a-43f4-841f-cc8257711a1e",
+      "name": "金鹃传媒科技股份有限公司",
+      "careerUrl": "https://ahgzcz.pzhl.net/index.php/reg/signlogin/?EXAMID=9278",
+      "aliases": [
+        "金鹃传媒"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "合肥"
+      ]
+    },
+    {
+      "builtinKey": "247ac3e5-b06c-464d-a1ef-5930429b68f2",
+      "name": "中国建筑出版传媒有限公司",
+      "careerUrl": "https://job.bit.edu.cn/frontpage/bit/html/recruitmentinfoForm.html?positionDetailId=f1e43bfa054548f4ae48b61a66ea8f4f",
+      "aliases": [
+        "中国建筑工业出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "1f245bad-6ae7-4772-ab1f-45f6be0245d4",
+      "name": "羊城晚报报业集团",
+      "careerUrl": "https://job.ycwb.com.cn/ycwb/selectYourChannel",
+      "aliases": [
+        "羊晚集团",
+        "羊城晚报社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "876d8a4e-c948-4aad-872b-75d477bcbb2f",
+      "name": "英寸电影",
+      "careerUrl": "https://ncnasx80ll71.feishu.cn/share/base/form/shrcn5Txu3HDc7jf8mKGVaV5iYb",
+      "aliases": [],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "南京"
+      ]
+    },
+    {
+      "builtinKey": "162ce34f-6a9d-4afd-bc6e-a8734f28e009",
+      "name": "文化和旅游部恭王府博物馆",
+      "careerUrl": "https://xyzp.51job.com/gwf2026/jobs.html",
+      "aliases": [
+        "恭王府博物馆"
+      ],
+      "industryKeys": [
+        "dabba164-949b-4c47-a53e-4b1eaa5c3c24"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "7602e88d-1409-4029-ac4b-20f6beeda75e",
+      "name": "江西出版传媒集团",
+      "careerUrl": "https://cbjt2026.zhaopin.com/school/index.html",
+      "aliases": [
+        "江西省出版传媒集团有限公司"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "南昌"
+      ]
+    },
+    {
+      "builtinKey": "fc022384-25c8-4355-ae5e-0b8860654b4a",
+      "name": "马栏山集团",
+      "careerUrl": "https://mlszp.iguopin.com/job",
+      "aliases": [],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "长沙"
+      ]
+    },
+    {
+      "builtinKey": "241d0dad-54f1-441f-8403-68509b9594a6",
+      "name": "大丰实业",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/dafeng/142387?locale=zh-CN#/jobs?project=100098866",
+      "aliases": [
+        "大丰",
+        "浙江大丰实业股份有限公司"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ],
+      "locations": [
+        "杭州",
+        "余姚"
+      ]
+    },
+    {
+      "builtinKey": "7b888602-4c7a-4635-9f9b-0a0ffd57df8f",
+      "name": "山海星辰集团",
+      "careerUrl": "https://ta1c5luh9ld.jobs.feishu.cn/775353/position/list?spread=W9G1DRR",
+      "aliases": [
+        "广西山海星辰传媒集团有限公司"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "北京",
+        "杭州",
+        "广州",
+        "深圳",
+        "重庆",
+        "南宁",
+        "长春"
+      ]
+    },
+    {
+      "builtinKey": "55dfad12-3a62-44f1-b743-19416e747f11",
+      "name": "诸云科技",
+      "careerUrl": "https://v.wjx.cn/vm/mr4ARZw.aspx",
+      "aliases": [],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "郑州",
+        "杭州",
+        "厦门"
+      ]
+    },
+    {
+      "builtinKey": "3c69ed21-f66c-4a4c-888f-bc383ea34afc",
+      "name": "北京环球度假区",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/ubr/117987#/jobs",
+      "aliases": [
+        "北京国际度假区有限公司主题公园和度假区管理分公司"
+      ],
+      "industryKeys": [
+        "62a77062-3538-407b-9f37-95378674bb6b"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "013155f1-66f1-4711-8551-41b9c0beb234",
+      "name": "国家广播电视总局广播电视科学研究院",
+      "careerUrl": "https://abs.iguopin.com/job",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "9714dd8a-9206-4d1b-af6f-0adae5657b2a",
+      "name": "学苑出版社有限公司",
+      "careerUrl": "https://www.mohrss.gov.cn/SYrlzyhshbzb/fwyd/SYkaoshizhaopin/zyhgjjgsydwgkzp/zpgg/202603/t20260306_568017.html",
+      "aliases": [
+        "学苑出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "e5d7541d-ae4e-4bcc-809e-d1411c4cd3bb",
+      "name": "科技日报社",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0147290753D90000002000",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "7faccc62-9fb0-41b7-8049-469eff9bd77c",
+      "name": "中央文献出版社有限责任公司",
+      "careerUrl": "https://www.mohrss.gov.cn/SYrlzyhshbzb/fwyd/SYkaoshizhaopin/zyhgjjgsydwgkzp/zpgg/202602/t20260225_567508.html",
+      "aliases": [
+        "中央文献出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "d105acb4-c4f3-42c8-924f-f09488daf266",
+      "name": "中共党史出版社有限责任公司",
+      "careerUrl": "https://www.mohrss.gov.cn/SYrlzyhshbzb/fwyd/SYkaoshizhaopin/zyhgjjgsydwgkzp/zpgg/202602/t20260225_567508.html",
+      "aliases": [
+        "中共党史出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "9a62ecad-dacc-4a86-8881-4bc2fa953cb4",
+      "name": "求是杂志社",
+      "careerUrl": "https://www.mohrss.gov.cn/SYrlzyhshbzb/fwyd/SYkaoshizhaopin/zyhgjjgsydwgkzp/zpgg/202601/t20260130_566392.html",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "0ce31421-e34f-4355-aedb-f05983050f19",
+      "name": "中国日报社",
+      "careerUrl": "https://www.mohrss.gov.cn/SYrlzyhshbzb/fwyd/SYkaoshizhaopin/zyhgjjgsydwgkzp/zpgg/202601/t20260128_566255.html",
+      "aliases": [
+        "中国日报",
+        "China Daily"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "6caac0de-0bdc-4c35-a7b9-7c4b6b24e37a",
+      "name": "中国新闻社",
+      "careerUrl": "https://campus.51job.com/chinanews2026/job.html",
+      "aliases": [
+        "中新社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "c1f1069e-963c-46a1-9a54-553fce0d49d7",
+      "name": "人民网",
+      "careerUrl": "https://campus.people.cn/#/list",
+      "aliases": [
+        "人民网股份有限公司"
+      ],
+      "industryKeys": [
+        "f3f241f1-dc56-4e5d-bece-20b8f164a3b3"
+      ],
+      "locations": [
+        "天津",
+        "北京",
+        "杭州",
+        "广州",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "96875718-8dc9-4a58-b10e-b9a1a362e8e3",
+      "name": "中国金融出版社有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1201288263D90000002000",
+      "aliases": [
+        "中国金融出版社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "8e93c894-7049-4f7a-8870-6f3096de2583",
+      "name": "引力传媒",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/yinli/148676#/",
+      "aliases": [
+        "引力",
+        "引力传媒股份有限公司"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "杭州",
+        "济南",
+        "长沙",
+        "深圳",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "5ca186d1-b265-435e-a58d-5f028b6f16b3",
+      "name": "人民日报社",
+      "careerUrl": "https://hr.peopledaily.com.cn/Recruitment/site/index.html",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "70926ef6-661e-4087-972a-1ff1ae6d2c8a",
+      "name": "深圳广播电影电视集团",
+      "careerUrl": "https://s19791.zhiye.com/campus/jobs",
+      "aliases": [
+        "深圳广电集团"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "北京",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "5e740e7f-ae22-4583-8074-a8caf70446e5",
+      "name": "上影集团",
+      "careerUrl": "https://www.zhaopin.com/companydetail/CZ237387220.htm",
+      "aliases": [
+        "上海电影（集团）有限公司"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "name": "香港中评社",
+      "careerUrl": "https://mp.weixin.qq.com/s/ZVB-gnqZFazzJ81Y0uv1hg",
+      "aliases": [
+        "中评社"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "香港",
+        "北京"
+      ],
+      "builtinKey": "dcc3fe01-eed3-4a26-ac0f-54d5d61f57c7"
+    },
+    {
+      "name": "电子工业出版社",
+      "careerUrl": "https://phei.zhiye.com/Campus",
+      "aliases": [
+        "电子工业出版社有限公司"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "builtinKey": "0a85e713-9067-4bd8-922c-096340aaeb53"
+    },
+    {
+      "name": "南方出版传媒",
+      "careerUrl": "https://campus.51job.com/nfcb2026/",
+      "aliases": [
+        "南方传媒"
+      ],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "广州",
+        "江门",
+        "佛山",
+        "汕头",
+        "潮阳",
+        "梅州",
+        "惠州",
+        "河源",
+        "阳江",
+        "湛江",
+        "北京",
+        "上海",
+        "揭阳"
+      ],
+      "builtinKey": "22f560c0-6b27-4bc7-82d8-34e0260bf100"
+    },
+    {
+      "name": "新华报业传媒集团",
+      "careerUrl": "https://job.xhby.net/web/html/",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "南京"
+      ],
+      "builtinKey": "f3407d34-fde9-442e-88f1-ba360e4e491c"
+    },
+    {
+      "name": "江苏省广播电视总台",
+      "careerUrl": "https://zhaopin.jsbc.com/school.html",
+      "aliases": [
+        "江苏广电"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "南京",
+        "无锡",
+        "苏州",
+        "连云港",
+        "淮安",
+        "扬州",
+        "泰州"
+      ],
+      "builtinKey": "34b19b3a-ff7d-4fcf-a8f2-5d5208f06faa"
+    },
+    {
+      "name": "罗德传播集团",
+      "careerUrl": "https://mp.weixin.qq.com/s/kByihatECqh7TxNHOuP0MA",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州"
+      ],
+      "builtinKey": "b9f5884f-8bb8-443a-a8d6-f0059046db0e"
+    },
+    {
+      "name": "趋势中国",
+      "careerUrl": "https://mp.weixin.qq.com/s/hDDaPIRETrhpkDBvL2htlQ",
+      "aliases": [
+        "趋势TRENDS"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "builtinKey": "70662afe-1d33-42fc-af7f-69bc8dc05938"
+    },
+    {
+      "name": "高等教育出版社",
+      "careerUrl": "https://zhaopinhep.zhiye.com/campus",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "builtinKey": "f81ffedd-5e0c-49e9-a3aa-2845fb0d5d69"
+    },
+    {
+      "name": "横店影视股份",
+      "careerUrl": "https://mp.weixin.qq.com/s/PiUdHwCrYIHv3-3eCU5ALQ",
+      "aliases": [
+        "横店影视"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "全国",
+        "东阳"
+      ],
+      "builtinKey": "a0f7c4e6-e0fd-4d56-baa7-d758b2da7358"
+    },
+    {
+      "name": "思库传播",
+      "careerUrl": "https://mp.weixin.qq.com/s/nBzCdWOIJKThJXk_nm8T-A",
+      "aliases": [
+        "THINKPARK思库传播"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "杭州"
+      ],
+      "builtinKey": "3174fbf4-11f2-4f1f-ac04-79ecfb0cec09"
+    },
+    {
+      "name": "四达时代集团",
+      "careerUrl": "https://jobs-startimes.ourats.com/REQ/CAMPUS",
+      "aliases": [
+        "四达时代"
+      ],
+      "industryKeys": [
+        "4c78ca1f-d099-4ca6-b3ec-bb50475446a1"
+      ],
+      "locations": [
+        "北京",
+        "非洲"
+      ],
+      "builtinKey": "d2ed342d-9b61-4c66-8061-911b744f9347"
+    },
+    {
+      "builtinKey": "8768bc26-c85d-4746-86b3-ec281be18d62",
+      "name": "南方报业",
+      "careerUrl": "https://campus.southcn.com/#/",
+      "aliases": [],
+      "industryKeys": [
+        "72cd0f17-3924-43ae-8186-181e03c1b4c0"
+      ],
+      "locations": [
+        "广州",
+        "深圳",
+        "梅州",
+        "清远",
+        "云浮"
+      ]
     }
   ]
 }

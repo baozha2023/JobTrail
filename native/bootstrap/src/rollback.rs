@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use jobtrail_bootstrap::{
-    plain_file, register, validate_installation, validate_tree, version, NO_WINDOW,
+    plain_file, refresh_registration, validate_installation, validate_tree, version, NO_WINDOW,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -521,7 +521,7 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<LaunchOutcome> {
     }
     let first = launch_checked(root, &state_root, args)?;
     if first == LaunchCheck::Healthy {
-        register(root, &installed_version, false)?;
+        refresh_registration(root, &installed_version)?;
         if pending.is_some() {
             fs::remove_file(pending_path)?;
         }
@@ -539,7 +539,7 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<LaunchOutcome> {
             let failed_checks = if first == LaunchCheck::IncompatibleData {
                 let second = launch_checked(root, &state_root, args)?;
                 if second == LaunchCheck::Healthy {
-                    register(root, &installed_version, false)?;
+                    refresh_registration(root, &installed_version)?;
                     fs::remove_file(pending_path)?;
                     clear_update_freeze(&state_root)?;
                     clean_rollback(root);
@@ -555,7 +555,7 @@ pub fn launch(root: &Path, args: &[OsString]) -> Result<LaunchOutcome> {
                 apply_rollback(root, &state_root, update)?;
                 match launch_checked(root, &state_root, &[])? {
                     LaunchCheck::Healthy => {
-                        register(root, &update.source_version, false)?;
+                        refresh_registration(root, &update.source_version)?;
                         clear_update_freeze(&state_root)?;
                         clean_rollback(root);
                         return Ok(LaunchOutcome::Healthy);

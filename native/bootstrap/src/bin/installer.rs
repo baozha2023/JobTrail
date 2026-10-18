@@ -929,7 +929,7 @@ fn install(root: &Path) -> Result<()> {
         fs::write(root.join(LAUNCHER), ROOT_LAUNCHER)?;
         fs::write(root.join(UNINSTALLER), ROOT_UNINSTALLER)?;
         fs::write(root.join(MARKER), b"jobtrail-root-v1\n")?;
-        register(root, env!("JOBTRAIL_VERSION"), true)?;
+        register(root, env!("JOBTRAIL_VERSION"))?;
         Ok(())
     })();
     if let Err(error) = operation {

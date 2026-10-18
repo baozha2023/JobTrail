@@ -109,7 +109,9 @@ it.each(platforms)(
               ? { code: 200, data: { id: 'personal-account', user_type: 'personal' } }
               : platform === 'yupao'
                 ? { code: 0, data: { userId: 12345, role: { nowRole: 2 } } }
-                : { code: 100, msg: { uuid: 'personal-account' } },
+                : platform === 'nowcoder'
+                  ? { code: 0, data: { nickname: 'synthetic-account' } }
+                  : { code: 100, msg: { uuid: 'personal-account' } },
           ),
         ),
     )
@@ -118,7 +120,12 @@ it.each(platforms)(
     )
     if (platformAdapter(platform).sessionCheck === 'batch') {
       expect(f.fetch).toHaveBeenCalledOnce()
-      expect(f.page).not.toHaveBeenCalled()
+      if (platform === 'nowcoder') {
+        expect(f.page).toHaveBeenCalledExactlyOnceWith(
+          platformAdapter(platform).accountCheckUrl,
+          platformAdapter(platform).pageScript(false),
+        )
+      } else expect(f.page).not.toHaveBeenCalled()
     } else {
       const adapter = platformAdapter(platform)
       expect(f.page).toHaveBeenCalledExactlyOnceWith(

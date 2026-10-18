@@ -113,8 +113,8 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
   )
 }
 
-it.each([1, 2, 3, 4, 5])(
-  'imports an authentic v%i payload, migrates it, exports v6 and restores again',
+it.each([1, 2, 3, 4, 5, 6, 7])(
+  'imports an authentic v%i payload, migrates it, exports v7 and restores again',
   async (version) => {
     const f = fixture()
     const sourceRoot = path.join(f.paths.root, 'released-source')
@@ -188,7 +188,7 @@ it.each([1, 2, 3, 4, 5])(
     recoverRestore(f.paths)
     const restored = createServiceContainer(f.paths, false)
     containers.push(restored)
-    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(6)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(7)
     for (const [table, rows] of Object.entries(discovery))
       expect(restored.database.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).toEqual(
         rows,
@@ -214,7 +214,7 @@ it.each([1, 2, 3, 4, 5])(
       secondArchive,
       importWork(f.paths.root),
     )
-    expect(manifest.databaseVersion).toBe(6)
+    expect(manifest.databaseVersion).toBe(7)
     const second = await importBackup(secondArchive, importWork(f.paths.root))
     restored.database.close()
     stageRestore(f.paths, second.directory)
@@ -362,6 +362,7 @@ describe('complete backup and restore', () => {
     ['boss', 'https://www.zhipin.com/job_detail/backup.html'],
     ['iguopin', 'https://www.iguopin.com/job/detail?id=900719925474099312345'],
     ['shixiseng', 'https://www.shixiseng.com/intern/inn_900719925474099312345'],
+    ['nowcoder', 'https://www.nowcoder.com/jobs/detail/30300000146368'],
   ] as const)(
     'round trips %s jobs and invalidates imported account evidence without transferring Session files',
     async (platform, url) => {

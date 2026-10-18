@@ -8,7 +8,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
-- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng and Yupao, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng, Yupao and Nowcoder, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
 - **AI assistant**: Connect your chosen model, reference resumes and roles, assess resume fit, and generate practice exams. View context usage, compact conversations, or connect external AI tools through MCP.
@@ -54,7 +54,9 @@ Job discovery only enables platforms with a confirmed login. Login and expired-s
 
 The built-in assistant also shows sign-in and verification cards in chat using the same recovery flow. QR dialogs close after official confirmation; close the official verification window yourself when finished. After recovery, the assistant reads the original search's latest results and continues your task, preserving your draft and attachments. External MCP clients should direct you to JobTrail to complete the manual step.
 
-You can send another message while the assistant is running. Each chat can queue up to three messages, with viewing, editing and deletion available. Internal recovery notifications run first; pending questions, confirmations and uncertain submissions pause consumption. Queues survive page changes and Renderer reloads and are cleared when the app exits. v2.4.0 retains database v6 and configuration v2; upgrading from v2.3.0 requires no persistence migration.
+You can send another message while the assistant is running. Each chat can queue up to three messages, with viewing, editing and deletion available. Internal recovery notifications run first; pending questions, confirmations and uncertain submissions pause consumption. Queues survive page changes and Renderer reloads and are cleared when the app exits.
+
+v2.5.0 advances the database to v7 through a formal 6 → 7 migration; configuration remains v2 and the backup envelope remains v1. Nowcoder searches graduate, internship and experienced roles together and supports the Nowcoder app QR code. See the [discovery specification](docs/job-discovery.md#牛客接入) for the scope and limits of live validation.
 
 Live discovery tools reuse an already running JobTrail client from the same installation. If none is running, MCP starts it in the system tray without taking focus. Local history queries do not require the desktop to run.
 

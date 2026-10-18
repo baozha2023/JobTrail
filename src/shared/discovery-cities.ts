@@ -5,6 +5,7 @@ import wuyou from './discovery-cities/wuyou.json'
 import iguopin from './discovery-cities/iguopin.json'
 import shixiseng from './discovery-cities/shixiseng.json'
 import yupao from './discovery-cities/yupao.json'
+import nowcoder from './discovery-cities/nowcoder.json'
 import type { JobPlatform } from './job-discovery'
 import { createCityLookup, intersectCityCatalogs, type CityCatalog } from './discovery-city-catalog'
 
@@ -17,6 +18,7 @@ export const cityCatalogs: Readonly<Record<JobPlatform, CityCatalog>> = {
   iguopin,
   shixiseng,
   yupao,
+  nowcoder,
 }
 const indexes = new Map(
   (Object.keys(cityCatalogs) as JobPlatform[]).map((p) => [p, createCityLookup(cityCatalogs[p])]),

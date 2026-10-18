@@ -1,6 +1,31 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+
+// APPDATA only isolates files. Native launchers still see the real HKCU, so
+// acceptance tests must also prove that this user's installation claim is untouched.
+export function readInstallationRegistration() {
+  return execFileSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `$ErrorActionPreference='Stop'
+      $key=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\zhiji')
+      try {
+        if ($null -eq $key) { 'null' } else {
+          $values=@(foreach ($name in ($key.GetValueNames() | Sort-Object)) {
+            [ordered]@{name=$name;kind=$key.GetValueKind($name).ToString();value=$key.GetValue($name,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}
+          })
+          ConvertTo-Json -InputObject $values -Depth 10 -Compress
+        }
+      } finally { if ($null -ne $key) { $key.Dispose() } }`,
+    ],
+    { encoding: 'utf8', windowsHide: true },
+  ).trim()
+}
 
 // Unrelated smoke tests use the public controls/settings, never a product test-mode bypass.
 export async function skipToursForTest(page) {

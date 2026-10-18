@@ -15,6 +15,8 @@ import { createServiceContainer } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { chromium } from 'playwright'
 import { featureErrors } from '../src/shared/feature-errors'
+import { randomUUID } from 'node:crypto'
+import { nowcoderResponse } from '../src/main/discovery/adapters/nowcoder/parsing'
 
 describe('JobTrail MCP server', () => {
   let root: string
@@ -103,6 +105,89 @@ describe('JobTrail MCP server', () => {
     expect(result.isError, `${name} returned ${JSON.stringify(result.content)}`).not.toBe(true)
     return result.structuredContent as Record<string, unknown>
   }
+
+  it.each([false, true])(
+    'exposes Nowcoder search, history, detail and confirmed saving over modern=%s MCP',
+    async (modern) => {
+      const discovery = container!.services.discovery,
+        query = { keyword: 'Java', city: '上海', platforms: ['nowcoder'] as 'nowcoder'[] },
+        run = discovery.repository.create(query, randomUUID())
+      const parsed = nowcoderResponse(
+        {
+          code: 0,
+          data: {
+            datas: [
+              {
+                rc_type: 3030,
+                data: {
+                  id: 30300000146368,
+                  recruitType: 0,
+                  jobTitle: 'Java 官网岗位',
+                  companyName: '合成牛客公司',
+                  city: '上海',
+                  description: '<p>官网职责</p><p>任职要求</p>',
+                  extraInfo: { positionType_var: '校招' },
+                },
+              },
+            ],
+            currentPage: 1,
+            totalPage: 1,
+            totalCount: 1,
+          },
+        },
+        1,
+      )
+      container!.unitOfWork.run(() => discovery.repository.observe(parsed.jobs[0], run.id))
+      const start = vi
+          .spyOn(discovery, 'start')
+          .mockResolvedValue(discovery.repository.run(run.id)),
+        confirm = vi.fn(),
+        client = await connect(modern, 'accept', confirm)
+      const status = await call(client, 'get_job_platform_status')
+      expect(status.items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ platform: 'nowcoder' })]),
+      )
+      await call(client, 'start_job_search', { requestId: randomUUID(), query })
+      expect(start).toHaveBeenCalledWith(expect.objectContaining({ query }))
+      expect((await call(client, 'list_job_search_history', { page: 1 })).items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: run.id, query })]),
+      )
+      const list = await call(client, 'list_discovered_jobs', { runId: run.id })
+      const job = (list.items as { id: string; observationId: string }[])[0]
+      expect(
+        (
+          await call(client, 'get_discovered_job', {
+            jobId: job.id,
+            observationId: job.observationId,
+            mode: 'snapshot',
+          })
+        ).item,
+      ).toMatchObject({
+        platform: 'nowcoder',
+        title: 'Java 官网岗位',
+        recruitment: '校招',
+        jd: '官网职责\n任职要求',
+      })
+      const saved = await call(client, 'save_discovered_job', {
+        jobId: job.id,
+        observationId: job.observationId,
+        newCompanyName: '合成牛客公司',
+        statusId: container!.services.statuses.list()[0].id,
+      })
+      expect(confirm).toHaveBeenCalledOnce()
+      expect(container!.services.opportunities.get(saved.opportunityId as number)).toMatchObject({
+        title: 'Java 官网岗位',
+        source: '牛客',
+        description: '官网职责\n任职要求',
+      })
+      const invalid = await client.callTool({
+        name: 'start_job_search',
+        arguments: { requestId: randomUUID(), query: { ...query, platforms: ['unknown'] } },
+      })
+      expect(invalid.isError).toBe(true)
+      expect(start).toHaveBeenCalledOnce()
+    },
+  )
 
   it('creates and appends exam questions without write confirmation while other writes remain gated', async () => {
     const conversationId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'

@@ -3,17 +3,30 @@ import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
 import { afterEach, expect, it } from 'vitest'
-import {
-  DATABASE_MIGRATIONS,
-  preparePersistenceUpgrade,
-  validateDatabaseVersion,
-} from '../src/main/persistence-migrations'
+import { DATABASE_MIGRATIONS, validateDatabaseVersion } from '../src/main/persistence-migrations'
 import { SCHEMA_V6 } from '../src/main/persistence/schema-v6'
 import { decryptConfig } from '../src/main/config-crypto'
 import { seedDiscoveryV4 } from './helpers/discovery-v4'
 import { DiscoveryRepository } from '../src/main/discovery/repository'
 import { searchQuerySchema } from '../src/shared/job-discovery'
 import { randomUUID } from 'node:crypto'
+
+// Keep the released v6 step under test even after the current target advances.
+function upgradeV6(file: string) {
+  const db = new Database(file)
+  try {
+    db.transaction(() => {
+      const version = Number(db.pragma('user_version', { simple: true }))
+      for (const step of DATABASE_MIGRATIONS.filter((s) => s.from >= version && s.to <= 6)) {
+        step.apply(db)
+        db.pragma(`user_version=${step.to}`)
+        validateDatabaseVersion(db, step.to)
+      }
+    }).immediate()
+  } finally {
+    db.close()
+  }
+}
 
 const roots: string[] = []
 afterEach(() =>
@@ -57,7 +70,7 @@ it.each([4, 5])(
     const f = fixture(version),
       before = contents(f.db)
     f.db.close()
-    preparePersistenceUpgrade(f.file, f.config)
+    upgradeV6(f.file)
     const db = new Database(f.file),
       fresh = new Database(':memory:')
     try {
@@ -90,7 +103,7 @@ it('rolls back a failed v5 to v6 step, including table replacements and user_ver
     throw new Error('injected post-copy failure')
   }
   try {
-    expect(() => preparePersistenceUpgrade(f.file, f.config)).toThrow('injected post-copy failure')
+    expect(() => upgradeV6(f.file)).toThrow('injected post-copy failure')
   } finally {
     step.apply = apply
   }
@@ -106,7 +119,7 @@ it('rolls back a failed v5 to v6 step, including table replacements and user_ver
 it('admits Yupao jobs, sources, status and query JSON after the formal migration', () => {
   const f = fixture(5)
   f.db.close()
-  preparePersistenceUpgrade(f.file, f.config)
+  upgradeV6(f.file)
   const db = new Database(f.file)
   try {
     const repo = new DiscoveryRepository(db)

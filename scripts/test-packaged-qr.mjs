@@ -25,7 +25,16 @@ try {
   await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   const report = []
-  const candidates = ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao']
+  const candidates = [
+    'boss',
+    'liepin',
+    'zhilian',
+    'wuyou',
+    'iguopin',
+    'shixiseng',
+    'yupao',
+    'nowcoder',
+  ]
   const selected = process.argv[2]
   const selectedMethod = process.argv[3]
   assert.ok(!selected || candidates.includes(selected), 'Unknown QR test platform')

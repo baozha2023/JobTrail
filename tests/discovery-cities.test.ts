@@ -92,11 +92,11 @@ describe('official discovery city catalog', () => {
         expect(initial).toMatch(/^[A-Z]$/)
         expect(platformName).not.toBe('')
         const code = cityCode(platform, name)!
-        if (platform === 'shixiseng') expect(code).toBe(platformName)
+        if (platform === 'shixiseng' || platform === 'nowcoder') expect(code).toBe(platformName)
         else expect(code).toMatch(/^\d+(?:\.\d+)*$/)
         expect(cityName(platform, code)).toBe(name)
         // Hsinchu/Chiayi cities and counties are separate official choices.
-        if (!['新竹县', '嘉义县'].includes(name))
+        if (!['新竹县', '嘉义县', '台中县', '台南县', '高雄县'].includes(name))
           expect(name).not.toMatch(/(?:自治区|自治州|自治县|地区|新区|开发区|省|市|县|盟)$/)
         for (const alias of aliases ?? []) expect(cityCode(platform, alias)).toBe(code)
       }

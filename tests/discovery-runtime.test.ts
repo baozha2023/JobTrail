@@ -8,6 +8,8 @@ import { createServiceContainer } from '../src/main/service-container'
 import { DiscoveryRuntime } from '../src/main/discovery/runtime'
 import { BossSearch, bossAdapter, bossResponse } from '../src/main/discovery/adapters/boss'
 import { shixisengAdapter, ShixisengSearch } from '../src/main/discovery/adapters/shixiseng'
+import { nowcoderAdapter } from '../src/main/discovery/adapters/nowcoder'
+import { NowcoderSearch, nowcoderForm } from '../src/main/discovery/adapters/nowcoder/search'
 import {
   SourceError,
   type SourceBatch,
@@ -1591,4 +1593,101 @@ it('filters Shixiseng foreign cities before SQLite writes and keeps searching pa
       .prepare('SELECT count(*) AS count FROM discovery_jobs WHERE platform = ?')
       .get('shixiseng'),
   ).toEqual({ count: 1 })
+})
+
+it('collects mixed Nowcoder pages through the runtime, deduplicates and saves the selected observation', async () => {
+  const f = fixture(undefined, false),
+    repo = f.service.repository
+  repo.platform({
+    ...repo.status().find((s) => s.platform === 'nowcoder')!,
+    state: 'authenticated',
+  })
+  const account = vi.spyOn(nowcoderAdapter, 'checkSession').mockResolvedValue('authenticated')
+  let responses = 0
+  const query = { keyword: 'Java', city: '上海' }
+  const transport: SearchTransport = {
+    load: vi.fn(async () => {}),
+    fill: vi.fn(),
+    click: vi.fn(),
+    guard: vi.fn(async () => {}),
+    enter: vi.fn(),
+    until: vi.fn(),
+    evaluate: vi.fn().mockResolvedValue(true),
+    async response(reader, action, signal) {
+      await action()
+      signal.throwIfAborted()
+      const page = ++responses
+      expect(
+        reader.request({
+          url: 'https://www.nowcoder.com/np-api/u/job/square-search',
+          method: 'POST',
+          body: nowcoderForm(query, page),
+        }),
+      ).toBe(true)
+      const row = (id: number, recruitType: number) => ({
+        rc_type: 3010,
+        data: {
+          id,
+          recruitType,
+          jobName: 'Java 开发',
+          recommendInternCompany: { companyName: '合成牛客公司' },
+          jobCityList: ['上海'],
+          salaryMin: recruitType === 2 ? 200 : 15,
+          salaryMax: recruitType === 2 ? 300 : 25,
+          salaryType: recruitType === 2 ? 1 : 2,
+        },
+      })
+      return reader.response({
+        code: 0,
+        data: {
+          datas: page === 1 ? [row(1001, 1), row(1002, 2)] : [row(1001, 1), row(1003, 3)],
+          currentPage: page,
+          totalPage: 2,
+          totalCount: 4,
+        },
+      })
+    },
+  }
+  vi.spyOn(nowcoderAdapter, 'createSearch').mockImplementation(
+    (_, q) => new NowcoderSearch(transport, q),
+  )
+  const run = await f.service.start({
+    requestId: randomUUID(),
+    query: { ...query, platforms: ['nowcoder'] },
+  })
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
+    state: 'completed',
+    count: 3,
+    batches: 2,
+    sourcePage: 2,
+  })
+  expect(account).toHaveBeenCalledTimes(3)
+  expect(responses).toBe(2)
+  const view = await f.service.list({ runId: run.id })
+  expect(view.items.map((j) => j.recruitment).sort()).toEqual(['实习', '校招', '社招'])
+  const selected = view.items.find((j) => j.recruitment === '实习')!
+  expect(selected).toMatchObject({
+    company: '合成牛客公司',
+    salary: '200-300元/天',
+    detailReadAt: null,
+  })
+  const saved = await f.service.save({
+    jobId: selected.id,
+    observationId: selected.observationId,
+    newCompanyName: selected.company,
+    statusId: f.container.services.statuses.list()[0].id,
+  })
+  expect(f.container.services.opportunities.get(saved.opportunityId)).toMatchObject({
+    title: 'Java 开发',
+    source: '牛客',
+    jobUrl: selected.url,
+    location: '上海',
+  })
+  expect(
+    await f.service.save({
+      jobId: selected.id,
+      newCompanyName: '不应再次创建',
+      statusId: f.container.services.statuses.list()[0].id,
+    }),
+  ).toEqual({ opportunityId: saved.opportunityId, alreadySaved: true })
 })

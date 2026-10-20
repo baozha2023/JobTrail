@@ -67,7 +67,7 @@ describe('职迹最终数据库结构和业务服务', () => {
       expect(
         (saved.prepare('SELECT value FROM snapshot_probe').get() as { value: string }).value,
       ).toBe('before-update')
-      expect(saved.pragma('user_version', { simple: true })).toBe(7)
+      expect(saved.pragma('user_version', { simple: true })).toBe(8)
     } finally {
       saved.close()
     }
@@ -80,7 +80,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     ['extra column', 'ALTER TABLE discovery_sources ADD COLUMN legacy_count INTEGER'],
     ['missing index', 'DROP INDEX idx_discovery_job_current'],
     ['extra table', 'CREATE TABLE discovery_legacy_jobs(id TEXT)'],
-  ])('rejects v7 with %s without repairing its schema', (_name, mutation) => {
+  ])('rejects v8 with %s without repairing its schema', (_name, mutation) => {
     database!.db.exec(mutation)
     const schema = database!.db.prepare('SELECT * FROM sqlite_master ORDER BY name').all()
     database!.close()
@@ -88,14 +88,14 @@ describe('职迹最终数据库结构和业务服务', () => {
     expect(() => new DatabaseManager(paths)).toThrow(/persistent schema/)
     const unchanged = new Database(paths.database, { readonly: true })
     try {
-      expect(unchanged.pragma('user_version', { simple: true })).toBe(7)
+      expect(unchanged.pragma('user_version', { simple: true })).toBe(8)
       expect(unchanged.prepare('SELECT * FROM sqlite_master ORDER BY name').all()).toEqual(schema)
     } finally {
       unchanged.close()
     }
   })
 
-  it('creates schema v7 before seeding and has no physical foreign key', () => {
+  it('creates schema v8 before seeding and has no physical foreign key', () => {
     const names = (
       database!.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{
         name: string
@@ -205,7 +205,7 @@ describe('职迹最终数据库结构和业务服务', () => {
           .get() as { count: number }
       ).count,
     ).toBe(0)
-    expect(database!.db.pragma('user_version', { simple: true })).toBe(7)
+    expect(database!.db.pragma('user_version', { simple: true })).toBe(8)
     expect(
       database!.db.prepare('SELECT * FROM builtin_company_catalog_state WHERE id = 1').get(),
     ).toEqual({
@@ -291,7 +291,7 @@ describe('职迹最终数据库结构和业务服务', () => {
     const unsupportedDatabasePath = path.join(unsupportedRoot, 'data', 'zhiji.db')
     fs.mkdirSync(path.dirname(unsupportedDatabasePath), { recursive: true })
     const rawDatabase = new Database(unsupportedDatabasePath)
-    rawDatabase.pragma('user_version = 8')
+    rawDatabase.pragma('user_version = 9')
     rawDatabase.close()
     const originalHash = createHash('sha256')
       .update(fs.readFileSync(unsupportedDatabasePath))
@@ -576,6 +576,31 @@ describe('职迹最终数据库结构和业务服务', () => {
     developmentServices.statuses.delete(status.id)
     developmentServices.industries.delete(industry!.id)
     developmentServices.companies.delete(company.id)
+  })
+
+  it('reports duplicate company creation and renaming with a stable code and preserves data', () => {
+    const original = services.companies.create({ name: '已有公司', locations: ['上海'] })
+    const other = services.companies.create({ name: '待改名公司', locations: ['北京'] })
+    const companies = services.companies.list()
+    expect(() =>
+      services.companies.create({ name: '  已有公司  ', locations: ['重复公司不应留下的地点'] }),
+    ).toThrow(expect.objectContaining({ code: 'COMPANY_EXISTS', cause: expect.any(Error) }))
+    expect(() =>
+      services.companies.update(other.id, {
+        name: '  已有公司  ',
+        locations: ['重复公司不应留下的地点'],
+      }),
+    ).toThrow(expect.objectContaining({ code: 'COMPANY_EXISTS', cause: expect.any(Error) }))
+    expect(services.companies.list()).toEqual(companies)
+    expect(services.companies.get(original.id)).toEqual(original)
+    expect(services.companies.get(other.id)).toEqual(other)
+    expect(
+      services.companies.searchLocations({
+        page: 1,
+        pageSize: 100,
+        prefix: '重复公司不应留下的地点',
+      }).items,
+    ).toEqual([])
   })
 
   it('manages company aliases internally and searches by alias', () => {

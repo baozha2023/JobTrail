@@ -184,6 +184,10 @@ function qrFixture(values: unknown[], cookie = 'synthetic-token') {
     text: vi.fn(async () => ''),
     setCookie: vi.fn(async () => {}),
     scanned: vi.fn(),
+    page: vi.fn(),
+    verification: vi.fn((): never => {
+      throw new Error('verification')
+    }),
   }
   return transport
 }
@@ -260,7 +264,9 @@ it.each(['wechat', 'app'] as const)(
       account,
     ])
     const qr = yupaoQr(t, method)
-    expect((await qr.initialize()).expiresInMs).toBe(method === 'wechat' ? 90000 : 120000)
+    expect(await qr.initialize()).toMatchObject({
+      expiresInMs: method === 'wechat' ? 90000 : 120000,
+    })
     if (method === 'app')
       expect(await qr.poll()).toMatchObject({ state: 'scanned', expiresInMs: 120000 })
     expect(await qr.poll()).toBe(method === 'app' ? 'scanned' : 'waiting')

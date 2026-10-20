@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 use anyhow::{bail, Context, Result};
+use jobtrail_bootstrap::localization::{language, text, Language, Message};
 use jobtrail_bootstrap::*;
 use std::{
     ffi::OsStr,
@@ -128,6 +129,7 @@ impl InstallerControls {
 }
 
 struct InstallerWindow {
+    language: Language,
     selected_root: PathBuf,
     outcome: Option<PathBuf>,
     dpi: u32,
@@ -212,8 +214,14 @@ fn refresh_install_location(window: &mut InstallerWindow) {
     set_text(
         window.controls.available_label,
         available
-            .map(|bytes| format!("可用空间：{}", format_size(bytes)))
-            .unwrap_or_else(|| "可用空间：无法获取".to_owned()),
+            .map(|bytes| {
+                format!(
+                    "{}{}",
+                    window.language.text(Message::AvailableSpace),
+                    format_size(bytes)
+                )
+            })
+            .unwrap_or_else(|| window.language.text(Message::SpaceUnavailable).to_owned()),
     );
     let enough_space = available.is_none_or(|bytes| bytes >= required_space());
     // SAFETY: `install_button` is a live button handle owned by this window.
@@ -252,9 +260,9 @@ fn show_progress_page(window: &mut InstallerWindow, visible: bool) {
     set_text(
         window.controls.heading,
         if visible {
-            "正在安装职迹"
+            window.language.text(Message::Installing)
         } else {
-            "选定安装位置"
+            window.language.text(Message::SelectLocation)
         },
     );
 }
@@ -263,7 +271,7 @@ fn start_install(hwnd: HWND, window: &mut InstallerWindow) -> Result<()> {
     validate_path(&window.selected_root)?;
     window.installing = true;
     show_progress_page(window, true);
-    set_progress(window, 3, "正在准备安装文件…");
+    set_progress(window, 3, window.language.text(Message::PreparingFiles));
     // SAFETY: `hwnd` is the live installer window. The timer is stopped when installation
     // completes or the window is destroyed.
     unsafe {
@@ -294,12 +302,12 @@ fn start_install(hwnd: HWND, window: &mut InstallerWindow) -> Result<()> {
                 }
             }
         })
-        .context("无法启动安装任务")?;
+        .context(text(Message::StartInstallTaskFailed))?;
     Ok(())
 }
 
-fn show_window_error(owner: HWND, error: &anyhow::Error) {
-    let title = wide("无法使用该安装位置");
+fn show_window_error(owner: HWND, language: Language, error: &anyhow::Error) {
+    let title = wide(language.text(Message::InvalidLocationTitle));
     let message = wide(format!("{error:#}"));
     // SAFETY: the owner handle is valid and both strings are null-terminated.
     unsafe {
@@ -401,8 +409,8 @@ fn layout_controls(window: &InstallerWindow) {
     move_control(controls.heading, dpi, 48, 34, 500, 48);
     move_control(controls.separator, dpi, 48, 102, 716, 2);
     move_control(controls.description, dpi, 48, 128, 716, 62);
-    move_control(controls.target_label, dpi, 72, 246, 100, 30);
-    move_control(controls.path_edit, dpi, 176, 238, 390, 36);
+    move_control(controls.target_label, dpi, 72, 246, 112, 30);
+    move_control(controls.path_edit, dpi, 192, 238, 374, 36);
     move_control(controls.browse_button, dpi, 582, 236, 150, 40);
     move_control(controls.required_label, dpi, 72, 300, 400, 30);
     move_control(controls.available_label, dpi, 72, 340, 400, 30);
@@ -426,7 +434,8 @@ unsafe extern "system" fn installer_window_proc(
         if message == WM_NCCREATE {
             let create = &*(lparam as *const CREATESTRUCTW);
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, create.lpCreateParams as isize);
-            return TRUE as LRESULT;
+            // Keep the default non-client initialization, including the localized caption.
+            return DefWindowProcW(hwnd, message, wparam, lparam);
         }
         let state = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut InstallerWindow;
         match message {
@@ -444,7 +453,7 @@ unsafe extern "system" fn installer_window_proc(
                             .unwrap_or(&state.selected_root)
                             .to_path_buf();
                         if let Some(parent) = rfd::FileDialog::new()
-                            .set_title("选择安装父目录（将创建 JobTrail 文件夹）")
+                            .set_title(state.language.text(Message::ChooseParent))
                             .set_directory(initial)
                             .pick_folder()
                         {
@@ -458,7 +467,7 @@ unsafe extern "system" fn installer_window_proc(
                             KillTimer(hwnd, PROGRESS_TIMER_ID);
                             show_progress_page(state, false);
                             refresh_install_location(state);
-                            show_window_error(hwnd, &error);
+                            show_window_error(hwnd, state.language, &error);
                         }
                     }
                     CANCEL_BUTTON_ID => {
@@ -473,11 +482,11 @@ unsafe extern "system" fn installer_window_proc(
                 if wparam == PROGRESS_TIMER_ID && state.installing {
                     let progress = next_progress(state.progress);
                     let label = if progress < 35 {
-                        "正在准备安装文件…"
+                        state.language.text(Message::PreparingFiles)
                     } else if progress < 75 {
-                        "正在写入程序文件…"
+                        state.language.text(Message::WritingFiles)
                     } else {
-                        "正在完成安装配置…"
+                        state.language.text(Message::FinishingSetup)
                     };
                     set_progress(state, progress, label);
                 } else if wparam == FINISH_TIMER_ID {
@@ -499,7 +508,7 @@ unsafe extern "system" fn installer_window_proc(
                 match result {
                     Ok(()) => {
                         state.outcome = Some(state.selected_root.clone());
-                        set_progress(state, 100, "安装完成");
+                        set_progress(state, 100, state.language.text(Message::InstallComplete));
                         SetTimer(hwnd, FINISH_TIMER_ID, 450, None);
                     }
                     Err(error) => {
@@ -508,7 +517,7 @@ unsafe extern "system" fn installer_window_proc(
                         show_progress_page(state, false);
                         refresh_install_location(state);
                         let error = anyhow::anyhow!(error);
-                        show_window_error(hwnd, &error);
+                        show_window_error(hwnd, state.language, &error);
                     }
                 }
                 0
@@ -557,7 +566,7 @@ fn create_control(
     parent: HWND,
     instance: winapi::shared::minwindef::HINSTANCE,
     class_name: &str,
-    text: &str,
+    label_text: &str,
     style: DWORD,
     extended_style: DWORD,
     x: i32,
@@ -567,14 +576,14 @@ fn create_control(
     id: i32,
 ) -> Result<HWND> {
     let class_name = wide(class_name);
-    let text = wide(text);
+    let label = wide(label_text);
     // SAFETY: the parent and instance belong to this process, strings are null-terminated, and
     // the control lifetime is managed by the parent window.
     let control = unsafe {
         CreateWindowExW(
             extended_style,
             class_name.as_ptr(),
-            text.as_ptr(),
+            label.as_ptr(),
             style | WS_CHILD | WS_VISIBLE,
             x,
             y,
@@ -587,14 +596,14 @@ fn create_control(
         )
     };
     if control.is_null() {
-        bail!("无法创建安装器控件");
+        bail!("{}", text(Message::CreateControlFailed));
     }
     Ok(control)
 }
 
-fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
+fn select_install_root(default_root: PathBuf, language: Language) -> Result<Option<PathBuf>> {
     let class_name = wide("JobTrailInstallerWindow");
-    let title = wide("职迹 安装");
+    let title = wide(language.text(Message::InstallerTitle));
     // SAFETY: all Win32 handles created below are owned by this function and remain live through
     // the message loop. Every pointer passed to Win32 is either null or points to live data.
     unsafe {
@@ -603,7 +612,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             dwICC: ICC_PROGRESS_CLASS,
         };
         if InitCommonControlsEx(&common_controls) == FALSE {
-            bail!("无法初始化安装进度控件");
+            bail!("{}", text(Message::InitProgressFailed));
         }
         let instance = GetModuleHandleW(ptr::null());
         let icon = LoadImageW(
@@ -627,11 +636,12 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             lpszClassName: class_name.as_ptr(),
         };
         if RegisterClassW(&window_class) == 0 {
-            bail!("无法注册安装器窗口");
+            bail!("{}", text(Message::RegisterWindowFailed));
         }
 
         let initial_dpi = GetDpiForSystem().max(1);
         let state = Box::new(InstallerWindow {
+            language,
             selected_root: default_root,
             outcome: None,
             dpi: initial_dpi,
@@ -663,14 +673,14 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
         if window.is_null() {
             drop(Box::from_raw(state));
             UnregisterClassW(class_name.as_ptr(), instance);
-            bail!("无法创建安装器窗口");
+            bail!("{}", text(Message::CreateWindowFailed));
         }
 
         let heading = create_control(
             window,
             instance,
             "STATIC",
-            "选定安装位置",
+            language.text(Message::SelectLocation),
             SS_LEFT,
             0,
             48,
@@ -696,7 +706,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            "默认安装到下列文件夹。需要安装到其他磁盘时，可点击“更改安装位置”选择父目录，程序会自动创建 JobTrail 子目录。",
+            language.text(Message::InstallDescription),
             SS_LEFT,
             0,
             48,
@@ -709,12 +719,12 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            "目标文件夹",
+            language.text(Message::TargetFolder),
             SS_LEFT,
             0,
             72,
             246,
-            100,
+            112,
             30,
             0,
         )?;
@@ -725,9 +735,9 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             "",
             ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
             WS_EX_CLIENTEDGE,
-            176,
+            192,
             238,
-            390,
+            374,
             36,
             0,
         )?;
@@ -735,7 +745,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "BUTTON",
-            "更改安装位置",
+            language.text(Message::ChangeLocation),
             BS_PUSHBUTTON | WS_TABSTOP,
             0,
             582,
@@ -748,7 +758,11 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            &format!("所需空间：约 {}", format_size(required_space())),
+            &format!(
+                "{}{}",
+                language.text(Message::RequiredSpace),
+                format_size(required_space())
+            ),
             SS_LEFT,
             0,
             72,
@@ -761,7 +775,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            "可用空间：正在计算…",
+            language.text(Message::SpaceCalculating),
             SS_LEFT,
             0,
             72,
@@ -774,7 +788,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            "正在准备安装文件…",
+            language.text(Message::PreparingFiles),
             SS_LEFT,
             0,
             72,
@@ -813,7 +827,11 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "STATIC",
-            &format!("当前版本  {}", env!("JOBTRAIL_VERSION")),
+            &format!(
+                "{}{}",
+                language.text(Message::CurrentVersion),
+                env!("JOBTRAIL_VERSION")
+            ),
             SS_LEFT,
             0,
             48,
@@ -826,7 +844,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "BUTTON",
-            "安装",
+            language.text(Message::Install),
             BS_DEFPUSHBUTTON | WS_TABSTOP,
             0,
             566,
@@ -839,7 +857,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
             window,
             instance,
             "BUTTON",
-            "取消",
+            language.text(Message::Cancel),
             BS_PUSHBUTTON | WS_TABSTOP,
             0,
             674,
@@ -897,7 +915,7 @@ fn select_install_root(default_root: PathBuf) -> Result<Option<PathBuf>> {
 
 fn install(root: &Path) -> Result<()> {
     if SETUP.is_empty() || ROOT_LAUNCHER.is_empty() || ROOT_UNINSTALLER.is_empty() {
-        bail!("安装包没有有效载荷，请通过 release:win 构建");
+        bail!("{}", text(Message::MissingPayload));
     }
     validate_path(root)?;
     ensure_not_installed()?;
@@ -905,7 +923,7 @@ fn install(root: &Path) -> Result<()> {
     if !created_root {
         validate_tree(root)?;
         if fs::read_dir(root)?.next().is_some() {
-            bail!("目标目录必须为空，请先备份其中的数据并选择空目录");
+            bail!("{}", text(Message::DirectoryNotEmpty));
         }
     } else {
         fs::create_dir_all(root)?;
@@ -923,7 +941,7 @@ fn install(root: &Path) -> Result<()> {
             .creation_flags(NO_WINDOW)
             .status()?;
         if !status.success() {
-            bail!("Velopack 安装失败: {status}");
+            bail!("{}: {status}", text(Message::InstallFailed));
         }
         plain_file(&root.join(".runtime/current/zhiji.exe"))?;
         fs::write(root.join(LAUNCHER), ROOT_LAUNCHER)?;
@@ -935,7 +953,8 @@ fn install(root: &Path) -> Result<()> {
     if let Err(error) = operation {
         if let Err(cleanup_error) = unregister(root) {
             return Err(error.context(format!(
-                "安装失败，系统注册信息清理失败，安装目录已保留：{cleanup_error:#}"
+                "{}: {cleanup_error:#}",
+                text(Message::InstallCleanupFailed)
             )));
         }
         if root.exists() {
@@ -962,25 +981,28 @@ fn run() -> Result<()> {
     let mut args = std::env::args_os().skip(1);
     if let Some(argument) = args.next() {
         if argument != "--install-dir" {
-            bail!("未知安装参数");
+            bail!("{}", text(Message::InvalidInstallArgs));
         }
-        let target = PathBuf::from(args.next().context("缺少安装目录")?);
+        let target = PathBuf::from(
+            args.next()
+                .context(text(Message::MissingInstallDirectory))?,
+        );
         if args.next().is_some() {
-            bail!("未知安装参数");
+            bail!("{}", text(Message::InvalidInstallArgs));
         }
         return install(&target);
     }
     let root = dirs::data_local_dir()
-        .context("无法定位当前用户目录")?
+        .context(text(Message::MissingUserDirectory))?
         .join("Programs")
         .join("JobTrail");
-    let Some(root) = select_install_root(root)? else {
+    let Some(root) = select_install_root(root, language())? else {
         return Ok(());
     };
     Command::new(root.join(LAUNCHER))
         .creation_flags(NO_WINDOW)
         .spawn()
-        .context("安装已完成，但无法自动打开职迹")?;
+        .context(text(Message::LaunchAfterInstallFailed))?;
     Ok(())
 }
 fn main() {
@@ -995,8 +1017,91 @@ fn main() {
 }
 
 #[cfg(test)]
+#[path = "../test_support.rs"]
+mod test_support;
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_installer_translates_both_languages_and_fits_scaled_controls_without_installing() {
+        for language in [Language::ZhCn, Language::EnUs] {
+            let directory = tempfile::tempdir().unwrap();
+            let root = directory.path().join("JobTrail");
+            let observer = test_support::observe_window("JobTrailInstallerWindow", move |window| {
+                anyhow::ensure!(
+                    test_support::window_text(window) == language.text(Message::InstallerTitle),
+                    "Installer title {:?}, expected {:?}",
+                    test_support::window_text(window),
+                    language.text(Message::InstallerTitle)
+                );
+                for dpi in [96_u32, 120, 144, 192] {
+                    let bounds = RECT {
+                        left: 0,
+                        top: 0,
+                        right: scale(WINDOW_WIDTH, dpi),
+                        bottom: scale(WINDOW_HEIGHT, dpi),
+                    };
+                    // SAFETY: the window belongs to this test; SendMessage synchronously
+                    // consumes the suggested bounds while the stack value is still live.
+                    unsafe {
+                        SendMessageW(
+                            window,
+                            WM_DPICHANGED,
+                            ((dpi << 16) | dpi) as WPARAM,
+                            &bounds as *const RECT as LPARAM,
+                        );
+                    }
+                    let controls = test_support::children(window);
+                    for (message, multiline) in [
+                        (Message::SelectLocation, false),
+                        (Message::InstallDescription, true),
+                        (Message::TargetFolder, false),
+                        (Message::ChangeLocation, false),
+                        (Message::Install, false),
+                        (Message::Cancel, false),
+                        (Message::PreparingFiles, false),
+                    ] {
+                        let control = controls
+                            .iter()
+                            .copied()
+                            .find(|control| {
+                                test_support::window_text(*control) == language.text(message)
+                            })
+                            .ok_or_else(|| {
+                                anyhow::anyhow!("Missing localized control: {message:?}")
+                            })?;
+                        test_support::assert_text_fits(control, multiline)?;
+                    }
+                    for message in [
+                        Message::RequiredSpace,
+                        Message::AvailableSpace,
+                        Message::CurrentVersion,
+                    ] {
+                        let control = controls
+                            .iter()
+                            .copied()
+                            .find(|control| {
+                                test_support::window_text(*control)
+                                    .starts_with(language.text(message))
+                            })
+                            .ok_or_else(|| {
+                                anyhow::anyhow!("Missing localized value: {message:?}")
+                            })?;
+                        test_support::assert_text_fits(control, false)?;
+                    }
+                }
+                Ok(())
+            });
+            assert_eq!(select_install_root(root.clone(), language).unwrap(), None);
+            observer.join().unwrap().unwrap();
+            assert!(
+                !root.exists(),
+                "Cancelling setup must not create an installation"
+            );
+        }
+    }
 
     #[test]
     fn scales_layout_for_common_windows_dpi_values() {

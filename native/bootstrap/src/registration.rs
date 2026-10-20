@@ -1,3 +1,4 @@
+use crate::localization::{text, Message};
 use crate::{shortcuts, LAUNCHER, UNINSTALLER, UNINSTALL_KEY};
 use anyhow::{Context, Result};
 use std::{fs, io::ErrorKind, path::Path};
@@ -11,7 +12,10 @@ pub fn register(root: &Path, version: &str) -> Result<()> {
     let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(UNINSTALL_KEY)?;
     write_registration(&key, root, version)?;
     for file in shortcuts() {
-        fs::create_dir_all(file.parent().context("快捷方式父目录缺失")?)?;
+        fs::create_dir_all(
+            file.parent()
+                .context(text(Message::MissingShortcutParent))?,
+        )?;
         mslnk::ShellLink::new(root.join(LAUNCHER))?.create_lnk(file)?;
     }
     Ok(())

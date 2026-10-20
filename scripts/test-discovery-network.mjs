@@ -56,6 +56,7 @@ try {
     'shixiseng',
     'yupao',
     'nowcoder',
+    'ncss',
   ]
   await application.evaluate(
     ({ session }, { root, platforms }) => {
@@ -240,7 +241,7 @@ try {
   )
   assert.ok(result.requests.includes('/redirected'))
   console.log(
-    'Packaged discovery system networking passed: eight platform policies, Chromium TLS, Session fetch, renderer, Service Worker, cookies, redirects and cancellation',
+    `Packaged discovery system networking passed: ${platforms.length} platform policies, Chromium TLS, Session fetch, renderer, Service Worker, cookies, redirects and cancellation`,
   )
 } finally {
   await application?.close()

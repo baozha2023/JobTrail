@@ -9,6 +9,8 @@ import { DiscoveryRuntime } from '../src/main/discovery/runtime'
 import { BossSearch, bossAdapter, bossResponse } from '../src/main/discovery/adapters/boss'
 import { shixisengAdapter, ShixisengSearch } from '../src/main/discovery/adapters/shixiseng'
 import { nowcoderAdapter } from '../src/main/discovery/adapters/nowcoder'
+import { ncssAdapter } from '../src/main/discovery/adapters/ncss'
+import { NcssSearch, ncssParameters } from '../src/main/discovery/adapters/ncss/search'
 import { NowcoderSearch, nowcoderForm } from '../src/main/discovery/adapters/nowcoder/search'
 import {
   SourceError,
@@ -1690,4 +1692,112 @@ it('collects mixed Nowcoder pages through the runtime, deduplicates and saves th
       statusId: f.container.services.statuses.list()[0].id,
     }),
   ).toEqual({ opportunityId: saved.opportunityId, alreadySaved: true })
+})
+
+it('requires NCSS login, consumes short pages until empty and never persists wrong types or sources', async () => {
+  const f = fixture(undefined, false),
+    repo = f.service.repository
+  let responses = 0
+  const account = vi.spyOn(ncssAdapter, 'checkSession').mockResolvedValue('authenticated')
+  const transport: SearchTransport = {
+    load: vi.fn(),
+    fill: vi.fn(),
+    click: vi.fn(),
+    guard: vi.fn(),
+    enter: vi.fn(),
+    until: vi.fn(),
+    evaluate: vi.fn().mockResolvedValue(true),
+    async response(reader, action, signal) {
+      await action()
+      signal.throwIfAborted()
+      const page = ++responses
+      expect(
+        reader.request({
+          url:
+            'https://job.ncss.cn/student/jobs/jobslist/ajax/?' +
+            ncssParameters({ keyword: 'Java', city: '北京' }, page),
+          method: 'GET',
+          body: '',
+        }),
+      ).toBe(true)
+      const row = {
+        jobId: 'abcdef123456',
+        jobName: 'Java 实习',
+        recName: '合成国家平台公司',
+        areaCodeName: '北京',
+        degreeName: '博士',
+        lowMonthPay: 99.9,
+        highMonthPay: 99.9,
+        recruitType: '0',
+        sourcesName: null,
+        sourcesType: null,
+      }
+      return reader.response({
+        flag: true,
+        data: {
+          list:
+            page === 1
+              ? [
+                  row,
+                  { ...row, jobId: 'abcdef234567', lowMonthPay: '3' },
+                  { ...row, jobId: 'abcdef345678', sourcesName: 'boss' },
+                ]
+              : page === 2
+                ? [{ ...row, jobId: 'abcdef456789', lowMonthPay: 3, highMonthPay: 6 }]
+                : [],
+          pagenation: { offset: page, limit: 10, count: 100, total: 10 },
+        },
+      })
+    },
+  }
+  vi.spyOn(ncssAdapter, 'createSearch').mockImplementation((_, q) => new NcssSearch(transport, q))
+  const first = await f.service.start({
+    requestId: randomUUID(),
+    query: { keyword: 'Java', city: '北京', platforms: ['ncss'] },
+  })
+  expect((await settled(f, first.id)).sources[0]).toMatchObject({
+    state: 'login_required',
+    count: 0,
+    batches: 0,
+  })
+  expect(responses).toBe(0)
+  expect(account).not.toHaveBeenCalled()
+  repo.platform({ ...repo.status().find((s) => s.platform === 'ncss')!, state: 'authenticated' })
+  const run = await f.service.start({
+    requestId: randomUUID(),
+    query: { keyword: 'Java', city: '北京', platforms: ['ncss'] },
+  })
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
+    state: 'completed',
+    count: 2,
+    batches: 3,
+    sourcePage: 3,
+  })
+  expect(responses).toBe(3)
+  expect(account).toHaveBeenCalledTimes(4)
+  const view = await f.service.list({ runId: run.id })
+  expect(view.items).toHaveLength(2)
+  expect(view.items.map((j) => j.salary).sort()).toEqual(['3-6K/月', '99.9-99.9K/月'])
+  expect(
+    f.container.database.db
+      .prepare('SELECT count(*) AS count FROM discovery_jobs WHERE platform=?')
+      .get('ncss'),
+  ).toEqual({ count: 2 })
+  expect(
+    view.items.every(
+      (j) => j.recruitment === '' && j.education === '博士' && j.detailReadAt === null,
+    ),
+  ).toBe(true)
+  const job = view.items[0]
+  const saved = await f.service.save({
+    jobId: job.id,
+    observationId: job.observationId,
+    newCompanyName: job.company,
+    statusId: f.container.services.statuses.list()[0].id,
+  })
+  expect(f.container.services.opportunities.get(saved.opportunityId)).toMatchObject({
+    title: job.title,
+    source: '国家大学生就业服务平台',
+    jobUrl: job.url,
+  })
 })

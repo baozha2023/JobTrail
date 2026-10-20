@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "catalogVersion": 10,
+  "catalogVersion": 11,
   "minimumAppVersion": "1.5.0",
   "industries": [
     {
@@ -45647,6 +45647,5725 @@
         "清远",
         "云浮"
       ]
+    },
+    {
+      "builtinKey": "4602b773-810c-49d6-bcda-597bea8d3b32",
+      "name": "HRnetGroup",
+      "careerUrl": "https://hrnetgroup.mikecrm.com/6N4o1lQ",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "246df56d-65dd-4fc9-bdfe-e0a662e4a5d8",
+      "name": "中智咨询",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/ciicmc/170728",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "深圳",
+        "成都",
+        "武汉",
+        "西安",
+        "青岛"
+      ]
+    },
+    {
+      "builtinKey": "d971dc2c-894a-4800-842d-445256edd61c",
+      "name": "永业行",
+      "careerUrl": "https://realhom.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "武汉",
+        "孝感",
+        "合肥",
+        "咸宁",
+        "贵阳",
+        "十堰",
+        "恩施",
+        "黄冈",
+        "海口"
+      ]
+    },
+    {
+      "builtinKey": "b27c5430-b993-4d00-8661-5e8a253e57c6",
+      "name": "上海交易集团",
+      "careerUrl": "https://campus.51job.com/shexgrp2027/about.html",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "85f19daf-4005-4981-a098-05b519be49e7",
+      "name": "中国贸促会专利商标事务所",
+      "careerUrl": "https://ccpit-patent.iguopin.com/job",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "深圳",
+        "武汉",
+        "纽约",
+        "东京",
+        "香港"
+      ]
+    },
+    {
+      "builtinKey": "615195cc-cc20-4700-b904-31b8a38ef51b",
+      "name": "大华会计师事务所",
+      "careerUrl": "https://zhaopin.dahua-cpa.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "浙江",
+        "甘肃",
+        "山西",
+        "深圳",
+        "湖南",
+        "上海",
+        "河南",
+        "辽宁",
+        "天津",
+        "广西",
+        "苏州"
+      ]
+    },
+    {
+      "builtinKey": "819179a4-ce0f-48ed-8b62-adab2030a1cc",
+      "name": "司农",
+      "careerUrl": "https://sinongcpa1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "0b8b58f5-eb93-4f86-8e00-230e5d94497c",
+      "name": "华兴会计师事务所",
+      "careerUrl": "https://www.fjhxcpa.com/?page_id=3515",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "福州",
+        "北京",
+        "上海",
+        "广州",
+        "中山",
+        "杭州",
+        "济南",
+        "赣州",
+        "长沙",
+        "西安",
+        "厦门",
+        "泉州",
+        "漳州"
+      ]
+    },
+    {
+      "builtinKey": "74ddb092-3a36-4e0f-88d9-053bc2a0fdb6",
+      "name": "山水比德",
+      "careerUrl": "https://spigroup1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "南京",
+        "青岛",
+        "郑州",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳",
+        "重庆",
+        "成都",
+        "昆明",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "cff748a0-e330-45fc-9e29-9a17c51cfb7c",
+      "name": "怡安人力资本",
+      "careerUrl": "https://campus.51job.com/aon2027/index.html",
+      "aliases": [
+        "Aon"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "6c1b3e2e-adad-4d39-9b22-d94c051b1296",
+      "name": "中审众环会计师事务所",
+      "careerUrl": "https://zszhcpa.zhiye.com/campus/jobs",
+      "aliases": [
+        "中审众环"
+      ],
+      "locations": [
+        "武汉",
+        "全国各地",
+        "辽宁",
+        "吉林",
+        "湖南",
+        "广东",
+        "海南",
+        "四川",
+        "云南"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "5ebf6c72-ce51-427f-a328-96f63616c891",
+      "name": "信永中和集团",
+      "careerUrl": "https://job.shinewing.com/job/campus",
+      "aliases": [
+        "信永中和",
+        "ShineWing"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "太原",
+        "沈阳",
+        "大连",
+        "长春",
+        "上海",
+        "南京",
+        "苏州",
+        "杭州",
+        "合肥",
+        "厦门",
+        "南昌",
+        "济南",
+        "青岛",
+        "郑州",
+        "武汉"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "ac77c811-0954-4801-916d-f76e364628c8",
+      "name": "科锐国际",
+      "careerUrl": "https://campus.careerintlinc.com/campus_apply/careerintlinc/46955/",
+      "aliases": [
+        "Career International"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "锦州",
+        "苏州",
+        "广州",
+        "杭州",
+        "南京",
+        "成都",
+        "天津",
+        "武汉",
+        "大连",
+        "重庆",
+        "芜湖",
+        "长沙",
+        "青岛",
+        "西安"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "d287d5f2-2cb3-4d41-b87c-6da2d62ff9c4",
+      "name": "大信会计师事务所",
+      "careerUrl": "https://daxincpa.zhiye.com/campus/jobs",
+      "aliases": [
+        "大信会计"
+      ],
+      "locations": [
+        "北京",
+        "武汉",
+        "山东",
+        "上海",
+        "深圳",
+        "江西",
+        "吉林",
+        "西南",
+        "西北",
+        "辽宁",
+        "天津",
+        "新疆",
+        "青海",
+        "陕西",
+        "西藏",
+        "四川",
+        "贵州",
+        "云南",
+        "山西",
+        "河北",
+        "雄安",
+        "河南",
+        "安徽",
+        "江苏",
+        "南京",
+        "上海自贸区",
+        "长沙",
+        "浙江",
+        "福建",
+        "广西",
+        "海南",
+        "广东",
+        "广州",
+        "南沙自贸区",
+        "香港"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "df18bc3c-077d-423a-a904-1a375e632af0",
+      "name": "中汇会计师事务所",
+      "careerUrl": "https://zhcpa.zhiye.com/campus/jobs",
+      "aliases": [
+        "中汇",
+        "ZHCPA"
+      ],
+      "locations": [
+        "杭州",
+        "上海",
+        "北京",
+        "广州",
+        "深圳",
+        "宁波",
+        "南京",
+        "无锡",
+        "苏州",
+        "成都",
+        "济南",
+        "重庆",
+        "武汉",
+        "西安",
+        "青岛"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "bcbe7f7c-3192-4ba6-a5ab-06e258138f51",
+      "name": "致同会计师事务所",
+      "careerUrl": "https://www.grantthornton.cn/campus-recruitment",
+      "aliases": [
+        "致同",
+        "Grant Thornton China"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "深圳",
+        "济南",
+        "青岛",
+        "成都",
+        "重庆",
+        "西安",
+        "南京",
+        "杭州",
+        "温州",
+        "宁波",
+        "福州",
+        "厦门",
+        "昆明",
+        "郑州",
+        "长沙",
+        "苏州",
+        "大连",
+        "南宁",
+        "海口",
+        "香港"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "f550be00-dddf-4e2b-9593-ceb71784ac4f",
+      "name": "容诚",
+      "careerUrl": "https://careers.rccpa.com.cn/#/home",
+      "aliases": [
+        "容诚会计师事务所"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "深圳",
+        "合肥",
+        "厦门",
+        "沈阳",
+        "雄安",
+        "济南",
+        "西安",
+        "南京",
+        "芜湖",
+        "武汉",
+        "成都",
+        "无锡",
+        "苏州",
+        "杭州",
+        "福州",
+        "广州",
+        "南宁",
+        "珠海",
+        "海口"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "def4b28d-86b8-4e08-a264-b79b5a6ea773",
+      "name": "中大咨询集团",
+      "careerUrl": "https://www.mpgroup.cn/careers_31.html",
+      "aliases": [
+        "中大咨询",
+        "MP Consulting Group"
+      ],
+      "locations": [
+        "北京",
+        "广州",
+        "香港"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "fb02ccb7-9d03-46d7-8385-083cb04739ef",
+      "name": "BDA咨询",
+      "careerUrl": "https://wx.bda.com/career/job.php",
+      "aliases": [
+        "BDA Consulting"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "987baf71-1ad1-4102-bc2b-f0a67c5802b8",
+      "name": "立信会计师事务所",
+      "careerUrl": "https://bdochina.zhiye.com/campus/jobs",
+      "aliases": [
+        "立信",
+        "BDO立信"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "上海",
+        "无锡",
+        "苏州",
+        "杭州",
+        "宁波",
+        "厦门",
+        "深圳",
+        "珠海",
+        "佛山",
+        "重庆"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "638b7eab-f76c-44ae-a35b-1a43e909aab2",
+      "name": "天健会计师事务所",
+      "careerUrl": "https://zhaopin.pccpa.cn/hr/recruit/school",
+      "aliases": [
+        "天健",
+        "Pan-China"
+      ],
+      "locations": [
+        "杭州",
+        "北京",
+        "上海",
+        "重庆",
+        "深圳",
+        "合肥",
+        "济南",
+        "南京",
+        "广州",
+        "武汉",
+        "成都",
+        "昆明",
+        "西安"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "e0280a8a-2c23-4d1a-be43-be52fef3a55d",
+      "name": "麦楷亚洲",
+      "careerUrl": "https://www.marcumasia.cn/join.php",
+      "aliases": [
+        "Marcum Asia"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "台湾省",
+        "香港",
+        "海外"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "9b05fb2d-f6e9-4514-aeb6-ddc2067a4219",
+      "name": "L.E.K.中国 艾意凯咨询",
+      "careerUrl": "https://lek.tal.net/vx/lang-en-GB/mobile-0/appcentre-3/brand-2/candidate/jobboard/vacancy/5/adv/",
+      "aliases": [
+        "艾意凯咨询",
+        "L.E.K. Consulting"
+      ],
+      "locations": [
+        "海外",
+        "上海"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "4c065f4d-1a73-4216-80d8-065b48e0a356",
+      "name": "天职国际",
+      "careerUrl": "https://tzcpa.zhiye.com/campus/jobs",
+      "aliases": [
+        "天职"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "南京",
+        "长沙",
+        "西安",
+        "湖南",
+        "江西",
+        "乌鲁木齐",
+        "郑州",
+        "广西",
+        "天津",
+        "武汉",
+        "山东",
+        "昆明",
+        "海南"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "240fc81d-ffd7-4148-879d-55d6e2bc8f18",
+      "name": "品诚梅森",
+      "careerUrl": "https://www.pinsentmasons.com/careers/early-talent/china/internship-programme",
+      "aliases": [
+        "Pinsent Masons"
+      ],
+      "locations": [
+        "北京",
+        "上海"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "88a39e67-67e1-446e-ac8d-ca07981b4dfe",
+      "name": "科尔尼",
+      "careerUrl": "https://www.kearney.com/careers",
+      "aliases": [
+        "Kearney"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "cd6f4b06-aa5c-417b-b252-381378ee7a1b",
+      "name": "麦肯锡",
+      "careerUrl": "https://www.mckinsey.com/careers/associate",
+      "aliases": [
+        "McKinsey",
+        "McKinsey & Company"
+      ],
+      "locations": [
+        "北京",
+        "香港",
+        "上海",
+        "深圳",
+        "台北"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "758456af-f6df-4796-af8b-f34f63449a70",
+      "name": "Artefact",
+      "careerUrl": "https://job-boards.greenhouse.io/artefact/jobs/7797496002",
+      "aliases": [],
+      "locations": [
+        "上海"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "21135fbe-3b51-409a-af09-694e602dc85f",
+      "name": "BCG波士顿咨询",
+      "careerUrl": "https://careers.bcg.com/global/en/search-results",
+      "aliases": [
+        "BCG",
+        "波士顿咨询",
+        "Boston Consulting Group"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "深圳",
+        "香港",
+        "台湾省"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "fa157ed2-99b7-43b0-bcbb-940678176e67",
+      "name": "SGS中国",
+      "careerUrl": "https://app.mokahr.com/m/campus-recruitment/sgs/74104",
+      "aliases": [
+        "SGS"
+      ],
+      "locations": [
+        "上海"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "d7614ea6-b880-4013-90e9-c2b794f50442",
+      "name": "乔诺咨询",
+      "careerUrl": "https://www.zhipin.com/kj/9b70e8fe62e40c570a322f1b0b659098/mobile/",
+      "aliases": [
+        "乔诺"
+      ],
+      "locations": [
+        "上海"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "a9dd465c-5355-4832-a78d-cd8ceb16d446",
+      "name": "宝臻香港",
+      "careerUrl": "https://fnteac7r.jsjform.com/f/kazIMt",
+      "aliases": [
+        "寶臻香港",
+        "香港寶臻"
+      ],
+      "locations": [
+        "广州",
+        "北京",
+        "上海",
+        "深圳"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "name": "沈阳国有资产托管中心有限公司",
+      "careerUrl": "https://hzyc.ikaowu.com/exam/2839",
+      "aliases": [
+        "沈阳国资托管中心"
+      ],
+      "locations": [
+        "沈阳"
+      ],
+      "builtinKey": "b4ef867e-6dfc-46ac-ae69-cec13e86c9c1",
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "name": "绵阳科技城人才服务有限公司",
+      "careerUrl": "https://kjcxq.my.gov.cn/kjcxq/c102305/202606/b070bb2e4602425f88edaa97d905c039.shtml",
+      "aliases": [
+        "绵阳科技城人才服务"
+      ],
+      "locations": [
+        "绵阳"
+      ],
+      "builtinKey": "55a7e6ae-9de6-4c70-a4ed-aa7a6b3d517b",
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "name": "莱茵大中华区",
+      "careerUrl": "https://campus.51job.com/tuvrheinland2022/careers.html",
+      "aliases": [
+        "莱茵",
+        "TÜV Rheinland",
+        "TÜV莱茵"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "1be9a467-93d6-4450-95c8-5f61c7840f40",
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "name": "着陆青年",
+      "careerUrl": "https://jsj.top/f/K976kS",
+      "aliases": [],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "fa11b2e4-97bc-42ad-8371-6a2f974dd283",
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "eaec04e1-5b99-43be-99d3-a7b5cf9aac90",
+      "name": "OMP中国",
+      "careerUrl": "https://careers.omp.com/jobs",
+      "aliases": [
+        "OMP"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "d1e55e5a-392b-4246-9083-650ad5b6af9e",
+      "name": "深圳市道远商业不动产咨询有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/blackhills/76097",
+      "aliases": [
+        "道远咨询",
+        "BlackHills"
+      ],
+      "locations": [
+        "深圳"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "4e2e102d-3cdc-4c4a-9543-45ddc27dc5db",
+      "name": "贝恩公司",
+      "careerUrl": "https://www.bain.com/careers/find-a-role/",
+      "aliases": [
+        "贝恩",
+        "Bain",
+        "Bain & Company"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "香港"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "afdc9aac-c123-4ef3-8f89-6e286f87ce1f",
+      "name": "中科信工程咨询（北京）有限责任公司",
+      "careerUrl": "https://campus.51job.com/zonkex2026/about1.html",
+      "aliases": [
+        "中科信公司",
+        "中科信工程咨询"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ]
+    },
+    {
+      "builtinKey": "0bf3dfb2-c0b2-48f0-95d0-e8e034e8b353",
+      "name": "上海东洲资产评估有限公司",
+      "careerUrl": "https://app.dongzhou.com.cn/login",
+      "aliases": [
+        "东洲评估"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "85af06c8-1ee5-45b0-a056-2df151f1aca5",
+      "name": "同济咨询",
+      "careerUrl": "https://tongji-ec.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "088547d5-b234-426d-a11e-f05a01ae2957",
+      "name": "万物云",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/vanke/147055#/",
+      "aliases": [
+        "Onewo"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "太原",
+        "沈阳",
+        "大连",
+        "鞍山",
+        "抚顺",
+        "上海",
+        "南京",
+        "无锡",
+        "苏州",
+        "杭州",
+        "宁波",
+        "温州",
+        "嘉兴",
+        "合肥",
+        "芜湖"
+      ]
+    },
+    {
+      "builtinKey": "436ff932-52a9-4fd5-9a4b-5fb6aecb06ef",
+      "name": "金杜律师事务所",
+      "careerUrl": "https://kwmcareer.zhiye.com/campus/jobs",
+      "aliases": [
+        "King & Wood Mallesons",
+        "KWM"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "杭州",
+        "济南",
+        "广州",
+        "深圳",
+        "海口",
+        "三亚",
+        "全国",
+        "南京",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "6663cdbc-e429-4324-99a3-afab54898da5",
+      "name": "广东省建筑设计研究院有限公司",
+      "careerUrl": "https://gdadri.zhiye.com/campus/jobs",
+      "aliases": [
+        "GDADRI"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳",
+        "湛江",
+        "茂名",
+        "汕尾",
+        "清远",
+        "南宁",
+        "海口",
+        "重庆",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "171b540c-5048-4b84-b2c8-51d0d9ada2d1",
+      "name": "雅生活智慧城市服务股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6981aa6f10919a570b4015ee/pb/school.html",
+      "aliases": [
+        "雅生活集团",
+        "A-Living"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "5c20b35b-582e-4857-a3ac-31ffbd4ec41f",
+      "name": "BEST Day百思特",
+      "careerUrl": "https://kcgeswnkdz.feishu.cn/share/base/form/shrcnOrJ3fCCCtApkRHButJ6lqc",
+      "aliases": [
+        "Best Day",
+        "百思特管理咨询"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "深圳",
+        "北京",
+        "上海",
+        "杭州",
+        "青岛",
+        "长沙",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "80fcec70-a605-46f3-98f7-cfd8a1a84848",
+      "name": "苏交科集团股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/jsti/144121",
+      "aliases": [
+        "苏交科",
+        "JSTI"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "南京",
+        "常州",
+        "淮安",
+        "杭州",
+        "福州",
+        "厦门",
+        "广州",
+        "中山",
+        "昆明",
+        "西安",
+        "兰州",
+        "乌鲁木齐"
+      ]
+    },
+    {
+      "builtinKey": "9330f4c0-5676-4298-a38f-4d44d2c4ccd9",
+      "name": "三环知识产权",
+      "careerUrl": "https://jobs.51job.com/all/coVDAAY1QyAjwAZQFgVDk.html",
+      "aliases": [
+        "广州三环专利商标代理有限公司深圳分公司"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "深圳",
+        "重庆",
+        "长沙",
+        "武汉",
+        "南昌",
+        "郑州",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "a8509b78-11ef-43b7-bf11-ff75566911dd",
+      "name": "长江设计集团有限公司",
+      "careerUrl": "https://campus.51job.com/cjwsjy/",
+      "aliases": [
+        "长江设计集团",
+        "长江勘测规划设计研究院"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "武汉",
+        "宜昌",
+        "广州",
+        "重庆"
+      ]
+    },
+    {
+      "builtinKey": "8db017c4-1c42-413c-8e92-a583871a5836",
+      "name": "中国国际工程咨询有限公司",
+      "careerUrl": "https://hcmcloud.ciecc.com.cn/recruit/",
+      "aliases": [
+        "中咨公司",
+        "CIECC"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "c905dc75-c556-4119-a53d-d730f949bfa3",
+      "name": "麦格理集团",
+      "careerUrl": "https://recruitment.macquarie.com/en_US/careers/SearchJobs",
+      "aliases": [
+        "麦格理",
+        "Macquarie",
+        "Macquarie Group"
+      ],
+      "industryKeys": [
+        "9a762b88-f754-4927-abce-146513d342a4"
+      ],
+      "locations": [
+        "北京",
+        "香港"
+      ]
+    },
+    {
+      "builtinKey": "36a2fac5-3f6e-43f5-91cc-4cfbc4ac3b46",
+      "name": "SMM",
+      "careerUrl": "https://metalmarket.feishu.cn/share/base/form/shrcnG64Fro15kqzYekjrSyZOXb",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "杭州",
+        "烟台",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "fc773921-f9d6-44b6-9878-fa07c2008994",
+      "name": "Bain Capital",
+      "careerUrl": "https://baincapital.wd1.myworkdayjobs.com/en-US/External_Public",
+      "aliases": [
+        "贝恩资本"
+      ],
+      "industryKeys": [
+        "9a762b88-f754-4927-abce-146513d342a4"
+      ],
+      "locations": [
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "a8ecd26c-8ad9-4bcc-88fe-607a7be13c28",
+      "name": "泰康之家",
+      "careerUrl": "https://jobtaikang.zhiye.com/custom/campuslist",
+      "aliases": [],
+      "industryKeys": [
+        "a5fff940-a4b8-44f2-a811-871d7be6201f"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "石家庄",
+        "沈阳",
+        "长春",
+        "上海",
+        "无锡",
+        "苏州",
+        "宁波",
+        "温州",
+        "合肥",
+        "福州",
+        "厦门",
+        "南昌",
+        "济南",
+        "郑州",
+        "武汉",
+        "深圳",
+        "南宁",
+        "重庆",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "f3da4ef6-2978-4681-88f7-dbf253e8ae44",
+      "name": "AlphaSights",
+      "careerUrl": "https://www.alphasights.com/careers/open-roles/",
+      "aliases": [
+        "Alpha Sights"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "44688652-deaa-4d87-abfc-76d231e49143",
+      "name": "邓白氏中国",
+      "careerUrl": "https://xy.liepin.com/dnb2026/join.html",
+      "aliases": [
+        "邓白氏",
+        "Dun & Bradstreet"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "d601acf0-7781-4999-adcd-9c0ff6e15e40",
+      "name": "高知特信息技术(上海)有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0134189873D90000003000",
+      "aliases": [
+        "高知特",
+        "Cognizant"
+      ],
+      "industryKeys": [
+        "f304ddeb-3162-4dd4-9f5c-00ae2d501c52"
+      ],
+      "locations": [
+        "天津",
+        "大连",
+        "上海",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "63d4f5b4-4977-4bf7-ac47-811b5235afb2",
+      "name": "碧澄能源",
+      "careerUrl": "https://pcgpower.zhiye.com/campus/jobs",
+      "aliases": [
+        "PCS Power"
+      ],
+      "industryKeys": [
+        "bb615db4-143a-446d-b69f-8b8b06d47247"
+      ],
+      "locations": [
+        "上海",
+        "杭州",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "beed8768-c899-4161-bcb8-5b13205c0057",
+      "name": "正略集团",
+      "careerUrl": "https://jsj.top/f/RzJ4Ew",
+      "aliases": [
+        "正略咨询"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "5815b84a-21a1-4095-88ab-fa522c11ce5c",
+      "name": "北京德皓国际会计师事务所",
+      "careerUrl": "https://alidocs.dingtalk.com/notable/share/form/v018oLl9528e16WMlap_iK73Tx4_31oR7xN",
+      "aliases": [
+        "北京德皓国际",
+        "德皓国际"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "吉林",
+        "上海",
+        "南京",
+        "无锡",
+        "杭州",
+        "广州",
+        "深圳",
+        "珠海",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "0ce8746a-668a-484b-8cba-309b68363bec",
+      "name": "易训工伤预防",
+      "careerUrl": "https://www.liepin.com/campus/project-detail/13937621/",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "杭州",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "bb4861e0-01b3-47e9-a0c8-b6126a778ded",
+      "name": "钛和集团",
+      "careerUrl": "https://hrtitcgroup.m.zhiye.com/",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "杭州",
+        "深圳",
+        "东莞"
+      ]
+    },
+    {
+      "builtinKey": "9bafccd9-9221-4142-ad98-89c4064eac0e",
+      "name": "方达律师事务所",
+      "careerUrl": "https://fangdalaw.zhiye.com/campus/jobs",
+      "aliases": [
+        "Fangda Law",
+        "Fangda Law Firm"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "37f05ba9-88ce-4e95-9151-e731e1bffcf5",
+      "name": "SailGlobal",
+      "careerUrl": "https://www.sailglobal.com.cn/careers",
+      "aliases": [
+        "Sail Global"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "苏州",
+        "杭州",
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "0190ac55-d87b-4056-9dcc-273941937867",
+      "name": "CCD郑中设计",
+      "careerUrl": "https://ccd.zhiye.com/campus/jobs",
+      "aliases": [
+        "CCD",
+        "郑中设计"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "深圳",
+        "香港",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "6806622d-434e-477b-a3a5-9ab913193cf1",
+      "name": "CSA集团",
+      "careerUrl": "https://csagroup.wjx.cn/vm/heLO42W.aspx",
+      "aliases": [
+        "CSA Group",
+        "加拿大标准协会"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "昆山"
+      ]
+    },
+    {
+      "builtinKey": "f55614e0-91c7-4a69-a702-ae02c7a59129",
+      "name": "中蓝连海设计研究院有限公司",
+      "careerUrl": "https://sinochem.hotjob.cn/SU610b91ee0dcad4106ff11c21/pb/school.html?postKey=%E4%B8%AD%E8%93%9D%E8%BF%9E%E6%B5%B7",
+      "aliases": [
+        "中蓝连海"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "连云港"
+      ]
+    },
+    {
+      "builtinKey": "fd854955-2a7d-4677-9c1a-29d1c6fd234a",
+      "name": "福建龙净环保股份有限公司",
+      "careerUrl": "https://longking.zhiye.com/campus",
+      "aliases": [
+        "武汉龙净",
+        "龙净环保",
+        "Longking"
+      ],
+      "industryKeys": [
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ],
+      "locations": [
+        "福州",
+        "龙岩",
+        "武汉",
+        "西安",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "edb5f21c-00e8-4ae7-a0ac-d4749c1d3650",
+      "name": "海安控股有限公司",
+      "careerUrl": "https://haholding.iguopin.com/job",
+      "aliases": [
+        "海安控股"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "09da5a47-776f-4d1b-80a9-664007564c2c",
+      "name": "广东中职信会计师事务所（特殊普通合伙）",
+      "careerUrl": "https://erp.zzxcpa.com/anon/schooljob",
+      "aliases": [
+        "广东中职信",
+        "中职信"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "51f91996-d196-46c1-bb33-44631023da79",
+      "name": "广电计量",
+      "careerUrl": "https://join.grgtest.com/grgtest/position/index?recruitmentType=CAMPUSRECRUITMENT",
+      "aliases": [
+        "GRG Metrology & Test"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "无锡",
+        "杭州",
+        "青岛",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳",
+        "东莞",
+        "重庆",
+        "成都",
+        "贵阳",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "809e0efe-e2e6-4fe1-a227-cfb57279d2e2",
+      "name": "植德律师事务所",
+      "careerUrl": "https://meritsandtree.zhiye.com/campus/jobs",
+      "aliases": [
+        "Merits & Tree"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "杭州",
+        "武汉",
+        "深圳",
+        "全国",
+        "香港"
+      ]
+    },
+    {
+      "builtinKey": "69d77550-bc2a-422d-81d8-b5d85d236240",
+      "name": "UL Solutions",
+      "careerUrl": "https://campus.51job.com/ulsolutions/job.html",
+      "aliases": [
+        "UL",
+        "UL中国"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "苏州",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "15deac71-9a33-4a7c-9462-230d05255433",
+      "name": "IBM",
+      "careerUrl": "https://www.ibm.com/cn-zh/careers",
+      "aliases": [
+        "IBM咨询"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "大连",
+        "上海",
+        "广州",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "2502c6f4-a2be-411d-9336-1ffe5cb1a1c0",
+      "name": "杭州瑞欧科技有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/reach24h/94498",
+      "aliases": [
+        "瑞欧科技",
+        "REACH24H"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "杭州"
+      ]
+    },
+    {
+      "builtinKey": "52725e61-1e38-4116-925f-cdb180dd4a71",
+      "name": "同济城市规划设计研究院",
+      "careerUrl": "https://zp.tjupdi.com:9443/recruitment/",
+      "aliases": [
+        "同济规划院",
+        "TJUPDI"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "5259aa82-65a8-450a-a0e3-223da2dcbb63",
+      "name": "秉信包装",
+      "careerUrl": "https://thpmgnew.zhiye.com/campus/jobs",
+      "aliases": [
+        "BX Packaging"
+      ],
+      "industryKeys": [
+        "fe7a9878-1e7d-4af2-a7c9-9ea915f06caa"
+      ],
+      "locations": [
+        "天津",
+        "沈阳",
+        "哈尔滨",
+        "南京",
+        "淮安",
+        "杭州",
+        "郑州",
+        "武汉",
+        "长沙",
+        "广州",
+        "江门",
+        "重庆",
+        "成都",
+        "昆明",
+        "西安",
+        "乌鲁木齐"
+      ]
+    },
+    {
+      "builtinKey": "b61c588c-fe66-47b0-8b83-84676a0ef576",
+      "name": "绿能慧充",
+      "careerUrl": "https://gresgying.zhiye.com/campus/jobs",
+      "aliases": [
+        "Gresgying"
+      ],
+      "industryKeys": [
+        "3144f514-a14f-4738-8095-550dab89363e"
+      ],
+      "locations": [
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "9f822eed-7213-4abe-affb-bb0d803cd307",
+      "name": "福建天衡联合律师事务所",
+      "careerUrl": "https://tenetlaw.mikecrm.com/SQ5qNLn",
+      "aliases": [
+        "天衡联合律师事务所"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海",
+        "福州",
+        "厦门",
+        "泉州",
+        "龙岩"
+      ]
+    },
+    {
+      "builtinKey": "6d7acd73-48b9-49c6-8506-998c271b8af0",
+      "name": "广东信达律师事务所",
+      "careerUrl": "https://www.wjx.cn/vm/hmOEYue.aspx",
+      "aliases": [
+        "信达律师事务所"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "苏州",
+        "武汉",
+        "广州",
+        "深圳",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "52ccebe6-c2f7-451a-9936-dc136bfc1597",
+      "name": "儒拉玛特集团",
+      "careerUrl": "https://ruhlamat.zhiye.com/campus/jobs",
+      "aliases": [
+        "Ruhlamat"
+      ],
+      "industryKeys": [
+        "b8b0affa-c4d9-4471-b7b1-ea111545c065"
+      ],
+      "locations": [
+        "苏州"
+      ]
+    },
+    {
+      "builtinKey": "4c30848d-ff2b-4c7d-8332-47af8be17330",
+      "name": "成都设计咨询集团",
+      "careerUrl": "https://cddc2021.com/recruit",
+      "aliases": [
+        "成都设计咨询"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "9ca6d9da-4641-4bb7-a9d5-d9931cce912a",
+      "name": "意略明",
+      "careerUrl": "https://app.mokahr.com/campus_apply/illuminera/24384",
+      "aliases": [
+        "Illuminera"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "73c8835c-9c6e-4bd2-be7b-b5c7207f04c0",
+      "name": "嘉悦物产集团",
+      "careerUrl": "https://jiayue.xinrenxinshi.com/recruitGate/list#/ey=0ebdb0048f48756b8f15cdabc23f5f4384c363",
+      "aliases": [
+        "嘉悦物产"
+      ],
+      "industryKeys": [
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "上海",
+        "杭州",
+        "广州",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "89275b27-5164-451f-a106-390f19826c17",
+      "name": "景瑞服务",
+      "careerUrl": "https://jingruisv.zhiye.com/campus/jobs",
+      "aliases": [
+        "景瑞物业"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "上海",
+        "重庆",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "fd4e5b78-cb65-49c2-a7c9-563576e201ca",
+      "name": "基准方中",
+      "careerUrl": "https://jzfz.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "太原",
+        "上海",
+        "南京",
+        "杭州",
+        "合肥",
+        "济南",
+        "青岛",
+        "郑州",
+        "武汉",
+        "深圳",
+        "南宁",
+        "重庆",
+        "成都",
+        "贵阳",
+        "昆明",
+        "西安",
+        "兰州",
+        "乌鲁木齐"
+      ]
+    },
+    {
+      "builtinKey": "29b59286-3e70-40b9-94fe-5d6ad8e068c0",
+      "name": "启胜物业",
+      "careerUrl": "https://campus.51job.com/kaishing2026/campus.html",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "e2960d8e-9118-4147-af32-f5f305f04d76",
+      "name": "北京兴华",
+      "careerUrl": "https://xhcpas.zhaopin.com/job/index.html",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "广东",
+        "海南",
+        "杭州",
+        "河北",
+        "山东",
+        "深圳",
+        "天津",
+        "内蒙",
+        "湖北",
+        "西安",
+        "安徽",
+        "上海",
+        "吉林",
+        "重庆",
+        "苏州",
+        "江苏",
+        "青海",
+        "青岛",
+        "河南"
+      ]
+    },
+    {
+      "builtinKey": "24df8d2f-aa58-4756-ac6c-8c44fe30c78b",
+      "name": "礼丰律师事务所",
+      "careerUrl": "https://l08q6ndh1rw.jobs.feishu.cn/402052/",
+      "aliases": [],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "2383d46e-6c1f-446f-88e0-0a9666cd9bfb",
+      "name": "ATOMIC岱澳集团",
+      "careerUrl": "https://www.atomic.com.cn/join-us-/",
+      "aliases": [
+        "ATOMIC",
+        "岱澳"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "大连",
+        "哈尔滨",
+        "五大连池",
+        "上海",
+        "南京",
+        "苏州",
+        "杭州",
+        "合肥",
+        "厦门",
+        "南昌",
+        "赣州",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳",
+        "东莞",
+        "南宁",
+        "海口",
+        "重庆",
+        "成都",
+        "西安",
+        "香港"
+      ]
+    },
+    {
+      "builtinKey": "77042eac-aac5-428d-b04d-5863c8564d88",
+      "name": "年利达律师事务所",
+      "careerUrl": "https://linklaters.apply.cappats.com/Jobs",
+      "aliases": [
+        "年利达",
+        "Linklaters"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "北京",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "7cd30a8a-511d-4af6-a0b8-7da40d49e5ad",
+      "name": "ZS致盛咨询",
+      "careerUrl": "https://jobs.zs.com/all/jobs",
+      "aliases": [
+        "ZS Associates"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "c0ef8aa6-b8d5-4759-acb3-ed5d0cc66796",
+      "name": "中南安全环境技术研究院股份有限公司",
+      "careerUrl": "https://campus.51job.com/csadi2027/p2.html",
+      "aliases": [
+        "中南安全环境技术研究院"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a",
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "武汉",
+        "合肥"
+      ]
+    },
+    {
+      "builtinKey": "848fd544-6737-4034-8a60-57845912ca5d",
+      "name": "福州水务集团有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0396270314P90000005000?refcode=4444",
+      "aliases": [
+        "福州水务"
+      ],
+      "industryKeys": [
+        "c2bd63be-039d-46cc-80fb-aaf05c82b2cc"
+      ],
+      "locations": [
+        "福州"
+      ]
+    },
+    {
+      "builtinKey": "bed80a2d-4593-4257-9782-184fa3c4f9ea",
+      "name": "上海泓济环保科技股份有限公司",
+      "careerUrl": "https://www.honess.cn/aicampus/jobs",
+      "aliases": [
+        "泓济环保",
+        "Honess"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ],
+      "locations": [
+        "上海",
+        "六安",
+        "济南",
+        "乌鲁木齐",
+        "哈密"
+      ]
+    },
+    {
+      "builtinKey": "a3f73ee4-c515-48fa-8a72-cf502ed061fc",
+      "name": "中国资源循环集团有限公司",
+      "careerUrl": "https://campus.51job.com/crrg2027/job.html",
+      "aliases": [
+        "中国资源循环集团"
+      ],
+      "industryKeys": [
+        "ee67654e-587c-4ce3-8779-4e172ea0dea5"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "ceb8e29b-015f-4c3b-b9a6-e2c15d989bd9",
+      "name": "湖北水利发展集团有限公司",
+      "careerUrl": "https://sfhr.hbsfjtgs.com/RedseaPlatform/zhaopin/zpChannelQrCode/f7be1d38-e5a9-4bb7-97ae-173d4f5de0a3/officeWebsite.mob",
+      "aliases": [
+        "湖北水发集团"
+      ],
+      "industryKeys": [
+        "f5efa247-e628-4ee6-a540-18e24b3dc105"
+      ],
+      "locations": [
+        "武汉",
+        "湖北"
+      ]
+    },
+    {
+      "builtinKey": "765411af-01db-4bd7-9489-9dd345d7a025",
+      "name": "元琛科技",
+      "careerUrl": "https://yckjgf.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ],
+      "locations": [
+        "合肥"
+      ]
+    },
+    {
+      "builtinKey": "1b7f70c4-803e-461a-a155-cf45c964f26a",
+      "name": "高能环境",
+      "careerUrl": "https://bgechina1.zhiye.com/campus/jobs",
+      "aliases": [
+        "北京高能时代环境技术股份有限公司"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ],
+      "locations": [
+        "北京",
+        "江西金溪",
+        "甘肃靖远",
+        "湖北阳新",
+        "甘肃金昌",
+        "重庆潼南",
+        "广东珠海",
+        "湖南怀化",
+        "湖南",
+        "天津"
+      ]
+    },
+    {
+      "builtinKey": "d7aae78e-4303-4c65-bda8-ba9ac6d21baf",
+      "name": "英科再生",
+      "careerUrl": "https://global-intco.jobs.feishu.cn/251907/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "ee67654e-587c-4ce3-8779-4e172ea0dea5"
+      ],
+      "locations": [
+        "淄博",
+        "青岛",
+        "济南",
+        "北京",
+        "上海",
+        "镇江",
+        "六安",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "152c67cc-623a-4692-904c-2b799b381b55",
+      "name": "光大环境",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0121034692P90000001000",
+      "aliases": [
+        "中国光大环境"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ],
+      "locations": [
+        "深圳",
+        "南京",
+        "常州"
+      ]
+    },
+    {
+      "builtinKey": "7b3f47bc-4d71-40f6-ad86-a302ee567303",
+      "name": "广州市水务投资集团有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0246888314P90000002000",
+      "aliases": [
+        "广州水投集团"
+      ],
+      "industryKeys": [
+        "c2bd63be-039d-46cc-80fb-aaf05c82b2cc"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "77e48dbf-3b5f-4416-8159-36582b0320ed",
+      "name": "中国印钞造币集团有限公司",
+      "careerUrl": "https://cbpm.zhaopin.com/",
+      "aliases": [
+        "中国印钞造币集团"
+      ],
+      "industryKeys": [
+        "4bf036bb-046b-465b-945e-af08b3200b55"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "924d0d46-135f-4d9c-a590-90c764372fc3",
+      "name": "江苏省环保集团",
+      "careerUrl": "https://jsep.zhaopin.com/zk/#/",
+      "aliases": [
+        "JSEP"
+      ],
+      "industryKeys": [
+        "e8022bb0-b7e4-4f0e-a3e2-c0309b8b550a"
+      ],
+      "locations": [
+        "南京",
+        "连云港",
+        "常州"
+      ]
+    },
+    {
+      "builtinKey": "671080e5-b8c2-4770-8a88-7c110040a17c",
+      "name": "四川思创激光科技有限公司",
+      "careerUrl": "https://strlaser.zhiye.com/campus/jobs",
+      "aliases": [
+        "思创激光"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "深圳",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "cbc54b50-4c85-4f6d-93fc-1f190ba99275",
+      "name": "广州电力机车有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64cb49091eb8054307171978/mc/position/campus",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "3f81abaa-5b13-4d1e-8a07-a43b31207e11",
+      "name": "北京航天测控技术有限公司",
+      "careerUrl": "https://www.zhaopin.com/companydetail/jobs-CZ000421170/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "8684a591-30f3-40f9-aa93-0ecb66a30c20",
+      "name": "中车青岛四方车辆研究所有限公司",
+      "careerUrl": "https://crrc-sfs.hotjob.cn/",
+      "aliases": [
+        "中车四方所",
+        "中车四方所（中车制动）"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "青岛",
+        "北京",
+        "南京",
+        "株洲"
+      ]
+    },
+    {
+      "builtinKey": "af5dfd7e-9ae2-4b7c-bd46-f8b3c9bd0f3f",
+      "name": "中国电子科技集团公司第二十七研究所",
+      "careerUrl": "https://job.91boshuo.com/?positionsClass=1&ct=MTk2Mjc2MDk4NzI2MzA4MjQ5Nw",
+      "aliases": [
+        "中国电科27所"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "郑州"
+      ]
+    },
+    {
+      "builtinKey": "04a0f02b-ea87-4068-91f5-5d6c8a1b18e5",
+      "name": "天仪空间科技股份有限公司",
+      "careerUrl": "https://s.xinrenxinshi.com/recruitGate/list#/ey=0ebdb004884e756b8f15cda6c3395d4789c663",
+      "aliases": [
+        "天仪空间"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "长沙",
+        "无锡",
+        "合肥",
+        "蚌埠",
+        "威海",
+        "绵阳"
+      ]
+    },
+    {
+      "builtinKey": "a33796c3-6b98-42a1-8e50-bd227ef610eb",
+      "name": "沈阳重明航空科技有限公司",
+      "careerUrl": "https://lnzhaopin.ikaowu.com/",
+      "aliases": [
+        "重明科技"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "沈阳"
+      ]
+    },
+    {
+      "builtinKey": "19857214-c4e9-4892-aa65-277a58e5149a",
+      "name": "航天世景",
+      "careerUrl": "https://htsjzhaopin.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "891a5c5c-33a0-46f1-b137-99d474851d3a",
+      "name": "北京长征天民高科技有限公司",
+      "careerUrl": "https://webapp.zhaopin.com/2026/bj/bjczt0324ZL85165/job/index.html",
+      "aliases": [
+        "长征天民"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "文昌",
+        "西昌"
+      ]
+    },
+    {
+      "builtinKey": "f506fb71-8a76-45d4-944f-511b03f47920",
+      "name": "中航技",
+      "careerUrl": "https://catic.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "22dd2eb8-793d-4807-8931-3a682767be5f",
+      "name": "航天南湖电子信息技术股份有限公司",
+      "careerUrl": "https://xym.51job.com/wechat/vuectmjobs/#/index?id=0E344386-27A7-4CA2-A824-BC7D4BF7D2C5&color=31BE88&prd=yddzy",
+      "aliases": [
+        "航天南湖公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ],
+      "locations": [
+        "武汉",
+        "荆州"
+      ]
+    },
+    {
+      "builtinKey": "3eaf8d01-5875-495a-b4ec-20688a445057",
+      "name": "银河航天",
+      "careerUrl": "https://galaxy.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "西安",
+        "南通",
+        "成都",
+        "上海",
+        "无锡",
+        "合肥"
+      ]
+    },
+    {
+      "builtinKey": "8953516f-67f3-49e0-a9e6-e23aa9ef8a1c",
+      "name": "中国商用飞机有限责任公司",
+      "careerUrl": "https://zhaopin.comac.cc/zp/ct/out/position",
+      "aliases": [
+        "中国商飞公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "太仓",
+        "长沙",
+        "东营",
+        "成都",
+        "嘉兴",
+        "乌鲁木齐",
+        "南昌"
+      ]
+    },
+    {
+      "builtinKey": "ee57b453-3293-4707-ae26-90ec56fc82b9",
+      "name": "四川航天川南火工技术有限公司",
+      "careerUrl": "https://schtcnhg.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "泸州"
+      ]
+    },
+    {
+      "builtinKey": "2a02d584-f0ee-41e1-ab7d-9e119cdc5c92",
+      "name": "江西洪都航空工业集团有限责任公司",
+      "careerUrl": "https://hongdu.zhiye.com/campus/jobs",
+      "aliases": [
+        "航空工业洪都",
+        "中国航空工业集团洪都"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "南昌",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "264b1b00-470a-4869-bbff-cc44da105772",
+      "name": "淮海工业集团有限公司",
+      "careerUrl": "https://norincogroupzhaopin.zhiye.com/campus/jobs?queryId=5878617a-3a7d-4d46-937e-e4bd69726afc",
+      "aliases": [
+        "淮海集团"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "西安",
+        "长治"
+      ]
+    },
+    {
+      "builtinKey": "207b2c6c-e301-47b8-88e1-a32dfd54d1ed",
+      "name": "中船九院",
+      "careerUrl": "https://campus.51job.com/ndri/job.html",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海",
+        "昆明"
+      ]
+    },
+    {
+      "builtinKey": "47102ca2-7b8f-4e70-807e-058800863bff",
+      "name": "众合科技",
+      "careerUrl": "https://wecruit.hotjob.cn/SU611374bbbef57c653306500d/pb/school.html",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "杭州",
+        "沈阳",
+        "成都",
+        "重庆"
+      ]
+    },
+    {
+      "builtinKey": "a3ea7a7a-e447-4d91-9edd-fba0b1530300",
+      "name": "航空工业特种所",
+      "careerUrl": "https://www.hotjob.cn/wt/RISAC/mobweb/v8/index",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "济南"
+      ]
+    },
+    {
+      "builtinKey": "2a105313-e4e2-470e-ba49-0299ee136e76",
+      "name": "遨天科技（北京）有限公司",
+      "careerUrl": "https://zp.at-moto.com/",
+      "aliases": [
+        "遨天科技"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "0ec1a9c1-19be-4c5e-8632-7c83121e8b62",
+      "name": "东方空间",
+      "careerUrl": "https://orienspace.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "西安",
+        "无锡",
+        "烟台",
+        "泰安"
+      ]
+    },
+    {
+      "builtinKey": "e10b661a-07fb-4af9-84cb-889fcf916a27",
+      "name": "微纳星空",
+      "careerUrl": "https://minospace.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "长春",
+        "无锡"
+      ]
+    },
+    {
+      "builtinKey": "2b82fd2b-7283-4dbc-96e8-c2fa1643c71d",
+      "name": "芜湖造船厂有限公司",
+      "careerUrl": "https://cheryholding.zhiye.com/jobs?activityGuid=9c502316-a159-4af9-ac43-c4c8ce1e0403",
+      "aliases": [
+        "芜湖造船厂"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "芜湖",
+        "武汉",
+        "南通",
+        "威海",
+        "上海",
+        "宣城"
+      ]
+    },
+    {
+      "builtinKey": "2cb7b77c-ee75-4fc2-9a36-1680492f3d5c",
+      "name": "中国铁路通信信号股份有限公司",
+      "careerUrl": "https://2027.yingjiesheng.com/crsc/pc/PCplan.html",
+      "aliases": [
+        "中国通号"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "天津",
+        "西安",
+        "郑州",
+        "长沙",
+        "广州",
+        "沈阳",
+        "武汉",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "af3bef02-4608-421e-b08d-a73e8ca102e0",
+      "name": "中车眉山车辆有限公司",
+      "careerUrl": "https://crrc-ms.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "眉山"
+      ]
+    },
+    {
+      "builtinKey": "35720c59-0315-4217-9c0b-ae23f58285e5",
+      "name": "中国船舶集团有限公司第七一二研究所",
+      "careerUrl": "https://cssc712.zhiye.com/campus/jobs",
+      "aliases": [
+        "中船七一二所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "武汉",
+        "青岛",
+        "黄冈"
+      ]
+    },
+    {
+      "builtinKey": "9c2a3514-e9c8-4546-9156-308f4ef4f2a9",
+      "name": "中国船舶集团有限公司第七一五研究所",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1226837615D90001073000",
+      "aliases": [
+        "中船七一五所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "杭州",
+        "宜昌"
+      ]
+    },
+    {
+      "builtinKey": "f7e43d30-38bc-4e4c-ba53-4f1ffdb14836",
+      "name": "中车齐齐哈尔车辆有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64ccadd91c240e7cb6c43ad8/mc/index",
+      "aliases": [
+        "中车齐车集团",
+        "齐车公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "齐齐哈尔",
+        "大连",
+        "沧州"
+      ]
+    },
+    {
+      "builtinKey": "64b92edd-3551-43f1-8caa-37907f25f144",
+      "name": "宝胜科技创新股份有限公司",
+      "careerUrl": "https://avicbs.zhiye.com/campus/jobs",
+      "aliases": [
+        "航空工业宝胜"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "扬州"
+      ]
+    },
+    {
+      "builtinKey": "e855e95c-ddb6-4dcf-8cee-352f61a42f39",
+      "name": "中国船舶集团有限公司第七二五研究所",
+      "careerUrl": "http://cssc725.zhaopin.com/",
+      "aliases": [
+        "中船七二五所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京",
+        "青岛",
+        "厦门"
+      ]
+    },
+    {
+      "builtinKey": "ce0c1a44-f9af-4acb-8235-f04d3a2005af",
+      "name": "中国航天三江集团有限公司",
+      "careerUrl": "https://xy.liepin.com/casic2/#/",
+      "aliases": [
+        "中国航天科工九院"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "成都",
+        "黄石",
+        "上海",
+        "无锡",
+        "武汉",
+        "孝感"
+      ]
+    },
+    {
+      "builtinKey": "0587ff52-e8e9-4e56-8871-2abd545684b9",
+      "name": "中航西安飞机工业集团股份有限公司",
+      "careerUrl": "https://avic-xac.zhaopin.com/",
+      "aliases": [
+        "中航西飞"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "6122fb60-7e25-47be-99dd-bce212adbc39",
+      "name": "武汉船用机械有限责任公司",
+      "careerUrl": "https://wmmp.zhiye.com/campus/jobs",
+      "aliases": [
+        "中船集团武汉船用机械有限责任公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "武汉"
+      ]
+    },
+    {
+      "builtinKey": "45fb7b86-9a2e-468a-a720-dd2c6c3031e8",
+      "name": "中国航发贵州黎阳航空动力有限公司",
+      "careerUrl": "https://campus.51job.com/liyang/job.html",
+      "aliases": [
+        "中国航发黎阳"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "贵阳"
+      ]
+    },
+    {
+      "builtinKey": "f04b5f3b-2a65-4f67-b76b-3968d684dba8",
+      "name": "中科宇航",
+      "careerUrl": "https://cas-space.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "广州",
+        "绍兴",
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "9f8076cb-3204-4af7-addb-c0f74782326a",
+      "name": "航空工业津电",
+      "careerUrl": "https://tjaemc.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "天津"
+      ]
+    },
+    {
+      "builtinKey": "3621f90e-ac50-41e0-b95a-19f9762306c0",
+      "name": "青岛双瑞海洋环境工程股份有限公司",
+      "careerUrl": "https://sunrui.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "青岛"
+      ]
+    },
+    {
+      "builtinKey": "d39addc7-7d40-4e3b-8ace-a33abea87489",
+      "name": "中国航发北京航空材料研究院",
+      "careerUrl": "https://biam.zhaopin.com/",
+      "aliases": [
+        "中国航发航材院"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京",
+        "镇江",
+        "贵安"
+      ]
+    },
+    {
+      "builtinKey": "fef46f58-c92b-41a4-82e5-ea0640838619",
+      "name": "广船国际有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1226837615D90001094000",
+      "aliases": [
+        "中船广船国际"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "fe55dc9f-0682-4008-9a5e-9b8472620c00",
+      "name": "中国船舶集团广州船舶工业有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1226837615D90000703000",
+      "aliases": [
+        "中船集团广州公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "b65377c0-fac7-4220-9b23-c5bec437ef9c",
+      "name": "外高桥造船",
+      "careerUrl": "https://csscsws.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海",
+        "武汉"
+      ]
+    },
+    {
+      "builtinKey": "ababfd41-539b-4b34-8dd6-fdf1f4836a21",
+      "name": "航空工业庆安",
+      "careerUrl": "https://qingan.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "西安",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "41526be2-5947-4017-b2ef-051c9bea6a97",
+      "name": "中兵智能创新研究院",
+      "careerUrl": "https://zbcxy.zhiye.com/campus/jobs?1=id2label",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "3e1aa6e7-4cb3-4dd8-9ebd-cb474f5f0df4",
+      "name": "中国兵器工业第二〇六研究所",
+      "careerUrl": "https://xadzgc.zhiye.com/campus",
+      "aliases": [
+        "中国兵器工业第二六研究所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "75d029a2-6e70-460c-be69-6c8357681582",
+      "name": "中国空空导弹研究院",
+      "careerUrl": "https://cama.m.zhiye.com/#/jobs?jc=2",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "洛阳",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "25d9d84e-39c8-44dd-a054-b50820adc146",
+      "name": "中国船舶集团有限公司第七二六研究所",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1226837615D90001085000",
+      "aliases": [
+        "中船七二六所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "0426906b-e7a0-49e8-a437-6217f27374ff",
+      "name": "中船动力（集团）有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1302542823D90000001000",
+      "aliases": [
+        "中船动力集团"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "大连",
+        "西安",
+        "咸阳",
+        "宜昌",
+        "洛阳",
+        "镇江",
+        "安庆",
+        "青岛",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "154b93a0-83e2-40ff-b4bf-a2ab3ba43b32",
+      "name": "中车唐山公司",
+      "careerUrl": "https://crrc-ts.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "唐山",
+        "天津",
+        "北京",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "ade1e6fd-3844-4da2-9075-96af64842e25",
+      "name": "招商船舶",
+      "careerUrl": "https://cmi.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海",
+        "南京",
+        "南通",
+        "扬州",
+        "舟山",
+        "青岛",
+        "武汉",
+        "深圳",
+        "重庆",
+        "香港"
+      ]
+    },
+    {
+      "builtinKey": "cc392a18-d3ce-40c5-994a-f614c5a7b7e5",
+      "name": "光启",
+      "careerUrl": "https://recruit.kuang-chi.com:9003/candidate/jobs?audience=campus",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "深圳",
+        "顺德",
+        "洛阳",
+        "株洲",
+        "天津",
+        "乐山",
+        "沈阳"
+      ]
+    },
+    {
+      "builtinKey": "afcaae9c-77b8-4ab3-87cc-e9de7bba5df8",
+      "name": "哈尔滨飞机工业集团有限责任公司",
+      "careerUrl": "https://aviczp.zhiye.com/campus/jobs",
+      "aliases": [
+        "航空工业哈飞"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "哈尔滨"
+      ]
+    },
+    {
+      "builtinKey": "753952b7-678b-4b04-b0c5-c60a0e42edf2",
+      "name": "航空工业自控所",
+      "careerUrl": "https://h618.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "684a699b-6767-4034-ac4e-81f5d098c53c",
+      "name": "陕西飞机工业有限责任公司",
+      "careerUrl": "https://www.zhaopin.com/companydetail/jobs-KA1417847509P90000001000/",
+      "aliases": [
+        "航空工业陕飞"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "汉中"
+      ]
+    },
+    {
+      "builtinKey": "bfd4e313-175b-4ba4-8924-e070c3b32b66",
+      "name": "中国直升机设计研究所",
+      "careerUrl": "https://602.zhiye.com/Campus",
+      "aliases": [
+        "航空工业直升机所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "天津",
+        "景德镇"
+      ]
+    },
+    {
+      "builtinKey": "ad4b39b9-98aa-4e4a-b49f-2b94fcb5b484",
+      "name": "上海星际荣耀天基算力科技有限责任公司",
+      "careerUrl": "https://www.liepin.com/campus/project-detail/13806416/",
+      "aliases": [
+        "星际天算"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "dba6f5ed-4294-4f2a-9ffb-1ef4ed524485",
+      "name": "航天恒星科技有限公司",
+      "careerUrl": "https://spacestar.zhiye.com/campus/jobs",
+      "aliases": [
+        "航天恒星"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "西安",
+        "南昌",
+        "无锡",
+        "成都",
+        "哈尔滨"
+      ]
+    },
+    {
+      "builtinKey": "06818f41-b33e-433a-b587-4b8af6045848",
+      "name": "长光卫星",
+      "careerUrl": "https://cgwx.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "长春"
+      ]
+    },
+    {
+      "builtinKey": "ae46813b-ff1b-45e9-b1c5-a54a353a4adc",
+      "name": "中国电子科技集团公司第三十八研究所",
+      "careerUrl": "https://cetc38.zhaopin.com/school/index.html",
+      "aliases": [
+        "电科博微",
+        "中国电科38所"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "合肥"
+      ]
+    },
+    {
+      "builtinKey": "c4c3626d-fb3a-48d6-935c-411c49b9f3c6",
+      "name": "中国航天五院总体设计部",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/hangtianwuyuan/166339?locale=zh-CN#/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "c2888e60-b97d-49cb-9328-63229e6ab3fb",
+      "name": "中国航发商发",
+      "careerUrl": "https://aecccae.zhaopin.com/jobs/index.html",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "efd3fb17-40d2-43ea-afcb-a1c18cf61f2c",
+      "name": "中国电子科技集团公司第二十八研究所",
+      "careerUrl": "https://app.mokahr.com/campus_apply/cetcles/40889#/jobs?zhineng=66507",
+      "aliases": [
+        "中国电科28所"
+      ],
+      "industryKeys": [
+        "aa439be4-2099-4b3c-a8a4-b489d705d073",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "c385d13d-ce8e-4333-9555-4095e181fada",
+      "name": "重庆前卫科技集团有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1226837615D90001064000",
+      "aliases": [
+        "前卫科技"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "重庆"
+      ]
+    },
+    {
+      "builtinKey": "ad6a542f-63cd-44bf-a3b2-241382b7f248",
+      "name": "中国中车时代新材",
+      "careerUrl": "https://zztrp1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "株洲",
+        "北京",
+        "德国",
+        "越南",
+        "无锡",
+        "青岛",
+        "天津",
+        "射阳",
+        "鄂尔多斯",
+        "松原",
+        "襄阳",
+        "邢台",
+        "百色",
+        "宜宾"
+      ]
+    },
+    {
+      "builtinKey": "2ff4c9f7-9280-4d06-9a1b-31d7d72401f9",
+      "name": "中航科创",
+      "careerUrl": "https://avicsz.zhiye.com/custom/campus?hideAll=true",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "d0b5c211-d089-4966-a8da-28544589d5fb",
+      "name": "中国航空工业集团沈飞",
+      "careerUrl": "https://sacavic.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "沈阳"
+      ]
+    },
+    {
+      "builtinKey": "8b386a49-52a8-470d-af0b-e2697fd91f26",
+      "name": "中车株洲电力机车研究所有限公司",
+      "careerUrl": "https://crrczzs.zhiye.com/campus",
+      "aliases": [
+        "中车株洲所"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "株洲",
+        "长沙",
+        "北京",
+        "上海",
+        "无锡",
+        "西安",
+        "重庆",
+        "宁波",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "6c5930fb-e8c5-4d1b-a0f2-dc39acd3a30a",
+      "name": "中船智海创新研究院",
+      "careerUrl": "https://cssc.zhiye.com/cssciirizwlb?class=2&p=3-1,183",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京",
+        "武汉",
+        "连云港"
+      ]
+    },
+    {
+      "builtinKey": "2b4237d9-dd22-48f8-a148-1d8c661471e9",
+      "name": "中国航空器材集团有限公司",
+      "careerUrl": "https://casc.iguopin.com/",
+      "aliases": [
+        "中航空器材",
+        "中国航材"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "北京",
+        "中山",
+        "成都",
+        "太仓",
+        "天津",
+        "西安",
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "23ba880d-686c-4029-abf2-87983d057953",
+      "name": "青岛森麒麟轮胎股份有限公司",
+      "careerUrl": "https://senturytire.jobs.feishu.cn/029966/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "302ee2f0-f476-4f5f-9947-303781989c3b"
+      ],
+      "locations": [
+        "青岛"
+      ]
+    },
+    {
+      "builtinKey": "c7e781a9-9388-42b8-b713-c3169fe56df8",
+      "name": "中国航发哈尔滨东安发动机有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0629069588D90000005000?refcode=4440",
+      "aliases": [
+        "中国航发东安"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "哈尔滨"
+      ]
+    },
+    {
+      "builtinKey": "fa9ee71b-666e-4932-ad25-f8a0cfe38fd2",
+      "name": "中国航发南方工业有限公司",
+      "careerUrl": "https://campus.51job.com/331/job.html",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "株洲"
+      ]
+    },
+    {
+      "builtinKey": "8dcb185f-dffd-47dc-8b77-8b1820cb6259",
+      "name": "上海航空电器有限公司",
+      "careerUrl": "https://campus.51job.com/118/society.html",
+      "aliases": [
+        "航空工业上电",
+        "中国航空工业集团上电"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "aa439be4-2099-4b3c-a8a4-b489d705d073"
+      ],
+      "locations": [
+        "上海",
+        "成都"
+      ]
+    },
+    {
+      "builtinKey": "6eeb7233-b554-4c26-8082-3f5411d29629",
+      "name": "中车浦镇公司",
+      "careerUrl": "https://crrc-pz.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "南京",
+        "北京",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "01e2a02a-47bc-4b15-8050-b6a5d5c5d721",
+      "name": "中车株机",
+      "careerUrl": "https://crrc-zj.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "株洲",
+        "北京",
+        "上海",
+        "广州",
+        "洛阳",
+        "资阳",
+        "宁波",
+        "昆明",
+        "武汉",
+        "南宁",
+        "沧州",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "55b3ccea-10d6-4730-92a5-2a3c3adad6f3",
+      "name": "中车四方股份公司",
+      "careerUrl": "https://crrc-sfgf.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "青岛"
+      ]
+    },
+    {
+      "builtinKey": "9f9a3e2a-f704-4636-bf55-06944bd1fb1b",
+      "name": "江南造船",
+      "careerUrl": "https://jnzhaopin.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "29fb74d9-bbb6-4275-bd1f-cb2cbef315b1",
+      "name": "中航（成都）无人机系统股份有限公司",
+      "careerUrl": "https://avicuas.m.zhiye.com/#/jobs?jc=2",
+      "aliases": [
+        "中航无人机"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "成都",
+        "自贡",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "709eb0e9-3b75-4fe8-bad3-cca2b7347481",
+      "name": "航空工业民机机载公司",
+      "careerUrl": "https://campus.51job.com/mj2026/about2.html",
+      "aliases": [
+        "中国航空工业集团机载"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海"
+      ]
+    },
+    {
+      "builtinKey": "bd388136-62a6-423e-9d4a-a91ac2a8f449",
+      "name": "中国船舶集团有限公司系统工程研究院",
+      "careerUrl": "https://cssc.m.zhiye.com/seri/list.html?jc=2",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "6106fbde-d643-4803-8dca-06d16ab8b402",
+      "name": "蓝箭航天",
+      "careerUrl": "https://uq1h428xyc.jobs.feishu.cn/522146/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "西安",
+        "湖州",
+        "嘉兴",
+        "无锡",
+        "酒泉",
+        "成都",
+        "南京"
+      ]
+    },
+    {
+      "builtinKey": "2011eedf-32a5-4429-8fda-d0e6d0d0a7b6",
+      "name": "鸿擎科技",
+      "careerUrl": "https://qcnhg4ksaiwt.jobs.feishu.cn/257870",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "上海",
+        "北京",
+        "雄安",
+        "西安",
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "3262ce1c-a733-4ff2-9ae4-73d1a1130480",
+      "name": "中国科学院空天信息创新研究院",
+      "careerUrl": "https://zhaopin.aircas.ac.cn/",
+      "aliases": [
+        "中科院空天院"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "北京",
+        "苏州",
+        "济南",
+        "文昌"
+      ]
+    },
+    {
+      "builtinKey": "1e9989c9-29bb-4b12-80d0-bb6154906fd6",
+      "name": "航空工业一飞院",
+      "careerUrl": "https://yfy.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94",
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0"
+      ],
+      "locations": [
+        "西安"
+      ]
+    },
+    {
+      "builtinKey": "ed4d6b74-4834-405b-9501-90e41bec4985",
+      "name": "中车大同电力机车有限公司",
+      "careerUrl": "https://crrc-dt.hotjob.cn/",
+      "aliases": [
+        "中车大同公司"
+      ],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "大同",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "c5ed5857-301c-4245-8f61-5488137d03b5",
+      "name": "中车电动",
+      "careerUrl": "https://crrc-zcdd.hotjob.cn/",
+      "aliases": [],
+      "industryKeys": [
+        "654d02f7-6c14-4b1d-b4c8-4f8c0f6fdf94"
+      ],
+      "locations": [
+        "重庆",
+        "宁波",
+        "无锡",
+        "青岛",
+        "沈阳",
+        "常德",
+        "长沙",
+        "株洲",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "71eddd12-8c61-4b10-8e4a-0342ec464acb",
+      "name": "江苏农垦",
+      "careerUrl": "http://221.226.102.109:8888/dhr/n/recruitment/pc/home.html",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba"
+      ],
+      "locations": [
+        "南京",
+        "南通",
+        "连云港",
+        "淮安",
+        "盐城"
+      ]
+    },
+    {
+      "builtinKey": "8d7effe5-9684-41f3-98c0-45fa583b6001",
+      "name": "路易达孚",
+      "careerUrl": "https://campus.51job.com/LDC2027/about3.html",
+      "aliases": [
+        "LDC"
+      ],
+      "industryKeys": [
+        "88049ef4-ad25-42e2-8479-088cb20f88cd",
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba"
+      ],
+      "locations": [
+        "天津",
+        "张家港",
+        "东莞",
+        "广州"
+      ]
+    },
+    {
+      "builtinKey": "1289e8d3-e83c-4ae8-94c9-fbcf60c53ba7",
+      "name": "凤集食品集团有限公司",
+      "careerUrl": "https://fengji1.zhiye.com/campus/jobs",
+      "aliases": [
+        "凤集食品集团"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "绵阳(盐亭)",
+        "湖州",
+        "固原",
+        "北海",
+        "成都",
+        "上海",
+        "杭州",
+        "南京",
+        "广州",
+        "深圳",
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "4e258418-7231-4bfc-83d1-70a2ca048d2c",
+      "name": "现代牧业",
+      "careerUrl": "https://xiandaimuye.zhiye.com/campus/jobs",
+      "aliases": [
+        "现代牧业集团"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "05603383-1097-4b19-b7aa-bb1f47535fc8"
+      ],
+      "locations": [
+        "安徽马鞍山",
+        "内蒙古呼和浩特",
+        "全国其他"
+      ]
+    },
+    {
+      "builtinKey": "feee6928-07c6-4c05-be42-bbfa04843a2f",
+      "name": "唐人神集团",
+      "careerUrl": "https://trsgroup1.zhiye.com/campus/jobs",
+      "aliases": [
+        "唐人神"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "2def56d6-0875-434e-9eab-4862bd0cefc4",
+      "name": "九圣禾",
+      "careerUrl": "https://joinhopegroup1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba"
+      ],
+      "locations": [
+        "海南三亚",
+        "河南新乡",
+        "辽宁铁岭",
+        "新疆各地州",
+        "新疆昌吉",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "19961441-c60f-48bc-b2aa-d250533e6f31",
+      "name": "隆平高科",
+      "careerUrl": "https://job.lpht.com.cn/job/",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba"
+      ],
+      "locations": [
+        "湖南",
+        "湖北",
+        "安徽",
+        "江西",
+        "云南",
+        "贵州",
+        "江苏",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "052d8dd9-5e65-4581-a9a2-164451b68005",
+      "name": "浙江省农发集团",
+      "careerUrl": "https://zjadgroup.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "杭州",
+        "嘉兴",
+        "湖州",
+        "铁岭",
+        "苏州",
+        "绍兴",
+        "台州",
+        "金华",
+        "衢州",
+        "黑龙江"
+      ]
+    },
+    {
+      "builtinKey": "3b2c48d9-f2b0-4cdb-bc8d-0f3c845a7aa7",
+      "name": "巨星农牧",
+      "careerUrl": "https://jxnm.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "成都",
+        "四川",
+        "安徽"
+      ]
+    },
+    {
+      "builtinKey": "4e2e76aa-da4a-4fce-9bb2-c37d2f8aa1c8",
+      "name": "圣农集团",
+      "careerUrl": "https://sunnergp.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "福建南平",
+        "上海",
+        "庆阳",
+        "福州",
+        "福建",
+        "甘肃"
+      ]
+    },
+    {
+      "builtinKey": "365efdae-45a8-4ed0-a4d7-febca7223675",
+      "name": "广西扬翔集团股份有限公司",
+      "careerUrl": "https://yangxiang.zhiye.com/Campus/jobs",
+      "aliases": [
+        "扬翔股份",
+        "扬翔集团"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0"
+      ],
+      "locations": [
+        "全国各地"
+      ]
+    },
+    {
+      "builtinKey": "4804eadd-3ac7-48c6-8971-b9f7d4d92ea3",
+      "name": "澳华集团",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/alphafeed/167963?locale=zh-CN#/",
+      "aliases": [],
+      "industryKeys": [
+        "4cf26cbb-9303-4b29-b394-578dd953084d",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "淮安",
+        "武汉",
+        "江门",
+        "湛江",
+        "肇庆",
+        "惠州"
+      ]
+    },
+    {
+      "builtinKey": "32d97f0e-5209-411a-9565-55bb4a4327c1",
+      "name": "凯盛浩丰",
+      "careerUrl": "https://haofengfood.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "05603383-1097-4b19-b7aa-bb1f47535fc8"
+      ],
+      "locations": [
+        "北京",
+        "大同",
+        "呼和浩特",
+        "赤峰",
+        "佳木斯",
+        "抚远",
+        "宁波",
+        "安庆",
+        "滁州",
+        "青岛",
+        "淄博",
+        "东营",
+        "德州",
+        "濮阳",
+        "渭南",
+        "银川"
+      ]
+    },
+    {
+      "builtinKey": "26e65019-5cc4-4537-a9cc-f532b4f155d7",
+      "name": "和康源集团",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/chinahky/98987#/jobs",
+      "aliases": [
+        "和康源"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0"
+      ],
+      "locations": [
+        "山东",
+        "河北",
+        "江苏",
+        "安徽",
+        "内蒙古",
+        "东南亚"
+      ]
+    },
+    {
+      "builtinKey": "91ee609f-2349-4c61-a3b4-9d09a644f558",
+      "name": "中粮集团",
+      "careerUrl": "https://campus.51job.com/cofco/campus.html",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad",
+        "05603383-1097-4b19-b7aa-bb1f47535fc8",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "c2c43193-9a4d-4778-8308-3d4d310de35d",
+      "name": "信得科技",
+      "careerUrl": "https://sinder.zhiye.com/jobs?activityGuid=ebb89ccb-38ab-414a-83fd-206dc91e94d9",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "e20e6089-4139-4ea5-b50f-4e949226292d"
+      ],
+      "locations": [
+        "北京",
+        "青岛",
+        "潍坊",
+        "绵阳",
+        "全国",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "c9101475-adc5-4b68-968a-e36b3648c663",
+      "name": "江苏立华食品集团股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6875b96943ff2844336b8c5c/pb/index.html",
+      "aliases": [
+        "立华股份",
+        "立华食品"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "常州",
+        "泰安"
+      ]
+    },
+    {
+      "builtinKey": "17562f43-011d-4bac-a4c5-1341c0d7c676",
+      "name": "中迅农科",
+      "careerUrl": "https://zhxcn.zhiye.com/campus/jobs",
+      "aliases": [
+        "中迅集团"
+      ],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "惠州",
+        "长沙",
+        "巴西"
+      ]
+    },
+    {
+      "builtinKey": "e460f34a-cf56-494b-bd8b-b7596b492a7c",
+      "name": "四川德康农牧食品集团股份有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU65dc3cc91c240e4b11c15bb9/mc/position/campus",
+      "aliases": [
+        "德康集团"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "成都",
+        "云浮",
+        "武汉",
+        "遵义",
+        "宿迁",
+        "重庆",
+        "玉溪",
+        "贵阳",
+        "泉州",
+        "铜川",
+        "内江",
+        "广安",
+        "眉山",
+        "全国其他"
+      ]
+    },
+    {
+      "builtinKey": "8f177831-ea47-4614-8e9a-2671bb71e8c0",
+      "name": "神农集团",
+      "careerUrl": "https://ynsnjt.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "全国各地",
+        "云南",
+        "广西",
+        "广东"
+      ]
+    },
+    {
+      "builtinKey": "f72beda8-3dcc-4af3-8a92-840791f62f19",
+      "name": "诺普信",
+      "careerUrl": "https://noposion.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "9da2c3b6-3982-4355-a0c6-5d548e3ede17",
+      "name": "仙坛集团",
+      "careerUrl": "https://www.sdxiantan.com/index/job/info.html?cate=23&id=82",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "上海",
+        "烟台",
+        "潍坊"
+      ]
+    },
+    {
+      "builtinKey": "afb0e57e-353b-4ec7-b211-fe0aa0cf7e9f",
+      "name": "双胞胎集团",
+      "careerUrl": "https://wecruit.hotjob.cn/SU69f82a62e791100f0af4d1ea/mc/position/campus",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "35a66a59-21ca-4db7-8fc3-cb2470b0450e",
+      "name": "海大集团",
+      "careerUrl": "https://haid1.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "4cf26cbb-9303-4b29-b394-578dd953084d",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "全国",
+        "海外"
+      ]
+    },
+    {
+      "builtinKey": "288baab3-6e49-4824-b8ab-6472b830d2b0",
+      "name": "雪川农业集团",
+      "careerUrl": "https://snowvalleyfood.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "05603383-1097-4b19-b7aa-bb1f47535fc8"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "张家口",
+        "赤峰",
+        "锡林郭勒盟",
+        "青岛",
+        "武威",
+        "固原",
+        "哈密",
+        "徐州",
+        "内蒙古"
+      ]
+    },
+    {
+      "builtinKey": "3e7e1039-1dd5-4d40-b069-687765b7c329",
+      "name": "温氏股份",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/wens/92366#/",
+      "aliases": [],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "肇庆",
+        "广州",
+        "佛山",
+        "北京",
+        "湖州",
+        "唐山",
+        "清远",
+        "江门",
+        "青岛",
+        "成都",
+        "揭阳",
+        "南充",
+        "淮南",
+        "贺州",
+        "吉安",
+        "广东云浮"
+      ]
+    },
+    {
+      "builtinKey": "1aff6312-c610-4c94-836d-0a48e1922e87",
+      "name": "禾丰食品股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/hfsp/37149?locale=zh-CN#/",
+      "aliases": [
+        "禾丰股份",
+        "禾丰"
+      ],
+      "industryKeys": [
+        "0e2fcb1d-ed80-4370-ae53-73ca6ae6ebd0",
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "沈阳",
+        "长春",
+        "上海",
+        "郑州",
+        "哈尔滨",
+        "大连",
+        "天津",
+        "亳州"
+      ]
+    },
+    {
+      "builtinKey": "0bc9ae76-c6d7-4dd0-9ff4-e70c0ad11baf",
+      "name": "中国林业集团有限公司",
+      "careerUrl": "https://cfgc.iguopin.com/job",
+      "aliases": [
+        "中国林业集团"
+      ],
+      "industryKeys": [
+        "146b05bc-83a3-435e-9b81-e9b28f0a5a08"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "重庆",
+        "黑龙江",
+        "辽宁",
+        "甘肃",
+        "广东",
+        "广西",
+        "福建等"
+      ]
+    },
+    {
+      "builtinKey": "ce60c993-f969-46ed-bb1e-bdab231e30a4",
+      "name": "华润五丰有限公司",
+      "careerUrl": "https://nfh.hotjob.cn/",
+      "aliases": [
+        "华润五丰"
+      ],
+      "industryKeys": [
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "深圳",
+        "赣州",
+        "上海",
+        "香港",
+        "全国其他"
+      ]
+    },
+    {
+      "builtinKey": "58653d52-31a9-4b4b-9067-1ac002c51e92",
+      "name": "中国储备粮管理集团有限公司内蒙古分公司",
+      "careerUrl": "https://sinograinnmg.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团内蒙古分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "呼伦贝尔",
+        "兴安",
+        "通辽",
+        "乌兰察布",
+        "呼和浩特",
+        "阿拉善",
+        "鄂尔多斯",
+        "赤峰",
+        "巴彦淖尔",
+        "包头"
+      ]
+    },
+    {
+      "builtinKey": "9c6eb5eb-ed06-4b1a-91ed-0b138c72f269",
+      "name": "中储粮油脂有限公司",
+      "careerUrl": "https://sinograinoilsjob.iguopin.com/",
+      "aliases": [],
+      "industryKeys": [
+        "0a16ba26-4ed8-44a7-a9c3-4ddf9f466dad"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "东莞",
+        "成都",
+        "齐齐哈尔",
+        "厦门",
+        "重庆",
+        "日照",
+        "郑州",
+        "南昌",
+        "湛江",
+        "无锡",
+        "温州"
+      ]
+    },
+    {
+      "builtinKey": "f61149ec-2163-452e-83af-ecaa85e9735e",
+      "name": "中储粮（海南）有限公司",
+      "careerUrl": "https://sinograinhainan.iguopin.com/job",
+      "aliases": [],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "三亚",
+        "鲁州",
+        "澄迈",
+        "海湾"
+      ]
+    },
+    {
+      "builtinKey": "49569ecb-81a7-4ecd-a166-7d9931af917e",
+      "name": "中国储备粮管理集团有限公司北京分公司",
+      "careerUrl": "https://sinograinbj.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团北京分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "北京"
+      ]
+    },
+    {
+      "builtinKey": "049ece89-64ab-42de-8a6f-86987a500149",
+      "name": "中国储备粮管理集团有限公司江苏分公司",
+      "careerUrl": "https://sinograinjs.iguopin.com/jobcampus",
+      "aliases": [
+        "中国储备粮管理集团江苏分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "扬州",
+        "淮安",
+        "徐州",
+        "连云港",
+        "浙江",
+        "常州",
+        "南通",
+        "盐城",
+        "镇江"
+      ]
+    },
+    {
+      "builtinKey": "16962483-803f-4daa-bd0d-854390acad4f",
+      "name": "中国储备粮管理集团有限公司江西分公司",
+      "careerUrl": "https://sinograinjx.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团江西分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "上饶",
+        "华乡",
+        "新余",
+        "九江",
+        "嘉兴",
+        "安吉",
+        "宜春",
+        "杭州",
+        "景德镇",
+        "赣州"
+      ]
+    },
+    {
+      "builtinKey": "16575156-6582-45ca-ab8e-bb4332895462",
+      "name": "中储粮储运有限公司",
+      "careerUrl": "https://sinograincy.iguopin.com/",
+      "aliases": [],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "连云港",
+        "盘锦",
+        "青岛",
+        "湛江",
+        "长春",
+        "铜陵",
+        "营口",
+        "白城",
+        "通辽",
+        "漳州"
+      ]
+    },
+    {
+      "builtinKey": "0d670bd0-7d7a-456a-8438-fc5a47ee9de0",
+      "name": "中国储备粮管理集团有限公司吉林分公司",
+      "careerUrl": "https://sinograinjl.iguopin.com/",
+      "aliases": [],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "松原",
+        "白城",
+        "长春",
+        "延边",
+        "白山",
+        "通化",
+        "吉林",
+        "辽源",
+        "四平"
+      ]
+    },
+    {
+      "builtinKey": "c135a201-4434-4fab-a24a-45197783123a",
+      "name": "中国储备粮管理集团有限公司新疆分公司",
+      "careerUrl": "https://sinograinxj.iguopin.com/",
+      "aliases": [],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "伊犁",
+        "五家渠",
+        "塔城",
+        "昌吉",
+        "博尔塔拉",
+        "和田",
+        "哈密",
+        "北屯"
+      ]
+    },
+    {
+      "builtinKey": "25b0eb81-3ca9-4f87-bf47-05136a76330c",
+      "name": "中国储备粮管理集团有限公司广西分公司",
+      "careerUrl": "https://sinograingx.iguopin.com/jobcampus",
+      "aliases": [],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "贵港",
+        "贺州",
+        "百色",
+        "防城港",
+        "桂林",
+        "梧州",
+        "北海",
+        "南宁"
+      ]
+    },
+    {
+      "builtinKey": "36d1b24b-18f0-46d0-91a7-dfd119a883d3",
+      "name": "中国储备粮管理集团有限公司湖北分公司",
+      "careerUrl": "https://sinograinhb.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团湖北分公司",
+        "中储粮湖北分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "孝感",
+        "黄石",
+        "晋州",
+        "潜江",
+        "仙桃",
+        "黄冈",
+        "咸宁",
+        "荆州",
+        "襄阳",
+        "武汉",
+        "宜昌"
+      ]
+    },
+    {
+      "builtinKey": "08701f8b-238c-4ef3-bd39-af8f495587e9",
+      "name": "中国储备粮管理集团有限公司湖南分公司",
+      "careerUrl": "https://sinograinhunan.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团湖南分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "长沙",
+        "株洲",
+        "湘潭",
+        "郴州",
+        "常德",
+        "益阳",
+        "安庆",
+        "邵阳",
+        "岳阳",
+        "湘西",
+        "张家界",
+        "怀化",
+        "永州"
+      ]
+    },
+    {
+      "builtinKey": "792aa547-5b86-4b16-ba72-6c042c673fac",
+      "name": "中国储备粮管理集团有限公司河南分公司",
+      "careerUrl": "https://sinograinhenan2026.iguopin.com/",
+      "aliases": [
+        "中国储备粮管理集团河南分公司",
+        "中储粮河南分公司"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "漯河",
+        "信阳",
+        "新乡",
+        "驻马店",
+        "周口",
+        "商丘",
+        "三门峡",
+        "许昌",
+        "焦作",
+        "濮阳",
+        "鹤壁",
+        "平顶山",
+        "开封",
+        "洛阳",
+        "郑州"
+      ]
+    },
+    {
+      "builtinKey": "57eec1a6-e22f-4cbd-a621-8988d7ac27d6",
+      "name": "中国储备棉管理有限公司",
+      "careerUrl": "https://sinograinzcm.iguopin.com/jobcampus",
+      "aliases": [
+        "中国储备棉管理有限公司直属企业"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7"
+      ],
+      "locations": [
+        "连云港"
+      ]
+    },
+    {
+      "builtinKey": "3fef85cd-c22d-4521-8290-aad2d5436fc0",
+      "name": "中国储备粮管理集团",
+      "careerUrl": "https://sinograin2026.iguopin.com/",
+      "aliases": [
+        "中储粮"
+      ],
+      "industryKeys": [
+        "fdaac212-b0d8-4a22-9a7d-6684521dc6a7",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "北京",
+        "太原",
+        "呼和浩特",
+        "长春",
+        "哈尔滨",
+        "武汉",
+        "广州",
+        "贵阳",
+        "昆明",
+        "西安",
+        "黑河嫩江",
+        "成都",
+        "海口"
+      ]
+    },
+    {
+      "builtinKey": "81abc09d-104f-4c90-adae-8bc53879d91d",
+      "name": "深圳农业与食品投资控股集团有限公司",
+      "careerUrl": "https://afi.zhaopin.com/jobs/index.html",
+      "aliases": [
+        "深农投"
+      ],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "深圳"
+      ]
+    },
+    {
+      "builtinKey": "4c4e88d7-b63b-4b31-b1be-8e74e8930c62",
+      "name": "云图控股",
+      "careerUrl": "https://wintrueholding.jobs.feishu.cn/yuntuxiaozhao/position/list",
+      "aliases": [],
+      "industryKeys": [
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a",
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba"
+      ],
+      "locations": [
+        "宜城",
+        "应城",
+        "荆州",
+        "成都",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "3575e974-465a-4bee-bfee-9eab83e300d9",
+      "name": "鑫荣懋集团",
+      "careerUrl": "https://joywingmau.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "深圳",
+        "北京",
+        "上海",
+        "郑州",
+        "嘉兴",
+        "广州",
+        "沈阳",
+        "全国"
+      ]
+    },
+    {
+      "builtinKey": "af9e7180-86ac-4c38-881e-e2840e80d351",
+      "name": "浙农集团股份有限公司",
+      "careerUrl": "https://jobs.51job.com/all/coB2dQMVEyATwHagBrUjA.html",
+      "aliases": [
+        "浙农股份"
+      ],
+      "industryKeys": [
+        "771c0f66-9938-41bf-8ef9-0abc977c37ba",
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "杭州"
+      ]
+    },
+    {
+      "name": "首钢集团",
+      "careerUrl": "https://zp.shougang.com.cn/",
+      "aliases": [
+        "首钢集团有限公司",
+        "首钢"
+      ],
+      "industryKeys": [
+        "a9e2c6f2-7768-484d-98b8-885cbde5a095"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "0373a492-4a32-49aa-9242-dba9149d3f04"
+    },
+    {
+      "name": "江西铜业集团有限公司",
+      "careerUrl": "https://www.jxcc.com/join.html",
+      "aliases": [
+        "江铜集团",
+        "江铜"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "南昌"
+      ],
+      "builtinKey": "e7c93221-b293-423d-8511-533ae4d32e0b"
+    },
+    {
+      "name": "湖南省矿产资源集团有限责任公司",
+      "careerUrl": "https://www.hnkcjt.com/dynamic/show-1201.html",
+      "aliases": [
+        "湖南省矿产资源集团"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "湖南省"
+      ],
+      "builtinKey": "23ba9b14-fd87-43a9-a188-a0747a9fa6ac"
+    },
+    {
+      "name": "广西关键金属产业发展集团有限公司",
+      "careerUrl": "https://xyz.51job.com/consumer/pc/home/index?ctmid=9584282",
+      "aliases": [
+        "广西关键金属集团"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "南宁",
+        "柳州",
+        "梧州",
+        "北海",
+        "河池",
+        "来宾"
+      ],
+      "builtinKey": "50ecca71-bb23-4917-a98b-65fa828380bd"
+    },
+    {
+      "name": "中国中煤能源集团有限公司",
+      "careerUrl": "https://zhaopin.chinacoal.com/",
+      "aliases": [
+        "中国中煤"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "上海",
+        "舟山",
+        "广元",
+        "武汉",
+        "全国各地",
+        "全国"
+      ],
+      "builtinKey": "8c68ae49-997a-4696-b6c4-35e25605c1bd"
+    },
+    {
+      "name": "蜀道矿业集团",
+      "careerUrl": "https://sdhr.shudaojt.com/recruit#/portal_job_list?job_class=_HB5_Y2FtcHVz&filter_dict=_HB5_eyJf!m9iX2NsYXNzIjoiY2FtcHVzIiwic2VsZWN0X2RlcGFydCI6eyJpZCI6W10sImRlcGFydF9pZCI6W10sInBhcmVudF9pZCI6W10sImahbWUiOltdfX0%253D",
+      "aliases": [],
+      "industryKeys": [
+        "0d46908f-ea37-48b0-b1a7-e16c3e24262d",
+        "37e0b42d-560e-4c76-a127-56c70014cf7b"
+      ],
+      "locations": [
+        "四川"
+      ],
+      "builtinKey": "61411571-95db-428b-aff7-cd93f4233ebc"
+    },
+    {
+      "name": "西部矿业",
+      "careerUrl": "https://westmining.zhiye.com/campus/jobs#KeyWords=",
+      "aliases": [],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "青海",
+        "新疆",
+        "西藏",
+        "四川",
+        "内蒙",
+        "甘肃"
+      ],
+      "builtinKey": "8b797800-7924-4051-819b-ab1f68bdec93"
+    },
+    {
+      "name": "四川省煤炭产业集团有限责任公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0219850515D90000022000?refcode=4440",
+      "aliases": [
+        "川煤集团"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "四川",
+        "广安",
+        "成都"
+      ],
+      "builtinKey": "c4c9da12-3e10-404b-91af-293328d9fc07"
+    },
+    {
+      "name": "徐州矿务集团有限公司",
+      "careerUrl": "https://xkjt2027.zhaopin.com/post/index.html",
+      "aliases": [
+        "徐矿集团"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "徐州",
+        "阿克苏",
+        "宝鸡",
+        "锡林郭勒盟",
+        "朔州",
+        "海外"
+      ],
+      "builtinKey": "94296554-484b-4fa9-aa12-edd61a509e40"
+    },
+    {
+      "name": "中国瑞林",
+      "careerUrl": "https://nerin.zhiye.com/campus/jobs",
+      "aliases": [
+        "NERIN"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "江西南昌"
+      ],
+      "builtinKey": "2ab84c89-f217-48e7-a628-42bdbc901d44"
+    },
+    {
+      "name": "五矿钢铁有限责任公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6347a98c0dcad41245ec8ac6/pb/index.html#/",
+      "aliases": [
+        "五矿钢铁"
+      ],
+      "industryKeys": [
+        "88049ef4-ad25-42e2-8479-088cb20f88cd"
+      ],
+      "locations": [
+        "沈阳",
+        "宁波",
+        "北京"
+      ],
+      "builtinKey": "828fd453-cad3-4a54-88fe-64191041e097"
+    },
+    {
+      "name": "陕西煤业化工集团有限责任公司",
+      "careerUrl": "https://webhr.shccig.com/webhrN2-zp/xzsy",
+      "aliases": [
+        "陕煤集团"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "全国各地"
+      ],
+      "builtinKey": "fc3bf768-6be8-4273-8c6b-0b439f9f7016"
+    },
+    {
+      "name": "九江金鹭硬质合金有限公司",
+      "careerUrl": "https://cxtc-jt2.zhiye.com/campus/jobs",
+      "aliases": [
+        "九江金鹭"
+      ],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "江西九江"
+      ],
+      "builtinKey": "b84a1bea-c473-4690-827e-837d3ec291fa"
+    },
+    {
+      "name": "中国有研科技集团有限公司",
+      "careerUrl": "https://hrcloud.grinm.com/recruit#/portal_job_list?job_class=campus&filter_dict=%7B%22_job_class%22:%22campus%22,%22select_depart%22:null%7D",
+      "aliases": [
+        "中国有研科技集团"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "德州",
+        "乐陵",
+        "青岛",
+        "荣成",
+        "滨州",
+        "廊坊",
+        "燕郊",
+        "北京",
+        "包头",
+        "忻州",
+        "西安",
+        "峨边",
+        "德阳",
+        "重庆",
+        "佛山",
+        "上海",
+        "合肥",
+        "新余",
+        "泰国春武里"
+      ],
+      "builtinKey": "471d6833-1dd5-4d3b-b974-dbf6a5d796cd"
+    },
+    {
+      "name": "有研复材",
+      "careerUrl": "https://jsj.top/f/thJNWH",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "7e8f30f6-6085-4831-b39a-f03d9f4239d7"
+      ],
+      "locations": [
+        "北京",
+        "廊坊",
+        "忻州",
+        "厦门",
+        "东莞"
+      ],
+      "builtinKey": "aafe8aa4-1e92-4839-9af3-811c07fdbc7a"
+    },
+    {
+      "name": "中国十五冶金建设集团有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/swy/172554?locale=zh-CN#/jobs",
+      "aliases": [
+        "中国十五冶"
+      ],
+      "industryKeys": [
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9"
+      ],
+      "locations": [
+        "黄石",
+        "鹰潭",
+        "成都",
+        "北京",
+        "武汉",
+        "沈阳"
+      ],
+      "builtinKey": "c27fd0b8-f292-40f8-b030-bc0d77e90c4f"
+    },
+    {
+      "name": "国机金刚石（河南）有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1478463996P90000003000",
+      "aliases": [
+        "国机金刚石"
+      ],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b"
+      ],
+      "locations": [
+        "郑州"
+      ],
+      "builtinKey": "6b617b02-3ad2-4e38-9092-95fdda57b051"
+    },
+    {
+      "name": "矿冶集团",
+      "careerUrl": "https://hr.bgrimm.cn:10106/recruit#/portal_job_list?job_class=_HA5_vGGnFMhvX22YfeOAr!OJgg%253D%253D&filter_dict=_HA5_1mORUCHIcinkb36TUrcrnH2sVeq3rRTkDkI4oD38AOVAvSl2M2qrsTUI0Fq9%252B1Sr",
+      "aliases": [],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "沧州",
+        "徐州",
+        "泰州",
+        "海门",
+        "常州",
+        "邳州",
+        "淮安",
+        "阜阳",
+        "大冶",
+        "株洲",
+        "昆明",
+        "攀枝花"
+      ],
+      "builtinKey": "6d011c76-278a-458f-bcc8-936159154166"
+    },
+    {
+      "name": "中国煤炭科工集团有限公司",
+      "careerUrl": "https://cctegjob.iguopin.com/campus",
+      "aliases": [
+        "中国煤科"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "8464c112-0ea7-4782-a43f-18e4a23d369d"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "e33f165f-aae0-4f7e-abee-899a6573a675"
+    },
+    {
+      "name": "中煤第三建设（集团）有限责任公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU68c12a96778ced4f39347c39/pb/school.html",
+      "aliases": [
+        "中煤矿建集团"
+      ],
+      "industryKeys": [
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9",
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "合肥",
+        "全国",
+        "海外"
+      ],
+      "builtinKey": "52a18fb4-0d1d-4877-b8f3-0cab52491f22"
+    },
+    {
+      "name": "宁波兴业盛泰集团有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/xingyealloy/170609?locale=zh-CN#/jobs",
+      "aliases": [
+        "兴业合金"
+      ],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "浙江宁波"
+      ],
+      "builtinKey": "4e700a73-93af-45f4-a045-d745ac6e499f"
+    },
+    {
+      "name": "正海磁材",
+      "careerUrl": "https://zhmag.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "烟台",
+        "南通",
+        "海外"
+      ],
+      "builtinKey": "949a6dda-e33f-4de0-aac9-2eab277bea20"
+    },
+    {
+      "name": "中冶建筑研究总院有限公司",
+      "careerUrl": "https://zyjyy.zhiye.com/campus/jobs",
+      "aliases": [
+        "中冶建研院"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "深圳",
+        "湛江",
+        "天津"
+      ],
+      "builtinKey": "8a2e54dc-fd41-4036-89ed-d542b9897321"
+    },
+    {
+      "name": "五矿中亚南亚资源（雄安）有限公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU62f3786ebef57c29ead8adba/mc/position/campus?sharePostKey=b4ef9cfb0b0c451f8a802b1f7b23375c",
+      "aliases": [
+        "五矿中亚南亚"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b"
+      ],
+      "locations": [
+        "巴基斯坦",
+        "阿富汗"
+      ],
+      "builtinKey": "396c1762-d754-48ea-8b1a-c34e78161b9d"
+    },
+    {
+      "name": "北矿新材科技有限公司",
+      "careerUrl": "https://www.iguopin.com/company?id=10685310119848336",
+      "aliases": [
+        "北矿新材"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "淮安",
+        "北京"
+      ],
+      "builtinKey": "bfb4b923-6082-4b6a-84a7-5321f4a3d4f6"
+    },
+    {
+      "name": "森特士兴集团股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/sente/151238?locale=zh-CN#/jobs",
+      "aliases": [
+        "森特股份"
+      ],
+      "industryKeys": [
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "西安",
+        "武汉",
+        "合肥",
+        "杭州",
+        "深圳",
+        "广州",
+        "长沙",
+        "成都",
+        "郑州",
+        "南京",
+        "厦门",
+        "福州",
+        "昆明",
+        "印度尼西亚",
+        "泰国",
+        "新加坡",
+        "迪拜"
+      ],
+      "builtinKey": "a3a261f1-15be-4a57-a297-21431b8f82c7"
+    },
+    {
+      "name": "长沙矿山研究院有限责任公司",
+      "careerUrl": "https://wecruit.hotjob.cn/SU62f3786ebef57c29ead8adba/mc/position/campus?orgCode=0%2F659",
+      "aliases": [
+        "长沙矿山院"
+      ],
+      "industryKeys": [
+        "423cb4cc-8f0b-4814-aebb-7c94f0d037c0",
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "长沙"
+      ],
+      "builtinKey": "733d6f80-c072-4e6a-88b5-987af0be47ab"
+    },
+    {
+      "name": "北京当升材料科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/easpring/102152#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "当升科技"
+      ],
+      "industryKeys": [
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "北京"
+      ],
+      "builtinKey": "60fc0e00-2b15-448b-a846-ba22341d2b4e"
+    },
+    {
+      "name": "中冶南方工程技术有限公司",
+      "careerUrl": "https://job.wisdri.com/jobApplication",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "武汉",
+        "上海"
+      ],
+      "builtinKey": "1730321d-99a5-4ed7-a4e9-38a617aff067"
+    },
+    {
+      "name": "厦门虹鹭钨钼工业有限公司",
+      "careerUrl": "https://xiamen-honglu.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "厦门"
+      ],
+      "builtinKey": "a320c881-66fb-4b22-be01-4ea83e9fbfc2"
+    },
+    {
+      "name": "厦门金鹭",
+      "careerUrl": "https://gesac.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "厦门",
+        "成都",
+        "常州",
+        "惠州",
+        "海外"
+      ],
+      "builtinKey": "a555264e-6d86-47b6-bafa-2f824b01157b"
+    },
+    {
+      "name": "金诚信",
+      "careerUrl": "https://form.ebdan.net/ls/Pq7UwFhS?bt=yxy",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20",
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9"
+      ],
+      "locations": [
+        "北京",
+        "昆明",
+        "大冶"
+      ],
+      "builtinKey": "a931c68a-9a63-4541-8f21-3f19e40cdfb3"
+    },
+    {
+      "name": "华友钴业",
+      "careerUrl": "https://wecruit.hotjob.cn/SU6465f3d9bef57c0907f3bb58/pb/school.html",
+      "aliases": [],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "浙江桐乡",
+        "浙江衢州",
+        "广西玉林",
+        "四川成都",
+        "天津",
+        "全国其他",
+        "海外"
+      ],
+      "builtinKey": "2ef74a0f-8650-4adf-8be6-6bbd0b44a42c"
+    },
+    {
+      "name": "寒锐钴业",
+      "careerUrl": "https://campus.51job.com/hanrui2027/p2.html",
+      "aliases": [],
+      "industryKeys": [
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9",
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "南京",
+        "赣州",
+        "滁州",
+        "非洲",
+        "印尼"
+      ],
+      "builtinKey": "6fb282fa-2894-4d11-9ce9-e0ca3914359a"
+    },
+    {
+      "name": "青岛云路先进材料技术股份有限公司",
+      "careerUrl": "https://www.iguopin.com/company/jobs?id=10685397028152875",
+      "aliases": [
+        "云路股份"
+      ],
+      "industryKeys": [
+        "3ddaa57b-b135-4a07-9a51-06c02fb9fdad"
+      ],
+      "locations": [
+        "青岛",
+        "深圳",
+        "北京",
+        "加拿大"
+      ],
+      "builtinKey": "fde29436-3370-4d57-9728-176e35dcff5e"
+    },
+    {
+      "name": "旭阳集团",
+      "careerUrl": "https://risun.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "fef2dbcb-676d-4bc2-a052-f7ccc09817f1",
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "河北邢台",
+        "河北唐山",
+        "江西萍乡",
+        "河北定州",
+        "山东东明",
+        "天津",
+        "河北沧州",
+        "山东郓城",
+        "河北石家庄",
+        "内蒙古呼和浩特",
+        "印尼苏拉威西"
+      ],
+      "builtinKey": "c793a974-417c-4e84-934f-e422abc58dff"
+    },
+    {
+      "name": "湖北菲利华石英玻璃股份有限公司",
+      "careerUrl": "http://job.feilihua.com/joinus/job/1",
+      "aliases": [
+        "菲利华"
+      ],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b"
+      ],
+      "locations": [
+        "荆州"
+      ],
+      "builtinKey": "7e522677-ba1c-413f-bee7-1bcdcbab5489"
+    },
+    {
+      "name": "宁波力勤资源科技股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/lygend/72100?sourceToken=7c01b3ccd34c3fe43850129ee853f1cf#/",
+      "aliases": [
+        "力勤资源"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "宁波"
+      ],
+      "builtinKey": "f8976031-5e49-49e7-99b2-d036838e250f"
+    },
+    {
+      "name": "中国稀土集团",
+      "careerUrl": "https://regcc.iguopin.com/",
+      "aliases": [],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "北京",
+        "江西",
+        "广西",
+        "江苏",
+        "四川",
+        "山东",
+        "广东",
+        "全国其他"
+      ],
+      "builtinKey": "ec5b9c4e-57e4-494a-a303-1ae7f7022e24"
+    },
+    {
+      "name": "灵宝黄金集团股份有限公司",
+      "careerUrl": "https://hire.dingtalk.com/jobDetailRecommendShare?corpId=dinga63d0e4fb8c774dfacaaa37764f94726&jobId=jobId65ea15a64bd74ee8ace23681e062ecca&showmenu=false&dd_share=false",
+      "aliases": [
+        "灵宝黄金"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "中国内地(河南、新疆南尔吉斯斯坦、大洋洲、美洲、非洲等)。"
+      ],
+      "builtinKey": "06965a07-64ef-4041-a27c-3e46f4c51c80"
+    },
+    {
+      "name": "中国二十二冶集团有限公司",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0387334828P90000002000?refcode=4444",
+      "aliases": [
+        "中国二十二冶",
+        "二十二冶"
+      ],
+      "industryKeys": [
+        "a381f118-f4ef-4890-bf7f-c59766cc73a9"
+      ],
+      "locations": [
+        "北京",
+        "雄安",
+        "天津",
+        "唐山",
+        "石家庄",
+        "济南",
+        "南京",
+        "上海",
+        "杭州",
+        "南昌",
+        "广州",
+        "深圳",
+        "成都",
+        "郑州",
+        "西安",
+        "沈阳",
+        "乌鲁木齐",
+        "海外"
+      ],
+      "builtinKey": "31fe556e-4580-4098-9cd6-d2234f85716e"
+    },
+    {
+      "name": "上海普利特复合材料股份有限公司",
+      "careerUrl": "https://pret.zhiye.com/campus",
+      "aliases": [
+        "普利特",
+        "普利特全球"
+      ],
+      "industryKeys": [
+        "302ee2f0-f476-4f5f-9947-303781989c3b"
+      ],
+      "locations": [
+        "上海青浦",
+        "上海金山",
+        "嘉兴",
+        "天津",
+        "广州",
+        "慈溪余姚",
+        "宁波",
+        "台州",
+        "常州",
+        "盐城",
+        "苏州",
+        "无锡",
+        "重庆"
+      ],
+      "builtinKey": "37f11e6f-c013-4b62-b4bf-0428fac435d0"
+    },
+    {
+      "name": "中铝宁夏能源集团有限公司",
+      "careerUrl": "https://www.iguopin.com/company/jobs?id=10685389622103482",
+      "aliases": [
+        "中铝宁夏能源集团"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571",
+        "bb615db4-143a-446d-b69f-8b8b06d47247"
+      ],
+      "locations": [
+        "宁夏"
+      ],
+      "builtinKey": "e4b4710e-b226-4c58-880b-1d858c7a6ece"
+    },
+    {
+      "name": "旗滨集团",
+      "careerUrl": "https://kibing.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b"
+      ],
+      "locations": [
+        "深圳",
+        "天津",
+        "漳州",
+        "株洲",
+        "湖州",
+        "郴州",
+        "河源",
+        "绍兴",
+        "平湖",
+        "长兴",
+        "全国其他"
+      ],
+      "builtinKey": "6d1794fc-0e79-4d31-920a-8ed2d527452c"
+    },
+    {
+      "name": "中国煤炭地质总局",
+      "careerUrl": "https://ccgc.iguopin.com/job",
+      "aliases": [],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20",
+        "6cd3d089-4ebd-4db8-8608-01bc71516571"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "da347b69-f0f5-4aef-bf1e-b9203b683282"
+    },
+    {
+      "name": "江西铜业鑫瑞科技有限公司",
+      "careerUrl": "https://www.jxcc.com/recruitmentAnnouncement/details_475_5479.html",
+      "aliases": [
+        "江铜鑫瑞"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "南昌"
+      ],
+      "builtinKey": "02db3969-44c5-49a4-90d5-1c1d0fd510ac"
+    },
+    {
+      "name": "永青集团",
+      "careerUrl": "https://wecruit.hotjob.cn/SU648a7b08bef57c16d35880e6/mc/detail?postId=102626&recruitType=campus",
+      "aliases": [
+        "青山实业",
+        "青山实业·永青集团"
+      ],
+      "industryKeys": [
+        "a9e2c6f2-7768-484d-98b8-885cbde5a095",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "浙江温州"
+      ],
+      "builtinKey": "121f5a4d-4e92-46fc-8a86-9203e7777862"
+    },
+    {
+      "name": "鞍钢集团",
+      "careerUrl": "https://campus.51job.com/ansteel2026/job.html",
+      "aliases": [
+        "鞍钢"
+      ],
+      "industryKeys": [
+        "0d46908f-ea37-48b0-b1a7-e16c3e24262d",
+        "a9e2c6f2-7768-484d-98b8-885cbde5a095"
+      ],
+      "locations": [
+        "鞍山",
+        "营口",
+        "朝阳",
+        "本溪",
+        "辽阳",
+        "凌源",
+        "攀枝花",
+        "西昌",
+        "绵阳",
+        "成都",
+        "北京",
+        "广州"
+      ],
+      "builtinKey": "55f0a115-f6f6-475c-a109-5fcfb5da55f7"
+    },
+    {
+      "name": "中国建筑材料科学研究总院有限公司",
+      "careerUrl": "https://cbma.iguopin.com/job",
+      "aliases": [
+        "中国建材总院",
+        "中国建筑材料科学研究总院"
+      ],
+      "industryKeys": [
+        "a4eedff9-019e-4894-ace3-df3bb2992a4b",
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "杭州",
+        "西安",
+        "哈尔滨",
+        "湖南",
+        "枣庄",
+        "全国其他"
+      ],
+      "builtinKey": "fa8c76d1-68a6-41cf-8699-5d215f7d0667"
+    },
+    {
+      "name": "驰宏锌锗",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0145460507P90000002000",
+      "aliases": [],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "云南曲靖"
+      ],
+      "builtinKey": "b4901910-6f04-4f01-aae8-6c5fd0ef5069"
+    },
+    {
+      "name": "浙江省自然资源集团有限公司",
+      "careerUrl": "https://campus.51job.com/zrzy2026/about2.html",
+      "aliases": [
+        "浙江自然资源集团",
+        "浙江省自然资源集团"
+      ],
+      "industryKeys": [
+        "e1013465-32aa-4ec0-a147-e9a342890f20"
+      ],
+      "locations": [
+        "杭州"
+      ],
+      "builtinKey": "447945d3-b760-40ff-be39-4243e8c14478"
+    },
+    {
+      "name": "洛阳盛龙矿业集团股份有限公司",
+      "careerUrl": "https://campus.51job.com/slgf/job.html",
+      "aliases": [
+        "洛阳盛龙矿业集团"
+      ],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "河南洛阳",
+        "郑州",
+        "栾川"
+      ],
+      "builtinKey": "e4d650e8-7826-4499-ba5e-68305e5b4213"
+    },
+    {
+      "name": "广州众山新材料股份有限公司",
+      "careerUrl": "https://lcnf8agrw8w8.jobs.feishu.cn/310467",
+      "aliases": [
+        "广州众山新材料"
+      ],
+      "industryKeys": [
+        "06480bcc-2a04-41b8-b447-d5ead64ad92a"
+      ],
+      "locations": [
+        "广州",
+        "北京",
+        "武汉",
+        "中山"
+      ],
+      "builtinKey": "c93ada03-b884-4799-8355-05e3b403066a"
+    },
+    {
+      "name": "山西鹏飞集团有限公司",
+      "careerUrl": "https://pengfeijituan.jobs.feishu.cn/index/",
+      "aliases": [
+        "山西鹏飞集团"
+      ],
+      "industryKeys": [
+        "6cd3d089-4ebd-4db8-8608-01bc71516571",
+        "fef2dbcb-676d-4bc2-a052-f7ccc09817f1"
+      ],
+      "locations": [
+        "吕梁",
+        "晋城",
+        "长治",
+        "阳泉",
+        "天津",
+        "十堰"
+      ],
+      "builtinKey": "2b33aa3a-acca-4962-9955-7b5902eb9e2c"
+    },
+    {
+      "name": "会通新材料股份有限公司",
+      "careerUrl": "https://orinko-ht.jobs.feishu.cn/960112/position/list",
+      "aliases": [
+        "会通股份"
+      ],
+      "industryKeys": [
+        "302ee2f0-f476-4f5f-9947-303781989c3b"
+      ],
+      "locations": [
+        "合肥",
+        "佛山",
+        "芜湖",
+        "安庆",
+        "重庆",
+        "上海",
+        "宁波",
+        "深圳",
+        "海外"
+      ],
+      "builtinKey": "4102ee7f-d244-484b-b1c3-55cbf2a304d0"
+    },
+    {
+      "name": "洛阳钼业",
+      "careerUrl": "https://cmoc.iguopin.com/notice2",
+      "aliases": [],
+      "industryKeys": [
+        "37e0b42d-560e-4c76-a127-56c70014cf7b",
+        "6a5c5361-2b70-4a8d-a96a-95bad5454cb9"
+      ],
+      "locations": [
+        "洛阳",
+        "上海",
+        "海外"
+      ],
+      "builtinKey": "00ac39e3-039b-4615-b266-86ac303a8c46"
+    },
+    {
+      "name": "远洋商业",
+      "careerUrl": "https://xyzp.51job.com/yysy/job.html",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "上海",
+        "福建",
+        "天津",
+        "赣州",
+        "济南",
+        "宿迁各商业在营项目"
+      ],
+      "builtinKey": "78e09f6d-d540-4465-8bdd-5aa52e2eb3e7"
+    },
+    {
+      "name": "俊发物业",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA0181605528D90000001000?refcode=4440",
+      "aliases": [
+        "俊发七彩服务",
+        "云南俊发物业服务有限公司"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "昆明"
+      ],
+      "builtinKey": "0687d2ca-5e46-4645-a1d2-0b457bd28b28"
+    },
+    {
+      "name": "绿都智慧服务",
+      "careerUrl": "https://hr.lvduwy.com/r.do?method=portal&o=A-4474816E19C9D251EB73F05225C07511DE030126AC4E7F37C6D250EB2F773F9E&p=A-5D02B03D8D1F47C5FD2592EF64FBED2ACF1C6D8B8DA68CABFB395E0412F43E50",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "郑州",
+        "武汉",
+        "杭州",
+        "南京",
+        "苏州",
+        "合肥",
+        "南昌",
+        "洛阳",
+        "开封",
+        "新乡",
+        "南阳",
+        "濮阳",
+        "焦作",
+        "常熟"
+      ],
+      "builtinKey": "180685a3-005d-4fcd-8642-e8212151bdd7"
+    },
+    {
+      "name": "宁德市旅发集团有限公司",
+      "careerUrl": "https://www.fjsrlzy.cn/case/position/nd26008",
+      "aliases": [
+        "宁德市旅发集团"
+      ],
+      "industryKeys": [
+        "dbf878fe-5f94-4a1f-a6cd-9520ae592a57"
+      ],
+      "locations": [
+        "宁德"
+      ],
+      "builtinKey": "26a5dbf4-5d13-4327-9644-bfd0fbb03cff"
+    },
+    {
+      "name": "新大正物业",
+      "careerUrl": "https://dzwy.zhiye.com/campus/jobs",
+      "aliases": [
+        "新大正物业集团"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "南京",
+        "苏州",
+        "杭州",
+        "郑州",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳",
+        "重庆",
+        "成都",
+        "西安",
+        "全国各地"
+      ],
+      "builtinKey": "6584e362-8f23-4c6f-b276-6a1ea3b49d13"
+    },
+    {
+      "name": "保利物业",
+      "careerUrl": "https://polynew.zhiye.com/jobs?activityGuid=11a510bd-edba-4b59-aa99-9de2f27c4833",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "9804da3c-68b2-4d7e-9824-0bf61e7ac605"
+    },
+    {
+      "name": "时代邻里",
+      "careerUrl": "https://www.ivvajob.com/company/shidai/26M9TB58236#/index?wt=1",
+      "aliases": [
+        "时代邻里控股有限公司"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "dac15fff-18de-455b-8b9b-8ad4dc5d5fb7"
+    },
+    {
+      "name": "佳兆业美好",
+      "careerUrl": "https://xiaoyuan.zhaopin.com/company/KA1511228550D90000001000",
+      "aliases": [
+        "佳兆业美好集团"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "北京",
+        "辽宁",
+        "河北",
+        "山东",
+        "江苏",
+        "上海",
+        "河南",
+        "浙江",
+        "重庆",
+        "湖北",
+        "四川",
+        "湖南",
+        "云南",
+        "广西",
+        "广东"
+      ],
+      "builtinKey": "3390af4d-93ec-4de7-b72f-cd4c50bf5f50"
+    },
+    {
+      "name": "东呈集团",
+      "careerUrl": "https://dossen.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "23ed6a7e-e71c-4d92-a235-61a972156e4c"
+      ],
+      "locations": [
+        "广州",
+        "成都",
+        "武汉",
+        "长沙",
+        "南宁"
+      ],
+      "builtinKey": "e08f9ee1-d255-417b-a386-72b8bea0fbe7"
+    },
+    {
+      "name": "金茂服务",
+      "careerUrl": "https://wecruit.hotjob.cn/SU64f6a5026202cc0401461810/mc/position/campus?sharePostKey=bf9a800460924d14ba9e69d1698c9454",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "6722a28d-c090-4de7-9e72-f39392cbcce2"
+    },
+    {
+      "name": "美的置业集团",
+      "careerUrl": "https://www.zhipin.com/kj/f4be00279ee2e0a53eafdaa94a151e2c",
+      "aliases": [
+        "美的置业"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "873f6b84-ffe7-44b7-9230-a9e37dc814df"
+    },
+    {
+      "name": "锦江国际集团",
+      "careerUrl": "https://www.ivvajob.com/base/jinjiangSchool#/positionList?positionType=1",
+      "aliases": [],
+      "industryKeys": [
+        "23ed6a7e-e71c-4d92-a235-61a972156e4c"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "edc918d9-10bf-4deb-8afd-799b729644e5"
+    },
+    {
+      "name": "招商积余",
+      "careerUrl": "https://cmpo.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "北京",
+        "天津",
+        "沈阳",
+        "大连",
+        "哈尔滨",
+        "上海",
+        "南通",
+        "杭州",
+        "宁波",
+        "合肥",
+        "济南",
+        "郑州",
+        "武汉",
+        "长沙",
+        "广州",
+        "深圳"
+      ],
+      "builtinKey": "4842ffbd-66b9-4d8c-a630-3ca548d59396"
+    },
+    {
+      "name": "新城悦服务",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/seazen/166605#/jobs?keyword=&page=1&anchorName=jobsList",
+      "aliases": [
+        "新城悦服务集团有限公司"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "上海",
+        "常州",
+        "苏州",
+        "南京",
+        "南通",
+        "无锡",
+        "杭州",
+        "青岛",
+        "西安",
+        "温州",
+        "贵阳",
+        "郑州",
+        "合肥",
+        "武汉",
+        "长沙",
+        "重庆",
+        "成都",
+        "昆明",
+        "天津",
+        "济南"
+      ],
+      "builtinKey": "97c17a85-c5ed-4531-bd3a-ccde8d9f36ff"
+    },
+    {
+      "name": "阿吉豆",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/yunhonggroup/140309?locale=zh-CN#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "上海阿吉豆实业发展有限公司",
+        "AJIDOU"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "上海"
+      ],
+      "builtinKey": "fb035aac-094d-4d70-a98f-6eba108f8c09"
+    },
+    {
+      "name": "卓越商企服务",
+      "careerUrl": "https://wecruit.hotjob.cn/SU687d8ff5e57172288b64ef2d/pb/school.html",
+      "aliases": [
+        "卓越商企"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "深圳",
+        "广州",
+        "上海",
+        "东莞",
+        "北京",
+        "杭州",
+        "苏州",
+        "南京",
+        "成都"
+      ],
+      "builtinKey": "fdf0df4b-9348-4678-814a-af065b52770c"
+    },
+    {
+      "name": "达美乐中国",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/dominos/118054?sourceToken=822b5ade4be90d7a4f089d52d3edad29#/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "33d5d9cf-0589-402c-abfd-9aa2f30c0fc6"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "1cdac7ac-3705-4d86-91c5-29664ddea081"
+    },
+    {
+      "name": "中海物业集团有限公司",
+      "careerUrl": "https://copm.zhiye.com/campus/jobs",
+      "aliases": [
+        "中海物业"
+      ],
+      "industryKeys": [
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "北京",
+        "上海",
+        "广州",
+        "深圳",
+        "沈阳",
+        "长春",
+        "济南",
+        "苏州",
+        "武汉",
+        "成都",
+        "重庆",
+        "西安",
+        "佛山",
+        "汕头",
+        "长沙",
+        "合肥",
+        "海南",
+        "天津",
+        "杭州",
+        "呼和浩特",
+        "全国其他",
+        "海外"
+      ],
+      "builtinKey": "bfe0d278-b34b-42bd-8f37-4ca3b672849f"
+    },
+    {
+      "name": "天虹数科商业股份有限公司",
+      "careerUrl": "https://app.mokahr.com/campus_apply/tianhongshuke/24998#/jobs?page=1&anchorName=jobsList",
+      "aliases": [
+        "天虹数科"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "深圳",
+        "惠州",
+        "苏州",
+        "东莞",
+        "长沙",
+        "南昌",
+        "北京",
+        "厦门"
+      ],
+      "builtinKey": "5bbd2e16-f465-4ba8-bed9-9b7a22eea8a8"
+    },
+    {
+      "name": "杉杉商业集团",
+      "careerUrl": "https://app-tc.mokahr.com/campus-recruitment/vipshophr/16060?locale=zh-CN#/jobs",
+      "aliases": [
+        "杉杉商业"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "宁波"
+      ],
+      "builtinKey": "8efc3c93-bdf1-442a-8b9a-274d8853bf52"
+    },
+    {
+      "name": "酷动数码",
+      "careerUrl": "http://job.coofans.com/zhaopin/",
+      "aliases": [
+        "酷动零售事业群"
+      ],
+      "industryKeys": [
+        "8c3a4ef6-fbd8-4837-b2bf-dcf5821769b5"
+      ],
+      "locations": [
+        "深圳",
+        "全国"
+      ],
+      "builtinKey": "0b559388-0d87-40bc-9da4-9d2e03700fbb"
+    },
+    {
+      "name": "深圳格兰云天酒店管理有限公司",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/gshm/172184#/",
+      "aliases": [
+        "格兰云天"
+      ],
+      "industryKeys": [
+        "23ed6a7e-e71c-4d92-a235-61a972156e4c"
+      ],
+      "locations": [
+        "北京",
+        "深圳",
+        "南昌",
+        "赣州",
+        "吉安",
+        "贵阳"
+      ],
+      "builtinKey": "4d87f6ff-b40d-4dd2-bb61-96e897777069"
+    },
+    {
+      "name": "安徽老乡鸡餐饮有限公司",
+      "careerUrl": "https://lxjchina1.zhiye.com/campus/jobs",
+      "aliases": [
+        "老乡鸡"
+      ],
+      "industryKeys": [
+        "33d5d9cf-0589-402c-abfd-9aa2f30c0fc6"
+      ],
+      "locations": [
+        "合肥",
+        "上海",
+        "广州",
+        "全国其他",
+        "海外"
+      ],
+      "builtinKey": "daf8a082-0035-42a9-81f4-4c1ff31b1511"
+    },
+    {
+      "name": "卡旺卡",
+      "careerUrl": "https://comewonka.zhiye.com/campus/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "33d5d9cf-0589-402c-abfd-9aa2f30c0fc6"
+      ],
+      "locations": [
+        "合肥",
+        "南京"
+      ],
+      "builtinKey": "7f79cb95-1d6a-47c6-8636-fd6ce402105a"
+    },
+    {
+      "name": "Peet’s皮爷咖啡",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/peets/118888/#/jobs?keyword=%E6%9A%91%E6%9C%9F%E5%AE%9E%E4%B9%A0%E7%94%9F&page=1&anchorName=jobsList",
+      "aliases": [
+        "Peet's Coffee"
+      ],
+      "industryKeys": [
+        "33d5d9cf-0589-402c-abfd-9aa2f30c0fc6"
+      ],
+      "locations": [
+        "上海"
+      ],
+      "builtinKey": "4b47dd9b-022e-4b6f-8eea-c05d0402aa1b"
+    },
+    {
+      "name": "亚朵集团",
+      "careerUrl": "https://app.mokahr.com/campus-recruitment/atour/142870#/jobs",
+      "aliases": [],
+      "industryKeys": [
+        "23ed6a7e-e71c-4d92-a235-61a972156e4c"
+      ],
+      "locations": [
+        "全国"
+      ],
+      "builtinKey": "f07a4f8b-61e1-4274-931a-f0cc25628488"
+    },
+    {
+      "name": "保利商旅",
+      "careerUrl": "https://polycareer.zhiye.com/campus/jobs?KeyWords=%E5%95%86%E6%97%85&memory=%7B%22Category%22%3A%5B%222%22%5D%2C%22KeyWords%22%3A%22%E5%95%86%E6%97%85%22%7D&silence=1",
+      "aliases": [],
+      "industryKeys": [
+        "23ed6a7e-e71c-4d92-a235-61a972156e4c",
+        "dfc62065-5159-440a-85f2-5d8bce7043ac"
+      ],
+      "locations": [
+        "广州",
+        "佛山",
+        "杭州",
+        "成都",
+        "武汉"
+      ],
+      "builtinKey": "5964fd6a-a255-467f-8ae2-cee9047cb60b"
     }
   ]
 }

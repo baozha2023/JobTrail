@@ -9,7 +9,12 @@ import type { PageSnapshot } from './extraction'
 import { allowedPage } from './platforms'
 import { platformAdapter } from './adapter-registry'
 import { bounded } from './async-control'
-import { LoginError, type QrTransport, type QrRequestOptions } from './qr-protocol'
+import {
+  LoginError,
+  type QrTransport,
+  type QrRequestOptions,
+  type QrPageTransport,
+} from './qr-protocol'
 
 /** Owns platform sessions and their system-network lifecycle. */
 export class AccountSessions {
@@ -229,7 +234,7 @@ export function accountLoginTransport(
   platform: JobPlatform,
   session: Session,
   signal: AbortSignal,
-  callbacks: { scanned(): void; challenge(url: string | null): void },
+  callbacks: { scanned(): void; challenge(url: string | null): void; page?: () => QrPageTransport },
 ): AccountLoginTransport {
   const requests = new SessionRequests(platform, session, signal)
   const qr = platformAdapter(platform).qr
@@ -273,6 +278,18 @@ export function accountLoginTransport(
     (await body(url, options)).bytes.toString('utf8')
   return {
     text,
+    page() {
+      signal.throwIfAborted()
+      if (!callbacks.page) throw new LoginError('protocol')
+      return callbacks.page()
+    },
+    verification(url) {
+      signal.throwIfAborted()
+      const policy = platformAdapter(platform).verification
+      if (!policy?.acceptsUrl(url) || !allowedPage(platform, url)) throw new LoginError('protocol')
+      callbacks.challenge(url)
+      throw new LoginError('verification')
+    },
     async json(url, parse, options, decode = JSON.parse) {
       const value = await text(url, options)
       try {

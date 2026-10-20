@@ -15,6 +15,12 @@ export type QrRequestOptions = {
   | { jsonBody: true; data?: Record<string, string | null> }
   | { jsonBody?: false; data?: Record<string, string> }
 )
+/** Main-only page capability. Website scripts and rules remain in the adapter. */
+export interface QrPageTransport {
+  load(url: string): Promise<void>
+  read<T>(script: string): Promise<T>
+  history(): readonly string[]
+}
 export interface QrTransport {
   cookie(url: string, name: string): Promise<string | null>
   text(url: string, options?: QrRequestOptions): Promise<string>
@@ -26,9 +32,11 @@ export interface QrTransport {
   ): Promise<T>
   setCookie(cookie: CookiesSetDetails): Promise<void>
   scanned(): void
+  page(): QrPageTransport
+  verification(url: string): never
 }
 export interface QrProtocol {
-  initialize(): Promise<{ image: string; expiresInMs: number }>
+  initialize(): Promise<{ image: string; expiresInMs: number } | { state: 'authenticated' }>
   poll(): Promise<
     | 'waiting'
     | 'scanned'

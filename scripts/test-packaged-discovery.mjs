@@ -37,7 +37,7 @@ try {
   await page.screenshot({ path: path.join(qa, 'discovery-empty.png') })
   await page.getByRole('button', { name: '账号管理', exact: true }).click()
   await page.locator('.discovery-account').first().waitFor()
-  assert.equal(await page.locator('.discovery-account').count(), 8)
+  assert.equal(await page.locator('.discovery-account').count(), 9)
   await page.screenshot({ path: path.join(qa, 'discovery-accounts.png') })
   await page
     .locator('.discovery-accounts')
@@ -59,6 +59,7 @@ try {
           'shixiseng',
           'yupao',
           'nowcoder',
+          'ncss',
         ],
       },
     }),
@@ -82,7 +83,7 @@ try {
     ),
   )
   report.run = result
-  assert.equal(result.sources.length, 8)
+  assert.equal(result.sources.length, 9)
   for (const source of result.sources) {
     assert.equal(source.state, 'login_required')
     assert.equal(source.count, 0)
@@ -105,7 +106,7 @@ try {
   )
   report.passed = true
   console.log(
-    'All eight packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
+    'All nine packaged sources reject anonymous collection. Real signed-in search/detail/save acceptance remains separate.',
     staging,
   )
 } finally {

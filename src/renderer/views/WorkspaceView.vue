@@ -1301,6 +1301,7 @@ onBeforeUnmount(() => {
               :statuses="statuses"
               :resumes="resumes"
               @saved="onDiscoveredJobSaved"
+              @warning="message.warning($event)"
             />
             <OpportunitiesView
               v-if="activeView === 'opportunities'"

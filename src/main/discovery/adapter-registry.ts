@@ -8,6 +8,7 @@ import { iguopinAdapter } from './adapters/iguopin'
 import { shixisengAdapter } from './adapters/shixiseng'
 import { yupaoAdapter } from './adapters/yupao'
 import { nowcoderAdapter } from './adapters/nowcoder'
+import { ncssAdapter } from './adapters/ncss'
 
 const adapters = {
   boss: bossAdapter,
@@ -18,6 +19,7 @@ const adapters = {
   shixiseng: shixisengAdapter,
   yupao: yupaoAdapter,
   nowcoder: nowcoderAdapter,
+  ncss: ncssAdapter,
 } satisfies Record<JobPlatform, PlatformAdapter>
 
 export function platformAdapter(platform: JobPlatform): PlatformAdapter {

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { _electron as electron } from 'playwright'
+import { skipToursForTest } from './packaged-test-helpers.mjs'
 
 const require = createRequire(import.meta.url)
 const executablePath = require('electron')
@@ -79,13 +80,31 @@ try {
 app.setAppPath(__dirname);
 app.setPath('userData', require('node:path').join(__dirname,'chromium'));
 dialog.showErrorBox=(title,message)=>{console.error(title,message);app.exit(1)};
+globalThis.testSystemLanguageReads=0;
+const getSystemLanguages=app.getPreferredSystemLanguages.bind(app);
+app.getPreferredSystemLanguages=()=>{
+  globalThis.testSystemLanguageReads++;
+  return process.argv.includes('--test-english-language') ? ['en-GB','zh-CN'] : getSystemLanguages();
+};
 if(process.argv.includes('--test-early-foreground'))
   app.once('ready',()=>app.emit('second-instance',{},[process.execPath,__filename],__dirname));
 require(${JSON.stringify(path.join(project, 'out/main/desktop.js'))});
 `,
   )
 
-  let { page, id } = await launch()
+  let { page, id } = await launch('--test-english-language')
+  await page.locator('.sidebar').getByText('Settings', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(() => window.zhijiApi.config.get())).locale, 'en-US')
+  assert.equal(await application.evaluate(() => globalThis.testSystemLanguageReads), 1)
+  await skipToursForTest(page)
+  await closeMainAndExpectExit(id)
+  ;({ page, id } = await launch('--test-english-language'))
+  await page.locator('.sidebar').getByText('设置', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(() => window.zhijiApi.config.get())).locale, 'zh-CN')
+  assert.equal(await application.evaluate(() => globalThis.testSystemLanguageReads), 0)
+  console.log(
+    'PASS: initial system English reaches the UI; manual Chinese survives restart without redetection',
+  )
   await until(() => visible(id), 'Normal launch must show the main window')
   await addBackgroundPage()
   assert.equal(

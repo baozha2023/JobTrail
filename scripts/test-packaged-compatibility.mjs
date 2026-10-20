@@ -22,6 +22,7 @@ const releases = [
   { version: '2.2.0', commit: '1fc8ac8', databaseVersion: 5, configVersion: 1 },
   { version: '2.3.0', commit: '2b887aa', databaseVersion: 6, configVersion: 2 },
   { version: '2.4.0', commit: 'a0c9bd5', databaseVersion: 6, configVersion: 2 },
+  { version: '2.5.0', commit: '6f15578', databaseVersion: 7, configVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -81,7 +82,8 @@ async function launch(root, supervisedUpgrade = false, expectedMigratedConfig) {
     // The supervising launcher owns this file and releases it after startup health succeeds.
     fs.rmSync(freeze)
   }
-  await skipToursForTest(page)
+  // Persistence acceptance must preserve the source configuration's language.
+  await skipToursForTest(page, null)
   return page
 }
 
@@ -109,7 +111,7 @@ async function verify(root, expected) {
     },
     { root, tables: Object.keys(expected.rows) },
   )
-  assert.equal(actual.version, 7)
+  assert.equal(actual.version, 8)
   assert.deepEqual(actual.rows, expected.rows)
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
@@ -321,7 +323,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
         version: release.version,
         commit: release.commit,
         scenario: 'supervised-startup-upgrade-and-second-launch',
-        databaseVersion: 7,
+        databaseVersion: 8,
         configVersion: 2,
         checks: [
           'all-settings-preserved',
@@ -356,7 +358,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       version: release.version,
       commit: release.commit,
       scenario: 'historical-export-import-restart-reexport-reimport-restart',
-      databaseVersion: 7,
+      databaseVersion: 8,
       configVersion: 2,
       checks: [
         'original-release-exporter',

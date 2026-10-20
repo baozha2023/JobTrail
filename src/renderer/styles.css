@@ -763,12 +763,6 @@ h1 {
   container-name: settings;
   container-type: inline-size;
 }
-.settings-lead {
-  margin: 0 0 2px;
-  color: var(--settings-muted);
-  font-size: 14px;
-  line-height: 1.6;
-}
 .settings-section {
   min-width: 0;
   overflow: hidden;
@@ -785,7 +779,7 @@ h1 {
   border-bottom: 1px solid var(--settings-border);
   background: linear-gradient(120deg, var(--settings-soft), var(--settings-surface) 70%);
 }
-.settings-section-number {
+.settings-section-icon {
   display: grid;
   flex: 0 0 38px;
   place-items: center;
@@ -794,9 +788,15 @@ h1 {
   border-radius: 11px;
   color: var(--settings-accent);
   background: var(--settings-accent-soft);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+}
+.settings-section-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .settings-section-header h2,
 .settings-danger h2 {
@@ -1024,11 +1024,11 @@ h1 {
   gap: 16px;
   min-width: 0;
 }
-.settings-danger .settings-section-number {
+.settings-danger .settings-section-icon {
   color: #b8424b;
   background: #fae4e5;
 }
-.settings-page.is-dark .settings-danger .settings-section-number {
+.settings-page.is-dark .settings-danger .settings-section-icon {
   color: #f1a2a6;
   background: #543339;
 }

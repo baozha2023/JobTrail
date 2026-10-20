@@ -66,7 +66,7 @@ describe('diagnostic protocol and normalization', () => {
       'https://example.com/api?[REDACTED]',
     )
   })
-  it.each(['VALIDATION_ERROR', 'NOT_FOUND', 'EXAM_CONFLICT', 'AI_API_KEY_EMPTY'])(
+  it.each(['VALIDATION_ERROR', 'NOT_FOUND', 'EXAM_CONFLICT', 'AI_API_KEY_EMPTY', 'COMPANY_EXISTS'])(
     'accepts %s instead of filtering it',
     (code) => {
       const input = createErrorInput('main', 'ipc.exam', { code, message: 'Rejected operation' })

@@ -28,24 +28,31 @@ export function readInstallationRegistration() {
 }
 
 // Unrelated smoke tests use the public controls/settings, never a product test-mode bypass.
-export async function skipToursForTest(page) {
+export async function skipToursForTest(page, locale = 'zh-CN') {
   await page.locator('.sidebar').waitFor()
   // Vue can mount before the first load finishes. Reloading then aborts Main's
   // initial loadFile promise and takes its fatal renderer-load failure path.
   await page.waitForLoadState('load')
   const config = await page.evaluate(() => window.zhijiApi.config.get())
+  const changeLocale = locale !== null && config.locale !== locale
+  const skipDiscovery = ['pending', 'inProgress'].includes(config.onboarding.discovery.status)
+  if (changeLocale) {
+    await page.evaluate((locale) => window.zhijiApi.config.update({ locale }), locale)
+  }
   if (['pending', 'inProgress'].includes(config.onboarding.app.status)) {
     const skip = page.locator('.jobtrail-tour .driver-popover-close-btn')
     await skip.waitFor()
     await skip.click()
     await page.locator('.jobtrail-tour').waitFor({ state: 'hidden' })
   }
-  if (['pending', 'inProgress'].includes(config.onboarding.discovery.status)) {
+  if (skipDiscovery) {
     await page.evaluate(() =>
       window.zhijiApi.config.update({
         onboarding: { discovery: { status: 'skipped', stepId: null } },
       }),
     )
+  }
+  if (changeLocale || skipDiscovery) {
     await page.reload()
     await page.locator('.sidebar').waitFor()
   }

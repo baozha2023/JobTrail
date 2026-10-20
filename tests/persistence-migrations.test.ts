@@ -41,13 +41,16 @@ describe('persistent version upgrades', () => {
   it('uses a separate continuous config chain and validates the source and every target', () => {
     const paths = fixture()
     const source = decryptConfig(fs.readFileSync(paths.config, 'utf8'))
-    expect(planPersistenceUpgrade(7, 1)).toMatchObject({
+    expect(planPersistenceUpgrade(8, 1)).toMatchObject({
       database: [],
       config: [{ from: 1, to: 2 }],
     })
-    expect(planPersistenceUpgrade(7, 2)).toEqual({ database: [], config: [] })
+    expect(planPersistenceUpgrade(8, 2)).toEqual({ database: [], config: [] })
     expect(planPersistenceUpgrade(6, 2)).toMatchObject({
-      database: [{ from: 6, to: 7 }],
+      database: [
+        { from: 6, to: 7 },
+        { from: 7, to: 8 },
+      ],
       config: [],
     })
     const migrated = migrationChain(1, 2, CONFIG_MIGRATIONS).reduce(
@@ -139,7 +142,7 @@ describe('persistent version upgrades', () => {
   })
 
   it.each([1, 2, 3])(
-    'upgrades v%i without changing existing rows and matches a fresh v7 schema',
+    'upgrades v%i without changing existing rows and matches a fresh v8 schema',
     async (version) => {
       const paths = fixture(version === 3 ? 2 : version)
       if (version === 3) {
@@ -179,7 +182,7 @@ describe('persistent version upgrades', () => {
       await ensurePersistenceReady(paths)
       expect(read(paths.database, Object.keys(before))).toEqual(before)
       const upgraded = new Database(paths.database)
-      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v7-'))
+      const freshRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh-v8-'))
       roots.push(freshRoot)
       const fresh = new DatabaseManager({
         ...paths,
@@ -187,7 +190,7 @@ describe('persistent version upgrades', () => {
         database: path.join(freshRoot, 'data/zhiji.db'),
       })
       try {
-        validateDatabaseVersion(upgraded, 7)
+        validateDatabaseVersion(upgraded, 8)
         if (version < 3) expect(upgraded.prepare('SELECT * FROM locations').all()).toEqual([])
         const schema = (db: Database.Database) =>
           db
@@ -236,7 +239,7 @@ describe('persistent version upgrades', () => {
   it('requires desktop migration before a v2 database can be opened for business', () => {
     const paths = fixture(2)
     const before = fs.readFileSync(paths.database)
-    expect(() => new DatabaseManager(paths)).toThrow('需要版本 7')
+    expect(() => new DatabaseManager(paths)).toThrow('需要版本 8')
     expect(fs.readFileSync(paths.database)).toEqual(before)
   })
 
@@ -248,7 +251,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths, true)
     expect(fs.existsSync(freeze)).toBe(true)
     const db = new Database(paths.database)
-    validateDatabaseVersion(db, 7)
+    validateDatabaseVersion(db, 8)
     db.close()
   })
   it('refuses a second live migration owner without changing user data', async () => {
@@ -341,7 +344,7 @@ describe('persistent version upgrades', () => {
         CONFIG_MIGRATIONS[0].apply(configuration),
       )
       const db = new Database(paths.database)
-      validateDatabaseVersion(db, 7)
+      validateDatabaseVersion(db, 8)
       db.close()
       expect(fs.existsSync(path.join(work, 'journal.json'))).toBe(false)
       expect(fs.existsSync(path.join(paths.root, '.runtime/state/update-freeze'))).toBe(false)
@@ -378,7 +381,7 @@ describe('persistent version upgrades', () => {
       config = fs.readFileSync(paths.config)
     await ensurePersistenceReady(paths)
     let db = new Database(paths.database)
-    validateDatabaseVersion(db, 7)
+    validateDatabaseVersion(db, 8)
     expect(db.prepare('SELECT * FROM checkpoints').all().length).toBeGreaterThan(0)
     db.close()
     expect(decryptConfig(fs.readFileSync(paths.config, 'utf8'))).toEqual(
@@ -388,7 +391,7 @@ describe('persistent version upgrades', () => {
     await ensurePersistenceReady(paths)
     expect(fs.readFileSync(paths.config)).toEqual(upgraded)
     db = new Database(paths.database)
-    validateDatabaseVersion(db, 7)
+    validateDatabaseVersion(db, 8)
     db.close()
   })
   it('rolls back a failed migration transaction without stamping a new version', () => {

@@ -6,6 +6,7 @@ import type { AppPaths } from '../src/main/config'
 import { ConfigLoadError, ConfigService, DEFAULT_CONFIG } from '../src/main/config'
 import { encryptConfig, decryptConfig } from '../src/main/config-crypto'
 import type { AppConfig, AppConfigUpdate } from '../src/shared/types'
+import * as systemLocale from '../src/main/system-locale'
 const readStored = (file: string): AppConfig =>
   decryptConfig(fs.readFileSync(file, 'utf8')) as AppConfig
 import {
@@ -65,6 +66,37 @@ describe('config service', () => {
       requireWriteConfirmation: true,
     })
   })
+
+  it('detects the initial language only for a new configuration and persists manual choices', () => {
+    const paths = createPaths()
+    const detect = vi.spyOn(systemLocale, 'detectInitialLocale').mockReturnValue('en-US')
+    const config = new ConfigService(paths)
+    expect(config.get()).toEqual({ ...DEFAULT_CONFIG, locale: 'en-US' })
+    expect(readStored(paths.config).locale).toBe('en-US')
+    expect(detect).toHaveBeenCalledTimes(1)
+
+    detect.mockReturnValue('zh-CN')
+    expect(new ConfigService(paths).get().locale).toBe('en-US')
+    expect(config.reload().locale).toBe('en-US')
+    config.update({ locale: 'zh-CN' })
+    detect.mockReturnValue('en-US')
+    expect(new ConfigService(paths).get().locale).toBe('zh-CN')
+    expect(detect).toHaveBeenCalledTimes(1)
+    expect(DEFAULT_CONFIG.locale).toBe('zh-CN')
+  })
+
+  it.each(['zh-CN', 'en-US'] as const)(
+    'preserves an existing %s configuration byte for byte without detecting the system language',
+    (locale) => {
+      const paths = createPaths()
+      const stored = encryptConfig({ ...DEFAULT_CONFIG, locale })
+      fs.writeFileSync(paths.config, stored)
+      const detect = vi.spyOn(systemLocale, 'detectInitialLocale')
+      expect(new ConfigService(paths).get().locale).toBe(locale)
+      expect(fs.readFileSync(paths.config, 'utf8')).toBe(stored)
+      expect(detect).not.toHaveBeenCalled()
+    },
+  )
 
   it('persists independent tour progress and rejects invalid nested state without repairing it', () => {
     const paths = createPaths()

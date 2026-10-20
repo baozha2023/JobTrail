@@ -174,6 +174,10 @@ try {
     ),
     ['北京', customLocation],
   )
+  // Catalog growth can move this fixture past the first industry result page.
+  // Scope the widget checks to our fixture without changing production paging.
+  await page.locator('.company-search input').fill(treeCompany.name)
+  await page.getByText('树形验收公司', { exact: true }).waitFor()
   await page.locator('.company-industry-filter').click()
   assert.equal(await dropdown.locator('.n-checkbox').count(), 0)
   await dropdown.getByText('农、林、牧、渔业', { exact: true }).click()

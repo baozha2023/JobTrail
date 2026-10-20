@@ -37,6 +37,10 @@
 
 安装包验收前运行 `pnpm package:win`，启动器相关验收需要 Rust 工具链；兼容验收还需先构建启动器并保留脚本引用的 Git 历史。版本断言用于发现旧产物，但不能识别同版本号的源码改动，应用源码变更后仍须重新打包。
 
+`test-desktop-lifecycle.mjs` 使用隔离数据运行真实桌面，覆盖系统英文首次启动、语言传至界面，以及手动切换中文后重启不再检测或覆盖。系统语言通过测试入口替换 Electron API 返回值，不修改 Windows 语言设置；检测失败与中文兜底由配置和语言单元测试覆盖。
+
+`cargo test --manifest-path native/bootstrap/Cargo.toml --locked` 覆盖原生程序的语言检测、中英文文案完整性、真实 Windows 安装控件在 96/120/144/192 DPI 下的文字布局，以及卸载确认/完成窗口与取消保护。原生界面测试仅操作测试进程自己的窗口，不执行安装或卸载；目录清理、关联保护和更新回滚由对应 Rust 测试覆盖。
+
 `test:discovery:local` 还需要 `native/bootstrap/target/debug/launcher.exe` 和 `native/bootstrap/target/release/uninstaller.exe`。首次运行前分别执行 `cargo build --locked --manifest-path native/bootstrap/Cargo.toml --bin launcher` 和 `cargo build --locked --release --manifest-path native/bootstrap/Cargo.toml --bin uninstaller`。
 
 岗位发现发布验收还包含以下入口；数据与会话均使用独立临时目录：
@@ -51,13 +55,13 @@
 - `node scripts/test-packaged-qr.mjs [平台] [app|wechat]`、`node scripts/test-packaged-qr-verification.mjs`：真实二维码及官方验证窗口，需要公网连接。二维码脚本可指定平台和方式，检查界面切换、图片解码、未扫码状态、刷新后保留方式及关闭取消，例如 `boss app`、`liepin app`、`zhilian wechat`；单方式报告分别保存，避免覆盖。网站阻断不表示搜索、JD 或登录验收通过。官方验证脚本在未触发 challenge 时会明确记录验证路径未执行，不代表验证交互通过。
 - `node scripts/test-discovery-live.mjs [平台|all] [用例|all]`：源码级手动联网诊断，调用 `discovery-live-worker.ts`；每次建立全新的匿名数据和 Session，不读取开发目录配置、数据库或登录态。独立观察来源响应并按生产适配器解析结果核对数据库身份集合、薪资准入、续查和 10/20/50 条稳定分页；不能作为解析器正确性的独立证据，不覆盖 JD 或真实扫码登录。用例为 `salary`、`salary-min`、`salary-max`、`agent`、`java-beijing`、`java-shanghai`、`no-city`、`empty`。阻断结果使进程非零退出，并保存脱敏报告至 `dist/qa/`。
 
-`release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。已知发布阻断以 `AGENTS.md` 和 `docs/job-discovery.md` 为准。
+`release:win` 自动执行 `test:discovery:local`；真实联网、扫码及人工验证入口仍需单独执行并记录实际范围。通用验收要求见 `AGENTS.md` 和 `docs/job-discovery.md`；实际发布阻断以当次测试报告和运行日志为准。
 
 `node scripts/test-agent-discovery-live.mjs --live-model` 是用户明确授权后才运行的手动验收，不加入开发启动、常规测试或发布链。先运行 `pnpm build`；脚本只读当前开发环境加密配置，在内存中使用配置的 API 与模型，隔离启动完整 Electron 客户端、utility process 和 MCP 子进程。模型真实生成调用 ID 和参数，测试中按阶段限定岗位发现读取工具并明确当前步骤，每个恢复场景使用独立岗位身份，避免已有详情缓存跳过验收调用；招聘网站通过独立 Session 的本地官方域名合成页面提供阻断、二维码、搜索和完整详情。覆盖网站手动关窗、扫码取消与自动关窗、原任务复核与采集、一次性自动续聊及完整 JD 读取，报告和截图写入被忽略的 `.runtime/chat-recovery-qa/`。不输出 API Key，不读真实求职或聊天数据；合成官网通过不代表真实网站扫码／验证通过。
 
 使用真实开发环境已有登录会话测试招聘网站，仅属于用户本次指定的专项检查，不随开发启动、构建、打包、常规测试或发布自动执行。后续构建不重复使用本次账号检查授权；自动回归使用隔离数据、合成会话和本地测试页面。
 
-`discovery-account-audit.mjs` 是人工授权现有账号诊断的只读核对模块，需要调用方提供当前 Electron 应用及主页面；不会自行启动账号或提交搜索。它仅捕获招聘列表字段白名单，独立比对官方字段、SQLite 观察、10/20/50 条分页、城市、薪资及续查固定视图，不导出认证材料。`sourceRowsUncovered` 明确记录缺少原始来源证据的条目。真实网站验收限制见 [岗位发现说明](../docs/job-discovery.md)。安装包弹窗测试还覆盖官网自行关闭页面但原生窗口保持打开，以及仅手动关闭原生窗口才开始复核。
+`discovery-account-audit.mjs` 是人工授权现有账号诊断的只读核对模块，需要调用方提供当前 Electron 应用及主页面；不会自行启动账号或提交搜索。它仅捕获招聘列表字段白名单，独立比对官方字段、SQLite 观察、10/20/50 条分页、城市、薪资及续查固定视图，不导出认证材料。`sourceRowsUncovered` 明确记录缺少原始来源证据的条目。真实网站的通用验收要求见 [岗位发现说明](../docs/job-discovery.md#发布约束)，实际覆盖范围以对应报告为准。安装包弹窗测试还覆盖官网自行关闭页面但原生窗口保持打开，以及仅手动关闭原生窗口才开始复核。
 
 ## 共享模块与异步等待
 
@@ -65,7 +69,7 @@
 
 `test-launcher-update.mjs` 由启动器测试和发布脚本共同调用。`assert-root-error-dialog.ps1` 由 MCP 安装包测试调用，负责 Windows 原生错误对话框断言。
 
-涉及 IPC 的异步条件使用 `packaged-test-helpers.mjs` 的 `waitFor` 等待 Promise 完成；DOM 条件使用 `page.waitForFunction`。`skipToursForTest` 在首屏 `load` 完成后才操作引导及刷新页面，避免 Vue 已挂载但 Main 初始导航尚未完成时中断加载。二维码图片使用解码结果确认可用，未执行的验证、详情或保存路径明确记录为未通过。
+涉及 IPC 的异步条件使用 `packaged-test-helpers.mjs` 的 `waitFor` 等待 Promise 完成；DOM 条件使用 `page.waitForFunction`。`skipToursForTest` 在首屏 `load` 完成后才操作引导及刷新页面，避免 Vue 已挂载但 Main 初始导航尚未完成时中断加载；普通界面验收通过正式配置 IPC 显式选择中文，避免首次语言检测使固定中文选择器依赖测试机器的系统语言。持久化验收传入 `null` 保留来源配置语言，首次系统语言检测由桌面生命周期专项验证。二维码图片使用解码结果确认可用，未执行的验证、详情或保存路径明确记录为未通过。
 
 公共网络 URL 边界由 `tests/web-retrieval.test.ts` 覆盖：10240 字符接受、超过上限拒绝，长 URL 仍须通过协议、端口、凭据及公网地址检查。岗位响应分类、登录阻断优先级及已提交批次保留由岗位发现适配器和运行时测试覆盖。
 
@@ -84,4 +88,8 @@
 
 该脚本还检查首次进程启动和空闲进程复用时的直接发送：回执为运行中、Main 从未发布该消息的等待快照，真实聊天组件直接显示消息且不出现队列区域；结果记录在报告的 `directAdmissions`。协调器回归同时覆盖初始化期间仍可等待三条消息、初始化重试、初始化或执行前校验期间取消、三进程名额及跨聊天 FIFO。
 
-牛客接入（数据库 v7）：`pnpm test` 覆盖混合请求缺省 `recruitType`、两类卡片、分页整批提交、账号与 App 扫码协议、详情排除推荐、七平台 v6 逐行保留及回滚。`persistence-v6.test.ts` 固定执行历史至 v6，`persistence-v7.test.ts` 验证当前正式链目标；冻结 v1/v2 文件不改写。备份测试覆盖 v1—v7，打包兼容验收的目标改为 v7，保留历史条目并补充 v2.4.0 原始导出基线。`test:discovery:local` 按八平台执行隔离网络、账号弹窗、重启与 MCP 测试，不使用真实账号。真实牛客扫码与搜索验收另行人工执行，不加入构建链。
+牛客接入的历史回归：`pnpm test` 覆盖混合请求缺省 `recruitType`、两类卡片、分页整批提交、账号与 App 扫码协议、详情排除推荐、七平台 v6 逐行保留及回滚。`persistence-v6.test.ts` 和 `persistence-v7.test.ts` 分别验证冻结的历史目标，不随当前目标升版；冻结 v1/v2 文件不改写。当前备份与打包验收目标统一见下述 NCSS v8 说明，`test:discovery:local` 按九平台执行隔离网络、账号弹窗、重启与 MCP 测试，不使用真实账号。真实牛客扫码与搜索验收另行人工执行，不加入构建链。
+
+NCSS 接入（v2.6.0，数据库 v8）：`ncss-adapter.test.ts` 覆盖固定完整条件、官方城市代码、错误类型整条跳过、合法低质量保留、短页及固定总数、提交后推进、官方原码页面、OAuth state 和学生角色证据。`qr-verification.test.ts` 覆盖原页面转入人工验证、越界重定向、加载和脚本读取超时及释放；`qr-login.test.ts` 验证超时后不误报登录、释放页面并允许重新发起。`persistence-v8.test.ts` 从八平台 v7 合成样本验证逐行保留、DDL 一致、失败回滚和 v7 SQL/JSON 冻结。备份用例覆盖 v1—v8；打包兼容测试新增原始 2.5.0 提交 `6f15578`。合成测试不代表真实扫码、风控或重启免扫码通过，实际范围记录在对应测试报告和运行日志中。
+
+`node scripts/test-ncss-live.mjs` 使用独立打包数据目录执行人工扫码验收，先确认未登录门禁，再运行 Java／销售在北京、上海及地点留空的搜索、续查、详情及保存。清除会话后需要再次人工扫码，然后正常退出重启，验证历史、保存记录及官方会话复核结果。认证材料仅在该隔离 Chromium profile；报告只记录查询条件、统计及缺失字段原因。该脚本不加入自动构建链。

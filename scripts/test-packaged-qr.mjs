@@ -34,6 +34,7 @@ try {
     'shixiseng',
     'yupao',
     'nowcoder',
+    'ncss',
   ]
   const selected = process.argv[2]
   const selectedMethod = process.argv[3]

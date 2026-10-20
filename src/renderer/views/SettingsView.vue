@@ -166,30 +166,15 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 <template>
   <section class="page-section settings-page" :class="{ 'is-dark': dark }">
     <div class="settings-layout">
-      <p class="settings-lead">{{ $t('settings.intro') }}</p>
-
-      <section class="settings-section" aria-labelledby="settings-tours-title">
-        <header class="settings-section-header">
-          <div>
-            <h2 id="settings-tours-title">{{ $t('onboarding.title') }}</h2>
-            <p>{{ $t('onboarding.description') }}</p>
-          </div>
-        </header>
-        <div class="settings-section-body">
-          <n-space>
-            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'app')">{{
-              $t('onboarding.restartApp')
-            }}</n-button>
-            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'discovery')">{{
-              $t('onboarding.restartDiscovery')
-            }}</n-button>
-          </n-space>
-        </div>
-      </section>
-
       <section class="settings-section" aria-labelledby="settings-preferences-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">01</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
+              <circle cx="15" cy="7" r="2" />
+              <circle cx="9" cy="17" r="2" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-preferences-title">{{ $t('settings.preferencesTitle') }}</h2>
             <p>{{ $t('settings.preferencesDescription') }}</p>
@@ -277,7 +262,12 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-section" aria-labelledby="settings-mcp-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">02</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7" />
+              <path d="M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-mcp-title">{{ $t('settings.mcpTitle') }}</h2>
             <p>{{ $t('settings.mcpDescription') }}</p>
@@ -359,7 +349,14 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-section" aria-labelledby="settings-ai-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">03</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="4" y="7" width="16" height="14" rx="4" />
+              <path d="M12 7V3H9M4 13H2m18 0h2M9 17h6" />
+              <circle cx="9" cy="12" r="1" />
+              <circle cx="15" cy="12" r="1" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-ai-title">{{ $t('settings.aiTitle') }}</h2>
             <p>{{ $t('settings.aiDescription') }}</p>
@@ -423,7 +420,12 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-section" aria-labelledby="settings-maintenance-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">04</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M20 7a9 9 0 0 0-15-2L2 8m0-5v5h5" />
+              <path d="M4 17a9 9 0 0 0 15 2l3-3m0 5v-5h-5" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-maintenance-title">{{ $t('settings.maintenanceTitle') }}</h2>
             <p>{{ $t('settings.maintenanceDescription') }}</p>
@@ -475,7 +477,12 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-section" aria-labelledby="settings-diagnostics-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">LOG</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+              <path d="M14 2v6h6M8 13h8m-8 4h6" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-diagnostics-title">{{ $t('settings.diagnosticsTitle') }}</h2>
             <p>{{ $t('settings.diagnosticsDescription') }}</p>
@@ -496,7 +503,12 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
 
       <section class="settings-section" aria-labelledby="settings-backup-title">
         <header class="settings-section-header">
-          <span class="settings-section-number">05</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="3" y="3" width="18" height="4" rx="1" />
+              <path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7M10 11h4" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-backup-title">{{ $t('settings.backupTitle') }}</h2>
             <p>{{ $t('settings.backupDescription') }}</p>
@@ -517,9 +529,39 @@ onBeforeUnmount(() => window.clearTimeout(copyStatusTimer))
         </div>
       </section>
 
+      <section class="settings-section" aria-labelledby="settings-tours-title">
+        <header class="settings-section-header">
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <circle cx="12" cy="12" r="10" />
+              <path d="m16 8-2.5 5.5L8 16l2.5-5.5Z" />
+            </svg>
+          </span>
+          <div>
+            <h2 id="settings-tours-title">{{ $t('onboarding.title') }}</h2>
+            <p>{{ $t('onboarding.description') }}</p>
+          </div>
+        </header>
+        <div class="settings-section-body">
+          <n-space>
+            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'app')">{{
+              $t('onboarding.restartApp')
+            }}</n-button>
+            <n-button :disabled="!config || backupBusy" @click="emit('restartTour', 'discovery')">{{
+              $t('onboarding.restartDiscovery')
+            }}</n-button>
+          </n-space>
+        </div>
+      </section>
+
       <section class="settings-danger" aria-labelledby="settings-danger-title">
         <div class="settings-danger-content">
-          <span class="settings-section-number">06</span>
+          <span class="settings-section-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              <path d="m5 6 1 14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-14M10 10v7m4-7v7" />
+            </svg>
+          </span>
           <div>
             <h2 id="settings-danger-title">{{ $t('settings.dangerZone') }}</h2>
             <p>{{ $t('settings.uninstallDescription') }}</p>

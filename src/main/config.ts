@@ -10,6 +10,7 @@ import type { AppConfig, AppConfigUpdate } from '../shared/types'
 import { AppServiceError } from './services/errors'
 import { assertUpdateWritable } from './update-freeze'
 import { encryptConfig, decryptConfig } from './config-crypto'
+import { detectInitialLocale } from './system-locale'
 
 export const DEFAULT_CONFIG: AppConfig = CONFIG_V2_DEFAULTS
 
@@ -125,7 +126,7 @@ export class ConfigService {
   private load(): AppConfig {
     fs.mkdirSync(this.paths.root, { recursive: true })
     if (!fs.existsSync(this.paths.config)) {
-      const config = validateConfig(DEFAULT_CONFIG)
+      const config = validateConfig({ ...DEFAULT_CONFIG, locale: detectInitialLocale() })
       this.write(config)
       return config
     }

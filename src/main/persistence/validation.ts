@@ -6,6 +6,7 @@ import { SCHEMA_V4 } from './schema-v4'
 import { SCHEMA_V5 } from './schema-v5'
 import { SCHEMA_V6 } from './schema-v6'
 import { SCHEMA_V7 } from './schema-v7'
+import { SCHEMA_V8 } from './schema-v8'
 import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
@@ -47,7 +48,9 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
                 ? SCHEMA_V6
                 : version === 7
                   ? SCHEMA_V7
-                  : null
+                  : version === 8
+                    ? SCHEMA_V8
+                    : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -102,7 +105,19 @@ function validateDiscoveryData(db: Db, version: number): void {
         ? ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng']
         : version === 6
           ? ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao']
-          : ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao', 'nowcoder'],
+          : version === 7
+            ? ['boss', 'liepin', 'zhilian', 'wuyou', 'iguopin', 'shixiseng', 'yupao', 'nowcoder']
+            : [
+                'boss',
+                'liepin',
+                'zhilian',
+                'wuyou',
+                'iguopin',
+                'shixiseng',
+                'yupao',
+                'nowcoder',
+                'ncss',
+              ],
   )
   const platform = (value: string) => {
     if (!allowedPlatforms.has(value)) throw new Error('Invalid persistent platform')

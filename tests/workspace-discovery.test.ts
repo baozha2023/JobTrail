@@ -11,13 +11,16 @@ import { useOpportunitiesStore } from '../src/renderer/stores/opportunities'
 import { i18n } from '../src/renderer/i18n'
 import type { Opportunity } from '../src/shared/types'
 
-const { showError, showSuccess } = vi.hoisted(() => ({
+const { showError, showSuccess, showWarning } = vi.hoisted(() => ({
   showError: vi.fn(),
   showSuccess: vi.fn(),
+  showWarning: vi.fn(),
 }))
 vi.mock('naive-ui', async (importOriginal) => ({
   ...(await importOriginal<typeof import('naive-ui')>()),
-  createDiscreteApi: () => ({ message: { error: showError, success: showSuccess } }),
+  createDiscreteApi: () => ({
+    message: { error: showError, success: showSuccess, warning: showWarning },
+  }),
 }))
 
 let wrapper: VueWrapper | undefined
@@ -28,6 +31,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   showError.mockClear()
   showSuccess.mockClear()
+  showWarning.mockClear()
 })
 
 async function fixture() {
@@ -63,6 +67,15 @@ async function fixture() {
   expect(showSuccess).not.toHaveBeenCalled()
   return { api, store: useOpportunitiesStore(pinia) }
 }
+
+it('shows a discovery save warning through the shared message API without reporting success', async () => {
+  await fixture()
+  wrapper!.findComponent(JobDiscoveryView).vm.$emit('warning', '该公司已存在')
+  await flushPromises()
+  expect(showWarning).toHaveBeenCalledExactlyOnceWith('该公司已存在')
+  expect(showError).not.toHaveBeenCalled()
+  expect(showSuccess).not.toHaveBeenCalled()
+})
 
 it('refreshes the records and linked options after discovery saves, retaining filters and pagination', async () => {
   const { api, store } = await fixture()

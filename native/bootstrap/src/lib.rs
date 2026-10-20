@@ -8,8 +8,10 @@ use std::{
 };
 use winreg::{enums::HKEY_CURRENT_USER, RegKey};
 
+pub mod localization;
 mod registration;
 pub mod shortcuts;
+use localization::{text, Message};
 pub use registration::{refresh_registration, register};
 
 pub const LAUNCHER: &str = "JobTrail.exe";
@@ -25,7 +27,7 @@ pub fn validate_path(root: &Path) -> Result<()> {
             .file_name()
             .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("JobTrail"))
     {
-        bail!("安装目录必须是绝对路径，并以 JobTrail 目录结尾");
+        bail!("{}", text(Message::PathMustBeAbsolute));
     }
     for component in root.components() {
         match component {
@@ -37,15 +39,15 @@ pub fn validate_path(root: &Path) -> Result<()> {
                     .to_string_lossy()
                     .contains([':', '*', '?', '"', '<', '>', '|'])
                     && !name.to_string_lossy().ends_with(['.', ' ']) => {}
-            _ => bail!("不支持网络路径、相对路径或特殊文件名"),
+            _ => bail!("{}", text(Message::InvalidPath)),
         }
     }
     for ancestor in root.ancestors() {
         match fs::symlink_metadata(ancestor) {
             Ok(meta) if meta.file_attributes() & 0x400 != 0 => {
-                bail!("安装路径不能经过符号链接或目录联接")
+                bail!("{}", text(Message::LinkedPath))
             }
-            Ok(meta) if !meta.is_dir() => bail!("安装路径不是目录"),
+            Ok(meta) if !meta.is_dir() => bail!("{}", text(Message::PathNotDirectory)),
             Ok(_) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),
@@ -56,7 +58,7 @@ pub fn validate_path(root: &Path) -> Result<()> {
             let forbidden = value.to_string_lossy().to_lowercase();
             let candidate = root.to_string_lossy().to_lowercase();
             if candidate == forbidden || candidate.starts_with(&(forbidden + "\\")) {
-                bail!("请选择当前用户可写的非系统目录");
+                bail!("{}", text(Message::SystemDirectory));
             }
         }
     }
@@ -64,9 +66,10 @@ pub fn validate_path(root: &Path) -> Result<()> {
 }
 
 pub fn plain_file(path: &Path) -> Result<()> {
-    let meta = fs::symlink_metadata(path).with_context(|| format!("读取 {}", path.display()))?;
+    let meta = fs::symlink_metadata(path)
+        .with_context(|| format!("{}: {}", text(Message::ReadFile), path.display()))?;
     if !meta.is_file() || meta.file_attributes() & 0x400 != 0 {
-        bail!("不是普通文件: {}", path.display());
+        bail!("{}: {}", text(Message::NotPlainFile), path.display());
     }
     Ok(())
 }
@@ -75,7 +78,7 @@ pub fn validate_installation(root: &Path) -> Result<()> {
     validate_path(root)?;
     plain_file(&root.join(MARKER))?;
     if fs::read(root.join(MARKER))? != b"jobtrail-root-v1\n" {
-        bail!("安装目录标记无效");
+        bail!("{}", text(Message::InvalidMarker));
     }
     Ok(())
 }
@@ -83,7 +86,7 @@ pub fn validate_installation(root: &Path) -> Result<()> {
 pub fn validate_tree(path: &Path) -> Result<()> {
     let meta = fs::symlink_metadata(path)?;
     if meta.file_attributes() & 0x400 != 0 {
-        bail!("程序目录包含重解析点: {}", path.display());
+        bail!("{}: {}", text(Message::TreeContainsLink), path.display());
     }
     if meta.is_dir() {
         for entry in fs::read_dir(path)? {
@@ -102,7 +105,7 @@ pub fn version(root: &Path) -> Result<String> {
         .descendants()
         .find(|n| n.has_tag_name("version"))
         .and_then(|n| n.text())
-        .context("程序版本信息缺失")?;
+        .context(text(Message::MissingVersion))?;
     semver::Version::parse(value)?;
     Ok(value.to_owned())
 }
@@ -119,7 +122,7 @@ pub fn shortcuts() -> Vec<PathBuf> {
 
 pub fn ensure_not_installed() -> Result<()> {
     match RegKey::predef(HKEY_CURRENT_USER).open_subkey(UNINSTALL_KEY) {
-        Ok(_) => bail!("当前用户已安装职迹，请先备份所需数据并卸载旧程序"),
+        Ok(_) => bail!("{}", text(Message::AlreadyInstalled)),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error.into()),
     }
@@ -143,7 +146,7 @@ pub fn unregister(root: &Path) -> Result<()> {
                 .creation_flags(NO_WINDOW)
                 .status()?;
             if !status.success() {
-                bail!("清理快捷方式失败");
+                bail!("{}", text(Message::ShortcutCleanupFailed));
             }
         }
     }
@@ -190,7 +193,7 @@ pub fn wait_pid(pid: u32) -> Result<()> {
         let result = WaitForSingleObject(handle, 30_000);
         CloseHandle(handle);
         if result != 0 {
-            bail!("应用尚未退出，请关闭职迹后重试");
+            bail!("{}", text(Message::AppStillRunning));
         }
     }
     Ok(())
@@ -203,7 +206,7 @@ pub fn schedule_worker_cleanup(directory: &Path) -> Result<()> {
             .file_name()
             .is_some_and(|n| n.to_string_lossy().starts_with("jobtrail-uninstall-"))
     {
-        bail!("临时目录无效");
+        bail!("{}", text(Message::InvalidTempDirectory));
     }
     let escaped = |p: &Path| p.to_string_lossy().replace('\'', "''");
     let script = format!("Wait-Process -Id {} -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '{}' -Force; Remove-Item -LiteralPath '{}'", std::process::id(), escaped(&worker), escaped(directory));
@@ -221,11 +224,25 @@ pub fn schedule_worker_cleanup(directory: &Path) -> Result<()> {
 }
 
 pub fn error_dialog(error: &anyhow::Error) {
-    rfd::MessageDialog::new()
-        .set_title("职迹")
-        .set_level(rfd::MessageLevel::Error)
-        .set_description(format!("{error:#}"))
-        .show();
+    use winapi::um::winuser::{MessageBoxW, MB_ICONERROR, MB_OK};
+    let title = text(Message::AppName)
+        .encode_utf16()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let description = format!("{error:#}")
+        .encode_utf16()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    // Keep the established error presentation usable for hidden/background launcher starts.
+    // SAFETY: both owned UTF-16 buffers are null-terminated and outlive the synchronous dialog.
+    unsafe {
+        MessageBoxW(
+            std::ptr::null_mut(),
+            description.as_ptr(),
+            title.as_ptr(),
+            MB_OK | MB_ICONERROR,
+        );
+    }
 }
 
 #[cfg(test)]

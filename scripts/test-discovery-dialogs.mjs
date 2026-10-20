@@ -110,7 +110,7 @@ try {
   await skipToursForTest(page)
   await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
   const checks = page.locator('.discovery-platforms').getByRole('checkbox')
-  assert.equal(await checks.count(), 8)
+  assert.equal(await checks.count(), 9)
   for (const check of await checks.all()) {
     assert.equal(await check.isDisabled(), true)
     assert.equal(await check.isChecked(), false)
@@ -162,7 +162,7 @@ try {
       ({ enabled, selected }) => {
         const controls = [...document.querySelectorAll('.discovery-platforms [role="checkbox"]')]
         return (
-          controls.length === 8 &&
+          controls.length === 9 &&
           controls.every(
             (control, i) =>
               (control.getAttribute('aria-checked') === 'true') === selected.includes(i) &&
@@ -402,7 +402,7 @@ try {
         }
       }),
     )
-    assert.equal(rects.length, 8)
+    assert.equal(rects.length, 9)
     for (const row of rects) {
       assert.ok(row.statusRight < row.actionLeft, 'The login status must sit left of the action')
       assert.equal(row.statusRight, rects[0].statusRight, 'Login status labels must align')

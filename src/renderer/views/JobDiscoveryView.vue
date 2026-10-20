@@ -42,7 +42,7 @@ const props = defineProps<{
   statuses: Status[]
   resumes: ResumeVersion[]
 }>()
-const emit = defineEmits<{ saved: [] }>()
+const emit = defineEmits<{ saved: []; warning: [text: string] }>()
 const { t, te } = useI18n(),
   api = window.zhijiApi.discovery
 const keyword = ref(''),
@@ -701,7 +701,8 @@ async function openSave() {
 async function save() {
   if (!selected.value || !statusId.value) return
   const job = selected.value
-  await safely(async () => {
+  error.value = ''
+  try {
     const result = await api.save({
       jobId: job.id,
       observationId: job.observationId,
@@ -715,7 +716,10 @@ async function save() {
     emit('saved')
     await loadResults()
     await syncRegion()
-  })
+  } catch (cause) {
+    if (errorCode(cause) === 'COMPANY_EXISTS') emit('warning', t('error.COMPANY_EXISTS'))
+    else fail(cause)
+  }
 }
 function drag(event: PointerEvent) {
   const target = event.currentTarget as HTMLElement

@@ -39,6 +39,7 @@ export interface VerificationWindowHandle {
   window: BrowserWindow
   page: WebContentsView
   close(): void
+  present(): void
 }
 
 // One native window owner for QR and search verification. Business code decides
@@ -53,8 +54,19 @@ export class VerificationWindow {
     signal: AbortSignal
     onClosed(userClosed: boolean): void
   }): VerificationWindowHandle {
-    input.signal.throwIfAborted()
+    const handle = this.prepare(input)
     this.current?.close()
+    this.current = handle
+    return handle
+  }
+
+  prepare(input: {
+    platform: JobPlatform
+    session: Session
+    signal: AbortSignal
+    onClosed(userClosed: boolean): void
+  }): VerificationWindowHandle {
+    input.signal.throwIfAborted()
     const page = new WebContentsView({ webPreferences: platformPreferences(input.session) })
     // WebContentsView.webContents becomes unavailable after a website closes it.
     // Keep the contents handle so later host disposal can safely test its lifetime.
@@ -115,8 +127,18 @@ export class VerificationWindow {
       input.onClosed(userClosed)
     }
     const abort = () => dispose(false)
-    const handle: VerificationWindowHandle = { window: win, page, close: abort }
-    this.current = handle
+    const handle: VerificationWindowHandle = {
+      window: win,
+      page,
+      close: abort,
+      present: () => {
+        if (closed || input.signal.aborted) return
+        if (this.current !== handle) this.current?.close()
+        this.current = handle
+        win.show()
+        win.focus()
+      },
+    }
     input.signal.addEventListener('abort', abort, { once: true })
     win.on('close', () => {
       userClosing = true

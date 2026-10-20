@@ -8,7 +8,7 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
 - **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
-- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng, Yupao and Nowcoder, sign in with WeChat or app QR codes where supported, filter salaries, rank results by relevance, browse stable result pages, read job details, open embedded websites and save selected jobs. Supports search history and MCP. See the [job discovery specification](docs/job-discovery.md) for search rules, account management and API contracts.
+- **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng, Yupao, Nowcoder, and NCSS. Sign in with QR codes, filter salaries, rank results by relevance, browse job details and search history, and save jobs as applications.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
 - **AI assistant**: Connect your chosen model, reference resumes and roles, assess resume fit, and generate practice exams. View context usage, compact conversations, or connect external AI tools through MCP.
@@ -24,7 +24,7 @@ Supports Simplified Chinese and English, light and dark themes, the system tray,
 | User interface     | Vue 3, Naive UI, Pinia, Vue I18n                      | Views, components, state management, and localization              |
 | Local data         | SQLite, better-sqlite3                                | Store applications and app data on the device                      |
 | AI agent and tools | LangChain, LangGraph, MCP SDK                         | Agent workflows and external tool connections                      |
-| Web access         | Playwright                                            | Browse company career pages and retrieve information               |
+| Web reading        | Playwright                                            | Read dynamic web content on demand                                 |
 | Build and release  | electron-vite, Vite, electron-builder, Velopack, Rust | Build the app and handle Windows installation, launch, and updates |
 | Testing            | Vitest, Node.js test runner, Playwright               | Unit tests and packaged desktop app tests                          |
 
@@ -46,31 +46,17 @@ The screenshots show the current Chinese interface with sample data. Click an im
 
 ## Download and get started
 
-Download the Windows installer from [GitHub Releases](https://github.com/baozha2023/JobTrail/releases) and follow the prompts to install into an empty folder.
+Download the **Windows x64** installer from [GitHub Releases](https://github.com/baozha2023/JobTrail/releases) and follow the prompts to install into an empty folder.
 
-You can start managing applications right away. To use the AI assistant, enter your model service URL, model name, and API key in Settings. To connect an external AI tool, copy the corresponding MCP configuration from Settings. MCP is enabled by default and can be turned off in Settings.
+The installer, uninstaller, and app on first launch use English on English-language Windows and Chinese otherwise. You can change the app language in Settings; subsequent launches keep your choice.
 
-Job discovery only enables platforms with a confirmed login. Login and expired-session prompts open the QR panel; website-verification prompts open a separate site window. After QR confirmation or the user closes the verification window, JobTrail checks the original query and resumes that platform when the check succeeds.
+You can start managing applications right away. Guided tours introduce the app and job discovery on first use, and can be restarted from Settings.
 
-The built-in assistant also shows sign-in and verification cards in chat using the same recovery flow. QR dialogs close after official confirmation; close the official verification window yourself when finished. After recovery, the assistant reads the original search's latest results and continues your task, preserving your draft and attachments. External MCP clients should direct you to JobTrail to complete the manual step.
+- **Search for jobs**: Sign in to recruitment platforms with their official QR codes in account management, then enter a keyword and choose a location. Follow any sign-in or website-verification prompts to continue. Some platforms require another scan after restarting; search history and saved applications remain available.
+- **Use the AI assistant**: Enter your model service URL, model name, and API key in Settings, then reference jobs, resumes, and other content in chat.
+- **Connect external AI tools**: Copy the connection configuration from the MCP page in Settings. MCP is enabled by default and can be turned off; live job discovery starts JobTrail in the system tray when needed.
 
-You can send another message while the assistant is running. Each chat can queue up to three messages, with viewing, editing and deletion available. Internal recovery notifications run first; pending questions, confirmations and uncertain submissions pause consumption. Queues survive page changes and Renderer reloads and are cleared when the app exits.
-
-v2.5.0 advances the database to v7 through a formal 6 → 7 migration; configuration remains v2 and the backup envelope remains v1. Nowcoder searches graduate, internship and experienced roles together and supports the Nowcoder app QR code. See the [discovery specification](docs/job-discovery.md#牛客接入) for the scope and limits of live validation.
-
-Live discovery tools reuse an already running JobTrail client from the same installation. If none is running, MCP starts it in the system tray without taking focus. Local history queries do not require the desktop to run.
-
-Dynamic web reading uses the installed **Microsoft Edge Stable**; the installer does not include a separate Playwright Chromium browser. Install Edge and keep it updated. If Edge cannot start, JobTrail reports the problem; local features and static web reading remain available. Automatic mode may return static content with an incomplete-result warning.
-
-Job discovery pages use Electron's embedded Chromium.
-
-Chromium handles job discovery using the system DNS, proxy/PAC, TLS and connection settings, without a custom proxy or public DNS fallback. Login, search and detail pages share an isolated browser session for each platform. See the [discovery specification](docs/job-discovery.md) for network boundaries and live-site validation limits.
-
-Local reminders require the app to remain running. You can hide the window in the system tray.
-
-### v2.3.0 guided tours
-
-New and upgrading users receive an app navigation tour and a separate tour on their first visit to Job discovery. Both support previous/next, skipping, saved progress and restarting from Settings. The discovery tour explains account management without signing in or searching automatically. v2.3.0 finalizes database v6 and configuration v2. Upgrading from v2.2.0 uses formal `5 → 6` database and `1 → 2` configuration migrations; earlier releases follow the continuous migration chain. Existing data and settings are preserved, and full backups include tour progress.
+Dynamic web reading requires an installed, up-to-date **Microsoft Edge Stable**. Local reminders require the app to remain running; you can hide the window in the system tray.
 
 ## Data and privacy
 
@@ -109,7 +95,7 @@ The following documents are in Chinese:
 - [Job discovery](docs/job-discovery.md)
 - [Database structure](docs/database.md)
 - [Persistence upgrades](docs/persistence-upgrade-guide.md)
-- [Diagnostics](docs/diagnostics.md)
+- [Logging system](docs/logging.md)
 - [Scripts and acceptance tests](scripts/README.md)
 
 ## License

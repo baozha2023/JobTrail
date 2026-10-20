@@ -32,7 +32,50 @@ function fixture(values: unknown[], verification?: QrVerificationHost) {
 }
 afterEach(async () => {
   for (const m of managers.splice(0)) await m.stop()
+  vi.restoreAllMocks()
   vi.useRealTimers()
+})
+it('accepts positive NCSS student evidence without requesting another image and releases the retained page', async () => {
+  const host = verificationHost()
+  const page = {
+    load: vi.fn(),
+    read: vi.fn().mockResolvedValue({ authenticated: true }),
+    history: () => [],
+  }
+  host.page.mockReturnValue(page)
+  const f = fixture([], host)
+  const state = await f.manager.start('ncss')
+  expect(state).toMatchObject({ state: 'authenticated', method: 'wechat', image: null })
+  expect(host.page).toHaveBeenCalledWith(
+    expect.objectContaining({ platform: 'ncss', attemptId: state.attemptId, session: f.session }),
+  )
+  expect(f.fetch).not.toHaveBeenCalled()
+  expect(f.flushStore).toHaveBeenCalledOnce()
+  expect(f.authenticated).toHaveBeenCalledExactlyOnceWith('ncss')
+  expect(host.close).toHaveBeenCalledWith('ncss', state.attemptId)
+})
+it('reports a timed-out NCSS page as a retryable failure and releases it', async () => {
+  const host = verificationHost()
+  host.page.mockReturnValue({
+    load: vi.fn().mockRejectedValue(new DOMException('Official page timed out', 'TimeoutError')),
+    read: vi.fn(),
+    history: () => [],
+  })
+  const f = fixture([], host)
+  const failed = await f.manager.start('ncss')
+  expect(failed).toMatchObject({ state: 'error', reason: 'network', image: null })
+  expect(host.close).toHaveBeenCalledWith('ncss', failed.attemptId)
+  expect(f.authenticated).not.toHaveBeenCalled()
+  expect(f.flushStore).not.toHaveBeenCalled()
+
+  host.page.mockReturnValue({
+    load: vi.fn(),
+    read: vi.fn().mockResolvedValue({ authenticated: true }),
+    history: () => [],
+  })
+  const retry = await f.manager.start('ncss')
+  expect(retry.state).toBe('authenticated')
+  expect(retry.attemptId).not.toBe(failed.attemptId)
 })
 it('keeps Nowcoder App QR material private and confirms the official account before success', async () => {
   vi.useFakeTimers()
@@ -378,6 +421,7 @@ function challenge(url = challengeUrl) {
 }
 function verificationHost() {
   return {
+    page: vi.fn(),
     open: vi.fn(async (input: Parameters<QrVerificationHost['open']>[0]) => {
       input.onState({ window: 'ready', error: null })
     }),

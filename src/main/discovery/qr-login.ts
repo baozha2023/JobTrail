@@ -162,11 +162,13 @@ export class QrLoginManager {
       }
     }
     if (reason === 'verification') this.blocked?.(a.value.platform)
+    else this.verification?.close(a.value.platform, a.value.attemptId)
   }
   private async initialize(a: Attempt) {
+    const transportSession = await a.session
     const transport = accountLoginTransport(
       a.value.platform,
-      await a.session,
+      transportSession,
       a.controller.signal,
       {
         scanned: () => {
@@ -175,12 +177,25 @@ export class QrLoginManager {
         challenge: (url) => {
           if (this.active(a)) a.verificationUrl = url
         },
+        page: () => {
+          if (!this.active(a) || !this.verification) throw new LoginError('protocol')
+          return this.verification.page({
+            platform: a.value.platform,
+            attemptId: a.value.attemptId,
+            session: transportSession,
+            signal: a.controller.signal,
+          })
+        },
       },
     )
     a.transport = transport
     a.protocol = platformAdapter(a.value.platform).qr.create(transport, a.value.method)
     const result = await a.protocol.initialize()
     if (!this.active(a)) return
+    if ('state' in result) {
+      await this.complete(a)
+      return
+    }
     const pixels = await transport.image(result.image)
     if (!this.active(a)) return
     a.value = {
@@ -224,15 +239,20 @@ export class QrLoginManager {
     }
     if (state === 'scanned') a.value.state = 'scanned'
     if (state === 'authenticated') {
-      await a.transport!.flush()
-      if (!this.active(a)) return
-      a.value = { ...a.value, state: 'authenticated', image: null }
-      a.protocol = undefined
-      a.transport = undefined
-      this.authenticated(a.value.platform)
+      await this.complete(a)
     } else this.schedule(a)
   }
+  private async complete(a: Attempt) {
+    await a.transport!.flush()
+    if (!this.active(a)) return
+    a.value = { ...a.value, state: 'authenticated', image: null }
+    a.protocol = undefined
+    a.transport = undefined
+    this.verification?.close(a.value.platform, a.value.attemptId)
+    this.authenticated(a.value.platform)
+  }
   private expire(a: Attempt) {
+    this.verification?.close(a.value.platform, a.value.attemptId)
     a.value = {
       ...a.value,
       state: 'expired',

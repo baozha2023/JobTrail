@@ -571,6 +571,100 @@ it.each([true, false])(
   },
 )
 
+it.each([
+  ['zh-CN', '该公司已存在'],
+  ['en-US', 'This company already exists.'],
+] as const)(
+  'warns about an existing company without closing the save form (%s)',
+  async (locale, text) => {
+    const company: CompanySummary = {
+      id: 7,
+      name: '公司',
+      aliases: [],
+      industryIds: [],
+      industryName: null,
+      careerUrl: null,
+      lastReadAt: null,
+      isBuiltin: false,
+      isFavorite: false,
+      createdAt: 1,
+      updatedAt: 1,
+    }
+    const { api, job } = await fixture(null, { companies: [company] })
+    await wrapper!.setProps({
+      statuses: [
+        { id: 1, label: '待投递', sortOrder: 0, isBuiltin: true, createdAt: 1, updatedAt: 1 },
+      ],
+    })
+    await wrapper!.find('.discovery-job').trigger('click')
+    await flushPromises()
+    wrapper!
+      .findAllComponents(NButton)
+      .find((button) => button.text() === '加入求职记录')!
+      .vm.$emit('click')
+    await flushPromises()
+    i18n.global.locale.value = locale
+    const form = () => wrapper!.find('.discovery-save-form')
+    form().findComponent(NCheckbox).vm.$emit('update:checked', true)
+    await flushPromises()
+    form().findComponent(NInput).vm.$emit('update:value', '  公司  ')
+    await flushPromises()
+    api.save.mockRejectedValueOnce({
+      code: 'COMPANY_EXISTS',
+      message: 'raw database constraint details',
+      diagnostic: {
+        eventId: '11111111-1111-4111-8111-111111111111',
+        traceId: '22222222-2222-4222-8222-222222222222',
+        spanId: '33333333-3333-4333-8333-333333333333',
+      },
+    })
+    await (wrapper!.vm as unknown as { save(): Promise<void> }).save()
+    await flushPromises()
+
+    expect(wrapper!.emitted('warning')).toEqual([[text]])
+    expect(wrapper!.emitted('saved')).toBeUndefined()
+    expect(form().findComponent(NAlert).exists()).toBe(false)
+    expect(form().findComponent(NCheckbox).props('checked')).toBe(true)
+    expect(form().findComponent(NInput).props('value')).toBe('  公司  ')
+    expect(
+      wrapper!
+        .findAllComponents(NModal)
+        .find((modal) => modal.find('.discovery-save-form').exists())!
+        .props('show'),
+    ).toBe(true)
+    expect(api.save).toHaveBeenCalledExactlyOnceWith({
+      jobId: job.id,
+      observationId: job.observationId,
+      companyId: undefined,
+      newCompanyName: '  公司  ',
+      statusId: 1,
+      resumeVersionId: null,
+    })
+
+    api.save.mockRejectedValueOnce({ code: 'VALIDATION_ERROR' })
+    await (wrapper!.vm as unknown as { save(): Promise<void> }).save()
+    await flushPromises()
+    expect(form().findComponent(NAlert).text()).toBe(i18n.global.t('error.VALIDATION_ERROR'))
+    expect(wrapper!.emitted('warning')).toEqual([[text]])
+    expect(wrapper!.emitted('saved')).toBeUndefined()
+
+    form().findComponent(NCheckbox).vm.$emit('update:checked', false)
+    await flushPromises()
+    await (wrapper!.vm as unknown as { save(): Promise<void> }).save()
+    await flushPromises()
+    expect(api.save).toHaveBeenLastCalledWith({
+      jobId: job.id,
+      observationId: job.observationId,
+      companyId: company.id,
+      newCompanyName: undefined,
+      statusId: 1,
+      resumeVersionId: null,
+    })
+    expect(wrapper!.emitted('saved')).toHaveLength(1)
+    expect(form().findComponent(NAlert).exists()).toBe(false)
+  },
+)
+
 it('selects only signed-in platforms and disables every other platform', async () => {
   await fixture(null, { authenticated: ['boss', 'zhilian'], search: false })
   expect(wrapper!.findComponent(NCheckboxGroup).props('value')).toEqual(['boss', 'zhilian'])

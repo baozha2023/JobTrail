@@ -118,7 +118,7 @@ it.each(platforms)(
     expect(await checkAccountSession(platform, f.session, f.controller.signal, f.page)).toBe(
       'authenticated',
     )
-    if (platformAdapter(platform).sessionCheck === 'batch') {
+    if (platformAdapter(platform).sessionCheck === 'batch' && platform !== 'ncss') {
       expect(f.fetch).toHaveBeenCalledOnce()
       if (platform === 'nowcoder') {
         expect(f.page).toHaveBeenCalledExactlyOnceWith(

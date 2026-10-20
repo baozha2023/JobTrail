@@ -126,6 +126,12 @@ export const ERROR_CODES = {
     ui: true,
     translationKey: 'error.COMPANY_IN_USE',
   },
+  COMPANY_EXISTS: {
+    category: 'business',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.COMPANY_EXISTS',
+  },
   INDUSTRY_IN_USE: {
     category: 'business',
     level: 'warn',

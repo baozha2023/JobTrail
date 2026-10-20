@@ -6,9 +6,17 @@ import { platformAdapter } from './adapter-registry'
 import { VerificationWindow, type VerificationWindowHandle } from './platform-browser'
 import { captureError } from '../diagnostics'
 import { AppServiceError } from '../services/errors'
+import { LoginError, type QrPageTransport } from './qr-protocol'
+import { bounded } from './async-control'
 
 export type VerificationWindowState = Pick<QrVerificationState, 'window' | 'error'>
 export interface QrVerificationHost {
+  page(input: {
+    platform: JobPlatform
+    attemptId: string
+    session: Session
+    signal: AbortSignal
+  }): QrPageTransport
   open(input: {
     platform: JobPlatform
     attemptId: string
@@ -22,6 +30,14 @@ export interface QrVerificationHost {
 }
 
 export class QrVerificationWindow implements QrVerificationHost {
+  private prepared = new Map<
+    string,
+    {
+      handle: VerificationWindowHandle
+      closed: (user: boolean) => void
+      transport: QrPageTransport
+    }
+  >()
   private current?: {
     platform: JobPlatform
     attemptId: string
@@ -30,9 +46,77 @@ export class QrVerificationWindow implements QrVerificationHost {
   }
   constructor(private windows: VerificationWindow) {}
 
+  page(input: Parameters<QrVerificationHost['page']>[0]): QrPageTransport {
+    input.signal.throwIfAborted()
+    const key = `${input.platform}:${input.attemptId}`
+    const existing = this.prepared.get(key)
+    if (existing) return existing.transport
+    const policy = platformAdapter(input.platform).verification
+    if (!policy) throw new LoginError('protocol')
+    const urls: string[] = []
+    let blocked = false
+    const handle = this.windows.prepare({
+      ...input,
+      onClosed: (user) => {
+        const entry = this.prepared.get(key)
+        this.prepared.delete(key)
+        entry?.closed(user)
+      },
+    })
+    const wc = handle.page.webContents
+    const allows = (url: string) => allowedPage(input.platform, url) && policy.allowsNavigation(url)
+    const observe = (event: Electron.Event, url: string) => {
+      if (!allows(url) || urls.length >= 64) {
+        event.preventDefault()
+        blocked = true
+        return
+      }
+      urls.push(url)
+    }
+    wc.on('will-navigate', observe)
+    wc.on('will-redirect', observe)
+    const check = () => {
+      input.signal.throwIfAborted()
+      if (blocked || wc.isDestroyed()) throw new LoginError('protocol')
+    }
+    const transport: QrPageTransport = {
+      async load(url) {
+        check()
+        if (!allows(url)) throw new LoginError('protocol')
+        urls.push(url)
+        try {
+          await bounded(
+            wc.loadURL(url),
+            AbortSignal.any([input.signal, AbortSignal.timeout(15000)]),
+          )
+        } catch (error) {
+          check()
+          if (!/ERR_ABORTED/.test(String(error)) || !allows(wc.getURL()))
+            throw new LoginError('network', { cause: error })
+        }
+        check()
+      },
+      async read<T>(script: string): Promise<T> {
+        check()
+        if (!allows(wc.getURL())) throw new LoginError('protocol')
+        return bounded(
+          wc.executeJavaScript(script) as Promise<T>,
+          AbortSignal.any([input.signal, AbortSignal.timeout(15000)]),
+        )
+      },
+      history() {
+        check()
+        return [...urls]
+      },
+    }
+    this.prepared.set(key, { handle, closed: () => {}, transport })
+    return transport
+  }
+
   close(platform: JobPlatform, attemptId: string) {
     const current = this.current
     if (current?.platform === platform && current.attemptId === attemptId) current.dispose()
+    this.prepared.get(`${platform}:${attemptId}`)?.handle.close()
   }
 
   async open(input: Parameters<QrVerificationHost['open']>[0]): Promise<void> {
@@ -91,16 +175,20 @@ export class QrVerificationWindow implements QrVerificationHost {
     timer = setTimeout(() => fail('timeout'), 25000)
     try {
       if (!active()) return
-      current.handle = this.windows.open({
-        platform: input.platform,
-        session: input.session,
-        signal: input.signal,
-        onClosed: (userClosed) => {
-          current.dispose()
-          if (userClosed && !input.signal.aborted) input.onUserClosed()
-        },
-      })
-      const win = current.handle.window
+      const retained = this.prepared.get(`${input.platform}:${input.attemptId}`)
+      const onClosed = (userClosed: boolean) => {
+        current.dispose()
+        if (userClosed && !input.signal.aborted) input.onUserClosed()
+      }
+      if (retained) retained.closed = onClosed
+      current.handle =
+        retained?.handle ??
+        this.windows.open({
+          platform: input.platform,
+          session: input.session,
+          signal: input.signal,
+          onClosed,
+        })
       const wc = current.handle.page.webContents
       const allowed = (url: string) =>
         allowedPage(input.platform, url) && policy.allowsNavigation(url)
@@ -153,7 +241,7 @@ export class QrVerificationWindow implements QrVerificationHost {
             if (page === 'challenge') {
               clearTimeout(timer)
               presented = true
-              win.show()
+              current.handle?.present()
               input.onState({ window: 'ready', error: null })
             } else {
               // Wait for the SPA to mount its real challenge or error page.
@@ -165,10 +253,12 @@ export class QrVerificationWindow implements QrVerificationHost {
           })
       }
       wc.on('dom-ready', inspect)
-      void wc.loadURL(input.url, { httpReferrer: policy.referrer }).catch((error) => {
-        if (active() && !wc.isDestroyed() && !wc.isLoadingMainFrame() && !allowed(wc.getURL()))
-          fail('network', error)
-      })
+      if (retained) inspect()
+      else
+        void wc.loadURL(input.url, { httpReferrer: policy.referrer }).catch((error) => {
+          if (active() && !wc.isDestroyed() && !wc.isLoadingMainFrame() && !allowed(wc.getURL()))
+            fail('network', error)
+        })
     } catch (error) {
       if (active()) fail('network', error)
     }

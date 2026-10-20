@@ -116,10 +116,11 @@ try {
     await page.locator('.sidebar').getByText('岗位发现', { exact: true }).click()
     await page.getByRole('button', { name: '账号管理', exact: true }).click()
     await page.waitForFunction(
-      () =>
+      (count) =>
         [...document.querySelectorAll('.discovery-account .n-tag')].filter(
           (e) => e.textContent.trim() === '已登录',
-        ).length === 8,
+        ).length === count,
+      initial.length,
     )
     assert.equal(
       await page.locator('.discovery-account').getByText('尚未确认', { exact: true }).count(),
@@ -131,7 +132,9 @@ try {
       states: statuses.map((s) => ({ platform: s.platform, state: s.state })),
       sessions,
     })
-    console.log(`Restart ${round}: eight confirmed states and eight local sessions retained`)
+    console.log(
+      `Restart ${round}: ${initial.length} synthetic confirmed states and local sessions retained`,
+    )
   }
   await page.screenshot({
     path: path.join(project, 'dist/qa/session-restart.png'),

@@ -3,11 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
 import { afterEach, expect, it } from 'vitest'
-import {
-  DATABASE_MIGRATIONS,
-  preparePersistenceUpgrade,
-  validateDatabaseVersion,
-} from '../src/main/persistence-migrations'
+import { DATABASE_MIGRATIONS, validateDatabaseVersion } from '../src/main/persistence-migrations'
 import { SCHEMA_V7 } from '../src/main/persistence/schema-v7'
 import { decryptConfig } from '../src/main/config-crypto'
 import { seedDiscoveryV6 } from './helpers/discovery-v6'
@@ -61,7 +57,7 @@ it('upgrades seven-platform v6 with every row, saved link, observation and check
     new Set((before.discovery_jobs as { platform: string }[]).map((r) => r.platform)).size,
   ).toBe(7)
   f.db.close()
-  preparePersistenceUpgrade(f.file, f.config)
+  upgradeV7(f.file)
   const db = new Database(f.file),
     fresh = new Database(':memory:')
   try {
@@ -124,7 +120,7 @@ it('rolls back v6 to v7 replacement tables and all data on a post-copy failure',
     throw new Error('post-copy failure')
   }
   try {
-    expect(() => preparePersistenceUpgrade(f.file, f.config)).toThrow('post-copy failure')
+    expect(() => upgradeV7(f.file)).toThrow('post-copy failure')
   } finally {
     step.apply = apply
   }
@@ -155,3 +151,20 @@ it('keeps the v6 SQL and nested query JSON contract frozen', () => {
     f.db.close()
   }
 })
+
+// Released v7 remains independently testable after the current target advances.
+function upgradeV7(file: string) {
+  const db = new Database(file)
+  try {
+    db.transaction(() => {
+      const version = Number(db.pragma('user_version', { simple: true }))
+      for (const step of DATABASE_MIGRATIONS.filter((s) => s.from >= version && s.to <= 7)) {
+        step.apply(db)
+        db.pragma(`user_version=${step.to}`)
+        validateDatabaseVersion(db, step.to)
+      }
+    }).immediate()
+  } finally {
+    db.close()
+  }
+}

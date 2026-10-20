@@ -1,6 +1,7 @@
 export default {
   AGENT_QUEUE_FULL: '当前聊天最多排队三条消息，请等待或删除一条。',
   AGENT_QUEUE_CHANGED: '该排队消息已经开始执行或发生变化，请刷新队列。',
+  COMPANY_EXISTS: '该公司已存在',
   DISCOVERY_UNSUPPORTED_CITY: '所选城市不被全部招聘网站支持，请重新选择城市或调整网站。',
   DISCOVERY_JOB_OFFLINE: '已下架',
   DISCOVERY_UNAVAILABLE: '岗位发现运行时不可用，请启动桌面应用后重试',

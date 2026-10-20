@@ -91,6 +91,7 @@ function fixture() {
 afterEach(() => {
   controllers.splice(0).forEach((c) => c.abort())
   windows.splice(0)
+  vi.restoreAllMocks()
   vi.useRealTimers()
 })
 
@@ -154,6 +155,7 @@ it('does not create a window after the attempt was cancelled', async () => {
   const { host, input, controller } = fixture()
   controller.abort()
   await host.open(input)
+  expect(() => host.page({ ...input, platform: 'ncss' })).toThrow()
   expect(windows).toHaveLength(0)
 })
 it.each([
@@ -313,3 +315,73 @@ it('does not mistake an unexpected native window destruction for the user closin
   expect(windows[0].isDestroyed()).toBe(true)
   expect(onClosed).toHaveBeenCalledExactlyOnceWith(false)
 })
+
+it('retains the official SSO page and promotes it without reloading or replacing its session', async () => {
+  const { host, input, controller } = fixture()
+  const attempt = {
+    ...input,
+    platform: 'ncss' as const,
+    url: 'https://account.chsi.com.cn/passport/login',
+  }
+  const page = host.page(attempt)
+  expect(windows).toHaveLength(2)
+  expect(windows[1].show).not.toHaveBeenCalled()
+  await page.load(attempt.url)
+  expect(host.page(attempt)).toBe(page)
+  expect(windows[0].options.webPreferences?.session).toBe(input.session)
+  const callback =
+    'https://account.chsi.com.cn/passport/login?client_name=wechat&code=synthetic&state=synthetic'
+  windows[0].webContents.emit('will-redirect', { preventDefault: vi.fn() }, callback)
+  expect(page.history()).toEqual([attempt.url, callback])
+  await host.open(attempt)
+  await Promise.resolve()
+  expect(windows).toHaveLength(2)
+  expect(windows[0].webContents.loadURL).toHaveBeenCalledTimes(1)
+  expect(windows[1].show).toHaveBeenCalled()
+  host.close('ncss', 'obsolete')
+  expect(windows[0].destroyed).toBe(false)
+  controller.abort()
+  expect(windows[0].destroyed).toBe(true)
+  expect(windows[1].destroyed).toBe(true)
+  expect(input.onUserClosed).not.toHaveBeenCalled()
+  await expect(page.read('document.title')).rejects.toThrow()
+})
+it('blocks SSO redirects outside official hosts and paths and releases an unpresented page', async () => {
+  const { host, input } = fixture()
+  const attempt = { ...input, platform: 'ncss' as const }
+  const page = host.page(attempt)
+  await page.load('https://job.ncss.cn/student/signin.html')
+  const event = { preventDefault: vi.fn() }
+  windows[0].webContents.emit('will-redirect', event, 'https://account.chsi.com.cn/unsupported')
+  expect(event.preventDefault).toHaveBeenCalled()
+  await expect(page.read('document.title')).rejects.toMatchObject({ reason: 'protocol' })
+  host.close('ncss', input.attemptId)
+  expect(windows[0].destroyed).toBe(true)
+  expect(windows[1].destroyed).toBe(true)
+})
+
+it.each(['load', 'read'] as const)(
+  'bounds a stalled SSO page %s without waiting for user cancellation',
+  async (operation) => {
+    const { host, input } = fixture()
+    const page = host.page({ ...input, platform: 'ncss' })
+    await page.load('https://job.ncss.cn/student/signin.html')
+    const deadline = new AbortController()
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal)
+    const never = new Promise<string>(() => {})
+    if (operation === 'load')
+      windows[0].webContents.loadURL.mockImplementationOnce(() => new Promise<void>(() => {}))
+    else windows[0].webContents.executeJavaScript.mockReturnValueOnce(never)
+    const pending =
+      operation === 'load'
+        ? page.load('https://job.ncss.cn/student/signin.html')
+        : page.read('document.title')
+    const rejected = expect(pending).rejects.toThrow()
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(15000)
+    deadline.abort(new DOMException('Official page timed out', 'TimeoutError'))
+    await rejected
+    host.close('ncss', input.attemptId)
+    expect(windows[0].destroyed).toBe(true)
+    expect(windows[1].destroyed).toBe(true)
+  },
+)

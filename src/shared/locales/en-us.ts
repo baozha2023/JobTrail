@@ -1,6 +1,7 @@
 export default {
   AGENT_QUEUE_FULL: 'This chat can queue up to three messages. Wait or remove a message.',
   AGENT_QUEUE_CHANGED: 'This queued message has started or changed. Refresh the queue.',
+  COMPANY_EXISTS: 'This company already exists.',
   DISCOVERY_UNSUPPORTED_CITY:
     'This city is not supported by every selected site. Choose another city or change the sites.',
   DISCOVERY_JOB_OFFLINE: 'No longer available',

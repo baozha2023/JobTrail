@@ -19,6 +19,7 @@ import {
 } from './errors'
 import type { UnitOfWork } from './unit-of-work'
 import { companyLocationPrefix, companyLocationsInput } from './company-location-input'
+import { companyNatureInput, companyNaturesInput } from './company-nature-input'
 
 const builtinMessage = '该数据为内置，无法删除/修改'
 
@@ -42,8 +43,22 @@ export class CompanyService {
     private readonly allowBuiltinEdit: boolean,
   ) {}
 
+  listNatures() {
+    return this.repository.listNatures()
+  }
+
+  private validateNature(value: unknown) {
+    const nature = companyNatureInput(value)
+    if (nature !== null && !this.repository.hasNature(nature))
+      throw new AppServiceError('VALIDATION_ERROR', '企业性质不存在')
+    return nature
+  }
+
   search(query: CompanyQuery): PageResult<Company> {
     assertPageQuery(query)
+    const companyNatures =
+      query.companyNatures === undefined ? undefined : companyNaturesInput(query.companyNatures)
+    companyNatures?.forEach((value) => this.validateNature(value))
     if (query.industryId !== null && query.industryId !== undefined) {
       assertPositiveId(query.industryId, '行业分类 ID')
       if (!this.industries.get(query.industryId))
@@ -51,6 +66,7 @@ export class CompanyService {
     }
     const result = this.repository.search({
       ...query,
+      companyNatures,
       keyword: query.keyword?.trim(),
       locations: query.locations === undefined ? undefined : companyLocationsInput(query.locations),
     })
@@ -96,6 +112,9 @@ export class CompanyService {
         const id = this.repository.create(
           {
             name,
+            companyNature: this.validateNature(
+              input.companyNature === undefined ? null : input.companyNature,
+            ),
             industryIds,
             careerUrl: nullableText(input.careerUrl),
             aliases,
@@ -117,6 +136,7 @@ export class CompanyService {
         assertNonEmptyUpdate(input, '公司')
         const current = this.get(id)
         const changesCompanyData =
+          input.companyNature !== undefined ||
           input.locations !== undefined ||
           input.name !== undefined ||
           input.industryIds !== undefined ||
@@ -138,6 +158,10 @@ export class CompanyService {
           id,
           {
             name,
+            companyNature:
+              input.companyNature === undefined
+                ? current.companyNature
+                : this.validateNature(input.companyNature),
             ...(input.locations === undefined
               ? {}
               : { locations: companyLocationsInput(input.locations) }),

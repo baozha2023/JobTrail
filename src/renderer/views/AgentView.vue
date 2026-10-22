@@ -41,6 +41,7 @@ const props = defineProps<{
   dark: boolean
 }>()
 const { t } = useI18n()
+const emit = defineEmits<{ examExported: [] }>()
 const agentStore = useAgentStore()
 const examsStore = useExamsStore()
 const { conversations, currentId } = storeToRefs(agentStore)
@@ -513,7 +514,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ExamPaperModal />
+  <ExamPaperModal @exported="emit('examExported')" />
   <div class="agent-layout" :class="{ dark }">
     <main class="agent-main">
       <div class="agent-intro">

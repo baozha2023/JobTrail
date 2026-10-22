@@ -4,15 +4,18 @@ import {
   NCard,
   NDataTable,
   NInput,
+  NSelect,
   NCascader,
   NSpace,
   type DataTableColumns,
   type PaginationProps,
   type CascaderOption,
 } from 'naive-ui'
-import type { Company } from '../../shared/types'
+import type { Company, CompanyNature } from '../../shared/types'
 import CompanyLocationSelect from '../components/CompanyLocationSelect.vue'
 defineProps<{
+  selectedNatures: CompanyNature[]
+  natureOptions: Array<{ value: CompanyNature; label: string }>
   columns: DataTableColumns<Company>
   data: Company[]
   loading: boolean
@@ -24,6 +27,7 @@ defineProps<{
   locationOptionsRevision: number
 }>()
 const emit = defineEmits<{
+  'update:selectedNatures': [value: CompanyNature[]]
   'update:search': [value: string]
   'update:selectedIndustryId': [value: number | null]
   'update:selectedLocations': [value: string[]]
@@ -65,6 +69,18 @@ function renderIndustryFilterLabel(option: CascaderOption) {
           :placeholder="$t('management.companyIndustryFilterPlaceholder')"
           @update:value="emit('update:selectedIndustryId', $event as number | null)"
         />
+        <n-select
+          class="company-nature-filter"
+          style="min-width: 220px"
+          multiple
+          clearable
+          filterable
+          max-tag-count="responsive"
+          :value="selectedNatures"
+          :options="natureOptions"
+          :placeholder="$t('management.companyNatureFilter')"
+          @update:value="emit('update:selectedNatures', $event as CompanyNature[])"
+        />
         <company-location-select
           :value="selectedLocations"
           :revision="locationOptionsRevision"
@@ -76,7 +92,7 @@ function renderIndustryFilterLabel(option: CascaderOption) {
       ><n-data-table
         class="responsive-table"
         table-layout="fixed"
-        :scroll-x="1150"
+        :scroll-x="1290"
         remote
         paginate-single-page
         :columns="columns"

@@ -114,7 +114,7 @@ async function rewrite(file: string, transform: (entries: Map<string, Buffer>) =
 }
 
 it.each([1, 2, 3, 4, 5, 6, 7, 8])(
-  'imports an authentic v%i payload, migrates it, exports v8 and restores again',
+  'imports an authentic v%i payload, migrates it, exports v9 and restores again',
   async (version) => {
     const f = fixture()
     const sourceRoot = path.join(f.paths.root, 'released-source')
@@ -188,7 +188,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8])(
     recoverRestore(f.paths)
     const restored = createServiceContainer(f.paths, false)
     containers.push(restored)
-    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(8)
+    expect(restored.database.db.pragma('user_version', { simple: true })).toBe(9)
     for (const [table, rows] of Object.entries(discovery))
       expect(restored.database.db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()).toEqual(
         rows,
@@ -203,6 +203,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8])(
     expect(answers).toHaveLength(version >= 2 ? 3 : 0)
     const located = restored.services.companies.create({
       name: 'Location backup',
+      companyNature: 'private',
       locations: ['上海', '北京'],
     })
     const secondArchive = path.join(f.paths.root, 'upgraded.jobtrail-backup')
@@ -214,7 +215,7 @@ it.each([1, 2, 3, 4, 5, 6, 7, 8])(
       secondArchive,
       importWork(f.paths.root),
     )
-    expect(manifest.databaseVersion).toBe(8)
+    expect(manifest.databaseVersion).toBe(9)
     const second = await importBackup(secondArchive, importWork(f.paths.root))
     restored.database.close()
     stageRestore(f.paths, second.directory)
@@ -264,12 +265,20 @@ it('round-trips all exam types, draft answers, scores and interrupted jobs into 
   exam.append({
     ...identity,
     requestId: randomUUID(),
-    question: { type: 'short_answer', prompt: 'Define promise' },
+    question: {
+      type: 'short_answer',
+      prompt: 'Define promise',
+      defaultAnswer: 'An eventual completion or failure.',
+    },
   })
   let paper = exam.append({
     ...identity,
     requestId: randomUUID(),
-    question: { type: 'short_answer', prompt: 'Explain async' },
+    question: {
+      type: 'short_answer',
+      prompt: 'Explain async',
+      defaultAnswer: 'An async function returns a promise.',
+    },
   })
   exam.submit({
     ...identity,
@@ -323,6 +332,16 @@ it('round-trips all exam types, draft answers, scores and interrupted jobs into 
   const restored = createServiceContainer(paths, false)
   containers.push(restored)
   expect(restored.services.exams.get(identity)).toEqual(paper)
+  expect(
+    restored.database.db
+      .prepare('SELECT default_answer FROM exam_questions WHERE paper_id=? ORDER BY position')
+      .all(p.id),
+  ).toEqual([
+    { default_answer: null },
+    { default_answer: null },
+    { default_answer: 'An eventual completion or failure.' },
+    { default_answer: 'An async function returns a promise.' },
+  ])
   restored.services.exams.recover()
   const recovered = restored.services.exams.get(identity)
   expect(recovered.status).toBe('interrupted')

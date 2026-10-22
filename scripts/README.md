@@ -2,6 +2,8 @@
 
 所有命令从仓库根目录运行。`scripts/` 中的 `.mjs` 分为构建发布、自动测试、安装包验收和共享辅助模块；入口可以由 `package.json`、测试自动发现或其他脚本调用。
 
+`pnpm package:win` 在编译后显式调用 Electron 官方 `install-electron`，确保当前锁定版本的二进制已下载并校验，再将 `node_modules/electron/dist` 交给 electron-builder。Electron 43.8.3 不再通过包的 postinstall 自动下载，不能依赖曾经运行过开发环境或测试才具备该目录。
+
 ## 构建与发布
 
 | 脚本                                                         | 调用方与用途                                                   |
@@ -65,6 +67,8 @@
 
 ## 共享模块与异步等待
 
+`exam-pdf-acceptance.mjs` 由试卷安装包验收调用，使用隔离数据库构造三种题型、旧题空答案及不同的评分参考答案，通过真实导出按钮生成逐题答案和末尾答案两种 PDF，验证答案来源、未完成卷、多页 Markdown 和打印窗口释放。PDF 与首、中、末页 PNG 保留在 `dist/exam-pdf-review/` 供视觉检查；这些合成样本不包含真实开发数据。
+
 历史迁移、协议协商、启动器更新和代理测试分别验证对应的长期契约。源码级联网诊断验证来源集合、查询矩阵与分页；界面验收验证账号、搜索、历史和人工处理交互，二者覆盖范围独立。
 
 `test-launcher-update.mjs` 由启动器测试和发布脚本共同调用。`assert-root-error-dialog.ps1` 由 MCP 安装包测试调用，负责 Windows 原生错误对话框断言。
@@ -88,8 +92,12 @@
 
 该脚本还检查首次进程启动和空闲进程复用时的直接发送：回执为运行中、Main 从未发布该消息的等待快照，真实聊天组件直接显示消息且不出现队列区域；结果记录在报告的 `directAdmissions`。协调器回归同时覆盖初始化期间仍可等待三条消息、初始化重试、初始化或执行前校验期间取消、三进程名额及跨聊天 FIFO。
 
-牛客接入的历史回归：`pnpm test` 覆盖混合请求缺省 `recruitType`、两类卡片、分页整批提交、账号与 App 扫码协议、详情排除推荐、七平台 v6 逐行保留及回滚。`persistence-v6.test.ts` 和 `persistence-v7.test.ts` 分别验证冻结的历史目标，不随当前目标升版；冻结 v1/v2 文件不改写。当前备份与打包验收目标统一见下述 NCSS v8 说明，`test:discovery:local` 按九平台执行隔离网络、账号弹窗、重启与 MCP 测试，不使用真实账号。真实牛客扫码与搜索验收另行人工执行，不加入构建链。
+牛客接入的历史回归：`pnpm test` 覆盖混合请求缺省 `recruitType`、两类卡片、分页整批提交、账号与 App 扫码协议、详情排除推荐、七平台 v6 逐行保留及回滚。`persistence-v6.test.ts` 和 `persistence-v7.test.ts` 分别验证冻结的历史目标，不随当前目标升版；冻结 v1/v2 文件不改写。当前备份与打包验收目标统一为企业性质 v9，`test:discovery:local` 按九平台执行隔离网络、账号弹窗、重启与 MCP 测试，不使用真实账号。真实牛客扫码与搜索验收另行人工执行，不加入构建链。
 
 NCSS 接入（v2.6.0，数据库 v8）：`ncss-adapter.test.ts` 覆盖固定完整条件、官方城市代码、错误类型整条跳过、合法低质量保留、短页及固定总数、提交后推进、官方原码页面、OAuth state 和学生角色证据。`qr-verification.test.ts` 覆盖原页面转入人工验证、越界重定向、加载和脚本读取超时及释放；`qr-login.test.ts` 验证超时后不误报登录、释放页面并允许重新发起。`persistence-v8.test.ts` 从八平台 v7 合成样本验证逐行保留、DDL 一致、失败回滚和 v7 SQL/JSON 冻结。备份用例覆盖 v1—v8；打包兼容测试新增原始 2.5.0 提交 `6f15578`。合成测试不代表真实扫码、风控或重启免扫码通过，实际范围记录在对应测试报告和运行日志中。
 
 `node scripts/test-ncss-live.mjs` 使用独立打包数据目录执行人工扫码验收，先确认未登录门禁，再运行 Java／销售在北京、上海及地点留空的搜索、续查、详情及保存。清除会话后需要再次人工扫码，然后正常退出重启，验证历史、保存记录及官方会话复核结果。认证材料仅在该隔离 Chromium profile；报告只记录查询条件、统计及缺失字段原因。该脚本不加入自动构建链。
+
+企业性质（v2.7.0，数据库 v9）：`company-natures.test.ts`、`company-nature-view.test.ts`、`persistence-v9.test.ts` 覆盖固定字典、空值、目录同步、真实选择组件、分页、迁移保留与失败回滚，MCP 双协议验证查询字典和公司录入、清空、筛选及过期确认。`tests/fixtures/v8/` 锁定 v2.6.0 的历史 SQL 哈希。备份覆盖 v1—v8 导入至 v9 与新版往返；打包兼容验收新增 v2.6.0 原始提交 `3890679`。规模查询可设置 `JOBTRAIL_LOCATION_PERF_REPORT` 保存 1 万家公司、20 万条地点关联的性质组合筛选报告。目录录入规则见 [数据库说明](../docs/database.md#company_natures)。
+
+性质筛选仅接受六种字典代码，不接受 null；单测和安装包 MCP 双协议验收均覆盖“选择性质排除空值、清空筛选包含空值、非法空值选项拒绝”。历史升级验收逐行比对时，明确要求旧公司的 `company_nature` 和旧题的 `default_answer` 都为 NULL。

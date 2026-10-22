@@ -75,7 +75,7 @@ describe('company office locations', () => {
     expect(service.searchLocations(page).items).toEqual(['上海市'])
     service.update(a.id, { locations: [] })
     expect(service.searchLocations(page)).toMatchObject({ items: [], total: 0 })
-    validateDatabaseVersion(container.database.db, 8)
+    validateDatabaseVersion(container.database.db, 9)
   })
 
   it('uses OR within locations and AND with names, aliases and industry, without duplicate rows', () => {
@@ -236,7 +236,7 @@ describe('company office locations', () => {
       isBuiltin: false,
       locations: ['Shared'],
     })
-    validateDatabaseVersion(container.database.db, 8)
+    validateDatabaseVersion(container.database.db, 9)
   })
 
   it('adopts the catalog location set and rolls back catalog failures including orphan cleanup', () => {
@@ -265,16 +265,16 @@ describe('company office locations', () => {
     const db = container.database.db
     const a = container.services.companies.create({ name: 'Validate', locations: ['上海'] })
     db.prepare('DELETE FROM company_locations WHERE company_id = ?').run(a.id)
-    expect(() => validateDatabaseVersion(db, 8)).toThrow('Invalid company location references')
+    expect(() => validateDatabaseVersion(db, 9)).toThrow('Invalid company location references')
     db.prepare('UPDATE locations SET name = ?').run(' ')
-    expect(() => validateDatabaseVersion(db, 8)).toThrow('Invalid company location')
+    expect(() => validateDatabaseVersion(db, 9)).toThrow('Invalid company location')
   })
 
   it('uses indexed bounded reads with 10,000 companies and 200,000 location links', () => {
     const db = container.database.db
     const insertLocation = db.prepare('INSERT INTO locations (id,name,created_at) VALUES (?,?,1)')
     const insertCompany = db.prepare(
-      'INSERT INTO companies (id,name,created_at,updated_at) VALUES (?,?,1,1)',
+      'INSERT INTO companies (id,name,company_nature,created_at,updated_at) VALUES (?,?,?,1,1)',
     )
     const insertLink = db.prepare(
       'INSERT INTO company_locations (company_id,location_id,created_at) VALUES (?,?,1)',
@@ -283,7 +283,11 @@ describe('company office locations', () => {
       for (let id = 1; id <= 5000; id++)
         insertLocation.run(id, `Office ${String(id).padStart(5, '0')}`)
       for (let id = 100000; id < 110000; id++) {
-        insertCompany.run(id, `Scale ${id}`)
+        insertCompany.run(
+          id,
+          `Scale ${id}`,
+          id % 3 === 0 ? null : id % 3 === 1 ? 'private' : 'other',
+        )
         for (let k = 0; k < 20; k++) insertLink.run(id, ((id * 19 + k) % 5000) + 1)
       }
     }).immediate()
@@ -299,6 +303,17 @@ describe('company office locations', () => {
       locations: ['Office 00001', 'Office 00002'],
     })
     const companyMs = performance.now() - searchStarted
+    const natureStarted = performance.now()
+    const natures = container.services.companies.search({
+      ...page,
+      keyword: 'Scale',
+      locations: ['Office 00001', 'Office 00002'],
+      companyNatures: ['private'],
+    })
+    const natureMs = performance.now() - natureStarted
+    expect(natures.total).toBeGreaterThan(0)
+    expect(natures.items.every((item) => item.companyNature === 'private')).toBe(true)
+    expect(natures.total).toBeLessThan(companies.total)
     expect(suggestions.items).toHaveLength(50)
     expect(companies.total).toBeGreaterThan(0)
     expect(companies.items.length).toBeLessThanOrEqual(50)
@@ -330,6 +345,9 @@ describe('company office locations', () => {
       distinctLocations: 5000,
       suggestionMs,
       companyMs,
+      natureMs,
+      natureTotal: natures.total,
+      natureResultBytes: Buffer.byteLength(JSON.stringify(natures)),
       suggestionBytes: Buffer.byteLength(JSON.stringify(suggestions)),
       resultBytes: Buffer.byteLength(JSON.stringify(companies)),
       prefixPlan,

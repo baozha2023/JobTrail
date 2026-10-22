@@ -7,10 +7,16 @@ import { SCHEMA_V5 } from './schema-v5'
 import { SCHEMA_V6 } from './schema-v6'
 import { SCHEMA_V7 } from './schema-v7'
 import { SCHEMA_V8 } from './schema-v8'
+import { SCHEMA_V9 } from './schema-v9'
 import { SCHEMA_V3 } from './schema-v3'
 import { CHECKPOINT_SCHEMA } from './schema-checkpoint'
 import { DatabaseVersionError } from './versions'
-import { examQuestionSchema, examCountsSchema, gradeResultSchema } from '../../shared/exams'
+import {
+  examQuestionSchema,
+  examQuestionInputSchema,
+  examCountsSchema,
+  gradeResultSchema,
+} from '../../shared/exams'
 import { z } from 'zod'
 import {
   discoveryRunOutputSchema,
@@ -50,7 +56,9 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
                   ? SCHEMA_V7
                   : version === 8
                     ? SCHEMA_V8
-                    : null
+                    : version === 9
+                      ? SCHEMA_V9
+                      : null
   if (
     !sql ||
     db.pragma('user_version', { simple: true }) !== version ||
@@ -87,6 +95,34 @@ function validateDatabaseSnapshot(db: Db, version: number): void {
     }
     if (db.prepare("SELECT 1 FROM sqlite_master WHERE type IN ('trigger','view') LIMIT 1").get())
       throw new Error('Unexpected persistent schema')
+    if (version >= 9) {
+      const dictionarySql = 'SELECT code, name, sort_order FROM company_natures ORDER BY sort_order'
+      if (
+        !isDeepStrictEqual(db.prepare(dictionarySql).all(), expected.prepare(dictionarySql).all())
+      )
+        throw new Error('Invalid company nature dictionary')
+      if (
+        db
+          .prepare(
+            `SELECT 1 FROM companies c
+        WHERE c.company_nature IS NOT NULL AND NOT EXISTS (
+          SELECT 1 FROM company_natures n WHERE n.code = c.company_nature
+        ) LIMIT 1`,
+          )
+          .get()
+      )
+        throw new Error('Invalid company nature reference')
+      const defaultAnswers = db
+        .prepare(
+          'SELECT content,default_answer FROM exam_questions WHERE default_answer IS NOT NULL',
+        )
+        .all() as { content: string; default_answer: string }[]
+      for (const question of defaultAnswers)
+        examQuestionInputSchema.parse({
+          ...JSON.parse(question.content),
+          defaultAnswer: question.default_answer,
+        })
+    }
     if (version >= 2) validateExamData(db)
     if (version >= 3) validateCompanyLocations(db)
     if (version >= 4) validateDiscoveryData(db, version)

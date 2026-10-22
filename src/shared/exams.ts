@@ -17,6 +17,12 @@ export const examQuestionSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('short_answer'), prompt: text }),
 ])
+// Creation accepts the private answer; public question DTOs omit it entirely.
+export const examQuestionInputSchema = z.discriminatedUnion('type', [
+  examQuestionSchema.options[0],
+  examQuestionSchema.options[1],
+  examQuestionSchema.options[2].extend({ defaultAnswer: text }),
+])
 export const examCountsSchema = z.strictObject({
   single_choice: z.number().int().min(0).max(100),
   true_false: z.number().int().min(0).max(100),
@@ -35,12 +41,45 @@ export const appendExamSchema = z.strictObject({
   conversationId: z.string().uuid(),
   paperId: z.string().uuid(),
   requestId: z.string().min(1).max(200),
-  question: examQuestionSchema,
+  question: examQuestionInputSchema,
 })
 export const examIdentitySchema = z.strictObject({
   conversationId: z.string().uuid(),
   paperId: z.string().uuid(),
 })
+export const examPdfExportSchema = examIdentitySchema.extend({
+  answerPlacement: z.enum(['after_each', 'at_end']),
+})
+export const examPrintStateSchema = z.strictObject({
+  jobId: z.string().uuid(),
+  phase: z.enum(['ready', 'complete', 'failed']),
+})
+export type ExamPdfExportInput = z.infer<typeof examPdfExportSchema>
+export type ExamPrintState = z.infer<typeof examPrintStateSchema>
+// Only the isolated PDF renderer receives this snapshot, never the chat or ordinary exam API.
+export interface ExamPdfSnapshot {
+  title: string
+  topic: string
+  difficulty: string
+  counts: z.infer<typeof examCountsSchema>
+  status: ExamPaper['status']
+  questions: {
+    position: number
+    content: ExamQuestionContent
+    defaultAnswer: string | null
+  }[]
+}
+export interface ExamPrintDocument {
+  jobId: string
+  locale: 'zh-CN' | 'en-US'
+  answerPlacement: ExamPdfExportInput['answerPlacement']
+  paper: ExamPdfSnapshot
+}
+export interface ExamPrintApi {
+  onDocument(listener: (document: ExamPrintDocument) => void): () => void
+  ready(): Promise<void>
+  complete(success: boolean): Promise<void>
+}
 export const updateExamSchema = examIdentitySchema.extend({
   topic: text.optional(),
   difficulty: z.string().trim().min(1).max(200).optional(),

@@ -26,8 +26,24 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: path.resolve(__dirname, 'src/preload/index.ts'),
+          'exam-print': path.resolve(__dirname, 'src/preload/exam-print.ts'),
+        },
+      },
+    },
   },
   renderer: {
     plugins: [vue()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: path.resolve(__dirname, 'src/renderer/index.html'),
+          'exam-print': path.resolve(__dirname, 'src/renderer/exam-print.html'),
+        },
+      },
+    },
   },
 })

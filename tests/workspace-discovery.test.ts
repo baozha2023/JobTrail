@@ -41,6 +41,7 @@ async function fixture() {
     industries: { list: vi.fn().mockResolvedValue([]) },
     resumes: { list: vi.fn().mockResolvedValue([]) },
     companies: {
+      listNatures: vi.fn().mockResolvedValue([]),
       list: vi.fn().mockResolvedValue([]),
       search: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     },

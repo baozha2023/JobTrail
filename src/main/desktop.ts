@@ -5,6 +5,7 @@ import { featureErrors } from '../shared/feature-errors'
 import { AppServiceError } from './services/errors'
 import { ExamGrader } from './agent/exam-grader'
 import { registerExamIpc } from './ipc/exams'
+import { ExamPdfExporter } from './exam-pdf-exporter'
 import { ensurePersistenceReady } from './persistence-migrations'
 import { app, BrowserWindow, Menu, Tray, dialog, nativeImage, nativeTheme, shell } from 'electron'
 import path from 'node:path'
@@ -79,6 +80,7 @@ let discoveryRuntime: DiscoveryRuntime | undefined
 let closeDiscoveryBroker: (() => Promise<void>) | undefined
 let database: DatabaseManager | undefined
 let agent: AgentCoordinator | undefined
+let examPdfExporter: ExamPdfExporter | undefined
 let mainWindow: BrowserWindow | undefined
 let tray: Tray | undefined
 let isQuitting = false
@@ -322,7 +324,13 @@ async function initializeApplication(): Promise<void> {
     (event) => sendToTrustedWindow('agent:event', event),
     grader,
   )
-  registerExamIpc(container.services.exams, grader)
+  examPdfExporter = new ExamPdfExporter(
+    container.services.exams,
+    paths.root,
+    () => config.get().locale,
+    () => mainWindow,
+  )
+  registerExamIpc(container.services.exams, grader, examPdfExporter)
   cancelCompanyCatalogUpdate = registerIpc(container.services, config, agent)
   const maintenance = {
     suspendForUpdate: async () => {
@@ -432,6 +440,7 @@ app.on('before-quit', (event) => {
   reminderScheduler?.stop()
   void (async () => {
     try {
+      await examPdfExporter?.close()
       await closeDiscoveryBroker?.()
       await discoveryRuntime?.suspend()
       await agent?.close()

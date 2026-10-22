@@ -5,12 +5,44 @@ import type {
   CreateExamInput,
   ExamQuestionContent,
   ExamResult,
+  ExamPdfSnapshot,
 } from '../../shared/exams'
 type Db = InstanceType<typeof Database>
 export class ExamRepository {
   constructor(readonly db: Db) {}
   conversationExists(id: string): boolean {
     return !!this.db.prepare('SELECT 1 FROM agent_conversations WHERE id=? AND deleting=0').get(id)
+  }
+  exportSnapshot(id: string, conversationId: string): ExamPdfSnapshot | undefined {
+    return this.db.transaction(() => {
+      const paper = this.db
+        .prepare(
+          `SELECT title,topic,difficulty,counts,status FROM exam_papers
+        WHERE id=? AND conversation_id=? AND EXISTS (
+          SELECT 1 FROM agent_conversations WHERE id=? AND deleting=0
+        )`,
+        )
+        .get(id, conversationId, conversationId) as
+        | {
+            title: string
+            topic: string
+            difficulty: string
+            counts: string
+            status: ExamPdfSnapshot['status']
+          }
+        | undefined
+      if (!paper) return undefined
+      const rows = this.db
+        .prepare(
+          'SELECT position,content,default_answer AS defaultAnswer FROM exam_questions WHERE paper_id=? ORDER BY position',
+        )
+        .all(id) as { position: number; content: string; defaultAnswer: string | null }[]
+      return {
+        ...paper,
+        counts: JSON.parse(paper.counts),
+        questions: rows.map((row) => ({ ...row, content: JSON.parse(row.content) })),
+      }
+    })()
   }
   findRequest(requestId: string): string | undefined {
     return (
@@ -89,12 +121,25 @@ export class ExamRepository {
           gradeStatus: 'idle',
         }
   }
-  append(id: string, paper: ExamPaper, requestId: string, content: ExamQuestionContent): void {
+  append(
+    id: string,
+    paper: ExamPaper,
+    requestId: string,
+    content: ExamQuestionContent,
+    defaultAnswer: string | null,
+  ): void {
     this.db
       .prepare(
-        'INSERT INTO exam_questions (id,paper_id,request_id,position,content) VALUES (?,?,?,?,?)',
+        'INSERT INTO exam_questions (id,paper_id,request_id,position,content,default_answer) VALUES (?,?,?,?,?,?)',
       )
-      .run(id, paper.id, requestId, paper.questions.length + 1, JSON.stringify(content))
+      .run(
+        id,
+        paper.id,
+        requestId,
+        paper.questions.length + 1,
+        JSON.stringify(content),
+        defaultAnswer,
+      )
     if (!paper.questions.length) {
       const message = {
         id: `exam:${paper.id}`,
@@ -112,8 +157,12 @@ export class ExamRepository {
   }
   questionRequest(requestId: string) {
     return this.db
-      .prepare('SELECT id,paper_id AS paperId,content FROM exam_questions WHERE request_id=?')
-      .get(requestId) as { id: string; paperId: string; content: string } | undefined
+      .prepare(
+        'SELECT id,paper_id AS paperId,content,default_answer AS defaultAnswer FROM exam_questions WHERE request_id=?',
+      )
+      .get(requestId) as
+      | { id: string; paperId: string; content: string; defaultAnswer: string | null }
+      | undefined
   }
   touch(id: string) {
     this.db

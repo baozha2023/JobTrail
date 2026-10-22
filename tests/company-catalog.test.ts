@@ -82,8 +82,8 @@ describe('内置公司目录更新', () => {
       parseCompanyCatalogText(JSON.stringify(BUNDLED_COMPANY_CATALOG), '1.4.0'),
     ).toThrowError(expect.objectContaining({ code: 'CATALOG_APP_UPDATE_REQUIRED' }))
     expect(
-      parseCompanyCatalogText(JSON.stringify(BUNDLED_COMPANY_CATALOG), '1.5.0').formatVersion,
-    ).toBe(2)
+      parseCompanyCatalogText(JSON.stringify(BUNDLED_COMPANY_CATALOG), '2.7.0').formatVersion,
+    ).toBe(3)
   })
   let root: string
   let database: DatabaseManager
@@ -304,6 +304,7 @@ describe('内置公司目录更新', () => {
     const before = relationRows(custom.id)
     const source = nextCatalog()
     source.companies.push({
+      companyNature: null,
       locations: [],
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
@@ -351,6 +352,7 @@ describe('内置公司目录更新', () => {
     }
     source.companies.splice(1, 1)
     source.companies.push({
+      companyNature: null,
       locations: [],
       builtinKey: '3ee1b335-f3be-47ed-982c-8ab740d65f46',
       name: custom.name,
@@ -660,7 +662,7 @@ describe('内置公司目录更新', () => {
       ).update(() => undefined),
     ).rejects.toMatchObject({ code: 'CATALOG_APP_UPDATE_REQUIRED' })
 
-    const future = { ...newer, formatVersion: 3, companies: [{ unsupportedField: true }] }
+    const future = { ...newer, formatVersion: 4, companies: [{ unsupportedField: true }] }
     const futureBytes = new TextEncoder().encode(JSON.stringify(future))
     const futureResponses = [response(manifest(futureBytes)), response(futureBytes)]
     await expect(

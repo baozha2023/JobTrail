@@ -1,4 +1,6 @@
 export default {
+  EXAM_EXPORT_BUSY: 'An exam export is already running. Please wait.',
+  EXAM_EXPORT_FAILED: 'Could not export the exam PDF. Check the save location and retry.',
   AGENT_QUEUE_FULL: 'This chat can queue up to three messages. Wait or remove a message.',
   AGENT_QUEUE_CHANGED: 'This queued message has started or changed. Refresh the queue.',
   COMPANY_EXISTS: 'This company already exists.',

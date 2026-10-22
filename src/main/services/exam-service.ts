@@ -5,6 +5,7 @@ import {
   createExamSchema,
   updateExamSchema,
   examIdentitySchema,
+  examPdfExportSchema,
   saveExamAnswerSchema,
   gradeResultSchema,
   type ExamIdentity,
@@ -30,6 +31,13 @@ export class ExamService {
   ) {}
   get(input: ExamIdentity): ExamPaper {
     return this.read(parse(examIdentitySchema, input))
+  }
+  exportSnapshot(input: unknown) {
+    const args = parse(examPdfExportSchema, input)
+    const paper = this.repository.exportSnapshot(args.paperId, args.conversationId)
+    if (!paper) throw new AppServiceError('EXAM_NOT_FOUND', 'Paper not found')
+    if (!paper.questions.length) invalid('The paper has no questions to export')
+    return { paper, answerPlacement: args.answerPlacement }
   }
   private read(identity: ExamIdentity): ExamPaper {
     const paper = this.repository.get(identity.paperId)
@@ -101,11 +109,20 @@ export class ExamService {
   }
   append(input: unknown) {
     const args = parse(appendExamSchema, input)
+    const content =
+      args.question.type === 'short_answer'
+        ? { type: args.question.type, prompt: args.question.prompt }
+        : args.question
+    const defaultAnswer = args.question.type === 'short_answer' ? args.question.defaultAnswer : null
     return this.unit.run(() => {
       const paper = this.read(args)
       const old = this.repository.questionRequest(args.requestId)
       if (old) {
-        if (old.paperId !== paper.id || old.content !== JSON.stringify(args.question))
+        if (
+          old.paperId !== paper.id ||
+          old.content !== JSON.stringify(content) ||
+          old.defaultAnswer !== defaultAnswer
+        )
           invalid('重复请求内容不一致')
         return paper
       }
@@ -115,7 +132,7 @@ export class ExamService {
         paper.counts[args.question.type]
       )
         invalid('该题型已达到约定数量')
-      this.repository.append(randomUUID(), paper, args.requestId, args.question)
+      this.repository.append(randomUUID(), paper, args.requestId, content, defaultAnswer)
       return this.read(args)
     })
   }

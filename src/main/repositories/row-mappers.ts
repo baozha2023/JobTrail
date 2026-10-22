@@ -1,6 +1,7 @@
 import type {
   CalendarEvent,
   CompanySummary,
+  CompanyNature,
   Industry,
   Opportunity,
   OpportunityStatusEvent,
@@ -30,6 +31,7 @@ export interface IndustryRow {
 }
 
 export interface CompanyRow {
+  company_nature: CompanyNature | null
   id: number
   name: string
   builtin_key: string | null
@@ -139,6 +141,7 @@ export function mapCompany(
   industryIds: number[],
 ): CompanySummary {
   return {
+    companyNature: row.company_nature,
     id: row.id,
     name: row.name,
     industryIds,

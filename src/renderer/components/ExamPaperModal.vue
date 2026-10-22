@@ -1,12 +1,45 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { NModal, NCard, NButton, NInput, NRadio, NRadioGroup, NSpace } from 'naive-ui'
+import type { ExamPdfExportInput } from '../../shared/exams'
 import { useI18n } from 'vue-i18n'
 import { useExamsStore } from '../stores/exams'
 import AgentMarkdown from './AgentMarkdown.vue'
 const store = useExamsStore(),
   { t } = useI18n()
 const paper = computed(() => (store.selected ? store.papers[store.selected.paperId] : undefined))
+const emit = defineEmits<{ exported: [] }>()
+const showExport = ref(false)
+const exporting = ref(false)
+const answerPlacement = ref<ExamPdfExportInput['answerPlacement']>('after_each')
+watch(
+  () => paper.value?.id,
+  () => {
+    if (!exporting.value) showExport.value = false
+  },
+)
+function openExport() {
+  answerPlacement.value = 'after_each'
+  showExport.value = true
+}
+async function exportPdf() {
+  if (exporting.value || !paper.value?.questions.length) return
+  const input: ExamPdfExportInput = {
+    conversationId: paper.value.conversationId,
+    paperId: paper.value.id,
+    answerPlacement: answerPlacement.value,
+  }
+  exporting.value = true
+  try {
+    const result = await window.zhijiApi.exams.exportPdf(input)
+    if (result === 'exported') emit('exported')
+    showExport.value = false
+  } catch (error) {
+    store.failure(error)
+  } finally {
+    exporting.value = false
+  }
+}
 const value = (id: string) => store.drafts[id]?.value
 function close() {
   void store.close().catch((e) => {
@@ -34,11 +67,18 @@ function close() {
       role="dialog"
       aria-modal="true"
     >
-      <template #header-extra
-        ><NButton size="small" @click="store.reset(paper.id)">{{
-          t('exam.reset')
-        }}</NButton></template
-      >
+      <template #header-extra>
+        <NSpace>
+          <NButton size="small" @click="store.reset(paper.id)">{{ t('exam.reset') }}</NButton>
+          <NButton
+            size="small"
+            :disabled="!paper.questions.length || exporting"
+            :loading="exporting"
+            @click="openExport"
+            >{{ t('exam.export') }}</NButton
+          >
+        </NSpace>
+      </template>
       <div class="exam-questions">
         <section v-for="q in paper.questions" :key="q.id" class="exam-question">
           <small>{{ q.position }} · {{ t(`exam.${q.content.type}`) }}</small>
@@ -117,6 +157,51 @@ function close() {
           </div>
         </section>
       </div>
+    </NCard>
+  </NModal>
+  <NModal
+    :show="showExport"
+    :mask-closable="!exporting"
+    :close-on-esc="!exporting"
+    @update:show="
+      (value) => {
+        if (!exporting) showExport = value
+      }
+    "
+  >
+    <NCard
+      class="exam-export-options"
+      style="width: 420px; max-width: 90vw"
+      :title="t('exam.exportPdf')"
+      :closable="!exporting"
+      @close="showExport = false"
+      role="dialog"
+      aria-modal="true"
+    >
+      <NRadioGroup
+        v-model:value="answerPlacement"
+        :disabled="exporting"
+        :aria-label="t('exam.answerPlacement')"
+      >
+        <NSpace vertical>
+          <NRadio value="after_each">{{ t('exam.afterEach') }}</NRadio>
+          <NRadio value="at_end">{{ t('exam.atEnd') }}</NRadio>
+        </NSpace>
+      </NRadioGroup>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton :disabled="exporting" @click="showExport = false">{{
+            t('exam.exportCancel')
+          }}</NButton>
+          <NButton
+            type="primary"
+            :loading="exporting"
+            :disabled="exporting || !paper?.questions.length"
+            @click="exportPdf"
+            >{{ t('exam.export') }}</NButton
+          >
+        </NSpace>
+      </template>
     </NCard>
   </NModal>
 </template>

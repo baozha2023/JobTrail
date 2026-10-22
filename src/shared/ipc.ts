@@ -1,5 +1,12 @@
 import type { BrowserLoadingState, DiscoveryApi } from './job-discovery'
-import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
+import type {
+  ExamIdentity,
+  ExamPaper,
+  SaveExamAnswerInput,
+  ExamPdfExportInput,
+  ExamPrintState,
+  ExamPrintDocument,
+} from './exams'
 import type {
   ExamChangeEvent,
   AppConfig,
@@ -7,6 +14,7 @@ import type {
   CalendarEvent,
   CalendarRange,
   Company,
+  CompanyNatureOption,
   CompanySummary,
   CompanyLocationQuery,
   CompanyQuery,
@@ -111,6 +119,9 @@ export interface IpcChannelMap {
   'exams:submit': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
   'exams:reset': { args: [input: ExamIdentity]; result: ExamPaper }
   'exams:grade': { args: [input: SaveExamAnswerInput]; result: ExamPaper }
+  'exams:export-pdf': { args: [input: ExamPdfExportInput]; result: 'exported' | 'cancelled' }
+  // Dedicated printing-window handler; never accepted by the business IPC handler.
+  'exams:print-state': { args: [input: ExamPrintState]; result: void }
   'backup:export': { args: []; result: 'cancelled' | 'exported' }
   'backup:import': { args: []; result: 'cancelled' | 'restarting' }
   'backup:confirm-import': { args: [requestId: string, confirmed: boolean]; result: void }
@@ -169,6 +180,7 @@ export interface IpcChannelMap {
 
   'companies:search': { args: [query: CompanyQuery]; result: PageResult<Company> }
   'companies:list': { args: []; result: CompanySummary[] }
+  'companies:list-natures': { args: []; result: CompanyNatureOption[] }
   'companies:search-locations': { args: [query: CompanyLocationQuery]; result: PageResult<string> }
   'companies:get': { args: [id: number]; result: Company }
   'companies:mark-read': { args: [id: number]; result: Company }
@@ -224,6 +236,7 @@ export type IpcArgs<K extends IpcChannel> = IpcChannelMap[K]['args']
 export type IpcResult<K extends IpcChannel> = IpcChannelMap[K]['result']
 
 export interface AppEventMap {
+  'exams:print-document': ExamPrintDocument
   'discovery:browser-loading': BrowserLoadingState
   'backup:import-confirmation': BackupImportConfirmation
   'exams:changed': ExamChangeEvent

@@ -1,5 +1,5 @@
 import type { BrowserLoadingState, DiscoveryApi } from './job-discovery'
-import type { ExamIdentity, ExamPaper, SaveExamAnswerInput } from './exams'
+import type { ExamIdentity, ExamPaper, SaveExamAnswerInput, ExamPdfExportInput } from './exams'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type StatusFlowTheme = 'violet' | 'ocean' | 'gold'
 export type Locale = 'zh-CN' | 'en-US'
@@ -276,7 +276,22 @@ export interface Status {
   updatedAt: number
 }
 
+export type CompanyNature =
+  | 'state_owned'
+  | 'private'
+  | 'foreign_invested'
+  | 'public_institution'
+  | 'social_organization'
+  | 'other'
+
+export interface CompanyNatureOption {
+  code: CompanyNature
+  name: string
+  sortOrder: number
+}
+
 export interface CompanySummary {
+  companyNature: CompanyNature | null
   id: number
   name: string
   industryIds: number[]
@@ -381,6 +396,7 @@ export interface CalendarReminderNotification {
 }
 
 export interface CreateCompanyInput {
+  companyNature?: CompanyNature | null
   name: string
   locations?: string[]
   industryIds?: number[]
@@ -444,6 +460,7 @@ export interface PageResult<T> extends PageQuery {
 }
 
 export interface CompanyQuery extends PageQuery {
+  companyNatures?: CompanyNature[]
   keyword?: string
   industryId?: number | null
   locations?: string[]
@@ -499,6 +516,7 @@ export interface ZhijiApi {
     exportBundle(): Promise<'cancelled' | 'exported'>
   }
   exams: {
+    exportPdf(input: ExamPdfExportInput): Promise<'exported' | 'cancelled'>
     get(input: ExamIdentity): Promise<ExamPaper>
     save(input: SaveExamAnswerInput): Promise<ExamPaper>
     submit(input: SaveExamAnswerInput): Promise<ExamPaper>
@@ -576,6 +594,7 @@ export interface ZhijiApi {
     reorder(input: ReorderIndustriesInput): Promise<Industry[]>
   }
   companies: {
+    listNatures(): Promise<CompanyNatureOption[]>
     search(query: CompanyQuery): Promise<PageResult<Company>>
     searchLocations(query: CompanyLocationQuery): Promise<PageResult<string>>
     list(): Promise<CompanySummary[]>

@@ -89,7 +89,7 @@ const agentStore = useAgentStore()
 const { items: statuses } = storeToRefs(statusesStore)
 const { items: industries } = storeToRefs(industriesStore)
 const { items: resumes } = storeToRefs(resumesStore)
-const { items: companies } = storeToRefs(companiesStore)
+const { items: companies, natures: companyNatures } = storeToRefs(companiesStore)
 const { config } = storeToRefs(settingsStore)
 const viewportWidth = ref(window.innerWidth)
 const discoveryView = ref<InstanceType<typeof JobDiscoveryView>>()
@@ -309,6 +309,7 @@ const {
   companyManagementSearch,
   selectedCompanyIndustryId,
   selectedCompanyLocations,
+  selectedCompanyNatures,
   companyAliasInput,
   companyForm,
   showIndustryModal,
@@ -629,8 +630,22 @@ const resumeColumns = computed<DataTableColumns<ResumeVersion>>(() => [
   },
 ])
 
+const companyNatureOptions = computed(() =>
+  companyNatures.value.map((item) => ({
+    value: item.code,
+    label: t(`management.companyNatureLabels.${item.code}`),
+  })),
+)
+
 const companyColumns = computed<DataTableColumns<Company>>(() => [
   { title: t('management.companyName'), key: 'name', width: 200, ellipsis: { tooltip: true } },
+  {
+    title: t('management.companyNature'),
+    key: 'companyNature',
+    width: 140,
+    render: (row) =>
+      row.companyNature === null ? '—' : t(`management.companyNatureLabels.${row.companyNature}`),
+  },
   {
     title: t('management.companyLocations'),
     key: 'locations',
@@ -1372,6 +1387,9 @@ onBeforeUnmount(() => {
               :pagination="companyPagination"
               :search="companyManagementSearch"
               :selected-industry-id="selectedCompanyIndustryId"
+              :selected-natures="selectedCompanyNatures"
+              :nature-options="companyNatureOptions"
+              @update:selected-natures="selectedCompanyNatures = $event"
               :selected-locations="selectedCompanyLocations"
               :location-options-revision="companyLocationOptionsRevision"
               :industry-options="industryOptions"
@@ -1410,6 +1428,7 @@ onBeforeUnmount(() => {
             />
             <AgentView
               v-if="activeView === 'agent'"
+              @exam-exported="message.success(t('exam.exportSuccess'))"
               :mcp-enabled="config?.mcp.enabled ?? false"
               :multimodal="config?.ai.multimodal ?? false"
               :resumes="resumes"
@@ -1725,6 +1744,16 @@ onBeforeUnmount(() => {
             <n-input
               v-model:value="companyForm.name"
               :placeholder="t('management.companyNamePlaceholder')"
+            />
+          </n-form-item>
+          <n-form-item :label="t('management.companyNature')">
+            <n-select
+              v-model:value="companyForm.companyNature"
+              class="company-nature-editor"
+              :options="companyNatureOptions"
+              :placeholder="t('management.companyNatureEmpty')"
+              clearable
+              filterable
             />
           </n-form-item>
           <n-form-item :label="t('management.companyIndustry')">

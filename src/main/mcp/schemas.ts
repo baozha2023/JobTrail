@@ -1,5 +1,12 @@
 import { z } from 'zod'
 import { companyLocationsInputSchema } from '../../shared/company-locations'
+import { companyNatureSchema } from '../../shared/company-natures'
+
+export const companyNatureOptionSchema = z.strictObject({
+  code: companyNatureSchema,
+  name: z.string(),
+  sortOrder: z.number().int().positive(),
+})
 
 export const positiveIdSchema = z.number().int().positive()
 export const pageSchema = z.number().int().positive()
@@ -58,6 +65,7 @@ export const industrySchema = z.strictObject({
 })
 
 export const companySchema = z.strictObject({
+  companyNature: companyNatureSchema.nullable(),
   locations: z.array(z.string()),
   id: positiveIdSchema,
   name: z.string(),
@@ -140,6 +148,7 @@ export const updateIndustryInputSchema = nonEmptyUpdate({
 })
 
 const companyInputShape = {
+  companyNature: companyNatureSchema.nullable().optional(),
   locations: companyLocationsInputSchema.optional(),
   name: requiredText,
   industryIds: idList.optional(),
@@ -148,6 +157,7 @@ const companyInputShape = {
 }
 export const createCompanyInputSchema = z.strictObject(companyInputShape)
 export const updateCompanyInputSchema = nonEmptyUpdate({
+  companyNature: companyNatureSchema.nullable().optional(),
   locations: companyLocationsInputSchema.optional(),
   name: requiredText.optional(),
   industryIds: idList.optional(),

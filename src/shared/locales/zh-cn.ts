@@ -1,4 +1,6 @@
 export default {
+  EXAM_EXPORT_BUSY: '正在导出试卷，请稍候',
+  EXAM_EXPORT_FAILED: '试卷 PDF 导出失败，请检查保存位置后重试',
   AGENT_QUEUE_FULL: '当前聊天最多排队三条消息，请等待或删除一条。',
   AGENT_QUEUE_CHANGED: '该排队消息已经开始执行或发生变化，请刷新队列。',
   COMPANY_EXISTS: '该公司已存在',

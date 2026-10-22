@@ -1,7 +1,13 @@
 import type { ExamService } from '../services/exam-service'
 import type { ExamGrader } from '../agent/exam-grader'
 import { registerChannel, sendToTrustedWindow } from './register-channel'
-export function registerExamIpc(exams: ExamService, grader: ExamGrader): void {
+import type { ExamPdfExporter } from '../exam-pdf-exporter'
+export function registerExamIpc(
+  exams: ExamService,
+  grader: ExamGrader,
+  exporter: ExamPdfExporter,
+): void {
+  registerChannel('exams:export-pdf', (input) => exporter.export(input))
   registerChannel('exams:get', (input) => exams.get(input))
   registerChannel('exams:save', (input) => {
     const paper = exams.save(input)

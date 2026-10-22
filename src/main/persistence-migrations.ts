@@ -18,6 +18,7 @@ import { MIGRATE_V4_V5 } from './persistence/schema-v5'
 import { MIGRATE_V5_V6 } from './persistence/schema-v6'
 import { MIGRATE_V6_V7 } from './persistence/schema-v7'
 import { MIGRATE_V7_V8 } from './persistence/schema-v8'
+import { MIGRATE_V8_V9 } from './persistence/schema-v9'
 import { MIGRATE_V2_V3 } from './persistence/schema-v3'
 import { TARGET_CONFIG_VERSION, TARGET_DATABASE_VERSION } from './persistence/versions'
 import { updateFreezePath, waitForMcpSessions } from './update-freeze'
@@ -91,6 +92,15 @@ export const DATABASE_MIGRATIONS: MigrationStep<Db>[] = [
     apply: (db) => {
       validateDatabaseVersion(db, 7)
       db.exec(MIGRATE_V7_V8)
+      return db
+    },
+  },
+  {
+    from: 8,
+    to: 9,
+    apply: (db) => {
+      validateDatabaseVersion(db, 8)
+      db.exec(MIGRATE_V8_V9)
       return db
     },
   },

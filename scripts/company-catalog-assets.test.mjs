@@ -15,9 +15,9 @@ test('copies the full catalog byte-for-byte and emits a verifiable manifest', ()
   fs.mkdirSync(path.join(root, 'resource'))
   const source = Buffer.from(
     JSON.stringify({
-      formatVersion: 2,
+      formatVersion: 3,
       catalogVersion: 4,
-      minimumAppVersion: '1.5.0',
+      minimumAppVersion: '2.7.0',
       industries: [
         {
           builtinKey: '00000000-0000-4000-8000-000000000001',
@@ -66,6 +66,39 @@ test('rejects missing or malformed catalog sources', () => {
     assert.throws(() => buildCompanyCatalogAssets(root, output), /ENOENT/)
     fs.writeFileSync(path.join(root, 'resource', COMPANY_CATALOG_FILE_NAME), '{}')
     assert.throws(() => buildCompanyCatalogAssets(root, output), /invalid root fields/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('validates optional company nature codes in format 3 release assets', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jobtrail-catalog-natures-'))
+  fs.mkdirSync(path.join(root, 'resource'))
+  const original = JSON.parse(
+    fs.readFileSync(new URL('../resource/jobtrail-company-catalog.json', import.meta.url), 'utf8'),
+  )
+  try {
+    for (const value of [undefined, null, 'private', 'state_owned', 'other']) {
+      const source = structuredClone(original)
+      source.companies[0].companyNature = value
+      fs.writeFileSync(
+        path.join(root, 'resource', COMPANY_CATALOG_FILE_NAME),
+        JSON.stringify(source),
+      )
+      assert.doesNotThrow(() => buildCompanyCatalogAssets(root, path.join(root, 'dist')))
+    }
+    for (const value of ['', '民营企业', 'unknown', 1, false, [], {}]) {
+      const source = structuredClone(original)
+      source.companies[0].companyNature = value
+      fs.writeFileSync(
+        path.join(root, 'resource', COMPANY_CATALOG_FILE_NAME),
+        JSON.stringify(source),
+      )
+      assert.throws(
+        () => buildCompanyCatalogAssets(root, path.join(root, 'dist')),
+        /invalid nature/,
+      )
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

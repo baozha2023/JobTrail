@@ -2,6 +2,7 @@ import { ref, toRaw, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type {
   Company,
+  CompanyNature,
   CreateCompanyInput,
   Industry,
   ResumeVersion,
@@ -9,7 +10,11 @@ import type {
   UpdateResumeVersionInput,
 } from '../../shared/types'
 
-type CompanyForm = Omit<CreateCompanyInput, 'aliases' | 'industryIds' | 'locations'> & {
+type CompanyForm = Omit<
+  CreateCompanyInput,
+  'aliases' | 'industryIds' | 'locations' | 'companyNature'
+> & {
+  companyNature: CompanyNature | null
   industryIds: number[]
   aliases: string[]
   locations: string[]
@@ -41,6 +46,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const companyManagementSearch = ref('')
   const selectedCompanyIndustryId = ref<number | null>(null)
   const selectedCompanyLocations = ref<string[]>([])
+  const selectedCompanyNatures = ref<CompanyNature[]>([])
   const managedCompanies = ref<Company[]>([])
   const managedCompaniesLoading = ref(false)
   const managedCompanyTotal = ref(0)
@@ -50,6 +56,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   const companyAliasInput = ref('')
   const companyForm = ref<CompanyForm>({
     name: '',
+    companyNature: null,
     industryIds: [],
     careerUrl: null,
     aliases: [],
@@ -78,6 +85,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
         keyword: companyManagementSearch.value,
         industryId: selectedCompanyIndustryId.value,
         locations: [...selectedCompanyLocations.value],
+        companyNatures: [...selectedCompanyNatures.value],
       })
       if (request !== managedCompanyRequest) return
       managedCompanies.value = result.items
@@ -284,6 +292,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     editingCompanyId.value = company?.id ?? null
     companyForm.value = {
       name: company?.name ?? '',
+      companyNature: company?.companyNature ?? null,
       industryIds: company?.industryIds ? [...company.industryIds] : [],
       careerUrl: company?.careerUrl ?? null,
       aliases: company?.aliases ? [...company.aliases] : [],
@@ -312,6 +321,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     }
     const input = {
       name: companyForm.value.name,
+      companyNature: companyForm.value.companyNature,
       industryIds: [...companyForm.value.industryIds],
       careerUrl: companyForm.value.careerUrl,
       aliases: normalizeAliases(companyForm.value.aliases),
@@ -363,7 +373,12 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
   }
 
   watch(
-    [companyManagementSearch, selectedCompanyIndustryId, selectedCompanyLocations],
+    [
+      companyManagementSearch,
+      selectedCompanyIndustryId,
+      selectedCompanyLocations,
+      selectedCompanyNatures,
+    ],
     (_value, previous) => {
       managedCompanyPage.value = 1
       // Clearing a deleted reference happens inside loadManagedCompanies, which
@@ -371,6 +386,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
       if (
         previous[0] === companyManagementSearch.value &&
         previous[2] === selectedCompanyLocations.value &&
+        previous[3] === selectedCompanyNatures.value &&
         selectedCompanyIndustryId.value === null &&
         previous[1] !== null &&
         !options.industries.value.some((item) => item.id === previous[1])
@@ -392,6 +408,7 @@ export function useManagementWorkspace(options: ManagementWorkspaceOptions) {
     companyManagementSearch,
     selectedCompanyIndustryId,
     selectedCompanyLocations,
+    selectedCompanyNatures,
     companyAliasInput,
     companyForm,
     showIndustryModal,

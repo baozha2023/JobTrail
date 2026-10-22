@@ -19,6 +19,7 @@ function sameValues<T extends number | string>(first: T[], second: T[]): boolean
 function matchesCatalog(current: CatalogCompanySnapshot, entry: ResolvedCatalogCompany): boolean {
   return (
     current.name === entry.name &&
+    current.companyNature === entry.companyNature &&
     current.builtinKey === entry.builtinKey &&
     current.careerUrl === entry.careerUrl &&
     sameValues(current.locations, entry.locations) &&

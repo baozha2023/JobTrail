@@ -39,8 +39,8 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       'Rebuild the stale packaged MCP server',
     )
     const tools = await client.listTools()
-    if (tools.tools.length !== 51 || new Set(tools.tools.map((tool) => tool.name)).size !== 51) {
-      throw new Error(`${name}: expected 51 unique tools, received ${tools.tools.length}`)
+    if (tools.tools.length !== 52 || new Set(tools.tools.map((tool) => tool.name)).size !== 52) {
+      throw new Error(`${name}: expected 52 unique tools, received ${tools.tools.length}`)
     }
     const enabled = await client.callTool({ name: 'list_statuses', arguments: {} })
     if (enabled.isError) {
@@ -88,15 +88,31 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       }
       const company = (
         await call('create_company', {
-          input: { name: `Location smoke ${name}`, locations: [' 北京 ', '上海', '北京'] },
+          input: {
+            name: `Location smoke ${name}`,
+            companyNature: 'private',
+            locations: [' 北京 ', '上海', '北京'],
+          },
         })
       ).item
+      const dictionary = (await call('list_company_natures', {})).items
+      assert.equal(dictionary.length, 6)
+      assert.deepEqual(
+        dictionary.map((item) => item.sortOrder),
+        [1, 2, 3, 4, 5, 6],
+      )
+      assert.equal(company.companyNature, 'private')
+      assert.deepEqual(
+        tools.tools.filter((tool) => tool.name.includes('company_nature')).map((tool) => tool.name),
+        ['list_company_natures'],
+      )
       assert.deepEqual(company.locations, ['上海', '北京'])
       assert.equal(
         (
           await call('search_companies', {
             keyword: company.name,
             locations: ['北京', '上海'],
+            companyNatures: ['private', 'other'],
             page: 1,
             pageSize: 50,
           })
@@ -106,6 +122,43 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       assert.deepEqual(
         (await call('update_company', { id: company.id, input: { locations: [] } })).item.locations,
         [],
+      )
+      assert.equal((await call('get_company', { id: company.id })).item.companyNature, 'private')
+      assert.equal(
+        (await call('update_company', { id: company.id, input: { companyNature: null } })).item
+          .companyNature,
+        null,
+      )
+      assert.equal(
+        (
+          await call('search_companies', {
+            keyword: company.name,
+            companyNatures: ['private'],
+            page: 1,
+            pageSize: 10,
+          })
+        ).total,
+        0,
+      )
+      assert.equal(
+        (
+          await call('search_companies', {
+            keyword: company.name,
+            companyNatures: [],
+            page: 1,
+            pageSize: 10,
+          })
+        ).total,
+        1,
+      )
+      assert.equal(
+        (
+          await client.callTool({
+            name: 'search_companies',
+            arguments: { companyNatures: [null] },
+          })
+        ).isError,
+        true,
       )
       await call('delete_company', { id: company.id })
     } finally {

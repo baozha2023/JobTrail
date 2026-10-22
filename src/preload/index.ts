@@ -104,6 +104,7 @@ const zhijiApi: ZhijiApi = {
     exportBundle: () => invoke('diagnostics:export'),
   },
   exams: {
+    exportPdf: (input) => invoke('exams:export-pdf', input),
     get: (input) => invoke('exams:get', input),
     save: (input) => invoke('exams:save', input),
     submit: (input) => invoke('exams:submit', input),
@@ -194,6 +195,7 @@ const zhijiApi: ZhijiApi = {
     reorder: (input) => invoke('industries:reorder', input),
   },
   companies: {
+    listNatures: () => invoke('companies:list-natures'),
     searchLocations: (query) => invoke('companies:search-locations', query),
     search: (query) => invoke('companies:search', query),
     list: () => invoke('companies:list'),

@@ -1,3 +1,4 @@
+import type { CompanyNature } from '../shared/types'
 import type { ExamPaper } from '../shared/exams'
 import {
   createExamSchema,
@@ -17,11 +18,13 @@ import {
   discoveryStatusOutputSchema,
 } from '../shared/job-discovery'
 import { companyLocationsInputSchema } from '../shared/company-locations'
+import { companyNatureFilterSchema } from '../shared/company-natures'
 import type { Services } from './service-container'
 import {
   calendarEventSchema,
   calendarRangeSchema,
   companySchema,
+  companyNatureOptionSchema,
   createCalendarInputSchema,
   createCompanyInputSchema,
   createIndustryInputSchema,
@@ -129,6 +132,19 @@ function tool<I extends z.ZodType, O extends z.ZodType>(
   } as unknown as McpToolDescriptor
 }
 
+function companyPreview<T extends { companyNature?: CompanyNature | null }>(
+  services: Services,
+  value: T,
+) {
+  const code = value.companyNature ?? null
+  return {
+    ...value,
+    companyNature: code,
+    companyNatureName:
+      services.companies.listNatures().find((item) => item.code === code)?.name ?? '未填写',
+  }
+}
+
 function examSummary(paper: ExamPaper) {
   return {
     id: paper.id,
@@ -174,6 +190,7 @@ const updateIndustryArgs = z.strictObject({
   input: updateIndustryInputSchema,
 })
 const companySearchArgs = z.strictObject({
+  companyNatures: companyNatureFilterSchema.optional(),
   locations: companyLocationsInputSchema.optional(),
   keyword: z.string().optional(),
   industryId: positiveIdSchema.nullable().optional(),
@@ -351,7 +368,7 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
     name: 'append_exam_question',
     title: '追加练习题',
     description:
-      '每完成一道完整题目立即保存到试卷，禁止等待整卷生成后批量保存。requestId 用于幂等重试。',
+      '每完成一道完整题目立即保存到试卷，禁止等待整卷生成后批量保存。简答题须提供非空默认答案 defaultAnswer。requestId 用于幂等重试。',
     readOnly: false,
     confirmation: 'never',
     idempotent: true,
@@ -564,10 +581,20 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   }),
 
   tool({
+    name: 'list_company_natures',
+    title: 'List company natures',
+    description:
+      'Read the fixed company nature dictionary, in display order. Use its codes when creating, updating or filtering companies. The dictionary cannot be edited.',
+    readOnly: true,
+    inputSchema: emptyInput,
+    outputSchema: itemsOutput(companyNatureOptionSchema),
+    execute: (s) => ({ items: s.companies.listNatures() }),
+  }),
+  tool({
     name: 'search_companies',
     title: 'Search companies',
     description:
-      'Search companies by name or alias, industry, and exact office location labels. Multiple locations match any selected label; combine with other filters using AND.',
+      'Search companies by name or alias, industry, company natures, and exact office location labels. Select from the six dictionary codes; multiple natures match any selected code and exclude unfilled values. Omitted or empty arrays do not filter. Combine filter groups using AND.',
     readOnly: true,
     inputSchema: companySearchArgs,
     outputSchema: pageOutput(companySchema),
@@ -619,25 +646,30 @@ export const MCP_TOOLS: readonly McpToolDescriptor[] = [
   tool({
     name: 'create_company',
     title: 'Create company',
-    description: 'Create a company with industries, aliases, and office location labels.',
+    description:
+      'Create a company with industries, aliases, office location labels and optional companyNature. Query list_company_natures for valid codes; omitted or null nature means unfilled.',
     readOnly: false,
     inputSchema: createCompanyArgs,
     outputSchema: itemOutput(companySchema),
-    preview: (_s, a) => ({ entityType: 'company', before: null, after: a.input }),
+    preview: (s, a) => ({ entityType: 'company', before: null, after: companyPreview(s, a.input) }),
     execute: (s, a) => ({ item: s.companies.create(a.input) }),
   }),
   tool({
     name: 'update_company',
     title: 'Update company',
     description:
-      'Update a company, its industries, aliases, office locations, or favorite state. Omit locations to preserve them; an empty array clears them.',
+      'Update a company, its nature, industries, aliases, office locations, or favorite state. Omit companyNature to preserve it, or send null to clear it. Read valid codes with list_company_natures; the dictionary is not editable. Omit locations to preserve them; an empty array clears them.',
     readOnly: false,
     idempotent: true,
     inputSchema: updateCompanyArgs,
     outputSchema: itemOutput(companySchema),
     preview: (s, a) => {
       const before = s.companies.get(a.id)
-      return { entityType: 'company', before, after: { ...before, ...a.input } }
+      return {
+        entityType: 'company',
+        before: companyPreview(s, before),
+        after: companyPreview(s, { ...before, ...a.input }),
+      }
     },
     execute: (s, a) => ({ item: s.companies.update(a.id, a.input) }),
   }),

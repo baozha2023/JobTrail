@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createServiceContainer } from '../src/main/service-container'
 import { examQuestionSchema, type SaveExamAnswerInput } from '../src/shared/exams'
+import { validateDatabaseVersion } from '../src/main/persistence-migrations'
 const cleanups: (() => void)[] = []
 afterEach(() =>
   cleanups
@@ -45,6 +46,150 @@ function fixture() {
   return { ...c, exam, identity }
 }
 describe('practice exams', () => {
+  it.each(['after_each', 'at_end'] as const)(
+    'exports a private snapshot with %s answers without including attempts',
+    (answerPlacement) => {
+      const f = fixture()
+      const paper = f.exam.append({
+        ...f.identity,
+        requestId: randomUUID(),
+        question: {
+          type: 'short_answer',
+          prompt: 'Export question',
+          defaultAnswer: 'Creation answer',
+        },
+      })
+      const job = f.exam.beginGrade({
+        ...f.identity,
+        questionId: paper.questions[0].id,
+        resetVersion: 0,
+        expectedVersion: 0,
+        value: 'Private user attempt',
+      })
+      f.exam.finishGrade(job, {
+        score: 93,
+        evaluation: 'Private evaluation',
+        referenceAnswer: 'Different grading reference',
+      })
+      const input = { ...f.identity, answerPlacement }
+      const snapshot = f.exam.exportSnapshot(input)
+      expect(snapshot.paper.questions).toEqual([
+        {
+          position: 1,
+          content: { type: 'short_answer', prompt: 'Export question' },
+          defaultAnswer: 'Creation answer',
+        },
+      ])
+      expect(snapshot.answerPlacement).toBe(answerPlacement)
+      expect(JSON.stringify(snapshot)).not.toMatch(
+        /Private user attempt|Private evaluation|Different grading reference|score/,
+      )
+      f.database.db
+        .prepare('UPDATE exam_questions SET default_answer=NULL WHERE id=?')
+        .run(paper.questions[0].id)
+      expect(f.exam.exportSnapshot(input).paper.questions[0].defaultAnswer).toBeNull()
+      expect(snapshot.paper.questions[0].defaultAnswer).toBe('Creation answer')
+      expect(() => f.exam.exportSnapshot({ ...input, conversationId: randomUUID() })).toThrow(
+        expect.objectContaining({ code: 'EXAM_NOT_FOUND' }),
+      )
+      expect(() => f.exam.exportSnapshot({ ...input, filePath: 'bad.pdf' })).toThrow(
+        expect.objectContaining({ code: 'EXAM_INVALID' }),
+      )
+      expect(() => f.exam.exportSnapshot({ ...input, answerPlacement: 'unknown' })).toThrow(
+        expect.objectContaining({ code: 'EXAM_INVALID' }),
+      )
+    },
+  )
+  it('rejects exporting an empty paper', () => {
+    const f = fixture()
+    expect(() => f.exam.exportSnapshot({ ...f.identity, answerPlacement: 'at_end' })).toThrow(
+      expect.objectContaining({ code: 'EXAM_INVALID' }),
+    )
+  })
+  it('stores private default answers, rejects changed retries and preserves them across answer resets', () => {
+    const f = fixture()
+    const requestId = randomUUID()
+    const question = {
+      type: 'short_answer' as const,
+      prompt: 'Explain a promise',
+      defaultAnswer: '  An eventual completion or failure.  ',
+    }
+    const paper = f.exam.append({ ...f.identity, requestId, question })
+    expect(paper.questions[0].content).toEqual({ type: question.type, prompt: question.prompt })
+    expect(JSON.stringify(f.exam.get(f.identity))).not.toContain('defaultAnswer')
+    const stored = () =>
+      f.database.db
+        .prepare('SELECT content,default_answer FROM exam_questions WHERE id=?')
+        .get(paper.questions[0].id)
+    const expected = {
+      content: JSON.stringify({ type: question.type, prompt: question.prompt }),
+      default_answer: question.defaultAnswer.trim(),
+    }
+    expect(stored()).toEqual(expected)
+    expect(f.exam.append({ ...f.identity, requestId, question })).toEqual(paper)
+    expect(() =>
+      f.exam.append({
+        ...f.identity,
+        requestId,
+        question: { ...question, defaultAnswer: 'Different answer' },
+      }),
+    ).toThrow(expect.objectContaining({ code: 'EXAM_INVALID' }))
+    const job = f.exam.beginGrade({
+      ...f.identity,
+      questionId: paper.questions[0].id,
+      resetVersion: 0,
+      expectedVersion: 0,
+      value: 'A future value',
+    })
+    expect(JSON.stringify(job)).not.toContain('defaultAnswer')
+    expect(JSON.stringify(job)).not.toContain(question.defaultAnswer.trim())
+    f.exam.finishGrade(job, { score: 90, evaluation: 'Good', referenceAnswer: 'Grader answer' })
+    expect(f.exam.get(f.identity).questions[0].answer.result).toMatchObject({
+      referenceAnswer: 'Grader answer',
+    })
+    f.exam.reset(f.identity)
+    expect(stored()).toEqual(expected)
+    validateDatabaseVersion(f.database.db, 9)
+  })
+  it.each([
+    { label: 'missing', value: undefined },
+    { label: 'null', value: null },
+    { label: 'empty', value: '' },
+    { label: 'blank', value: '   ' },
+    { label: 'numeric', value: 42 },
+    { label: 'oversized', value: 'x'.repeat(12001) },
+  ])(
+    'rejects $label default answers without saving a question or card',
+    ({ value: defaultAnswer }) => {
+      const f = fixture()
+      expect(() =>
+        f.exam.append({
+          ...f.identity,
+          requestId: randomUUID(),
+          question: { type: 'short_answer', prompt: 'Explain', defaultAnswer },
+        }),
+      ).toThrow(expect.objectContaining({ code: 'EXAM_INVALID' }))
+      expect(f.exam.get(f.identity).questions).toEqual([])
+      expect(f.database.db.prepare('SELECT id FROM agent_chat_events').all()).toEqual([])
+    },
+  )
+  it('accepts empty stored defaults but rejects defaults attached to objective questions', () => {
+    const f = fixture()
+    const paper = f.exam.append({
+      ...f.identity,
+      requestId: randomUUID(),
+      question: { type: 'true_false', prompt: '1=1', correct: true, explanation: 'Identity' },
+    })
+    const questionId = paper.questions[0].id
+    expect(
+      f.database.db.prepare('SELECT default_answer FROM exam_questions WHERE id=?').get(questionId),
+    ).toEqual({ default_answer: null })
+    validateDatabaseVersion(f.database.db, 9)
+    f.database.db
+      .prepare('UPDATE exam_questions SET default_answer=? WHERE id=?')
+      .run('Unexpected private answer', questionId)
+    expect(() => validateDatabaseVersion(f.database.db, 9)).toThrow()
+  })
   it('rejects unknown identity fields and keeps completion retries idempotent', () => {
     const f = fixture()
     const invalid = { ...f.identity, extra: true }
@@ -100,7 +245,11 @@ describe('practice exams', () => {
     f.exam.append({
       ...f.identity,
       requestId: randomUUID(),
-      question: { type: 'short_answer', prompt: 'Explain event loops' },
+      question: {
+        type: 'short_answer',
+        prompt: 'Explain event loops',
+        defaultAnswer: 'The event loop schedules pending callbacks.',
+      },
     })
     expect(f.exam.complete(f.identity).status).toBe('completed')
     expect(
@@ -177,7 +326,11 @@ describe('practice exams', () => {
     const p = f.exam.append({
       ...f.identity,
       requestId: randomUUID(),
-      question: { type: 'short_answer', prompt: 'Explain a promise' },
+      question: {
+        type: 'short_answer',
+        prompt: 'Explain a promise',
+        defaultAnswer: 'An eventual completion or failure.',
+      },
     })
     const input = {
       ...f.identity,
@@ -233,7 +386,11 @@ describe('practice exams', () => {
     const p = f.exam.append({
       ...f.identity,
       requestId: randomUUID(),
-      question: { type: 'short_answer', prompt: 'Explain a promise' },
+      question: {
+        type: 'short_answer',
+        prompt: 'Explain a promise',
+        defaultAnswer: 'An eventual completion or failure.',
+      },
     })
     const job = f.exam.beginGrade({
       ...f.identity,

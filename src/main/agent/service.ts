@@ -23,6 +23,7 @@ import { createAgentGraph } from './graph'
 import { AgentArchive } from './archive'
 import { AgentMcpClient } from './mcp-client'
 import { prepareUserMessage } from './message'
+import { toolDisplayArgs } from './tool-display'
 import { discoveryRecoveryTargetSchema, platformNames } from '../../shared/job-discovery'
 import type { AgentRuntimeInfo } from './runtime'
 
@@ -598,7 +599,7 @@ export class AgentService {
                 kind: 'tool-start',
                 toolCallId: call.id,
                 toolName: call.name,
-                toolArgs: JSON.stringify(call.args ?? {}),
+                toolArgs: toolDisplayArgs(call.name, call.args),
               })
             }
           }

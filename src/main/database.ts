@@ -1,5 +1,5 @@
 import { validateDatabaseVersion } from './persistence/validation'
-import { SCHEMA_V8 } from './persistence/schema-v8'
+import { SCHEMA_V9 } from './persistence/schema-v9'
 import { CompanyLocationRepository } from './repositories/company-location-repository'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -71,7 +71,7 @@ export class DatabaseManager {
     if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' LIMIT 1").get())
       throw new DatabaseVersionError(0)
 
-    this.db.exec(SCHEMA_V8)
+    this.db.exec(SCHEMA_V9)
 
     this.seed()
   }
@@ -80,8 +80,8 @@ export class DatabaseManager {
     const now = Date.now()
     const locations = new CompanyLocationRepository(this.db)
     const insertCompany = this.db.prepare(`
-      INSERT INTO companies (name, builtin_key, career_url, is_favorite, created_at, updated_at)
-      VALUES (?, ?, ?, 0, ?, ?)
+      INSERT INTO companies (name, builtin_key, career_url, company_nature, is_favorite, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 0, ?, ?)
     `)
     const getCompanyId = this.db.prepare('SELECT id FROM companies WHERE name = ?')
     const addIndustry = this.db.prepare(`
@@ -104,7 +104,14 @@ export class DatabaseManager {
         now,
       )
       for (const companySeed of BUNDLED_COMPANY_CATALOG.companies) {
-        insertCompany.run(companySeed.name, companySeed.builtinKey, companySeed.careerUrl, now, now)
+        insertCompany.run(
+          companySeed.name,
+          companySeed.builtinKey,
+          companySeed.careerUrl,
+          companySeed.companyNature,
+          now,
+          now,
+        )
         const { id: companyId } = getCompanyId.get(companySeed.name) as { id: number }
         locations.synchronize(companyId, companySeed.locations, now)
         for (const industryKey of companySeed.industryKeys)

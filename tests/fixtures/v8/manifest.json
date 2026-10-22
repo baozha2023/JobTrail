@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "3890679",
+  "databaseVersion": 8,
+  "files": {
+    "src/main/persistence/schema-v1.ts": "8b322b1557c151805ddcd81c3fee40009b6e8987ff709186c5b78cde12599168",
+    "src/main/persistence/schema-v2.ts": "2bce53c562fe0a4d3aa4b19e1ec0a0035e8b6e4f86453a626bb1bfded768b4dc",
+    "src/main/persistence/schema-v3.ts": "2dfa371f8c2d6ccc686af9d043cc09ecc187e643540d8ed1c9c6e656502135bd",
+    "src/main/persistence/schema-v4.ts": "ef5c4cdb7143e15ed79831e6d9afe7c8953ce8fb1e654f40bf9e6cb60ec0912c",
+    "src/main/persistence/schema-v5.ts": "ca517ef382777ea9e3d3949250d9c330984f46285eb4a274248a15464b32606c",
+    "src/main/persistence/schema-v6.ts": "b6c342215636220bd0b84ff9b96b8f3f141633bc8350d179fb5ca7b82f146d52",
+    "src/main/persistence/schema-v7.ts": "eed73edeb66124baaf81202dc882f9944994cf540113a482e8f8ffcc10da59fc",
+    "src/main/persistence/schema-v8.ts": "bf59b145100527aee861274401d0ac47802fb5852314ee1969a39e43a4aac2c0"
+  }
+}

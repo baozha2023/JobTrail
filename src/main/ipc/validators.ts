@@ -18,6 +18,7 @@ import type {
 } from '../../shared/types'
 import { AppServiceError, assertNonEmptyUpdate } from '../services/errors'
 import { companyLocationsInput, companyLocationPrefix } from '../services/company-location-input'
+import { companyNatureInput, companyNaturesInput } from '../services/company-nature-input'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -156,7 +157,7 @@ export function parseCompany(
   const source = record(value, '公司')
   assertOnlyKeys(
     source,
-    ['name', 'industryIds', 'careerUrl', 'aliases', 'isFavorite', 'locations'],
+    ['name', 'industryIds', 'careerUrl', 'aliases', 'isFavorite', 'locations', 'companyNature'],
     '公司',
   )
   const name = stringValue(source.name, '公司名称', !partial)
@@ -165,6 +166,9 @@ export function parseCompany(
   const careerUrl = nullableString(source.careerUrl, '招聘官网')
   const companyAliases = aliases(source.aliases)
   const input: UpdateCompanyInput = {
+    ...(source.companyNature === undefined
+      ? {}
+      : { companyNature: companyNatureInput(source.companyNature) }),
     ...(source.locations === undefined
       ? {}
       : { locations: companyLocationsInput(source.locations) }),
@@ -317,8 +321,15 @@ export function parseOpportunityQuery(value: unknown): OpportunityQuery {
 
 export function parseCompanyQuery(value: unknown): CompanyQuery {
   const source = record(value, '公司查询')
-  assertOnlyKeys(source, ['page', 'pageSize', 'keyword', 'industryId', 'locations'], '公司查询')
+  assertOnlyKeys(
+    source,
+    ['page', 'pageSize', 'keyword', 'industryId', 'locations', 'companyNatures'],
+    '公司查询',
+  )
   const query: CompanyQuery = {
+    ...(source.companyNatures === undefined
+      ? {}
+      : { companyNatures: companyNaturesInput(source.companyNatures) }),
     page: numberValue(source.page, '页码'),
     pageSize: numberValue(source.pageSize, '每页数量'),
   }

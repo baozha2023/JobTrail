@@ -1,8 +1,8 @@
-# 职迹 SQLite 数据库（v8，v2.6.0）
+# 职迹 SQLite 数据库（v9，v2.7.0）
 
 本文记录数据库表结构、字段含义、约束及版本差异。
 
-v2.6.0 使用数据库 v8，v2.5.0 的 v7 已冻结，配置最终定版为 v2，备份封装保持 v1。正式 `7 → 8` 迁移仅扩展三张岗位发现表的平台约束，不改变智能体双队列、聊天、checkpoint、试卷或配置结构。旧库沿连续正式迁移升级，v2.6.0 不提供开发中间态兼容、同版本修补、字段别名或缺字段补齐。
+v2.7.0 的数据库最终定版为 v9、配置最终定版为 v2、备份封装保持 v1；v1—v9 的结构、正式迁移和逐版本校验语义冻结。正式 `8 → 9` 新增固定企业性质字典、默认 NULL 的公司性质字段和题目默认答案字段。整个 v2.7.0 不提供开发中间态兼容、同版本修补、字段别名或缺字段补齐；后续持久化结构变化必须递增对应版本。历史 v2.6.0 使用数据库 v8，正式 `7 → 8` 迁移仅扩展三张岗位发现表的平台约束，不改变智能体双队列、聊天、checkpoint、试卷或配置结构。旧正式版数据库沿连续迁移升级。
 
 ## 文件与版本
 
@@ -15,13 +15,15 @@ v2.6.0 使用数据库 v8，v2.5.0 的 v7 已冻结，配置最终定版为 v2�
 
 数据库使用 `better-sqlite3`，连接设置为 `journal_mode=WAL`、`busy_timeout=5000`；WAL 辅助文件为 `zhiji.db-wal` 和 `zhiji.db-shm`。`PRAGMA data_version` 表示其他连接的数据改动，不是结构版本。
 
-数据库结构版本使用 SQLite 内置 `PRAGMA user_version`，本文对应 **v8**。配置 `configVersion` 为 **2**，备份封装版本为 **1**，与数据库结构版本独立。
+数据库结构版本使用 SQLite 内置 `PRAGMA user_version`，本文对应 **v9**。配置 `configVersion` 为 **2**，备份封装版本为 **1**，与数据库结构版本独立。
 
 历史 v2.3.0 的数据库最终定版为 v6，配置最终定版为 v2：该版本运行时只接受完整 v6 结构，不提供本版本开发中间态兼容、`6 → 6` 修补、字段别名、缺字段补齐或启动补表。v6 SQL 与配置 v2 定义冻结，后续持久化变化须递增对应版本并追加正式迁移。当时新增正式 `5 → 6` 迁移，只扩展三张岗位发现表的平台约束以接受 `yupao`；仍为 30 张应用表、31 个显式索引。事务内按明确列复制、替换原表并重建索引，保留全部数据、ID、观察版本及业务关联。v1 至 v5 的结构、历史迁移和校验基线冻结，行内 JSON 同样按来源版本验证。配置保持 v2，其独立的 `1 → 2` 迁移加入引导进度。
 
 v7 在冻结的 v6 上追加 `schema-v7.ts`，通过 `MIGRATE_V6_V7` 重建 `discovery_jobs`、`discovery_sources`、`discovery_platforms`，新增固定平台 `nowcoder`。明确列复制后替换原表，重建原索引；表数仍为 30、显式索引仍为 31。v1—v6 SQL、历史迁移及逐版本 JSON 平台集合保持冻结。v7 已冻结。
 
-v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 加入同三张表的平台 CHECK，并扩展对应持久化 JSON 平台集合。逐列复制、替换和重建索引，保留全部原字段、数据与关联。新库使用 `SCHEMA_V8`，与正式迁移后结构一致；v1—v7 的 SQL、迁移、逐版本 JSON 校验语义及历史样本冻结。备份接受 v1—v8，先在临时副本校验并沿同一连续链迁移至 v8；v9 及以上拒绝。
+v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 加入同三张表的平台 CHECK，并扩展对应持久化 JSON 平台集合。逐列复制、替换和重建索引，保留全部原字段、数据与关联。当时新库使用 `SCHEMA_V8`，与正式迁移后结构一致；v1—v7 的 SQL、迁移、逐版本 JSON 校验语义及历史样本冻结。v8 定义及迁移已冻结。
+
+v9 新增 `company_natures`、`companies.company_nature` 和 `exam_questions.default_answer`，新库使用 `SCHEMA_V9`，旧库通过 `MIGRATE_V8_V9` 得到相同结构。固定字典仅在初始化及正式迁移写入，启动严格校验其全部行，不修复。旧公司性质及旧题默认答案均为 NULL，不联网补生成答案，目录状态不变；备份接受 v1—v9 并在临时副本迁移至 v9，v10 及以上拒绝。v9 共 31 张应用表、31 个显式索引。
 
 ## 数据约定
 
@@ -36,45 +38,46 @@ v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 
 
 ### 表与版本总览
 
-这里的 v1、v2、v3、v4、v5、v6、v7、v8 指数据库 `PRAGMA user_version`，不是客户端版本。每张表下的字段表格描述当前 v8 定义；历史约束变化在对应表下说明。`✓` 表示该版本包含此应用表，`按需` 表示使用 LangGraph 时成对创建，`—` 表示该版本没有此表。
+这里的 v1、v2、v3、v4、v5、v6、v7、v8、v9 指数据库 `PRAGMA user_version`，不是客户端版本。每张表下的字段表格描述当前 v9 定义；历史约束变化在对应表下说明。`✓` 表示该版本包含此应用表，`按需` 表示使用 LangGraph 时成对创建，`—` 表示该版本没有此表。
 
-| 表                              | v1     | v2     | v3     | v4     | v5     | v6     | v7     | v8     |
-| ------------------------------- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
-| `statuses`                      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `industries`                    | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `companies`                     | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `builtin_company_catalog_state` | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `company_industries`            | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `company_aliases`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `resume_versions`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `opportunities`                 | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `opportunity_status_events`     | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `calendar_events`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `calendar_event_reminders`      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `agent_conversations`           | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `agent_chat_events`             | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `agent_model_usage`             | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `chat_attachments`              | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `exam_papers`                   | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `exam_questions`                | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `exam_answers`                  | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `locations`                     | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `company_locations`             | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_jobs`                | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_observations`        | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_runs`                | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_requests`            | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_sources`             | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_results`             | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_views`               | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_view_items`          | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_platforms`           | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| `discovery_saved`               | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      |
-| **应用表数量**                  | **15** | **18** | **20** | **30** | **30** | **30** | **30** | **30** |
-| `checkpoints`                   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   |
-| `writes`                        | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   |
+| 表                              | v1     | v2     | v3     | v4     | v5     | v6     | v7     | v8     | v9     |
+| ------------------------------- | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ | ------ |
+| `statuses`                      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `industries`                    | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `companies`                     | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `builtin_company_catalog_state` | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `company_industries`            | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `company_aliases`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `resume_versions`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `opportunities`                 | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `opportunity_status_events`     | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `calendar_events`               | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `calendar_event_reminders`      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `agent_conversations`           | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `agent_chat_events`             | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `agent_model_usage`             | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `chat_attachments`              | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `exam_papers`                   | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `exam_questions`                | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `exam_answers`                  | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `locations`                     | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `company_locations`             | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_jobs`                | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_observations`        | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_runs`                | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_requests`            | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_sources`             | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_results`             | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_views`               | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_view_items`          | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_platforms`           | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| `discovery_saved`               | —      | —      | —      | ✓      | ✓      | ✓      | ✓      | ✓      | ✓      |
+| **应用表数量**                  | **15** | **18** | **20** | **30** | **30** | **30** | **30** | **30** | **31** |
+| `checkpoints`                   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   |
+| `writes`                        | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   | 按需   |
+| `company_natures`               | —      | —      | —      | —      | —      | —      | —      | —      | ✓      |
 
-以下每张表均单独标明引入版本。未特别说明的表，从引入版本到 v8 的字段和 SQL 约束保持一致。
+以下每张表均单独标明引入版本。未特别说明的表，从引入版本到 v9 的字段和 SQL 约束保持一致。
 
 ### 状态与行业
 
@@ -129,6 +132,30 @@ v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 
 | `is_favorite`  | INTEGER | 非空、默认 0、仅 0/1 | 是否收藏                            |
 | `created_at`   | INTEGER | 非空                 | 创建时间                            |
 | `updated_at`   | INTEGER | 非空                 | 更新时间                            |
+
+v9 新增 `company_nature`，v1—v8 不存在该字段。其余公司字段不变。
+
+| 字段             | 类型 | SQL 约束                                             | 用途                                      |
+| ---------------- | ---- | ---------------------------------------------------- | ----------------------------------------- |
+| `company_nature` | TEXT | 可空、DEFAULT NULL；CHECK 为 NULL 或下列六种代码之一 | 企业性质，逻辑关联 `company_natures.code` |
+
+#### `company_natures`
+
+引入版本：**v9**，仅存在于 v9 及后续版本。
+
+| 字段         | 类型    | SQL 约束                                           | 用途         |
+| ------------ | ------- | -------------------------------------------------- | ------------ |
+| `code`       | TEXT    | PRIMARY KEY、NOT NULL                              | 固定机器代码 |
+| `name`       | TEXT    | NOT NULL、UNIQUE                                   | 中文名称     |
+| `sort_order` | INTEGER | NOT NULL、UNIQUE、CHECK typeof 为 integer 且大于 0 | 固定显示顺序 |
+
+固定行：`state_owned` / 国有企业 / 1、`private` / 民营企业 / 2、`foreign_invested` / 外商投资企业 / 3、`public_institution` / 事业单位 / 4、`social_organization` / 社会组织 / 5、`other` / 其他 / 6。无物理外键、触发器、管理写入口或专用查询索引。性质为空与“其他”不同；Service 验证字典项存在，结构和数据校验拒绝字典增删改。字典内容升级必须走下一版正式迁移。
+
+目录格式 3 的公司条目可填写 `"companyNature": "state_owned"`，也可填写 `"companyNature": null` 或省略字段。只能使用上述代码，无法确认时保持为空，不根据公司名推断性质。目录是全量数据源，省略和 null 都会清空本地旧性质；同名自定义公司被收编时采用目录性质，公司退出目录转为自定义时保留性质。每次修改已应用或已发布的目录内容必须递增 `catalogVersion`，并按原始字节重新生成发布 manifest。
+
+普通公司创建时省略性质或传 null 均保存为 NULL；更新时省略保留原值、传 null 清空。安装版内置公司性质由目录维护，用户在设置页主动更新目录后同步；软件升级只迁移结构。MCP `list_company_natures` 可只读查询字典，用于公司录入，不提供字典写入口。
+
+公司查询的 `companyNatures` 仅接受六种代码组成的无重复数组，最多六项，拒绝 null 及未知代码。性质内部按 OR、与关键词、行业和地点按 AND 组合；选择性质时排除性质为 NULL 的公司，省略或空数组不筛选并包含空值公司。界面与 MCP 使用相同规则。
 
 #### `builtin_company_catalog_state`
 
@@ -306,7 +333,7 @@ v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 
 
 #### `agent_chat_events`
 
-引入版本：**v1**。v1 的 `kind` 仅允许 `user`、`assistant`、`tool`、`compact`；v2 增加 `exam-paper`，v3/v4/v5/v6/v7/v8 沿用 v2 约束。字段集合未变。
+引入版本：**v1**。v1 的 `kind` 仅允许 `user`、`assistant`、`tool`、`compact`；v2 增加 `exam-paper`，v3—v9 沿用 v2 约束。字段集合未变。
 
 | 字段              | 类型    | 约束                                                      | 说明            |
 | ----------------- | ------- | --------------------------------------------------------- | --------------- |
@@ -319,7 +346,7 @@ v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 
 
 #### `agent_model_usage`
 
-引入版本：**v1**。v1 的 `kind` 仅允许 `agent`、`compact`；v2 增加 `grade`，v3/v4/v5/v6/v7/v8 沿用 v2 约束。字段集合未变。
+引入版本：**v1**。v1 的 `kind` 仅允许 `agent`、`compact`；v2 增加 `grade`，v3—v9 沿用 v2 约束。字段集合未变。
 
 | 字段                | 类型    | 约束                               | 说明                     |
 | ------------------- | ------- | ---------------------------------- | ------------------------ |
@@ -381,15 +408,18 @@ v8 在冻结的 v7 上追加 `schema-v8.ts`，通过 `MIGRATE_V7_V8` 将 `ncss` 
 
 引入版本：**v2**。
 
-| 字段         | 类型    | 约束                         | 说明                          |
-| ------------ | ------- | ---------------------------- | ----------------------------- |
-| `id`         | TEXT    | 主键                         | 题目 UUID                     |
-| `paper_id`   | TEXT    | 非空；与 `position` 联合唯一 | 所属试卷 ID                   |
-| `request_id` | TEXT    | 非空、唯一                   | 追加幂等标识                  |
-| `position`   | INTEGER | 非空；与 `paper_id` 联合唯一 | 业务要求从 1 开始的连续题号   |
-| `content`    | TEXT    | 非空                         | 题型、题干及题型特有字段 JSON |
+| 字段             | 类型    | 约束                                                                  | 说明                                    |
+| ---------------- | ------- | --------------------------------------------------------------------- | --------------------------------------- |
+| `id`             | TEXT    | 主键                                                                  | 题目 UUID                               |
+| `paper_id`       | TEXT    | 非空；与 `position` 联合唯一                                          | 所属试卷 ID                             |
+| `request_id`     | TEXT    | 非空、唯一                                                            | 追加幂等标识                            |
+| `position`       | INTEGER | 非空；与 `paper_id` 联合唯一                                          | 业务要求从 1 开始的连续题号             |
+| `content`        | TEXT    | 非空                                                                  | 题型、题干及题型特有字段 JSON           |
+| `default_answer` | TEXT    | 可空、默认 NULL；非空时须为文本，去除两端空格后非空，长度不超过 12000 | 简答题出题时生成的内部默认答案，v9 引入 |
 
-`single_choice` 固定四个选项、A–D 唯一答案及解析；`true_false` 保存布尔答案及解析；`short_answer` 仅保存题干。聊天 `exam-paper` 卡片的 payload 只引用 `paperId`，不保存题目副本。
+`single_choice` 固定四个选项、A–D 唯一答案及解析；`true_false` 保存布尔答案及解析；`short_answer` 的 `content` 仅保存题干。v2—v8 没有 `default_answer` 列；v9 在现有版本内加入该列，旧题统一为 NULL，不自动补答案。新简答题调用 `append_exam_question` 时必须提交非空 `defaultAnswer`，由 Service trim 后单独保存；客观题默认答案须为 NULL。幂等重试同时核对题目及默认答案，不允许用相同 requestId 改写答案。默认答案不进入公开题目 DTO、MCP 读取结果、聊天展示历史或实时工具事件；模型原始工具调用仍保留在 checkpoint 中用于执行和重试。默认答案在普通作答界面不展示、不参与判题，与评分返回的 `exam_answers.result.referenceAnswer` 分开，作答修改和全卷重置均不修改默认答案。完整备份保留该列。聊天 `exam-paper` 卡片的 payload 只引用 `paperId`，不保存题目副本。
+
+用户主动导出 PDF 时，Service 通过 Repository 的同一只读事务取得试卷和题目快照，包括独立的 `default_answer`。该字段仅发给隔离打印页，不扩展普通试卷 DTO、MCP 或聊天数据；旧题 NULL 在 PDF 中留空，不调用模型、不使用评分参考答案替代。导出不读取用户作答与评分，不修改数据库、配置或结构版本。
 
 #### `exam_answers`
 
@@ -599,7 +629,7 @@ v2.2.0 在图状态中保存上下文计数元数据：`contextBaseline` 包含�
 
 ## 显式索引
 
-数据库 v8 包含以下 31 个显式索引。主键与唯一约束对应的 SQLite 自动索引不列在此表中。
+数据库 v9 沿用 v8 的以下 31 个显式索引。主键与唯一约束对应的 SQLite 自动索引不列在此表中。
 
 | 索引名                                    | 表                          | 键                                                    |
 | ----------------------------------------- | --------------------------- | ----------------------------------------------------- |
@@ -637,19 +667,20 @@ v2.2.0 在图状态中保存上下文计数元数据：`contextBaseline` 包含�
 
 ## 逻辑关联
 
-| 保存方字段                                                                                                   | 目标                     | 关联约束                           |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------ | ---------------------------------- |
-| `company_industries.company_id`、`company_aliases.company_id`                                                | `companies.id`           | 关联和别名必须属于有效公司         |
-| `company_locations.company_id`                                                                               | `companies.id`           | 地点关联必须属于有效公司           |
-| `company_locations.location_id`                                                                              | `locations.id`           | 地点必须有效，且至少有一条公司引用 |
-| `industries.parent_id`                                                                                       | `industries.id`          | 只可引用一级，有子节点时禁止删除   |
-| `company_industries.industry_id`                                                                             | `industries.id`          | 行业被公司使用时禁止删除           |
-| `opportunities.company_id`                                                                                   | `companies.id`           | 公司被求职记录使用时禁止删除       |
-| `opportunities.status_id`、`opportunity_status_events.status_id`                                             | `statuses.id`            | 当前或历史状态被使用时禁止删除     |
-| `opportunities.resume_version_id`                                                                            | `resume_versions.id`     | 简历被求职记录使用时禁止删除       |
-| `opportunity_status_events.opportunity_id`                                                                   | `opportunities.id`       | 状态节点必须属于有效求职记录       |
-| `calendar_events.opportunity_id`                                                                             | `opportunities.id`       | 可空，非空时必须引用有效求职记录   |
-| `calendar_event_reminders.calendar_event_id`                                                                 | `calendar_events.id`     | 提醒记录必须属于有效日程           |
-| `agent_chat_events.conversation_id`、`agent_model_usage.conversation_id`、`chat_attachments.conversation_id` | `agent_conversations.id` | 归档、用量及附件必须属于有效会话   |
+| 保存方字段                                                                                                   | 目标                     | 关联约束                                          |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------ | ------------------------------------------------- |
+| `company_industries.company_id`、`company_aliases.company_id`                                                | `companies.id`           | 关联和别名必须属于有效公司                        |
+| `companies.company_nature`                                                                                   | `company_natures.code`   | 可空；只能引用固定字典，不提供字典写入口（v9 起） |
+| `company_locations.company_id`                                                                               | `companies.id`           | 地点关联必须属于有效公司                          |
+| `company_locations.location_id`                                                                              | `locations.id`           | 地点必须有效，且至少有一条公司引用                |
+| `industries.parent_id`                                                                                       | `industries.id`          | 只可引用一级，有子节点时禁止删除                  |
+| `company_industries.industry_id`                                                                             | `industries.id`          | 行业被公司使用时禁止删除                          |
+| `opportunities.company_id`                                                                                   | `companies.id`           | 公司被求职记录使用时禁止删除                      |
+| `opportunities.status_id`、`opportunity_status_events.status_id`                                             | `statuses.id`            | 当前或历史状态被使用时禁止删除                    |
+| `opportunities.resume_version_id`                                                                            | `resume_versions.id`     | 简历被求职记录使用时禁止删除                      |
+| `opportunity_status_events.opportunity_id`                                                                   | `opportunities.id`       | 状态节点必须属于有效求职记录                      |
+| `calendar_events.opportunity_id`                                                                             | `opportunities.id`       | 可空，非空时必须引用有效求职记录                  |
+| `calendar_event_reminders.calendar_event_id`                                                                 | `calendar_events.id`     | 提醒记录必须属于有效日程                          |
+| `agent_chat_events.conversation_id`、`agent_model_usage.conversation_id`、`chat_attachments.conversation_id` | `agent_conversations.id` | 归档、用量及附件必须属于有效会话                  |
 
 以上关联属于业务约束，数据库未声明物理外键或级联删除。

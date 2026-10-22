@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
 import type { AgentMessage, AgentUsage } from '../../shared/types'
 import { ATTACHMENT_MARKER, AgentFileStore } from './files'
+import { toolDisplayArgs } from './tool-display'
 
 type SqliteDatabase = InstanceType<typeof Database>
 type StoredUserMessage = Extract<AgentMessage, { role: 'user' }> & { attachmentIds: string[] }
@@ -85,7 +86,7 @@ export class AgentArchive {
               role: 'tool',
               toolCallId: call.id,
               name: call.name,
-              args: JSON.stringify(call.args ?? {}),
+              args: toolDisplayArgs(call.name, call.args),
               result: null,
               status: 'running',
               attachments: [],

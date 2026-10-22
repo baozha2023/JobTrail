@@ -7,12 +7,13 @@ JobTrail is a local desktop app for managing your job search on Windows. Keep co
 ## Features
 
 - **Application tracking**: Organize job details and application progress, with links to resumes and scheduled events.
-- **Company management**: Find companies, browse career websites, manage multiple office locations, combine industry and location filters, and save favorites.
+- **Company management**: Find companies, browse career websites, manage multiple office locations and company natures, combine industry, nature and location filters, and save favorites.
 - **Job discovery (Beta)**: Search BOSS, Liepin, Zhilian, 51job, Guopin, Shixiseng, Yupao, Nowcoder, and NCSS. Sign in with QR codes, filter salaries, rank results by relevance, browse job details and search history, and save jobs as applications.
 - **Resume management**: Keep multiple resumes and track which one you used for each application.
 - **Calendar and reminders**: Schedule interviews, assessments, and deadlines with local notifications.
 - **AI assistant**: Connect your chosen model, reference resumes and roles, assess resume fit, and generate practice exams. View context usage, compact conversations, or connect external AI tools through MCP.
 - **Data backup**: Export and import complete backups of your records, settings, resumes, and chat attachments.
+- **Exam PDF export**: Export saved practice questions with answers and explanations below each question or at the end, including partially generated exams.
 
 Supports Simplified Chinese and English, light and dark themes, the system tray, launch at startup, and in-app updates.
 

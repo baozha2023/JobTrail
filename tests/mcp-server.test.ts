@@ -107,6 +107,79 @@ describe('JobTrail MCP server', () => {
   }
 
   it.each([false, true])(
+    'reads the immutable nature dictionary and edits company nature (modern=%s)',
+    async (modern) => {
+      const client = await connect(modern)
+      const dictionary = (await call(client, 'list_company_natures')).items as { code: string }[]
+      expect(dictionary.map((item) => item.code)).toEqual([
+        'state_owned',
+        'private',
+        'foreign_invested',
+        'public_institution',
+        'social_organization',
+        'other',
+      ])
+      const company = (
+        await call(client, 'create_company', {
+          input: { name: 'Nature MCP', companyNature: 'private' },
+        })
+      ).item as { id: number; companyNature: string | null }
+      expect(company.companyNature).toBe('private')
+      expect(
+        await call(client, 'update_company', { id: company.id, input: { isFavorite: true } }),
+      ).toMatchObject({ item: { companyNature: 'private' } })
+      expect(
+        await call(client, 'search_companies', {
+          keyword: 'Nature MCP',
+          page: 1,
+          pageSize: 10,
+          companyNatures: ['private', 'other'],
+        }),
+      ).toMatchObject({ total: 1, items: [{ id: company.id }] })
+      expect(
+        await call(client, 'update_company', { id: company.id, input: { companyNature: null } }),
+      ).toMatchObject({ item: { companyNature: null } })
+      expect(
+        await call(client, 'search_companies', {
+          keyword: 'Nature MCP',
+          page: 1,
+          pageSize: 10,
+          companyNatures: ['private'],
+        }),
+      ).toMatchObject({ total: 0 })
+      expect(
+        await call(client, 'search_companies', {
+          keyword: 'Nature MCP',
+          page: 1,
+          pageSize: 10,
+          companyNatures: [],
+        }),
+      ).toMatchObject({ total: 1 })
+      expect(
+        (
+          await client.callTool({
+            name: 'search_companies',
+            arguments: { companyNatures: [null] },
+          })
+        ).isError,
+      ).toBe(true)
+      expect(
+        (await client.listTools()).tools
+          .filter((tool) => tool.name.includes('company_nature'))
+          .map((tool) => tool.name),
+      ).toEqual(['list_company_natures'])
+      expect(
+        (
+          await client.callTool({
+            name: 'update_company',
+            arguments: { id: company.id, input: { companyNature: 'invalid' } },
+          })
+        ).isError,
+      ).toBe(true)
+    },
+  )
+
+  it.each([false, true])(
     'exposes Nowcoder search, history, detail and confirmed saving over modern=%s MCP',
     async (modern) => {
       const discovery = container!.services.discovery,
@@ -186,6 +259,74 @@ describe('JobTrail MCP server', () => {
       })
       expect(invalid.isError).toBe(true)
       expect(start).toHaveBeenCalledOnce()
+    },
+  )
+
+  it.each([false, true])(
+    'keeps new short-answer defaults private over modern=%s MCP',
+    async (modern) => {
+      const conversationId = randomUUID()
+      container!.database.db
+        .prepare(
+          'INSERT INTO agent_conversations (id,title,created_at,updated_at) VALUES (?,?,?,?)',
+        )
+        .run(conversationId, 'Private exam', 1, 1)
+      const client = await connect(modern)
+      const created = await client.callTool({
+        name: 'create_exam_paper',
+        arguments: {
+          conversationId,
+          requestId: 'create-private-exam',
+          taskId: 'private-task',
+          title: 'Private exam',
+          topic: 'TS',
+          difficulty: 'Medium',
+          counts: { single_choice: 0, true_false: 0, short_answer: 1 },
+        },
+      })
+      expect(created.isError).not.toBe(true)
+      const paper = (created.structuredContent as { paper: { id: string } }).paper
+      const identity = { conversationId, paperId: paper.id }
+      const missing = await client.callTool({
+        name: 'append_exam_question',
+        arguments: {
+          ...identity,
+          requestId: 'append-private',
+          question: { type: 'short_answer', prompt: 'Explain a promise' },
+        },
+      })
+      expect(missing.isError).toBe(true)
+      const added = await client.callTool({
+        name: 'append_exam_question',
+        arguments: {
+          ...identity,
+          requestId: 'append-private',
+          question: {
+            type: 'short_answer',
+            prompt: 'Explain a promise',
+            defaultAnswer: 'Private default answer.',
+          },
+        },
+      })
+      expect(added.isError).not.toBe(true)
+      const read = await client.callTool({ name: 'get_exam_paper', arguments: identity })
+      expect(read.isError).not.toBe(true)
+      expect(read.structuredContent).toMatchObject({
+        paper: {
+          questions: [{ content: { type: 'short_answer', prompt: 'Explain a promise' } }],
+        },
+      })
+      const completed = await client.callTool({ name: 'complete_exam_paper', arguments: identity })
+      expect(completed.isError).not.toBe(true)
+      for (const result of [created, added, read, completed]) {
+        expect(JSON.stringify(result)).not.toContain('defaultAnswer')
+        expect(JSON.stringify(result)).not.toContain('Private default answer.')
+      }
+      expect(
+        container!.database.db
+          .prepare('SELECT default_answer FROM exam_questions WHERE paper_id=?')
+          .get(paper.id),
+      ).toEqual({ default_answer: 'Private default answer.' })
     },
   )
 
@@ -292,11 +433,11 @@ describe('JobTrail MCP server', () => {
     },
   )
 
-  it('allows reads by default, gates access when disabled, and advertises exactly 51 tools', async () => {
+  it('allows reads by default, gates access when disabled, and advertises exactly 52 tools', async () => {
     const client = await connect()
     const listed = await client.listTools()
-    expect(listed.tools).toHaveLength(51)
-    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 51)
+    expect(listed.tools).toHaveLength(52)
+    expect(new Set(listed.tools.map((tool) => tool.name))).toHaveProperty('size', 52)
     expect(
       listed.tools.find((tool) => tool.name === 'read_web_page')?.annotations?.openWorldHint,
     ).toBe(true)
@@ -724,6 +865,28 @@ describe('JobTrail MCP server', () => {
       container!.services.statuses.list().filter((item) => item.label === '重启后确认'),
     ).toHaveLength(1)
   })
+
+  it.each([false, true])(
+    'reconfirms after a company nature changes while approval is pending (modern=%s)',
+    async (modern) => {
+      const company = container!.services.companies.create({
+        name: 'Concurrent nature',
+        companyNature: 'private',
+      })
+      let prompts = 0
+      const client = await connect(modern, 'accept', () => {
+        prompts++
+        if (prompts === 1)
+          container!.services.companies.update(company.id, { companyNature: 'other' })
+      })
+      await call(client, 'update_company', { id: company.id, input: { isFavorite: true } })
+      expect(prompts).toBe(2)
+      expect(container!.services.companies.get(company.id)).toMatchObject({
+        companyNature: 'other',
+        isFavorite: true,
+      })
+    },
+  )
 
   it('supports legacy confirmation and requests confirmation again for a stale preview', async () => {
     config.update({ mcp: { enabled: true, requireWriteConfirmation: true } })

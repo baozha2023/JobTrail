@@ -39,8 +39,13 @@ function resolveReference(part: DataReference, services: Services): DataReferenc
       const record = services.opportunities.get(part.id)
       return { kind: part.kind, id: part.id, name: `${record.companyName} · ${record.title}` }
     }
-    case 'company':
-      return { kind: part.kind, id: part.id, name: services.companies.get(part.id).name }
+    case 'company': {
+      const company = services.companies.get(part.id)
+      const nature = services.companies
+        .listNatures()
+        .find((item) => item.code === company.companyNature)
+      return { kind: part.kind, id: part.id, name: `${company.name} · ${nature?.name ?? '未填写'}` }
+    }
     case 'industry': {
       const industry = services.industries.get(part.id)
       if (industry.parentId === null)

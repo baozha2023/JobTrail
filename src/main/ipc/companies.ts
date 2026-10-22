@@ -8,6 +8,7 @@ import {
 } from './validators'
 
 export function registerCompanyIpc(services: Services): void {
+  registerChannel('companies:list-natures', () => services.companies.listNatures())
   registerChannel('companies:search-locations', (query) =>
     services.companies.searchLocations(parseCompanyLocationQuery(query)),
   )

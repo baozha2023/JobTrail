@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import type { CompanyNature } from '../../shared/types'
 import type { CompanyCatalogEntry } from '../company-catalog'
 import type { CompanyLocationRepository } from './company-location-repository'
 
@@ -16,6 +17,7 @@ export interface CompanyCatalogStateRow {
 }
 
 export interface CatalogCompanySnapshot {
+  companyNature: CompanyNature | null
   id: number
   name: string
   builtinKey: string | null
@@ -26,6 +28,7 @@ export interface CatalogCompanySnapshot {
 }
 
 interface CatalogCompanyRow {
+  company_nature: CompanyNature | null
   id: number
   name: string
   builtin_key: string | null
@@ -62,7 +65,9 @@ export class CompanyCatalogRepository {
   findByBuiltinKey(builtinKey: string): CatalogCompanySnapshot | undefined {
     return this.snapshot(
       this.db
-        .prepare('SELECT id, name, builtin_key, career_url FROM companies WHERE builtin_key = ?')
+        .prepare(
+          'SELECT id, name, builtin_key, career_url, company_nature FROM companies WHERE builtin_key = ?',
+        )
         .get(builtinKey) as CatalogCompanyRow | undefined,
     )
   }
@@ -70,7 +75,9 @@ export class CompanyCatalogRepository {
   findByName(name: string): CatalogCompanySnapshot | undefined {
     return this.snapshot(
       this.db
-        .prepare('SELECT id, name, builtin_key, career_url FROM companies WHERE name = ?')
+        .prepare(
+          'SELECT id, name, builtin_key, career_url, company_nature FROM companies WHERE name = ?',
+        )
         .get(name) as CatalogCompanyRow | undefined,
     )
   }
@@ -78,9 +85,9 @@ export class CompanyCatalogRepository {
   insert(entry: ResolvedCatalogCompany, timestamp: number): number {
     this.db
       .prepare(
-        'INSERT INTO companies (name, builtin_key, career_url, last_read_at, is_favorite, created_at, updated_at) VALUES (?, ?, ?, NULL, 0, ?, ?)',
+        'INSERT INTO companies (name, builtin_key, career_url, company_nature, last_read_at, is_favorite, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, 0, ?, ?)',
       )
-      .run(entry.name, entry.builtinKey, entry.careerUrl, timestamp, timestamp)
+      .run(entry.name, entry.builtinKey, entry.careerUrl, entry.companyNature, timestamp, timestamp)
     const row = this.db.prepare('SELECT id FROM companies WHERE name = ?').get(entry.name) as {
       id: number
     }
@@ -97,9 +104,16 @@ export class CompanyCatalogRepository {
   ): number[] {
     this.db
       .prepare(
-        'UPDATE companies SET name = ?, builtin_key = ?, career_url = ?, updated_at = ? WHERE id = ?',
+        'UPDATE companies SET name = ?, builtin_key = ?, career_url = ?, company_nature = ?, updated_at = ? WHERE id = ?',
       )
-      .run(entry.name, entry.builtinKey, entry.careerUrl, timestamp, current.id)
+      .run(
+        entry.name,
+        entry.builtinKey,
+        entry.careerUrl,
+        entry.companyNature,
+        timestamp,
+        current.id,
+      )
     this.syncIndustries(current.id, current.industryIds, entry.industryIds, timestamp)
     this.syncAliases(current.id, current.aliases, entry.aliases, timestamp)
     return this.locations.synchronize(current.id, entry.locations, timestamp)
@@ -142,6 +156,7 @@ export class CompanyCatalogRepository {
       id: row.id,
       name: row.name,
       builtinKey: row.builtin_key,
+      companyNature: row.company_nature,
       careerUrl: row.career_url,
       industryIds: industryIds.map((item) => item.industryId),
       aliases: aliases.map((item) => item.alias),

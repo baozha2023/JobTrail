@@ -23,6 +23,7 @@ const releases = [
   { version: '2.3.0', commit: '2b887aa', databaseVersion: 6, configVersion: 2 },
   { version: '2.4.0', commit: 'a0c9bd5', databaseVersion: 6, configVersion: 2 },
   { version: '2.5.0', commit: '6f15578', databaseVersion: 7, configVersion: 2 },
+  { version: '2.6.0', commit: '3890679', databaseVersion: 8, configVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -111,8 +112,15 @@ async function verify(root, expected) {
     },
     { root, tables: Object.keys(expected.rows) },
   )
-  assert.equal(actual.version, 8)
-  assert.deepEqual(actual.rows, expected.rows)
+  assert.equal(actual.version, 9)
+  assert.deepEqual(actual.rows, {
+    ...expected.rows,
+    companies: expected.rows.companies.map((row) => ({
+      ...row,
+      company_nature: null,
+    })),
+    exam_questions: expected.rows.exam_questions.map((row) => ({ ...row, default_answer: null })),
+  })
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
     migratedConfig(expected.config, 'skipped'),
@@ -323,7 +331,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
         version: release.version,
         commit: release.commit,
         scenario: 'supervised-startup-upgrade-and-second-launch',
-        databaseVersion: 8,
+        databaseVersion: 9,
         configVersion: 2,
         checks: [
           'all-settings-preserved',
@@ -358,7 +366,7 @@ main().catch((error)=>{console.error('Historical exporter failed', error);proces
       version: release.version,
       commit: release.commit,
       scenario: 'historical-export-import-restart-reexport-reimport-restart',
-      databaseVersion: 8,
+      databaseVersion: 9,
       configVersion: 2,
       checks: [
         'original-release-exporter',

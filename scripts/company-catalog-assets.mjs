@@ -25,7 +25,7 @@ function validateReleaseCatalog(value) {
   if (JSON.stringify(keys) !== JSON.stringify(expected))
     throw new Error('Company catalog has invalid root fields')
   if (
-    value.formatVersion !== 2 ||
+    value.formatVersion !== 3 ||
     !Number.isSafeInteger(value.catalogVersion) ||
     value.catalogVersion < 1
   )
@@ -85,7 +85,22 @@ function validateReleaseCatalog(value) {
   for (const company of value.companies) {
     if (!company || typeof company !== 'object' || Array.isArray(company))
       throw new Error('Company catalog entry must be an object')
-    const companyKeys = Object.keys(company).sort()
+    const companyKeys = Object.keys(company)
+      .filter((key) => key !== 'companyNature')
+      .sort()
+    if (
+      company.companyNature !== undefined &&
+      company.companyNature !== null &&
+      ![
+        'state_owned',
+        'private',
+        'foreign_invested',
+        'public_institution',
+        'social_organization',
+        'other',
+      ].includes(company.companyNature)
+    )
+      throw new Error('Company catalog contains an invalid nature')
     const expectedCompanyKeys = [
       'aliases',
       'builtinKey',

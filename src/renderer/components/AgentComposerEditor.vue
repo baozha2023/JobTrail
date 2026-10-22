@@ -94,7 +94,10 @@ const referenceOptions = computed<Record<Category, Extract<Option, { kind: 'refe
       category: 'company',
       id: item.id,
       label: item.name,
-      detail: categoryLabels.value.company,
+      detail:
+        item.companyNature === null
+          ? t('management.companyNatureEmpty')
+          : t(`management.companyNatureLabels.${item.companyNature}`),
       searchText: [item.name, ...item.aliases, item.industryName ?? ''].join(' '),
     })),
     industry: props.industries

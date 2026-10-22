@@ -4,11 +4,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import Database from 'better-sqlite3'
 import { afterEach, expect, it } from 'vitest'
-import {
-  DATABASE_MIGRATIONS,
-  preparePersistenceUpgrade,
-  validateDatabaseVersion,
-} from '../src/main/persistence-migrations'
+import { DATABASE_MIGRATIONS, validateDatabaseVersion } from '../src/main/persistence-migrations'
 import { SCHEMA_V8 } from '../src/main/persistence/schema-v8'
 import { decryptConfig } from '../src/main/config-crypto'
 import { seedDiscoveryV6 } from './helpers/discovery-v6'
@@ -98,7 +94,7 @@ it('preserves all eight-platform v7 rows, saved links, checkpoints and indexes; 
     new Set((before.discovery_jobs as { platform: string }[]).map((r) => r.platform)).size,
   ).toBe(8)
   f.db.close()
-  preparePersistenceUpgrade(f.file, f.config)
+  upgradeV8(f.file)
   const db = new Database(f.file),
     fresh = new Database(':memory:')
   try {
@@ -136,7 +132,7 @@ it('rolls back v7 replacement tables and every row after a post-copy failure', (
     throw new Error('post-copy failure')
   }
   try {
-    expect(() => preparePersistenceUpgrade(f.file, f.config)).toThrow('post-copy failure')
+    expect(() => upgradeV8(f.file)).toThrow('post-copy failure')
   } finally {
     step.apply = apply
   }
@@ -167,3 +163,20 @@ it('keeps released v7 SQL and row JSON validation closed to ncss', () => {
     f.db.close()
   }
 })
+
+// Keep the published v8 migration and validation target frozen.
+function upgradeV8(file: string) {
+  const db = new Database(file)
+  try {
+    db.transaction(() => {
+      const version = Number(db.pragma('user_version', { simple: true }))
+      for (const step of DATABASE_MIGRATIONS.filter((s) => s.from >= version && s.to <= 8)) {
+        step.apply(db)
+        db.pragma(`user_version=${step.to}`)
+        validateDatabaseVersion(db, step.to)
+      }
+    }).immediate()
+  } finally {
+    db.close()
+  }
+}

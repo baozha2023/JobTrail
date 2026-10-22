@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import type {
   Company,
+  CompanyNatureOption,
   CompanySummary,
   CompanyLocationQuery,
   CompanyQuery,
@@ -27,6 +28,18 @@ export class CompanyRepository {
     private readonly locations: CompanyLocationRepository,
   ) {}
 
+  listNatures(): CompanyNatureOption[] {
+    return this.db
+      .prepare(
+        'SELECT code, name, sort_order AS sortOrder FROM company_natures ORDER BY sort_order',
+      )
+      .all() as CompanyNatureOption[]
+  }
+
+  hasNature(code: string): boolean {
+    return this.db.prepare('SELECT 1 FROM company_natures WHERE code = ?').get(code) !== undefined
+  }
+
   searchLocations(query: CompanyLocationQuery) {
     return this.locations.search(query)
   }
@@ -34,6 +47,10 @@ export class CompanyRepository {
   search(query: CompanyQuery): { items: Company[]; total: number } {
     const clauses: string[] = []
     const params: Array<string | number> = []
+    if (query.companyNatures?.length) {
+      clauses.push('c.company_nature IN (SELECT value FROM json_each(?))')
+      params.push(JSON.stringify(query.companyNatures))
+    }
     if (query.locations?.length) {
       clauses.push(`EXISTS (SELECT 1 FROM company_locations cl
         WHERE cl.company_id = c.id AND cl.location_id IN (
@@ -176,11 +193,11 @@ export class CompanyRepository {
       const result = this.db
         .prepare(
           `
-        INSERT INTO companies (name, builtin_key, career_url, last_read_at, is_favorite, created_at, updated_at)
-        VALUES (?, NULL, ?, NULL, 0, ?, ?)
+        INSERT INTO companies (name, builtin_key, career_url, company_nature, last_read_at, is_favorite, created_at, updated_at)
+        VALUES (?, NULL, ?, ?, NULL, 0, ?, ?)
       `,
         )
-        .run(input.name, input.careerUrl ?? null, timestamp, timestamp)
+        .run(input.name, input.careerUrl ?? null, input.companyNature ?? null, timestamp, timestamp)
       const id = result.lastInsertRowid as number
       this.replaceIndustries(id, input.industryIds ?? [], timestamp)
       this.replaceAliases(id, input.aliases ?? [], timestamp)
@@ -194,10 +211,17 @@ export class CompanyRepository {
       this.db
         .prepare(
           `
-        UPDATE companies SET name = ?, career_url = ?, is_favorite = ?, updated_at = ? WHERE id = ?
+        UPDATE companies SET name = ?, career_url = ?, company_nature = ?, is_favorite = ?, updated_at = ? WHERE id = ?
       `,
         )
-        .run(input.name, input.careerUrl ?? null, input.isFavorite ? 1 : 0, timestamp, id)
+        .run(
+          input.name,
+          input.careerUrl ?? null,
+          input.companyNature ?? null,
+          input.isFavorite ? 1 : 0,
+          timestamp,
+          id,
+        )
       if (input.industryIds !== undefined) this.replaceIndustries(id, input.industryIds, timestamp)
       if (input.aliases !== undefined) this.replaceAliases(id, input.aliases, timestamp)
       if (input.locations !== undefined)

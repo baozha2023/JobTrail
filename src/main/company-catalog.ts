@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import { companyNatureSchema } from '../shared/company-natures'
 import bundledCatalogText from '../../resource/jobtrail-company-catalog.json?raw'
 import { AppServiceError } from './services/errors'
 
-export const COMPANY_CATALOG_FORMAT_VERSION = 2
+export const COMPANY_CATALOG_FORMAT_VERSION = 3
 export const MAX_COMPANY_CATALOG_BYTES = 2 * 1024 * 1024
 export const COMPANY_CATALOG_ASSET_NAME = 'jobtrail-company-catalog.json'
 export const COMPANY_CATALOG_MANIFEST_ASSET_NAME = 'jobtrail-company-catalog.manifest.json'
@@ -19,6 +20,10 @@ const normalizedText = (maximum: number) =>
     .refine((value) => value === value.trim())
 
 const catalogEntrySchema = z.strictObject({
+  companyNature: companyNatureSchema
+    .nullable()
+    .optional()
+    .transform((value) => value ?? null),
   builtinKey: z.string().regex(UUID_V4),
   name: normalizedText(200),
   industryKeys: z.array(z.string().regex(UUID_V4)).min(1).max(1_000),

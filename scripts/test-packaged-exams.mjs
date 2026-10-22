@@ -6,6 +6,7 @@ import * as yauzl from 'yauzl'
 import { _electron as electron } from 'playwright'
 import { encodeTestConfig, decodeTestConfig } from './config-test-helpers.mjs'
 import { skipToursForTest, linkPackagedProgram } from './packaged-test-helpers.mjs'
+import { verifyExamPdfExport } from './exam-pdf-acceptance.mjs'
 
 const project = path.resolve(import.meta.dirname, '..')
 const version = JSON.parse(fs.readFileSync(path.join(project, 'package.json'), 'utf8')).version
@@ -112,7 +113,14 @@ try {
         }
       } else if (step === 3) {
         name = 'append_exam_question'
-        args = { paperId, question: { type: 'short_answer', prompt: '解释 Promise 的作用。' } }
+        args = {
+          paperId,
+          question: {
+            type: 'short_answer',
+            prompt: '解释 Promise 的作用。',
+            defaultAnswer: '内部默认答案：Promise 表示异步操作的最终完成或失败。',
+          },
+        }
       } else if (step === 4) {
         await generationGate
         name = 'append_exam_question'
@@ -174,7 +182,7 @@ try {
     ...config.ai,
     baseUrl: `http://127.0.0.1:${server.address().port}/v1`,
     modelId: 'mock',
-    apiKey: '',
+    apiKey: 'exam-smoke-key',
   }
   fs.writeFileSync(path.join(root, 'config.json'), encodeTestConfig(config))
   const env = { ...process.env, APPDATA: staging, LOCALAPPDATA: staging }
@@ -325,6 +333,10 @@ try {
   const changedSettings = await page.evaluate((i) => window.zhijiApi.exams.get(i), identity)
   assert.equal(changedSettings.topic, 'TypeScript foundations')
   assert.equal(changedSettings.difficulty, '困难')
+  assert.ok(!JSON.stringify(changedSettings).includes('defaultAnswer'))
+  assert.ok(!JSON.stringify(changedSettings).includes('内部默认答案'))
+  const chatHistory = await page.evaluate((id) => window.zhijiApi.agent.history(id), conversationId)
+  assert.ok(!JSON.stringify(chatHistory).includes('内部默认答案'))
   const filledSize = await page.locator('.exam-modal').boundingBox()
   assert.ok(
     Math.abs(filledSize.height - modalSize.height) < 2,
@@ -418,7 +430,7 @@ try {
   })
   const manifest = JSON.parse(entries['manifest.json'])
   assert.equal(manifest.schemaVersion, 1)
-  assert.equal(manifest.environment.databaseVersion, 8)
+  assert.equal(manifest.environment.databaseVersion, 9)
   assert.equal(manifest.health.degraded, false)
   assert.ok(
     Object.keys(entries).every((name) => name === 'manifest.json' || name.startsWith('logs/')),
@@ -485,6 +497,7 @@ try {
   const reset = await page.evaluate((i) => window.zhijiApi.exams.reset(i), identity)
   assert.equal(reset.questions.length, 3)
   assert.ok(reset.questions.every((q) => q.answer.value === null && q.answer.result === null))
+  await verifyExamPdfExport(application, page, root, project)
   console.log(
     'PASS: packaged v1 startup migration, /study, MCP paper updates, fixed 70% × 90% modal with persistent mask, incremental card/modal, concurrent AI grading, objective submissions, restart persistence, current-schema backup/export/import/restart and reset',
   )

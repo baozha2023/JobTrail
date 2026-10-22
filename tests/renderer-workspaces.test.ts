@@ -99,6 +99,7 @@ function company(overrides: Partial<Company> = {}): Company {
     id: 1,
     name: '公司',
     industryIds: [],
+    companyNature: null,
     industryName: null,
     careerUrl: null,
     lastReadAt: null,
@@ -384,6 +385,7 @@ describe('renderer domain workspaces', () => {
     expect(workspace.managedCompanies.value.map((item) => item.id)).toEqual([1])
     expect(search).toHaveBeenLastCalledWith({
       locations: [],
+      companyNatures: [],
       page: 1,
       pageSize: 10,
       keyword: '',
@@ -398,6 +400,7 @@ describe('renderer domain workspaces', () => {
       keyword: '',
       industryId: 1,
       locations: ['已被清理的地点'],
+      companyNatures: [],
     })
     workspace.openCompanyEditor(company({ locations: ['草稿地点'] }))
     await workspace.loadManagedCompanies()
@@ -452,6 +455,7 @@ describe('renderer domain workspaces', () => {
       expect(workspace.managedCompanyPage.value).toBe(1)
       expect(search).toHaveBeenCalledExactlyOnceWith({
         locations: [],
+        companyNatures: [],
         page: 1,
         pageSize: 10,
         keyword: '',

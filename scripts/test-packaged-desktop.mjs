@@ -54,6 +54,7 @@ try {
     const statuses = await api.statuses.list()
     const company = await api.companies.create({
       name: '正式版验收合成公司',
+      companyNature: 'private',
       locations: ['北京', '上海', '杭州'],
     })
     const opportunity = await api.opportunities.create({
@@ -114,6 +115,8 @@ try {
   await page.locator('.sidebar').getByText('公司管理', { exact: true }).click()
   await page.locator('.page-header').getByRole('button', { name: '新增', exact: true }).click()
   await modal.getByPlaceholder('请输入公司名称').fill('树形验收公司')
+  await modal.locator('.company-nature-editor').click()
+  await page.locator('.n-base-select-menu:visible').getByText('民营企业', { exact: true }).click()
   await modal.locator('.n-cascader').click()
   const dropdown = page.locator('.n-cascader-menu:visible')
   // A section opens the next column without selecting the section or all children.
@@ -160,6 +163,7 @@ try {
   const treeCompany = await page.evaluate(async () =>
     (await window.zhijiApi.companies.list()).find((c) => c.name === '树形验收公司'),
   )
+  assert.equal(treeCompany.companyNature, 'private')
   assert.equal(treeCompany.industryIds.length, 1)
   assert.equal(treeCompany.industryName, '农、林、牧、渔业 / 树形验收二级')
   assert.equal(
@@ -177,6 +181,13 @@ try {
   // Catalog growth can move this fixture past the first industry result page.
   // Scope the widget checks to our fixture without changing production paging.
   await page.locator('.company-search input').fill(treeCompany.name)
+  const natureFilter = page.locator('.company-nature-filter')
+  await natureFilter.click()
+  await page.locator('.n-base-select-menu:visible').getByText('民营企业', { exact: true }).click()
+  await page.getByRole('heading', { name: '公司管理', exact: true }).click()
+  await page.getByText('树形验收公司', { exact: true }).waitFor()
+  await natureFilter.hover()
+  await natureFilter.locator('.n-base-clear').click()
   await page.getByText('树形验收公司', { exact: true }).waitFor()
   await page.locator('.company-industry-filter').click()
   assert.equal(await dropdown.locator('.n-checkbox').count(), 0)
@@ -291,6 +302,7 @@ try {
         months: config.companyReadValidityMonths,
         conversationExists: conversations.some((c) => c.id === conversationId),
         locations: (await window.zhijiApi.companies.get(opportunity.companyId)).locations,
+        companyNature: (await window.zhijiApi.companies.get(opportunity.companyId)).companyNature,
       }
     },
     { ...created, ...attachment },
@@ -299,6 +311,7 @@ try {
     title: '正式版验收合成岗位',
     months: 7,
     conversationExists: true,
+    companyNature: 'private',
     locations: ['上海', '北京', '杭州'],
   })
   await page.locator('.sidebar').getByText('设置', { exact: true }).click()

@@ -1,4 +1,4 @@
-export const TARGET_DATABASE_VERSION = 8
+export const TARGET_DATABASE_VERSION = 9
 export const TARGET_CONFIG_VERSION = 2
 
 export class DatabaseVersionError extends Error {

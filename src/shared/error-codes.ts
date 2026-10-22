@@ -1,4 +1,16 @@
 export const ERROR_CODES = {
+  EXAM_EXPORT_BUSY: {
+    category: 'business',
+    level: 'warn',
+    ui: true,
+    translationKey: 'error.EXAM_EXPORT_BUSY',
+  },
+  EXAM_EXPORT_FAILED: {
+    category: 'business',
+    level: 'error',
+    ui: true,
+    translationKey: 'error.EXAM_EXPORT_FAILED',
+  },
   AGENT_QUEUE_FULL: {
     category: 'validation',
     level: 'warn',

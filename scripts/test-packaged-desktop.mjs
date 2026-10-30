@@ -49,6 +49,61 @@ try {
   fs.mkdirSync(screenshots, { recursive: true })
   let page = await launch()
   await checkWorkspaceHeader(page)
+  const existingCompany = await page.evaluate(() =>
+    window.zhijiApi.companies.create({
+      name: '快捷入口匹配合成公司',
+      aliases: ['快捷别名合成'],
+    }),
+  )
+  await page.reload()
+  await page.locator('.sidebar').waitFor()
+  await page.locator('.sidebar').getByText('求职记录', { exact: true }).click()
+  await page.locator('.page-header').getByRole('button', { name: '新增', exact: true }).click()
+  const opportunityModal = page.locator('.opportunity-modal')
+  const companySelect = opportunityModal.locator('.n-select').first()
+  const companyInput = companySelect.locator('input')
+  await opportunityModal.getByPlaceholder('请输入岗位名称').fill('快捷新增回归岗位')
+  await companySelect.click()
+  await companyInput.fill('快捷别名合成')
+  await page
+    .locator('.n-base-select-menu:visible')
+    .getByText(existingCompany.name, { exact: true })
+    .waitFor()
+  await page.mouse.move(2, 2)
+  await companyInput.press('Enter')
+  await companySelect.getByText(existingCompany.name, { exact: true }).waitFor()
+  assert.equal(
+    await page.evaluate(async () =>
+      (await window.zhijiApi.companies.list()).some((company) => company.name === '快捷别名合成'),
+    ),
+    false,
+    'Enter on an alias must select the existing company without creating a duplicate',
+  )
+  await companySelect.click()
+  await companyInput.fill('快捷新增安装包合成公司')
+  await page
+    .locator('.n-base-select-menu:visible')
+    .getByText('＋ 新增公司：快捷新增安装包合成公司', { exact: true })
+    .waitFor()
+  await page.mouse.move(2, 2)
+  await companyInput.press('Enter')
+  await companySelect.getByText('快捷新增安装包合成公司', { exact: true }).waitFor()
+  await opportunityModal.locator('.n-button--disabled').waitFor({ state: 'hidden' })
+  assert.equal(
+    await opportunityModal.getByPlaceholder('请输入岗位名称').inputValue(),
+    '快捷新增回归岗位',
+  )
+  await opportunityModal.getByRole('button', { name: '取消', exact: true }).click()
+  await opportunityModal.waitFor({ state: 'hidden' })
+  await page.evaluate(async (existingId) => {
+    const createdCompany = (await window.zhijiApi.companies.list()).find(
+      (company) => company.name === '快捷新增安装包合成公司',
+    )
+    if (!createdCompany || createdCompany.isBuiltin || createdCompany.companyNature !== null)
+      throw new Error('Quick creation must persist a custom company with default values')
+    await window.zhijiApi.companies.delete(createdCompany.id)
+    await window.zhijiApi.companies.delete(existingId)
+  }, existingCompany.id)
   const created = await page.evaluate(async () => {
     const api = window.zhijiApi
     const statuses = await api.statuses.list()

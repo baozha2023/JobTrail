@@ -13,6 +13,7 @@ import { createServices, type Services } from '../src/main/service-container'
 import { AppServiceError } from '../src/main/services/errors'
 import { UnitOfWork } from '../src/main/services/unit-of-work'
 import { updateFreezePath } from '../src/main/update-freeze'
+import { parseCompany } from '../src/main/ipc/validators'
 
 describe('职迹最终数据库结构和业务服务', () => {
   const builtinCompanies = BUNDLED_COMPANY_CATALOG.companies
@@ -524,6 +525,44 @@ describe('职迹最终数据库结构和业务服务', () => {
     services.opportunities.delete(opportunity.id)
     services.companies.delete(customCompany.id)
     services.industries.delete(customIndustry.id)
+  })
+
+  it('creates the same custom-company defaults from quick and management inputs', () => {
+    const quick = services.companies.create(parseCompany({ name: '快捷新增公司' }, false))
+    const managed = services.companies.create(
+      parseCompany(
+        {
+          name: '管理页新增公司',
+          companyNature: null,
+          industryIds: [],
+          careerUrl: null,
+          aliases: [],
+          locations: [],
+        },
+        false,
+      ),
+    )
+    const defaults = {
+      isBuiltin: false,
+      isFavorite: false,
+      companyNature: null,
+      industryIds: [],
+      industryName: null,
+      careerUrl: null,
+      lastReadAt: null,
+      aliases: [],
+      locations: [],
+    }
+    for (const created of [quick, managed]) {
+      expect(created).toMatchObject(defaults)
+      expect(
+        database!.db.prepare('SELECT builtin_key FROM companies WHERE id = ?').get(created.id),
+      ).toEqual({ builtin_key: null })
+    }
+    expect(() => parseCompany({ name: '禁止指定内置属性', isBuiltin: true }, false)).toThrow()
+    expect(() =>
+      parseCompany({ name: '禁止指定内置标识', builtinKey: '伪造标识' }, false),
+    ).toThrow()
   })
 
   it('supports status and industry CRUD and ordering', () => {

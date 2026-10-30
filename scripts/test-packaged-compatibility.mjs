@@ -24,6 +24,7 @@ const releases = [
   { version: '2.4.0', commit: 'a0c9bd5', databaseVersion: 6, configVersion: 2 },
   { version: '2.5.0', commit: '6f15578', databaseVersion: 7, configVersion: 2 },
   { version: '2.6.0', commit: '3890679', databaseVersion: 8, configVersion: 2 },
+  { version: '2.7.0', commit: '590cf80', databaseVersion: 9, configVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(
@@ -117,9 +118,12 @@ async function verify(root, expected) {
     ...expected.rows,
     companies: expected.rows.companies.map((row) => ({
       ...row,
-      company_nature: null,
+      company_nature: row.company_nature ?? null,
     })),
-    exam_questions: expected.rows.exam_questions.map((row) => ({ ...row, default_answer: null })),
+    exam_questions: expected.rows.exam_questions.map((row) => ({
+      ...row,
+      default_answer: row.default_answer ?? null,
+    })),
   })
   assert.deepEqual(
     decodeTestConfig(fs.readFileSync(path.join(root, 'config.json'), 'utf8')),
@@ -245,6 +249,7 @@ async function main() {
   const tables=['builtin_company_catalog_state', 'opportunity_status_events', 'calendar_events', 'calendar_event_reminders', 'statuses','industries','companies','company_industries','company_aliases','resume_versions','opportunities','agent_conversations','agent_chat_events','agent_model_usage','chat_attachments','checkpoints','writes'];
   if (${release.databaseVersion} >= 2) tables.push('exam_papers', 'exam_questions', 'exam_answers');
   if (${release.databaseVersion} >= 3) tables.push('locations', 'company_locations');
+  ${release.databaseVersion >= 9 ? "database.db.exec(\"UPDATE companies SET company_nature='private' WHERE name LIKE 'Compatibility %'; UPDATE exam_questions SET default_answer='v2.7 frozen default answer' WHERE json_extract(content, '$.type')='short_answer'\"); tables.push('company_natures');" : ''}
   ${release.databaseVersion >= 4 ? "seedDiscoveryV4(database.db); database.db.exec('UPDATE discovery_sources SET cursor=NULL'); tables.push('discovery_jobs','discovery_observations','discovery_runs','discovery_requests','discovery_sources','discovery_results','discovery_views','discovery_view_items','discovery_saved');" : ''}
   const files={}; for(const dir of ['resumes','chat-uploads']) for(const file of fs.readdirSync(path.join(root,dir))) files[dir+'/'+file]=createHash('sha256').update(fs.readFileSync(path.join(root,dir,file))).digest('hex');
   fs.writeFileSync(archive+'.expected.json',JSON.stringify({config:config.get(),rows:Object.fromEntries(tables.map(t=>[t,database.db.prepare('SELECT * FROM '+t+' ORDER BY rowid').all()])),files}));

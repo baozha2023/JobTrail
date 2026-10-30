@@ -69,7 +69,7 @@
 
 ## 本地开发
 
-准备 Windows、Node.js、pnpm 和 Microsoft Edge Stable，并按[配置说明](AGENTS.md)创建本地私有构建配置 `private-build.config.json`。该文件不应提交到 Git，使用已有数据时请保留原构建密钥。
+准备 Windows、Node.js 22.19.0 或以上的 LTS 版本、pnpm 和 Microsoft Edge Stable，并按[配置说明](AGENTS.md)创建本地私有构建配置 `private-build.config.json`。该文件不应提交到 Git，使用已有数据时请保留原构建密钥。
 
 ```powershell
 pnpm install --frozen-lockfile

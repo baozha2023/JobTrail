@@ -27,7 +27,6 @@ import {
   createDiscreteApi,
   zhCN,
   type DataTableColumns,
-  type SelectOption,
 } from 'naive-ui'
 import type {
   AppConfig,
@@ -71,6 +70,7 @@ import { useAgentStore } from '../stores/agent'
 import { useExamsStore } from '../stores/exams'
 import { useCalendarWorkspace } from '../composables/useCalendarWorkspace'
 import { useOpportunityWorkspace } from '../composables/useOpportunityWorkspace'
+import { useOpportunityCompanyPicker } from '../composables/useOpportunityCompanyPicker'
 import { useManagementWorkspace } from '../composables/useManagementWorkspace'
 import { useBackupWorkspace } from '../composables/useBackupWorkspace'
 import { useOnboarding } from '../composables/useOnboarding'
@@ -185,24 +185,6 @@ const editingRootIndustry = computed(
     editingIndustryId.value !== null &&
     industries.value.find((item) => item.id === editingIndustryId.value)?.parentId === null,
 )
-const companyOptions = computed(() =>
-  companies.value.map((item) => ({
-    label: item.name,
-    value: item.id,
-    searchTexts: [item.name, ...item.aliases].map((text) => text.toLocaleLowerCase()),
-  })),
-)
-const companySearch = ref('')
-const creatingCompany = ref(false)
-const createCompanyValue = '__create_company__'
-const opportunityCompanyOptions = computed<SelectOption[]>(() => {
-  const name = companySearch.value.trim()
-  if (!name || companies.value.some((company) => company.name === name)) return companyOptions.value
-  return [
-    { label: t('opportunity.createCompany', { name }), value: createCompanyValue, createName: name },
-    ...companyOptions.value,
-  ]
-})
 const resumeOptions = computed(() =>
   resumes.value.map((item) => ({ label: item.name, value: item.id })),
 )
@@ -372,6 +354,25 @@ const {
   },
   notifyError: (text) => {
     message.error(text)
+  },
+})
+
+const {
+  companyOptions,
+  companySearch,
+  creatingCompany,
+  opportunityCompanyOptions,
+  filterCompanyOption,
+  selectOpportunityCompany,
+} = useOpportunityCompanyPicker({
+  companies,
+  opportunityForm,
+  showOpportunityModal,
+  loadCompanies,
+  loadManagedCompanies,
+  showError,
+  notifySuccess: (text) => {
+    message.success(text)
   },
 })
 
@@ -814,40 +815,6 @@ function isCompanyRead(company: Company): boolean {
   const validUntil = new Date(company.lastReadAt)
   validUntil.setMonth(validUntil.getMonth() + validityMonths)
   return currentTime.value < validUntil.getTime()
-}
-
-function filterCompanyOption(pattern: string, option: SelectOption): boolean {
-  const keyword = pattern.trim().toLocaleLowerCase()
-  if (!keyword) return true
-  if (option.value === createCompanyValue) return true
-  return Array.isArray(option.searchTexts) &&
-    option.searchTexts.some((value: string) => value.includes(keyword))
-}
-
-async function selectOpportunityCompany(value: number | string, option: SelectOption): Promise<void> {
-  if (typeof value === 'number') {
-    opportunityForm.value.companyId = value
-    companySearch.value = ''
-    return
-  }
-  if (value !== createCompanyValue || typeof option.createName !== 'string' || creatingCompany.value)
-    return
-  const form = opportunityForm.value
-  creatingCompany.value = true
-  try {
-    const company = await window.zhijiApi.companies.create({ name: option.createName })
-    await loadCompanies()
-    if (showOpportunityModal.value && opportunityForm.value === form) {
-      opportunityForm.value.companyId = company.id
-    }
-    companySearch.value = ''
-    message.success(t('feedback.addSuccess'))
-    void loadManagedCompanies().catch(showError)
-  } catch (error) {
-    showError(error)
-  } finally {
-    creatingCompany.value = false
-  }
 }
 
 function orderControls<T extends { id: number }>(

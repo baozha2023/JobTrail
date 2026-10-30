@@ -69,7 +69,7 @@ Export a complete backup from Settings and save it outside the installation fold
 
 ## Local development
 
-Set up Windows, Node.js, pnpm, and Microsoft Edge Stable, then follow the [configuration guide](AGENTS.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
+Set up Windows, Node.js 22.19.0 or a newer LTS release, pnpm, and Microsoft Edge Stable, then follow the [configuration guide](AGENTS.md) (in Chinese) to create a local `private-build.config.json`. Do not commit this file to Git. Keep the original build key when working with existing data.
 
 ```powershell
 pnpm install --frozen-lockfile

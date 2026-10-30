@@ -2,7 +2,7 @@
 
 所有命令从仓库根目录运行。`scripts/` 中的 `.mjs` 分为构建发布、自动测试、安装包验收和共享辅助模块；入口可以由 `package.json`、测试自动发现或其他脚本调用。
 
-`pnpm package:win` 在编译后显式调用 Electron 官方 `install-electron`，确保当前锁定版本的二进制已下载并校验，再将 `node_modules/electron/dist` 交给 electron-builder。Electron 43.8.3 不再通过包的 postinstall 自动下载，不能依赖曾经运行过开发环境或测试才具备该目录。
+`pnpm package:win` 在编译后显式调用 Electron 官方 `install-electron`，确保当前锁定版本的二进制已下载并校验，再将 `node_modules/electron/dist` 交给 electron-builder。当前 Electron 43.8.4 不通过包的 postinstall 自动下载，不能依赖曾经运行过开发环境或测试才具备该目录。
 
 ## 构建与发布
 
@@ -101,3 +101,5 @@ NCSS 接入（v2.6.0，数据库 v8）：`ncss-adapter.test.ts` 覆盖固定完�
 企业性质（v2.7.0，数据库 v9）：`company-natures.test.ts`、`company-nature-view.test.ts`、`persistence-v9.test.ts` 覆盖固定字典、空值、目录同步、真实选择组件、分页、迁移保留与失败回滚，MCP 双协议验证查询字典和公司录入、清空、筛选及过期确认。`tests/fixtures/v8/` 锁定 v2.6.0 的历史 SQL 哈希。备份覆盖 v1—v8 导入至 v9 与新版往返；打包兼容验收新增 v2.6.0 原始提交 `3890679`。规模查询可设置 `JOBTRAIL_LOCATION_PERF_REPORT` 保存 1 万家公司、20 万条地点关联的性质组合筛选报告。目录录入规则见 [数据库说明](../docs/database.md#company_natures)。
 
 性质筛选仅接受六种字典代码，不接受 null；单测和安装包 MCP 双协议验收均覆盖“选择性质排除空值、清空筛选包含空值、非法空值选项拒绝”。历史升级验收逐行比对时，明确要求旧公司的 `company_nature` 和旧题的 `default_answer` 都为 NULL。
+
+v2.8.0 保持数据库 v9、配置 v2、备份封装 v1。`opportunity-company-picker.test.ts` 使用真实 Naive UI 选择器验证名称、别名和部分匹配的 Enter 行为、显式创建、创建后刷新失败、摘要不含地点、重复提交及过期表单隔离；`company-store.test.ts` 覆盖过期列表响应，`database.test.ts` 比较快捷输入与管理页输入的自定义公司默认值及内置标识拒绝。安装包历史验收加入 v2.7.0 原始提交 `590cf80`，v9 到 v9 不执行迁移、不补字段或重新 seed；旧版正式迁移仍按既有版本链验收。

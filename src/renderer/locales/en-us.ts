@@ -854,6 +854,7 @@ export default {
     deleteConfirm: 'Delete this opportunity?',
     noResume: 'No resume',
     noCompany: 'Choose a company',
+    createCompany: '＋ Add company: {name}',
     positionPlaceholder: 'Enter position title',
     statusPlaceholder: 'Choose a status',
     resumePlaceholder: 'Choose a resume version',

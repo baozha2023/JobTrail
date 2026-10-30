@@ -834,6 +834,7 @@ export default {
     deleteConfirm: '确定删除这条求职记录吗？',
     noResume: '不关联简历',
     noCompany: '请选择公司',
+    createCompany: '＋ 新增公司：{name}',
     positionPlaceholder: '请输入岗位名称',
     statusPlaceholder: '请选择状态',
     resumePlaceholder: '请选择简历版本',

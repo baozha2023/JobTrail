@@ -186,8 +186,23 @@ const editingRootIndustry = computed(
     industries.value.find((item) => item.id === editingIndustryId.value)?.parentId === null,
 )
 const companyOptions = computed(() =>
-  companies.value.map((item) => ({ label: item.name, value: item.id })),
+  companies.value.map((item) => ({
+    label: item.name,
+    value: item.id,
+    searchTexts: [item.name, ...item.aliases].map((text) => text.toLocaleLowerCase()),
+  })),
 )
+const companySearch = ref('')
+const creatingCompany = ref(false)
+const createCompanyValue = '__create_company__'
+const opportunityCompanyOptions = computed<SelectOption[]>(() => {
+  const name = companySearch.value.trim()
+  if (!name || companies.value.some((company) => company.name === name)) return companyOptions.value
+  return [
+    { label: t('opportunity.createCompany', { name }), value: createCompanyValue, createName: name },
+    ...companyOptions.value,
+  ]
+})
 const resumeOptions = computed(() =>
   resumes.value.map((item) => ({ label: item.name, value: item.id })),
 )
@@ -804,12 +819,35 @@ function isCompanyRead(company: Company): boolean {
 function filterCompanyOption(pattern: string, option: SelectOption): boolean {
   const keyword = pattern.trim().toLocaleLowerCase()
   if (!keyword) return true
-  const companyId = typeof option.value === 'number' ? option.value : null
-  const company = companies.value.find((item) => item.id === companyId)
-  const label = typeof option.label === 'string' ? option.label : (company?.name ?? '')
-  return [label, ...(company?.aliases ?? [])].some((value) =>
-    value.toLocaleLowerCase().includes(keyword),
-  )
+  if (option.value === createCompanyValue) return true
+  return Array.isArray(option.searchTexts) &&
+    option.searchTexts.some((value: string) => value.includes(keyword))
+}
+
+async function selectOpportunityCompany(value: number | string, option: SelectOption): Promise<void> {
+  if (typeof value === 'number') {
+    opportunityForm.value.companyId = value
+    companySearch.value = ''
+    return
+  }
+  if (value !== createCompanyValue || typeof option.createName !== 'string' || creatingCompany.value)
+    return
+  const form = opportunityForm.value
+  creatingCompany.value = true
+  try {
+    const company = await window.zhijiApi.companies.create({ name: option.createName })
+    await loadCompanies()
+    if (showOpportunityModal.value && opportunityForm.value === form) {
+      opportunityForm.value.companyId = company.id
+    }
+    companySearch.value = ''
+    message.success(t('feedback.addSuccess'))
+    void loadManagedCompanies().catch(showError)
+  } catch (error) {
+    showError(error)
+  } finally {
+    creatingCompany.value = false
+  }
 }
 
 function orderControls<T extends { id: number }>(
@@ -1453,11 +1491,16 @@ onBeforeUnmount(() => {
           <div class="form-grid two-columns">
             <n-form-item :label="t('opportunity.company')" required
               ><n-select
-                v-model:value="opportunityForm.companyId"
+                :value="opportunityForm.companyId"
                 filterable
+                :loading="creatingCompany"
+                :disabled="creatingCompany"
                 :filter="filterCompanyOption"
-                :options="companyOptions"
+                :options="opportunityCompanyOptions"
                 :placeholder="t('opportunity.noCompany')"
+                @search="companySearch = $event"
+                @update:show="!$event && (companySearch = '')"
+                @update:value="selectOpportunityCompany"
             /></n-form-item>
             <n-form-item :label="t('opportunity.position')" required
               ><n-input
@@ -1539,7 +1582,7 @@ onBeforeUnmount(() => {
         <template #footer
           ><n-space justify="end"
             ><n-button @click="showOpportunityModal = false">{{ t('common.cancel') }}</n-button
-            ><n-button type="primary" @click="saveOpportunity">{{
+            ><n-button type="primary" :disabled="creatingCompany" @click="saveOpportunity">{{
               t('common.save')
             }}</n-button></n-space
           ></template

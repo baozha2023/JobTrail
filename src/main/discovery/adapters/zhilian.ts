@@ -12,7 +12,7 @@ import {
   type ParsedBatch,
   type SearchTransport,
 } from '../adapter'
-import { pageScript, type PageRules } from '../extraction'
+import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
 import { createCityLookup } from '../../../shared/discovery-city-catalog'
 import cityCatalog from '../../../shared/discovery-cities/zhilian.json'
@@ -65,6 +65,7 @@ function decode(value: unknown) {
     salary: text(r.salary60),
     experience: text(r.workingExp),
     education: text(r.education),
+    employment: text(r.workType),
     jd: text(r.jobSummary),
     detailRead: false,
   })
@@ -202,7 +203,7 @@ export class ZhilianSearch implements PlatformSearch {
       async () => {
         if (this.pageNumber !== 1) return null
         const value = await this.page.evaluate<unknown>(
-          `(()=>{const s=window.__INITIAL_STATE__;return s?{pageMode:s.pageMode,queryParams:s.queryParams,pageIndex:s.pageIndex,loadingStatus:s.loadingStatus,listLoadError:s.listLoadError,hasMore:s.hasMore,positionList:s.positionList?.map(j=>({positionUrl:j.positionUrl,name:j.name,companyName:j.companyName,workCity:j.workCity,salary60:j.salary60,workingExp:j.workingExp,education:j.education,jobSummary:j.jobSummary}))}:null})()`,
+          `(()=>{const s=window.__INITIAL_STATE__;return s?{pageMode:s.pageMode,queryParams:s.queryParams,pageIndex:s.pageIndex,loadingStatus:s.loadingStatus,listLoadError:s.listLoadError,hasMore:s.hasMore,positionList:s.positionList?.map(j=>({positionUrl:j.positionUrl,name:j.name,companyName:j.companyName,workCity:j.workCity,salary60:j.salary60,workingExp:j.workingExp,education:j.education,workType:j.workType,jobSummary:j.jobSummary}))}:null})()`,
           signal,
         )
         const initial = zhilianInitial(value, this.query, this.pageNumber)
@@ -326,7 +327,7 @@ export const zhilianAdapter: PlatformAdapter = {
   cities,
   ...zhilianIdentity,
   accountCheckUrl: 'https://www.zhaopin.com/',
-  contractVersion: 1,
+  contractVersion: 2,
   sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
   async checkSession(transport) {
@@ -336,7 +337,7 @@ export const zhilianAdapter: PlatformAdapter = {
     if (page.login) return 'login_required'
     return 'unknown'
   },
-  pageScript: (detail) => pageScript(pageRules, detail),
+  pageScript: zhilianPageScript,
   createSearch: (page, query) => new ZhilianSearch(page, query),
   qr: {
     scanHint: wechatHint,
@@ -365,7 +366,7 @@ export const zhilianAdapter: PlatformAdapter = {
 const pageRules: PageRules = {
   loginUrlNeedsText: false,
   loginSelector:
-    'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.job-list-login-gate,.job-detail-login-gate__panel',
+    'a.home-header__c-no-login,input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.job-list-login-gate,.job-detail-login-gate__panel',
   loginUrl: '://passport\\.zhaopin\\.com/',
   authenticatedSelector:
     '.home-header__c-login .c-login__top__img,a[href*="logout"],a[href*="signout"]',
@@ -384,4 +385,30 @@ const pageRules: PageRules = {
   },
   foldedSelector: '.job-sec button,.job-description button',
   excludedSelector: 'aside,[class*="recommend"],.jobs-deliver,.job-list,.company-intro',
+}
+
+function zhilianPageScript(detail: boolean): string {
+  if (!detail) return pageScript(pageRules, false)
+  return `(${readZhilianPage.toString()})(${pageScript(pageRules, true)},${JSON.stringify(pageRules.excludedSelector)})`
+}
+
+function readZhilianPage(state: PageSnapshot, excludedSelector: string): PageSnapshot {
+  if (state.login || state.challenge || state.offline) return state
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  const education = [...document.querySelectorAll('.summary-planes .summary-planes__info li')]
+    .filter((element) => visible(element) && !element.closest(excludedSelector))
+    .map((element) => ((element as HTMLElement).innerText ?? element.textContent ?? '').trim())
+    .find((value) => value === '中专/中技')
+  if (education) state.detail.education = education
+  return state
 }

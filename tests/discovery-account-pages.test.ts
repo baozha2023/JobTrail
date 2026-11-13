@@ -24,6 +24,24 @@ const accounts = [
   },
 ] as const
 
+// Anonymized phone login form observed on Liepin's homepage on 2026-11-12.
+const liepinPhoneLogin = `
+  <div class="teno-tel-login-inner-container">
+    <form class="ant-form ant-form-horizontal">
+      <div class="ant-form-item login-form-item-mobile">
+        <input type="text" placeholder="手机号" autocomplete="off">
+      </div>
+      <div class="ant-form-item login-form-item-smscode">
+        <input id="smsCode" type="text" placeholder="短信验证码" autocomplete="off">
+      </div>
+      <button class="login-submit-btn">登录/注册</button>
+    </form>
+  </div>
+`
+
+// Anonymized jobseeker login entry observed on Zhilian's homepage on 2026-11-12.
+const zhilianLoginEntry = '<a class="home-header__c-no-login">登录/注册</a>'
+
 function pageTransport(html: string) {
   document.documentElement.innerHTML = `<head><title>招聘网站</title></head><body>${html}</body>`
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
@@ -91,4 +109,61 @@ it('recognizes the visible 51job phone login form without requiring a password i
     '<div class="login-card"><div class="phone-login-form"><input type="tel"><input placeholder="验证码"></div><div class="account-login-form" style="display:none"><input type="password"></div></div>',
   )
   expect(await platformAdapter('wuyou').checkSession(transport)).toBe('login_required')
+})
+
+it('recognizes the visible Liepin phone login form at its account entry', async () => {
+  const { page, transport } = pageTransport(liepinPhoneLogin)
+  expect(await platformAdapter('liepin').checkSession(transport)).toBe('login_required')
+  expect(page).toHaveBeenCalledExactlyOnceWith('https://www.liepin.com/', expect.any(String))
+})
+
+it('keeps Liepin authenticated when its phone login form is hidden', async () => {
+  const { transport } = pageTransport(
+    accounts[0].html + `<div style="display:none">${liepinPhoneLogin}</div>`,
+  )
+  expect(await platformAdapter('liepin').checkSession(transport)).toBe('authenticated')
+})
+
+it('prioritizes the visible Liepin phone login form over account controls', async () => {
+  const { transport } = pageTransport(accounts[0].html + liepinPhoneLogin)
+  expect(await platformAdapter('liepin').checkSession(transport)).toBe('login_required')
+})
+
+it('does not treat unrelated phone and SMS fields as a Liepin login form', async () => {
+  const { transport } = pageTransport(
+    '<form><input type="text" placeholder="手机号"><input type="text" placeholder="短信验证码"></form>',
+  )
+  expect(await platformAdapter('liepin').checkSession(transport)).toBe('unknown')
+})
+
+it('recognizes the visible Zhilian jobseeker login entry at its account entry', async () => {
+  const { page, transport } = pageTransport(zhilianLoginEntry)
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('login_required')
+  expect(page).toHaveBeenCalledExactlyOnceWith('https://www.zhaopin.com/', expect.any(String))
+})
+
+it('keeps Zhilian authenticated when its jobseeker login entry is hidden', async () => {
+  const { transport } = pageTransport(
+    accounts[1].html + `<div style="display:none">${zhilianLoginEntry}</div>`,
+  )
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('authenticated')
+})
+
+it('does not treat a hidden Zhilian jobseeker login entry as a login requirement', async () => {
+  const { transport } = pageTransport(`<div style="display:none">${zhilianLoginEntry}</div>`)
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('unknown')
+})
+
+it('prioritizes the visible Zhilian jobseeker login entry and verification over account controls', async () => {
+  const { transport } = pageTransport(accounts[1].html + zhilianLoginEntry)
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('login_required')
+  document.body.insertAdjacentHTML('beforeend', '<h1>安全验证</h1>')
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('challenge')
+})
+
+it('does not treat unrelated or employer login entries as a Zhilian jobseeker login requirement', async () => {
+  const { transport } = pageTransport(
+    '<a class="home-header__b-login">企业登录</a><a>登录/注册</a><div class="home-login"><div class="login-before">登录后查看推荐职位</div></div>',
+  )
+  expect(await platformAdapter('zhilian').checkSession(transport)).toBe('unknown')
 })

@@ -15,7 +15,7 @@ import {
   type SearchTransport,
   type SourceBatch,
 } from '../adapter'
-import { pageScript, type PageRules } from '../extraction'
+import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { batch, job, record, rows, text } from '../parsing'
 import { LoginError, type QrProtocol, type QrTransport } from '../qr-protocol'
 import { shixisengFont } from './shixiseng/font'
@@ -353,40 +353,98 @@ const rules: PageRules = {
   tagsSelector: '.job_msg>span,.job_good_list>span',
   fields: {
     title: '.new_job_name>span',
-    company: '.job_com_name a,.com-name',
+    company: '[data-unused-company]',
     city: '.job_position',
     salary: '.job_money',
-    experience: '.job-experience',
+    experience: '.job-header .job-experience',
     education: '.job_academic',
   },
   foldedSelector: '.job_detail .show-more',
   excludedSelector: '.content_right,.recommend,.footer-login,footer',
 }
+
+function shixisengPageScript(detail: boolean): string {
+  if (!detail) return pageScript(rules, false)
+  return `(${readShixisengPage.toString()})(${pageScript(rules, true)},${JSON.stringify(rules.excludedSelector)})`
+}
+
+function readShixisengPage(state: PageSnapshot, excludedSelector: string): PageSnapshot {
+  if (state.login || state.challenge || state.offline) return state
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  const text = (element: Element) =>
+    ((element as HTMLElement).innerText ?? element.textContent ?? '').trim()
+  const nodes = (selector: string, excluded = excludedSelector) =>
+    [...document.querySelectorAll(selector)].filter(
+      (element) => visible(element) && !element.closest(excluded),
+    )
+  const offline = nodes('.resume_apply', '.job_part,' + excludedSelector).some(
+    (element) => text(element) === '当前职位已下线',
+  )
+  if (offline) {
+    state.offline = true
+    state.detail = {}
+    return state
+  }
+  const company = nodes(
+    '.job-content > .content_right .job-about .com_intro > a.com-name',
+    '[class*="recommend"],.footer-login,footer',
+  )
+    .map(text)
+    .find(Boolean)
+  if (company) state.detail.company = company
+  // Education can be "不限" in the same tag group as attendance requirements.
+  const experience = nodes('.job-header .job-experience').map(text).find(Boolean) || ''
+  state.detail.experience = experience
+  if (!experience && nodes('.job-header .job_msg').some((element) => text(element)))
+    state.detail.missing = { ...state.detail.missing, experience: 'not_provided' }
+  if (state.detail.jd) {
+    const terms = nodes('.job-header .job_msg .job_week,.job-header .job_msg .job_time')
+      .map(text)
+      .filter(Boolean)
+    state.detail.jd = [...terms, state.detail.jd].join('\n')
+  }
+  for (const key of [
+    'title',
+    'company',
+    'city',
+    'salary',
+    'experience',
+    'education',
+    'recruitment',
+    'employment',
+    'jd',
+  ] as const) {
+    const value = state.detail[key]
+    if (typeof value === 'string' && /[\ue000-\uf8ff]/.test(value)) {
+      state.detail[key] = ''
+      state.detail.missing = { ...state.detail.missing, [key]: 'parse_error' }
+      if (key === 'jd') state.detail.detailRead = false
+    }
+  }
+  return state
+}
+
 export const shixisengAdapter: PlatformAdapter = {
   cities,
   ...identity,
   accountCheckUrl: `${origin}/personal-center`,
-  contractVersion: 2,
+  contractVersion: 3,
   sessionCheck: 'batch',
   remoteFilters: ['keyword', 'city'],
   checkSession: async (transport) =>
     (await shixisengAccount(transport)) ? 'authenticated' : 'login_required',
   createSearch: (page, query) => new ShixisengSearch(page, query),
-  pageScript: (detail) =>
-    !detail
-      ? pageScript(rules, false)
-      : `(()=>{
-    const state=${pageScript(rules, true)};
-    if(state.login||state.challenge)return state;
-    const offline=Array.from(document.querySelectorAll('.resume_apply')).some(status=>{
-      const rect=status.getBoundingClientRect(),style=getComputedStyle(status);
-      return !status.closest('.job_part,.content_right,.recommend,footer')&&rect.width>0&&rect.height>0&&style.visibility!=='hidden'&&style.display!=='none'&&/^当前职位已下线$/.test(status.textContent.trim());
-    });
-    if(offline){state.offline=true;state.detail={};return state}
-    for(const [key,value] of Object.entries(state.detail))if(typeof value==='string'&&/[\\ue000-\\uf8ff]/.test(value)){state.detail[key]='';state.detail.missing={...state.detail.missing,[key]:'parse_error'};if(key==='jd')state.detail.detailRead=false}
-    if(state.detail.jd){const terms=Array.from(document.querySelectorAll('.job_msg .job_week,.job_msg .job_time')).map(e=>e.textContent.trim()).filter(v=>v&&!/[\\ue000-\\uf8ff]/.test(v));state.detail.jd=[...terms,state.detail.jd].join('\\n')}
-    return state;
-  })()`,
+  pageScript: shixisengPageScript,
   qr: {
     scanHint: hint,
     methods: [{ id: 'wechat', label: { 'zh-CN': '微信', 'en-US': 'WeChat' }, scanHint: hint }],

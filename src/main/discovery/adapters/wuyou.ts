@@ -329,7 +329,7 @@ export const wuyouAdapter: PlatformAdapter = {
   ...wuyouIdentity,
   // The marketing homepage can show a login form while the search session is authenticated.
   accountCheckUrl: 'https://we.51job.com/pc/search',
-  contractVersion: 1,
+  contractVersion: 2,
   sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
   async checkSession(transport) {
@@ -358,15 +358,14 @@ const pageRules: PageRules = {
   authenticatedSelector: '.user-info .name-span:not(:empty),a[href*="logout"],a[href*="signout"]',
   descriptionSelector: '.bmsg.job_msg,.job-detail .job-intro,.job-description',
   statusSelector: '.job-status,.cn .status,.job-expired',
-  tagsSelector:
-    '.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
+  tagsSelector: '.cn > p.msg.ltype > span',
   fields: {
-    title: '.job-name h1,.name h1,.job-title h1,.cn h1',
-    company: '.sider-company .company-info a,.company-name,.company-title',
-    city: '.job-banner .text-city,.job-area,.job-address,.job-dq',
-    salary: '.job-banner .salary,.salary,.job-salary,.cn strong',
-    experience: '.job-experience,[class*="work-years"],[class*="workyear"]',
-    education: '.job-education,[class*="education"]',
+    title: '.cn > .jTitle > h1',
+    company: '.corp-card .initiator .com_msg > a.com_name',
+    city: '.cn > p.msg.ltype > span.type_2',
+    salary: '.cn > .jTitle > strong',
+    experience: '.cn > p.msg.ltype > span.type_3',
+    education: '.cn > p.msg.ltype > span.type_4',
   },
   foldedSelector: '.job-sec button,.job-description button',
   excludedSelector: 'aside,[class*="recommend"],.job-list,.company-intro',

@@ -34,6 +34,7 @@ import {
 import { newDiagnosticContext, validateDiagnosticEvent } from '../src/shared/diagnostics'
 import { diagnosticRecords } from './helpers/diagnostics'
 import { version } from '../package.json'
+import { AppServiceError } from '../src/main/services/errors'
 
 // Account rechecks include the runtime's bounded page-settle interval.
 const waitFor: typeof vi.waitFor = (callback, options) =>
@@ -311,11 +312,11 @@ it.each([
   ['login_required', 'login-required', 0, 0],
   ['session_expired', 'session-expired', 0, 0],
   ['unsupported_city', 'unsupported-city', 2, 1],
-  ['scope_unverified', 'scope-unverified', 2, 1],
-  ['parse_error', 'parse-error', 2, 1],
-  ['network_error', 'network-error', 2, 1],
+  ['scope_unverified', 'scope-unverified', 2, 2],
+  ['parse_error', 'parse-error', 2, 2],
+  ['network_error', 'network-error', 2, 2],
   ['challenge', 'challenge', 2, 1],
-  ['timeout', 'timeout', 2, 1],
+  ['timeout', 'timeout', 2, 2],
   ['cancelled', 'cancelled', 2, 1],
   ['completed', 'completed', 2, 1],
   ['partial', 'partial', 6, 3],
@@ -347,6 +348,9 @@ it.each([
       attributes: { count, failedCount: 0, attempt: batches },
     })
     const failures = records.filter((record) => record.operation === 'discovery.boss.collect')
+    expect(records.filter((record) => record.operation === 'discovery.boss.retry')).toHaveLength(
+      ['scope_unverified', 'parse_error', 'network_error', 'timeout'].includes(state) ? 1 : 0,
+    )
     if (state === 'completed' || state === 'partial') expect(failures).toHaveLength(0)
     else {
       expect(failures).toHaveLength(1)
@@ -358,6 +362,217 @@ it.each([
     }
   },
 )
+
+it.each(['parse_error', 'scope_unverified', 'network_error', 'timeout', 'unclassified'] as const)(
+  'automatically retries one %s failure without persisting an error or starting another round',
+  async (reason) => {
+    const f = fixture()
+    endPage = 1
+    vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+    const createSearch = vi.spyOn(bossAdapter, 'createSearch')
+    const continuation = vi.spyOn(f.runtime, 'continue')
+    const writes = vi.spyOn(f.service.repository, 'source')
+    const diagnostics = collectDiagnostics(f.root)
+    read.mockRejectedValueOnce(
+      reason === 'unclassified' ? new Error('Synthetic page failure') : new SourceError(reason),
+    )
+    const run = await withDiagnosticContext(diagnostics.context, () => start(f))
+    await waitFor(() =>
+      expect(
+        diagnostics.records().filter((record) => record.operation === 'discovery.boss.retry'),
+      ).toHaveLength(1),
+    )
+    expect(await f.service.run(run.id)).toMatchObject({
+      state: 'running',
+      sources: [{ state: 'running', message: '', count: 0, batches: 0 }],
+    })
+    expect(read).toHaveBeenCalledOnce()
+    expect(BrowserWindow.getAllWindows()).toHaveLength(0)
+
+    const result = await settled(f, run.id)
+    expect(result).toMatchObject({
+      id: run.id,
+      requestId: run.requestId,
+      query: run.query,
+      state: 'completed',
+      sources: [{ state: 'completed', count: 2, batches: 1, sourcePage: 1 }],
+    })
+    expect(read).toHaveBeenCalledTimes(2)
+    expect(createSearch).toHaveBeenCalledTimes(2)
+    expect(commit).toHaveBeenCalledOnce()
+    expect(continuation).not.toHaveBeenCalled()
+    expect((await f.service.history(1)).total).toBe(1)
+    expect(writes.mock.calls.map(([, progress]) => progress.state)).not.toContain(reason)
+    expect(
+      diagnostics.records().filter((record) => record.operation === 'discovery.boss.collect'),
+    ).toHaveLength(0)
+  },
+)
+
+it('persists only the second failure after exhausting the single automatic retry', async () => {
+  const f = fixture()
+  vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+  const writes = vi.spyOn(f.service.repository, 'source')
+  read
+    .mockRejectedValueOnce(new SourceError('parse_error', 'response_contract_changed'))
+    .mockRejectedValueOnce(new SourceError('scope_unverified', 'control_not_found'))
+  const run = await start(f)
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
+    state: 'scope_unverified',
+    message: 'control_not_found',
+    count: 0,
+    batches: 0,
+  })
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(commit).not.toHaveBeenCalled()
+  expect(writes.mock.calls.map(([, progress]) => progress.state)).not.toContain('parse_error')
+  expect(writes.mock.calls.map(([, progress]) => progress.state)).toContain('scope_unverified')
+})
+
+it.each([true, false])(
+  'rechecks an inconclusive account once before reading jobs or reporting failure (recovers: %s)',
+  async (recovers) => {
+    const f = fixture()
+    endPage = 1
+    const check = vi
+      .spyOn(bossAdapter, 'checkSession')
+      .mockResolvedValue(recovers ? 'authenticated' : 'unknown')
+      .mockResolvedValueOnce('unknown')
+    const writes = vi.spyOn(f.service.repository, 'source')
+    const diagnostics = collectDiagnostics(f.root)
+    const run = await withDiagnosticContext(diagnostics.context, () => start(f))
+    await waitFor(() =>
+      expect(
+        diagnostics.records().filter((record) => record.operation === 'discovery.boss.retry'),
+      ).toHaveLength(1),
+    )
+    expect(check).toHaveBeenCalledOnce()
+    expect(read).not.toHaveBeenCalled()
+    expect((await f.service.run(run.id)).sources[0]).toMatchObject({
+      state: 'running',
+      message: '',
+      count: 0,
+    })
+    expect(writes.mock.calls.map(([, progress]) => progress.state)).not.toContain('parse_error')
+
+    const result = await settled(f, run.id)
+    expect(check).toHaveBeenCalledTimes(2)
+    expect(result.sources[0]).toMatchObject(
+      recovers
+        ? { state: 'completed', count: 2, batches: 1 }
+        : {
+            state: 'parse_error',
+            message: 'authentication_check_inconclusive',
+            count: 0,
+            batches: 0,
+          },
+    )
+    expect(read).toHaveBeenCalledTimes(recovers ? 1 : 0)
+    expect(
+      writes.mock.calls.filter(([, progress]) => progress.state === 'parse_error'),
+    ).toHaveLength(recovers ? 0 : 1)
+    expect(f.service.repository.status().find((status) => status.platform === 'boss')?.state).toBe(
+      'authenticated',
+    )
+  },
+)
+
+it.each(['cancel', 'logout', 'maintenance', 'generation'] as const)(
+  'does not read another page after %s during the automatic retry wait',
+  async (action) => {
+    const f = fixture()
+    vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+    const diagnostics = collectDiagnostics(f.root)
+    read.mockRejectedValueOnce(new SourceError('network_error'))
+    const run = await withDiagnosticContext(diagnostics.context, () => start(f))
+    await waitFor(() =>
+      expect(
+        diagnostics.records().filter((record) => record.operation === 'discovery.boss.retry'),
+      ).toHaveLength(1),
+    )
+    if (action === 'cancel') await f.service.cancel(run.id)
+    else if (action === 'logout') await f.service.browser({ action: 'clear', platform: 'boss' })
+    else if (action === 'maintenance') await f.runtime.suspend()
+    else {
+      const account = f.service.repository.status().find((status) => status.platform === 'boss')!
+      f.service.repository.platform({ ...account, generation: account.generation + 1 })
+    }
+    expect((await settled(f, run.id)).sources[0]).toMatchObject({
+      state: 'cancelled',
+      count: 0,
+      batches: 0,
+    })
+    expect(read).toHaveBeenCalledOnce()
+    expect(commit).not.toHaveBeenCalled()
+    expect(BrowserWindow.getAllWindows()).toHaveLength(0)
+  },
+)
+
+it('retries platforms independently and retains results from a recovered source', async () => {
+  const f = fixture()
+  endPage = 1
+  vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+  vi.spyOn(shixisengAdapter, 'checkSession').mockResolvedValue('authenticated')
+  const account = f.service.repository.status().find((status) => status.platform === 'shixiseng')!
+  f.service.repository.platform({ ...account, state: 'authenticated' })
+  const otherRead = vi.fn().mockRejectedValue(new SourceError('network_error'))
+  const otherSearch = vi.spyOn(shixisengAdapter, 'createSearch').mockReturnValue({
+    read: otherRead,
+    commit: vi.fn(),
+  })
+  const continuation = vi.spyOn(f.runtime, 'continue')
+  read.mockRejectedValueOnce(new SourceError('parse_error'))
+  const run = await f.service.start({
+    requestId: randomUUID(),
+    query: { keyword: 'Java', city: '', platforms: ['boss', 'shixiseng'] },
+  })
+  const result = await settled(f, run.id)
+  expect(result.state).toBe('partial')
+  expect(result.sources.find((progress) => progress.platform === 'boss')).toMatchObject({
+    state: 'completed',
+    count: 2,
+    batches: 1,
+  })
+  expect(result.sources.find((progress) => progress.platform === 'shixiseng')).toMatchObject({
+    state: 'network_error',
+    count: 0,
+    batches: 0,
+  })
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(otherRead).toHaveBeenCalledTimes(2)
+  expect(otherSearch).toHaveBeenCalledTimes(2)
+  expect(continuation).not.toHaveBeenCalled()
+  expect((await f.service.list({ runId: run.id })).items).toHaveLength(2)
+})
+
+it('preserves committed identities and the three-batch budget when rebuilding a failed page', async () => {
+  const f = fixture()
+  endPage = 4
+  vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+  let failed = false
+  const requestedPages: number[] = []
+  beforeRead = async (page) => {
+    requestedPages.push(page)
+    if (page === 2 && !failed) {
+      failed = true
+      throw new SourceError('network_error')
+    }
+  }
+  const run = await start(f)
+  const result = await settled(f, run.id)
+  expect(result.sources[0]).toMatchObject({
+    state: 'partial',
+    sourcePage: 2,
+    count: 4,
+    batches: 3,
+    duplicateCount: 2,
+  })
+  expect(requestedPages).toEqual([1, 2, 1, 2])
+  expect(commit.mock.calls.map(([value]) => value.page)).toEqual([1, 1, 2])
+  expect((await f.service.list({ runId: run.id })).items.map((job) => job.id).sort()).toEqual(
+    [1, 2].flatMap((page) => batch(page).sourceIds).sort(),
+  )
+})
 
 it.each([
   ['login_required', 'login-required', { login: true }],
@@ -946,7 +1161,7 @@ it('keeps the human warning and does not continue when the first verified batch 
     count: 0,
     batches: 0,
   })
-  expect(read).toHaveBeenCalledTimes(2)
+  expect(read).toHaveBeenCalledTimes(3)
   expect(commit).not.toHaveBeenCalled()
 })
 it('does not restart other sources while continuing a verified historical source', async () => {
@@ -1146,6 +1361,58 @@ it('preserves adapter field parse failures when the rest of the detail is comple
   expect(detail.missing.recruitment).toBe('not_provided')
 })
 
+it.each([
+  { experience: '', reason: 'not_provided', expected: '', provenance: 'dom' },
+  { experience: ' \t ', reason: 'not_provided', expected: '', provenance: 'dom' },
+  { experience: '', reason: undefined, expected: '4天/周 3个月', provenance: 'response' },
+  { experience: '', reason: 'parse_error', expected: '4天/周 3个月', provenance: 'response' },
+  { experience: '经验不限', reason: 'not_provided', expected: '经验不限', provenance: 'dom' },
+] as const)(
+  'refreshes experience using explicit absence evidence ($reason, $experience)',
+  async ({ experience, reason, expected, provenance }) => {
+    const f = foregroundFixture()
+    vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+    f.service.work.run(() =>
+      f.service.repository.observe({
+        ...batch(1).jobs[0],
+        experience: '4天/周 3个月',
+        provenance: { experience: 'response' },
+      }),
+    )
+    pageState.snapshot = {
+      detail: {
+        jd: '完整职责\n每周到岗：4天\n实习时长：3个月',
+        detailRead: true,
+        experience,
+        ...(reason ? { missing: { experience: reason } } : {}),
+      },
+    }
+    const detail = await f.service.detail({ jobId: f.jobId, mode: 'refresh' })
+    expect(detail.experience).toBe(expected)
+    expect(detail.missing.experience).toBe(expected ? undefined : 'not_provided')
+    expect(detail.provenance?.experience).toBe(provenance)
+    expect(detail.detailRead).toBe(true)
+    expect(f.service.repository.get(f.jobId).experience).toBe(expected)
+  },
+)
+
+it('retains explicit absence of a refreshed JD through runtime and normalization', async () => {
+  const f = foregroundFixture()
+  vi.spyOn(bossAdapter, 'checkSession').mockResolvedValue('authenticated')
+  f.service.work.run(() =>
+    f.service.repository.observe({ ...batch(1).jobs[0], jd: '原有完整职责', detailRead: true }),
+  )
+  pageState.snapshot = {
+    detail: { jd: '', detailRead: false, missing: { jd: 'not_provided' } },
+  }
+  const detail = await f.service.detail({ jobId: f.jobId, mode: 'refresh' })
+  expect(detail.jd).toBe('')
+  expect(detail.missing.jd).toBe('not_provided')
+  expect(detail.provenance?.jd).toBe('dom')
+  expect(detail.detailRead).toBe(false)
+  expect(detail.detailReadAt).toBeNull()
+})
+
 it('exposes a detail challenge and reloads its exact address in the visible verification view', async () => {
   const f = fixture(),
     run = await start(f)
@@ -1272,25 +1539,139 @@ it('retains the furthest committed page across repeated cursor loss during repla
   })
 }, 35000)
 
-it('rolls back a whole failed batch and retries it before advancing the source', async () => {
+it('automatically retries a rolled-back batch before advancing its existing adapter', async () => {
+  const f = fixture(),
+    repo = f.service.repository,
+    original = repo.observe.bind(repo)
+  let calls = 0
+  vi.spyOn(repo, 'observe').mockImplementation((...args) => {
+    if (++calls === 2) throw new Error('disk write failed')
+    return original(...args)
+  })
+  const createSearch = vi.spyOn(bossAdapter, 'createSearch')
+  const continuation = vi.spyOn(f.runtime, 'continue')
+  const run = await start(f)
+  await waitFor(() => expect(calls).toBe(2))
+  expect((await f.service.run(run.id)).sources[0]).toMatchObject({
+    state: 'running',
+    sourcePage: 0,
+    count: 0,
+    message: '',
+  })
+  expect(repo.sourceCount(run.id, 'boss')).toBe(0)
+  expect(commit).not.toHaveBeenCalled()
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
+    state: 'completed',
+    sourcePage: 3,
+    count: 6,
+  })
+  expect(createSearch).toHaveBeenCalledOnce()
+  expect(continuation).not.toHaveBeenCalled()
+  expect(commit.mock.calls.map(([b]) => b.page)).toEqual([1, 2, 3])
+  expect(read).toHaveBeenCalledTimes(4)
+})
+
+it.each(['storage', 'service'] as const)(
+  'retries a cached batch after a %s save failure without replaying its saved prefix or reading a page',
+  async (failure) => {
+    const f = fixture()
+    await settled(f, (await start(f)).id)
+    const repo = f.service.repository,
+      original = repo.observe.bind(repo),
+      createSearch = vi.spyOn(bossAdapter, 'createSearch')
+    read.mockClear()
+    commit.mockClear()
+    let calls = 0
+    vi.spyOn(repo, 'observe').mockImplementation((...args) => {
+      if (++calls === 4)
+        throw failure === 'service'
+          ? new AppServiceError('DATABASE_ERROR', 'storage unavailable')
+          : new Error('storage unavailable')
+      return original(...args)
+    })
+    const run = await start(f)
+    await waitFor(() => expect(calls).toBe(4))
+    expect((await f.service.run(run.id)).sources[0]).toMatchObject({
+      state: 'running',
+      sourcePage: 1,
+      batches: 1,
+      count: 2,
+      message: '',
+    })
+    expect(repo.sourceCount(run.id, 'boss')).toBe(2)
+    expect((await settled(f, run.id)).sources[0]).toMatchObject({
+      state: 'completed',
+      sourcePage: 3,
+      batches: 3,
+      count: 6,
+      rawCount: 6,
+      validCount: 6,
+      duplicateCount: 0,
+      message: 'cached_results',
+    })
+    expect(calls).toBe(8)
+    expect(read).not.toHaveBeenCalled()
+    expect(commit).not.toHaveBeenCalled()
+    expect(createSearch).not.toHaveBeenCalled()
+    expect((await f.service.list({ runId: run.id })).items).toHaveLength(6)
+  },
+)
+
+it('retains the committed cached prefix after its pending batch fails both save attempts', async () => {
+  const f = fixture()
+  await settled(f, (await start(f)).id)
+  const repo = f.service.repository,
+    original = repo.observe.bind(repo),
+    createSearch = vi.spyOn(bossAdapter, 'createSearch')
+  read.mockClear()
+  commit.mockClear()
+  let calls = 0
+  vi.spyOn(repo, 'observe').mockImplementation((...args) => {
+    if (++calls === 4 || calls === 6) throw new Error('storage unavailable')
+    return original(...args)
+  })
+  const run = await start(f)
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
+    state: 'partial',
+    sourcePage: 1,
+    batches: 1,
+    count: 2,
+    rawCount: 2,
+    validCount: 2,
+    duplicateCount: 0,
+    message: 'batch_save_failed',
+  })
+  expect(calls).toBe(6)
+  expect(repo.sourceCount(run.id, 'boss')).toBe(2)
+  expect((await f.service.list({ runId: run.id })).items).toHaveLength(2)
+  expect(read).not.toHaveBeenCalled()
+  expect(commit).not.toHaveBeenCalled()
+  expect(createSearch).not.toHaveBeenCalled()
+})
+
+it('retains a pending batch after two storage failures so a later continuation can retry it', async () => {
   const f = fixture(),
     repo = f.service.repository,
     original = repo.observe.bind(repo)
   let calls = 0
   const observe = vi.spyOn(repo, 'observe').mockImplementation((...args) => {
-    if (++calls === 2) throw new Error('disk write failed')
+    if (++calls % 2 === 0) throw new Error('disk write failed')
     return original(...args)
   })
-  const run = await start(f),
-    failed = await settled(f, run.id)
-  expect(failed.sources[0]).toMatchObject({
+  const createSearch = vi.spyOn(bossAdapter, 'createSearch')
+  const run = await start(f)
+  expect((await settled(f, run.id)).sources[0]).toMatchObject({
     state: 'partial',
     sourcePage: 0,
     count: 0,
+    batches: 0,
     message: 'batch_save_failed',
   })
+  expect(calls).toBe(4)
   expect(repo.sourceCount(run.id, 'boss')).toBe(0)
   expect(commit).not.toHaveBeenCalled()
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(createSearch).toHaveBeenCalledOnce()
   observe.mockRestore()
   await f.service.continue(run.id)
   expect((await settled(f, run.id)).sources[0]).toMatchObject({
@@ -1298,8 +1679,9 @@ it('rolls back a whole failed batch and retries it before advancing the source',
     sourcePage: 3,
     count: 6,
   })
-  expect(commit.mock.calls.map(([b]) => b.page)).toEqual([1, 2, 3])
-  expect(read).toHaveBeenCalledTimes(4)
+  expect(createSearch).toHaveBeenCalledOnce()
+  expect(commit.mock.calls.map(([value]) => value.page)).toEqual([1, 2, 3])
+  expect(read).toHaveBeenCalledTimes(5)
 })
 
 it('cancels an in-flight page, preserves saved identities and replays an expired cursor without loss', async () => {

@@ -17,6 +17,32 @@ import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { api, origin, yupaoAccount, yupaoData, yupaoQr } from './yupao/protocol'
 
 const cities = createCityLookup(cityCatalog)
+const cityControl = '#jobRecFilters > :first-child > :first-child'
+const cityLabel = `${cityControl} p`
+
+function cityMenuOption(value: string, click: boolean): boolean {
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  const header = [...document.querySelectorAll('header')].find(
+    (element) => element.firstChild?.textContent?.trim() === '请选择城市' && visible(element),
+  )
+  const option = [...(header?.parentElement?.querySelectorAll<HTMLElement>('span') ?? [])].find(
+    (element) => element.textContent?.trim() === value && visible(element),
+  )
+  if (!option) return false
+  if (click) option.click()
+  return true
+}
+
 const identity: JobIdentityPolicy = {
   id: 'yupao',
   domains: ['yupao.com', 'yupaowang.com'],
@@ -47,11 +73,15 @@ function tags(values: unknown[]) {
   return {
     experience:
       names.find((v) =>
-        /^(经验不限|不限经验|应届生?|\d+[-~至]\d+年|\d+年以上|\d+年以内)$/.test(v),
+        /^(经验不限|不限经验|应届生?|在校\/应届|\d+[-~至]\d+年|\d+年以上|\d+年以内|\d+年以下)$/.test(
+          v,
+        ),
       ) ?? '',
     education:
       names.find((v) =>
-        /^(学历不限|不限学历|博士|硕士|研究生|本科|大专|中专|高中|初中)(及以上|以上)?$/.test(v),
+        /^(学历不限|不限学历|博士|硕士|研究生|本科|大专|中专\/中技|中专|高中|初中)(及以上|以上)?$/.test(
+          v,
+        ),
       ) ?? '',
     recruitment: names.find((v) => /^(校招|校园招聘|社招|社会招聘)$/.test(v)) ?? '',
     employment: names.find((v) => /^(全职|兼职|实习|劳务|外包)$/.test(v)) ?? '',
@@ -107,13 +137,14 @@ export function yupaoRequest(
 }
 export function yupaoResponse(value: unknown, page: number): ParsedBatch {
   const data = record(yupaoData(value)),
-    source = rows(data.list)
+    source = rows(data.list),
+    total = data.total === null && source.length === 0 ? 0 : data.total
   if (
-    !Number.isSafeInteger(data.total) ||
-    Number(data.total) < 0 ||
+    !Number.isSafeInteger(total) ||
+    Number(total) < 0 ||
     source.length > 15 ||
-    (!source.length && (page - 1) * 15 < Number(data.total)) ||
-    (data.total === 0 && source.length)
+    (!source.length && (page - 1) * 15 < Number(total)) ||
+    (total === 0 && source.length)
   )
     throw new SourceError('parse_error', 'response_contract_changed')
   return batch(
@@ -140,7 +171,7 @@ export function yupaoResponse(value: unknown, page: number): ParsedBatch {
         detailRead: false,
       })
     },
-    page * 15 < Number(data.total),
+    page * 15 < Number(total),
   )
 }
 
@@ -162,6 +193,12 @@ export class YupaoSearch implements PlatformSearch {
           `(()=>{const e=document.querySelector(${JSON.stringify(selector)});return !!e && document.readyState==='complete' && Object.keys(e).some(k=>k.startsWith('__reactProps$'))})()`,
           signal,
         ),
+      signal,
+    )
+  }
+  private menuOption(value: string, click: boolean, signal: AbortSignal) {
+    return this.page.evaluate<boolean>(
+      `(${cityMenuOption.toString()})(${JSON.stringify(value)},${click})`,
       signal,
     )
   }
@@ -188,7 +225,7 @@ export class YupaoSearch implements PlatformSearch {
       )
       await this.inputReady('#jobRecPageSearchInput input', signal)
       const originalCity = await this.page.evaluate<string>(
-        `document.querySelector('.abhha .abhhc')?.textContent.trim() || ''`,
+        `document.querySelector(${JSON.stringify(cityLabel)})?.textContent.trim() || ''`,
         signal,
       )
       const selectedCity = city ?? cities.find(originalCity)
@@ -196,47 +233,40 @@ export class YupaoSearch implements PlatformSearch {
       // Clearing the site's advanced filters also resets its city to 全国.
       // Restore either the requested city or the actual default captured above.
       const clear = await this.page.evaluate<boolean>(
-        `[...document.querySelectorAll('#jobRecFilters .ahdd')].some(e=>e.getBoundingClientRect().width>0)`,
+        `[...document.querySelectorAll('#jobRecFilters span')].some(e=>e.textContent.trim()==='清空筛选条件' && e.getBoundingClientRect().width>0)`,
         signal,
       )
       if (clear) {
-        await this.page.click('#jobRecFilters .ahdd', '清空筛选条件', signal)
+        await this.page.click('#jobRecFilters span', '清空筛选条件', signal)
         await this.page.until(
           () =>
             this.page.evaluate<boolean>(
-              `location.pathname==='/topic/a1c0/' && document.querySelector('.abhha .abhhc')?.textContent.trim()==='全国'`,
+              `location.pathname==='/topic/a1c0/' && document.querySelector(${JSON.stringify(cityLabel)})?.textContent.trim()==='全国'`,
               signal,
             ),
           signal,
         )
       }
       if (selectedCity) {
-        await this.page.click('.abhha .abhhc', null, signal)
-        await this.page.click('.adhie .adhjc', '热门城市', signal)
-        await this.page.until(
-          () =>
-            this.page.evaluate<boolean>(
-              `!!document.querySelector('.adhie .adhjg .adhjh')?.getBoundingClientRect().width`,
-              signal,
-            ),
-          signal,
-        )
-        const hot = await this.page.evaluate<boolean>(
-          `[...document.querySelectorAll('.adhie .adhjh')].some(e=>e.textContent.trim()===${JSON.stringify(selectedCity.platformName)} && e.getBoundingClientRect().width>0)`,
-          signal,
-        )
+        await this.page.click(cityControl, null, signal)
+        await this.page.until(() => this.menuOption('热门城市', true, signal), signal)
+        await this.page.until(() => this.menuOption('全国', false, signal), signal)
+        const hot = await this.menuOption(selectedCity.platformName, false, signal)
         if (!hot) {
           const group = ['ABCDE', 'FGHJ', 'KLMN', 'PQRST', 'WXYZ'].find((group) =>
             group.includes(selectedCity.initial),
           )
           if (!group) throw new SourceError('unsupported_city')
-          await this.page.click('.adhie .adhjc', group, signal)
+          await this.page.until(() => this.menuOption(group, true, signal), signal)
         }
-        await this.page.click('.adhie .adhjh', selectedCity.platformName, signal)
+        await this.page.until(
+          () => this.menuOption(selectedCity.platformName, true, signal),
+          signal,
+        )
         await this.page.until(
           () =>
             this.page.evaluate<boolean>(
-              `/^\\/topic\\/a${selectedCity.code}c0\\/$/.test(location.pathname) && document.querySelector('.abhha .abhhc')?.textContent.trim()===${JSON.stringify(selectedCity.platformName)}`,
+              `/^\\/topic\\/a${selectedCity.code}c0\\/$/.test(location.pathname) && document.querySelector(${JSON.stringify(cityLabel)})?.textContent.trim()===${JSON.stringify(selectedCity.platformName)}`,
               signal,
             ),
           signal,
@@ -311,26 +341,32 @@ const rules: PageRules = {
   loginUrl: '://www\\.yupao\\.com/web/login/',
   loginUrlNeedsText: false,
   authenticatedSelector: 'a[href*="/web/user-center"]',
-  descriptionSelector: '.addeh',
-  statusSelector: 'h1',
-  tagsSelector: '.addfb',
+  descriptionSelector: 'main > :first-child > .agba > .adeee',
+  statusSelector: 'main > :first-child h1',
+  tagsSelector: 'main > :first-child > .agba > .adede',
   fields: {
-    title: 'h1',
+    title: 'main > :first-child h1',
     company: '[data-unused-company]',
     city: '[data-unused-city]',
     salary: '[data-unused-salary]',
     experience: '[data-unused-experience]',
     education: '[data-unused-education]',
   },
-  foldedSelector: '.addeh button',
-  excludedSelector: '#mainR,.addgd,footer,script,style',
+  foldedSelector: 'main > :first-child > .agba > .adeee button',
+  excludedSelector: 'main > :nth-child(2),.adefb,footer,script,style',
 }
 export function yupaoPageScript(detail: boolean): string {
-  return `(${readYupaoPage.toString()})(${pageScript(rules, false)},${detail})`
+  return `(${readYupaoPage.toString()})(${pageScript(rules, false)},${detail},${JSON.stringify(rules.descriptionSelector)},${JSON.stringify(rules.excludedSelector)},${JSON.stringify(rules.foldedSelector)})`
 }
 // Only the current job's original fullData.detail is admitted. The site's desc
 // and infoSeoExtra.detail can contain AI rewrites and must never replace the JD.
-function readYupaoPage(state: PageSnapshot, detail: boolean): PageSnapshot {
+function readYupaoPage(
+  state: PageSnapshot,
+  detail: boolean,
+  descriptionSelector: string,
+  excludedSelector: string,
+  foldedSelector: string,
+): PageSnapshot {
   if (!detail || state.challenge || state.login) return state
   const obj = (value: unknown): Record<string, unknown> =>
     value && typeof value === 'object' && !Array.isArray(value)
@@ -365,26 +401,58 @@ function readYupaoPage(state: PageSnapshot, detail: boolean): PageSnapshot {
   )?.[1]
   if (!expected || id(current.id) !== expected || id(raw.jobId) !== expected) return state
   const visible = (e: Element) => {
-    const r = e.getBoundingClientRect()
-    return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'
+    const r = e.getBoundingClientRect(),
+      style = getComputedStyle(e)
+    if (r.width <= 0 || r.height <= 0 || /hidden|collapse/.test(style.visibility)) return false
+    for (let parent: Element | null = e; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  const renderedText = (element: Element) => {
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement
+        return parent && visible(parent) && !parent.closest(excludedSelector)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT
+      },
+    })
+    let value = ''
+    for (let node = walker.nextNode(); node; node = walker.nextNode())
+      value += node.textContent || ''
+    return value
   }
   state.offline =
     (current.isEnd === true || obj(raw.isEnd).code === 2) &&
-    [...document.querySelectorAll('h1,h2,button,span')].some(
+    [
+      ...(document.querySelector('main > :first-child')?.querySelectorAll('h1,h2,button,span') ??
+        []),
+    ].some(
       (e) =>
-        visible(e) && /^(职位已关闭|该职位已下架|已停止招聘|职位已下架)$/.test(str(e.textContent)),
+        visible(e) &&
+        !e.closest(descriptionSelector + ',' + excludedSelector) &&
+        /^(职位已关闭|该职位已下架|已停止招聘|职位已下架)$/.test(str(e.textContent)),
     )
   if (state.offline) return state
   const jd = plain(raw.detail)
-  const rendered = [...document.querySelectorAll('.addeh')]
-    .filter(visible)
-    .map((e) => (e as HTMLElement).innerText || e.textContent || '')
+  const rendered = [...document.querySelectorAll(descriptionSelector)]
+    .filter((element) => visible(element) && !element.closest(excludedSelector))
+    .map(renderedText)
     .join('\n')
+  const folded = [...document.querySelectorAll(foldedSelector)].some(
+    (element) =>
+      visible(element) &&
+      !element.closest(excludedSelector) &&
+      /展开|登录/.test(renderedText(element)),
+  )
   const complete =
     !!jd &&
     rendered.replace(/\s/g, '').includes(jd.replace(/\s/g, '')) &&
+    !folded &&
     !/展开全部|展开更多|登录后查看|付费查看/.test(rendered)
-  const labels = (Array.isArray(raw.showTags) ? raw.showTags : []).map((v) => plain(obj(v).name))
+  const labels = (Array.isArray(current.tags) ? current.tags : []).map(plain)
   const company = plain(raw.companyBrandName) || plain(raw.companyName)
   state.detail = {
     url: location.href,
@@ -394,11 +462,15 @@ function readYupaoPage(state: PageSnapshot, detail: boolean): PageSnapshot {
     salary: plain(current.salary),
     education:
       labels.find((v) =>
-        /^(学历不限|不限学历|博士|硕士|研究生|本科|大专|中专|高中|初中)(及以上|以上)?$/.test(v),
+        /^(学历不限|不限学历|博士|硕士|研究生|本科|大专|中专\/中技|中专|高中|初中)(及以上|以上)?$/.test(
+          v,
+        ),
       ) || '',
     experience:
       labels.find((v) =>
-        /^(经验不限|不限经验|应届生?|\d+[-~至]\d+年|\d+年以上|\d+年以内)$/.test(v),
+        /^(经验不限|不限经验|应届生?|在校\/应届|\d+[-~至]\d+年|\d+年以上|\d+年以内|\d+年以下)$/.test(
+          v,
+        ),
       ) || '',
     employment: labels.find((v) => /^(全职|兼职|实习|劳务|外包)$/.test(v)) || '',
     recruitment: labels.find((v) => /^(校招|校园招聘|社招|社会招聘)$/.test(v)) || '',
@@ -406,7 +478,7 @@ function readYupaoPage(state: PageSnapshot, detail: boolean): PageSnapshot {
     detailRead: complete,
     missing: {
       ...(!complete ? { jd: 'parse_error' as const } : {}),
-      ...(!company ? { company: 'not_provided' as const } : {}),
+      ...(complete && !company ? { company: 'not_provided' as const } : {}),
     },
   }
   return state
@@ -423,7 +495,7 @@ export const yupaoAdapter: PlatformAdapter = {
   ...identity,
   cities,
   accountCheckUrl: `${origin}/web/login/`,
-  contractVersion: 1,
+  contractVersion: 2,
   sessionCheck: 'batch',
   remoteFilters: ['keyword', 'city'],
   checkSession: async (transport) =>

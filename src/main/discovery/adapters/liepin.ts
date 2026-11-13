@@ -14,13 +14,18 @@ import {
   type ParsedBatch,
   type SearchTransport,
 } from '../adapter'
-import { pageScript, type PageRules } from '../extraction'
+import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
 import { createCityLookup } from '../../../shared/discovery-city-catalog'
 import cityCatalog from '../../../shared/discovery-cities/liepin.json'
 import { batch, job, record, rows, text } from '../parsing'
 
 const cities = createCityLookup(cityCatalog)
+
+function cityCode(value: unknown): string {
+  if (typeof value === 'string') return /^\d+$/.test(value) ? value : ''
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? String(value) : ''
+}
 
 export function liepinRequest(
   request: SearchRequest,
@@ -40,6 +45,7 @@ export function liepinRequest(
   } catch {
     return false
   }
+  const submittedCity = cityCode(data.dq)
   return (
     [
       'salaryCode',
@@ -53,7 +59,8 @@ export function liepinRequest(
       'jobKind',
     ].every((key) => data[key] === undefined || data[key] === null || data[key] === '') &&
     text(data.key) === query.keyword &&
-    (!query.city || String(data.dq) === cities.code(query.city)) &&
+    !!submittedCity &&
+    (!query.city || submittedCity === cities.code(query.city)) &&
     Number(data.currentPage) === page - 1
   )
 }
@@ -69,11 +76,36 @@ export function liepinCityFilter(city: string): (location: string) => boolean {
     !target || cityNames.has(location.split(/[-·]/, 1)[0].trim().replace(/市$/, ''))
 }
 
-export function liepinResponse(value: unknown, page: number, city: string): ParsedBatch {
+export function liepinResponse(
+  value: unknown,
+  page: number,
+  city: string,
+  submitted?: SourceBatch['submitted'],
+): ParsedBatch {
   const root = record(value),
-    data = record(record(root.data).data)
+    result = record(root.data),
+    data = record(result.data)
   if (root.flag !== 1) throw new SourceError('parse_error', 'response_contract_changed')
   const acceptsCity = liepinCityFilter(city)
+  if (!Object.hasOwn(data, 'jobCardList')) {
+    const pagination = record(result.pagination),
+      scope = record(data.jobSubscribeInfo),
+      submittedCity = cityCode(submitted?.cityCode)
+    if (
+      !submitted?.keyword ||
+      !submittedCity ||
+      scope.keyword !== submitted.keyword ||
+      cityCode(scope.dqCode) !== submittedCity ||
+      pagination.totalCounts !== 0 ||
+      pagination.totalPage !== 0 ||
+      pagination.currentPage !== page - 1 ||
+      pagination.hasNext !== false ||
+      !Number.isSafeInteger(pagination.pageSize) ||
+      Number(pagination.pageSize) <= 0
+    )
+      throw new SourceError('parse_error', 'response_contract_changed')
+    return batch(liepinIdentity, page, [], () => null, false)
+  }
   return batch(
     liepinIdentity,
     page,
@@ -143,7 +175,7 @@ export class LiepinSearch implements PlatformSearch {
         request: (r) => {
           const matches = liepinRequest(r, query, this.pageNumber)
           if (matches !== true) return matches
-          submittedCity = String(
+          submittedCity = cityCode(
             record(record(record(JSON.parse(r.body)).data).mainSearchPcConditionForm).dq,
           )
           return true
@@ -153,6 +185,7 @@ export class LiepinSearch implements PlatformSearch {
             v,
             this.pageNumber,
             submittedCity === cities.code(this.query.city) ? this.query.city : '',
+            { keyword: query.keyword, cityCode: submittedCity },
           ),
       },
       action,
@@ -237,27 +270,63 @@ const liepinIdentity: JobIdentityPolicy = {
     return { url: u.href, externalId: id }
   },
 }
+const companySelector = '.company-info-container > .company-card > .content > div.name.ellipsis-1'
+const excludedJobSections = '[class*="recommend"],.job-list,.company-intro'
 const pageRules: PageRules = {
   loginUrlNeedsText: false,
   loginSelector:
-    'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer',
+    'input[type="password"],input[autocomplete="current-password"],.login-dialog,.login-layer,.teno-tel-login-inner-container input[placeholder="短信验证码"]',
   loginUrl: '',
   authenticatedSelector:
     '.header-quick-menu-login .header-quick-menu-user-photo,a[href*="logout"],a[href*="signout"]',
   descriptionSelector: '.job-intro-container .paragraph,.job-description,.content.content-word',
   statusSelector: '.job-status,.job-title-box .status,.job-apply-container',
-  tagsSelector:
-    '.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
+  tagsSelector: '.job-apply-content .job-properties > span',
   fields: {
-    title: '.job-name h1,.name h1,.job-title h1,.cn h1',
-    company: '.sider-company .company-info a,.company-name,.company-title',
-    city: '.job-banner .text-city,.job-area,.job-address,.job-dq',
-    salary: '.job-banner .salary,.salary,.job-salary,.cn strong',
-    experience: '.job-experience,[class*="work-years"],[class*="workyear"]',
-    education: '.job-education,[class*="education"]',
+    title: '.job-apply-content .name-box > .name > span.job-title',
+    company: '[data-unused-company]',
+    city: '.job-apply-content .job-properties > span:first-of-type',
+    salary: '.job-apply-content .name-box span.salary',
+    experience: '[data-unused-experience]',
+    education: '[data-unused-education]',
   },
   foldedSelector: '.job-sec button,.job-description button',
-  excludedSelector: 'aside,[class*="recommend"],.job-list,.company-intro',
+  excludedSelector: `aside,${excludedJobSections}`,
+}
+
+function liepinPageScript(detail: boolean): string {
+  if (!detail) return pageScript(pageRules, false)
+  return `(${readLiepinPage.toString()})(${pageScript(pageRules, true)},${JSON.stringify(companySelector)},${JSON.stringify(excludedJobSections)})`
+}
+
+function readLiepinPage(
+  state: PageSnapshot,
+  selector: string,
+  excludedSelector: string,
+): PageSnapshot {
+  if (state.login || state.challenge || state.offline) return state
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  // Liepin places the current employer card in the main page's aside.
+  const company = [...document.querySelectorAll(selector)]
+    .filter((element) => visible(element) && !element.closest(excludedSelector))
+    .map((element) =>
+      ((element as HTMLElement).innerText ?? element.textContent ?? '')
+        .trim()
+        .replace(/\u00a0/g, ' '),
+    )
+    .find(Boolean)
+  if (company) state.detail.company = company
+  return state
 }
 
 const passport = 'https://api-passport.liepin.com/api/com.liepin.passport.qr.'
@@ -314,7 +383,7 @@ export const liepinAdapter: PlatformAdapter = {
   cities,
   ...liepinIdentity,
   accountCheckUrl: 'https://www.liepin.com/',
-  contractVersion: 1,
+  contractVersion: 3,
   sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
   async checkSession(transport) {
@@ -324,7 +393,7 @@ export const liepinAdapter: PlatformAdapter = {
     if (page.login) return 'login_required'
     return 'unknown'
   },
-  pageScript: (detail) => pageScript(pageRules, detail),
+  pageScript: liepinPageScript,
   createSearch: (page, query) => new LiepinSearch(page, query),
   verification: {
     acceptsUrl: liepinVerificationUrl,
@@ -381,7 +450,7 @@ export function verificationPageScript(): string {
 
 // The safety site is an SPA: HTTP 200 and a loaded mascot are not a challenge.
 function readVerificationPage(): VerificationPage {
-  const text = (document.body?.innerText || document.body?.textContent || '').trim()
+  const text = (document.body?.innerText ?? document.body?.textContent ?? '').trim()
   if (
     /此页面似乎不存在|我们找遍了所有地方|页面不存在|页面未找到|page\s+not\s+found/i.test(text) ||
     /^404(?:\D|$)/.test(document.title.trim())

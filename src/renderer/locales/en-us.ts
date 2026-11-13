@@ -170,6 +170,7 @@ export default {
     newSearch: 'New search',
     history: 'Search history',
     keyword: 'Keywords',
+    keywordRequired: 'Search keywords cannot be empty',
     city: 'Location',
     selectPlatformsFirst: 'Select recruitment sites first',
     noCommonCities: 'Selected sites have no cities in common',

@@ -11,6 +11,7 @@ import { yupaoOptions, yupaoQr, yupaoSso } from '../src/main/discovery/adapters/
 import type { QrTransport } from '../src/main/discovery/qr-protocol'
 import type { SearchTransport } from '../src/main/discovery/adapter'
 import type { PageSnapshot } from '../src/main/discovery/extraction'
+import { normalizeJob } from '../src/main/discovery/normalization'
 import { canonicalJob } from '../src/main/discovery/platforms'
 
 afterEach(() => {
@@ -111,6 +112,67 @@ it('keeps source pagination separate from deduplication, original salaries and p
     expect.objectContaining({ state: 'challenge' }),
   )
 })
+it.each([1, 4])('accepts the official null-total empty result at source page %s', (page) => {
+  expect(
+    yupaoResponse(
+      {
+        code: 0,
+        data: {
+          matchAreaId: null,
+          cacheExpiredSecond: null,
+          total: null,
+          fromAlgCard: true,
+          list: [],
+        },
+      },
+      page,
+    ),
+  ).toMatchObject({
+    page,
+    jobs: [],
+    sourceIds: [],
+    rawCount: 0,
+    duplicateCount: 0,
+    rejectedCount: 0,
+    hasMore: false,
+    evidence: 'search_response',
+  })
+})
+it.each([
+  { list: [] },
+  { list: [], total: undefined },
+  { list: [], total: '0' },
+  { list: [], total: '' },
+  { list: [], total: false },
+  { list: [], total: -1 },
+  { list: [], total: 1.5 },
+  { list: [], total: Number.MAX_SAFE_INTEGER + 1 },
+  { list: [], total: 15 },
+  { list: [row], total: null },
+  { list: null, total: null },
+  { list: undefined, total: null },
+  { list: {}, total: null },
+  { total: null },
+])('rejects an unconfirmed Yupao empty-result shape %j', (data) => {
+  expect(() => yupaoResponse({ code: 0, data }, 1)).toThrow(
+    expect.objectContaining({ state: 'parse_error', message: 'response_contract_changed' }),
+  )
+})
+it.each([
+  { code: 401, state: 'login_required' },
+  { code: 10160001, state: 'login_required' },
+  { code: 403, state: 'challenge' },
+  { code: 429, state: 'challenge' },
+  { code: 500, state: 'parse_error' },
+  { code: '0', state: 'parse_error' },
+])(
+  'preserves Yupao response-code handling before null-total empty results (%s)',
+  ({ code, state }) => {
+    expect(() => yupaoResponse({ code, data: { list: [], total: null } }, 1)).toThrow(
+      expect.objectContaining({ state }),
+    )
+  },
+)
 it('canonicalizes only official numeric job identities', () => {
   expect(
     canonicalJob('yupao', 'https://www.yupao.com/zhaogong/485431773/opaque.html?from=test'),
@@ -121,6 +183,31 @@ it('canonicalizes only official numeric job identities', () => {
     'https://www.yupao.com/zhaogong/a2c0/',
   ])
     expect(canonicalJob('yupao', url)).toBeNull()
+})
+it.each([
+  { experience: '1年以下', education: '本科' },
+  { experience: '在校/应届', education: '本科' },
+  { experience: '5-10年', education: '中专/中技' },
+])('preserves current Yupao list qualification labels: %j', ({ experience, education }) => {
+  const parsed = yupaoResponse(
+    response([
+      {
+        ...row,
+        showTags: [
+          { type: 1, name: '1-2万/月' },
+          { type: 999, name: 'Java' },
+          { type: 15, name: experience },
+          { type: 17, name: education },
+        ],
+      },
+    ]),
+    1,
+  )
+  expect(parsed.jobs[0]).toMatchObject({
+    experience,
+    education,
+    detailRead: false,
+  })
 })
 it.each([
   ["<span style='color:#0099ff'>Java</span>", 'Java'],
@@ -369,46 +456,74 @@ it('retries the uncommitted batch without issuing another website request', asyn
   search.commit(first)
   expect(() => search.commit(first)).toThrow()
 })
-it.each(['北京', ''])(
-  'restores the requested or default city after clearing filters (%s)',
-  async (city) => {
-    document.body.innerHTML = `<div id="homeSearchBox"><input placeholder="搜索职位、公司"><span>搜索</span></div>
+it.each([
+  ...['北京', '', '包头'].map((city) => ({ city, hiddenMenuStyle: '', menuCss: '' })),
+  ...['opacity:0', 'visibility:hidden'].map((hiddenMenuStyle) => ({
+    city: '北京',
+    hiddenMenuStyle,
+    menuCss: '',
+  })),
+  {
+    city: '北京',
+    hiddenMenuStyle: '',
+    menuCss: '.adhhh{visibility:hidden}.adhhh header,.adhhh span{visibility:visible}',
+  },
+])(
+  'restores the requested or default city using the rendered menu (%j)',
+  async ({ city, hiddenMenuStyle, menuCss }) => {
+    document.body.innerHTML = `<style>${menuCss}</style><div id="homeSearchBox"><input placeholder="搜索职位、公司"><span>搜索</span></div>
     <div id="jobRecPageSearchInput"><input placeholder="搜索职位、公司"><span>搜索</span></div>
-    <div class="abhha"><span class="abhhc">上海</span></div>
-    <div id="jobRecFilters"><button class="ahdd">清空筛选条件</button></div>
-    <div class="adhie"><button class="adhjc">热门城市</button><div class="adhjg"><button class="adhjh">北京</button><button class="adhjh">上海</button></div></div>
+    <div id="jobRecFilters" class="aibb"><div class="aibc"><div class="abice abici aibd"><p class="abicg">上海</p></div></div><span class="aibe">清空筛选条件</span></div>
+    <div id="stale-city-menu" ${hiddenMenuStyle ? `style="${hiddenMenuStyle}"` : 'hidden'}><header>请选择城市<span></span></header><span>热门城市</span><span>全国</span><span>北京</span></div>
+    <div class="adhhh" hidden><header class="adhia">请选择城市<span></span></header><div class="adhic"><span class="adhid adhie">热门城市</span><span class="adhid">ABCDE</span><span class="adhid">FGHJ</span><span class="adhid">KLMN</span><span class="adhid">PQRST</span><span class="adhid">WXYZ</span></div><div class="adhij"></div></div>
     <a href="/zhaogong/485431773.html">Java</a><div class="yp-pagelist-infinite"></div>`
     for (const input of document.querySelectorAll('input'))
       Object.assign(input, { __reactProps$test: {} })
     vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete')
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-      width: 100,
-      height: 20,
-    } as DOMRect)
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+      this: Element,
+    ) {
+      return { width: this.closest('[hidden]') ? 0 : 100, height: 20 } as DOMRect
+    })
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       callback(0)
       return 1
     })
     const scroll = vi.fn()
+    const hiddenMenuClick = vi.fn()
+    document.querySelector('#stale-city-menu')!.addEventListener('click', hiddenMenuClick)
     document.querySelector('.yp-pagelist-infinite')!.scrollIntoView = scroll
     document
       .querySelector('#homeSearchBox > span')!
       .addEventListener('click', () => window.history.replaceState({}, '', '/topic/a25c0/'))
-    const label = document.querySelector('.abhhc')!
-    document.querySelector('.ahdd')!.addEventListener('click', () => {
+    const label = document.querySelector('#jobRecFilters p')!
+    const cityCodes: Record<string, string> = { 全国: '1', 北京: '2', 上海: '25', 包头: '261' }
+    document.querySelector('.aibe')!.addEventListener('click', () => {
       label.textContent = '全国'
       window.history.replaceState({}, '', '/topic/a1c0/')
     })
-    for (const item of document.querySelectorAll('.adhjh'))
+    const menu = document.querySelector<HTMLElement>('.adhhh')!
+    const cityOptions = menu.querySelector('.adhij')!
+    document.querySelector('#jobRecFilters .aibd')!.addEventListener('click', () => {
+      menu.hidden = false
+    })
+    const selectedGroups: string[] = []
+    for (const item of menu.querySelectorAll('.adhid'))
       item.addEventListener('click', () => {
-        label.textContent = item.textContent
-        window.history.replaceState(
-          {},
-          '',
-          `/topic/a${item.textContent === '北京' ? '2' : '25'}c0/`,
-        )
+        selectedGroups.push(item.textContent!)
+        cityOptions.innerHTML =
+          item.textContent === '热门城市'
+            ? '<div class="adhhg adhih"><span class="adhii">全国</span><span class="adhii">北京</span><span class="adhii">上海</span></div>'
+            : '<div class="adhif"><span class="adhig">B</span><div class="adhhg"><span class="adhii">包头</span></div></div>'
       })
+    cityOptions.addEventListener('click', (event) => {
+      const item = event.target as HTMLElement
+      if (!item.matches('.adhii')) return
+      label.textContent = item.textContent
+      window.history.replaceState({}, '', `/topic/a${cityCodes[item.textContent!]}c0/`)
+      menu.hidden = true
+    })
     let pageNumber = 1
     const page: SearchTransport = {
       evaluate: async (script) => window.eval(script),
@@ -437,7 +552,7 @@ it.each(['北京', ''])(
             request({
               ...body,
               currentPage: pageNumber++,
-              areaIds: [label.textContent === '北京' ? '2' : '25'],
+              areaIds: [cityCodes[label.textContent!]],
             }),
           ),
         ).toBe(true)
@@ -450,7 +565,9 @@ it.each(['北京', ''])(
       signal = new AbortController().signal
     const first = await search.read(signal)
     expect(first.jobs).toHaveLength(2)
-    expect(first.submitted.cityCode).toBe(city ? '2' : '25')
+    expect(first.submitted.cityCode).toBe(cityCodes[city || '上海'])
+    expect(selectedGroups).toEqual(city === '包头' ? ['热门城市', 'ABCDE'] : ['热门城市'])
+    expect(hiddenMenuClick).not.toHaveBeenCalled()
     search.commit(first)
     expect((await search.read(signal)).page).toBe(2)
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
@@ -460,7 +577,7 @@ it.each(['北京', ''])(
 it('reads only the original JD for the matching job and leaves personal company information missing', () => {
   window.history.replaceState({}, '', '/zhaogong/485431773.html')
   document.body.innerHTML =
-    '<h1>开发工程师</h1><div class="addeh">原始职责与要求</div><div class="addgd">AI 总结：推荐岗位</div><script id="__NEXT_DATA__" type="application/json"></script>'
+    '<main><div><h1>开发工程师</h1><div class="agba"><div class="adeci">职位详情 微信扫码分享 举报</div><div class="adede"></div><div class="adeee">原始职责与要求</div><div class="adefb">AI 总结</div><div class="addfd">招聘者</div></div></div><aside>推荐岗位</aside></main><script id="__NEXT_DATA__" type="application/json"></script>'
   const data = {
     props: {
       pageProps: {
@@ -469,6 +586,7 @@ it('reads only the original JD for the matching job and leaves personal company 
           title: '开发工程师',
           desc: 'AI 总结',
           salary: '1-2万/月',
+          tags: [],
           username: '个人姓名',
           fullData: {
             jobId: 485431773,
@@ -497,11 +615,76 @@ it('reads only the original JD for the matching job and leaves personal company 
   data.props.pageProps.ppJobInfo.fullData.jobId = 999
   document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify(data)
   expect((window.eval(yupaoPageScript(true)) as PageSnapshot).detail).toEqual({})
+  data.props.pageProps.ppJobInfo.fullData.jobId = 485431773
+  data.props.pageProps.ppJobInfo.id = 999
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify(data)
+  expect((window.eval(yupaoPageScript(true)) as PageSnapshot).detail).toEqual({})
+  data.props.pageProps.ppJobInfo.id = 485431773
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify(data)
+  window.history.replaceState({}, '', '/zhaogong/999.html')
+  expect((window.eval(yupaoPageScript(true)) as PageSnapshot).detail).toEqual({})
 })
+it.each([
+  { reason: 'same-ID SSR skeleton', original: undefined, content: '', complete: false },
+  { reason: 'missing main DOM', original: '原始职责与要求', content: '', complete: false },
+  {
+    reason: 'truncated original JD',
+    original: '原始职责与要求',
+    content: '<main><div><div class="agba"><div class="adeee">原始职责</div></div></div></main>',
+    complete: false,
+  },
+  {
+    reason: 'complete visible original JD',
+    original: '原始职责与要求',
+    content:
+      '<main><div><div class="agba"><div class="adeee">原始职责与要求</div></div></div></main>',
+    complete: true,
+  },
+])(
+  'only clears a previously observed Yupao company with complete current detail evidence: $reason',
+  ({ original, content, complete }) => {
+    window.history.replaceState({}, '', '/zhaogong/485431773.html')
+    document.body.innerHTML = `${content}<script id="__NEXT_DATA__" type="application/json"></script>`
+    document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+      props: {
+        pageProps: {
+          ppJobInfo: { id: 485431773, fullData: { jobId: 485431773, detail: original } },
+        },
+      },
+    })
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 100,
+      height: 50,
+    } as DOMRect)
+    const snapshot = window.eval(yupaoPageScript(true)) as PageSnapshot
+    expect(snapshot.detail).toMatchObject({ company: '', detailRead: complete })
+    expect(snapshot.detail.missing?.company).toBe(complete ? 'not_provided' : undefined)
+    const raw = {
+      platform: 'yupao' as const,
+      externalId: '485431773',
+      url: 'https://www.yupao.com/zhaogong/485431773.html',
+      title: 'Java 开发',
+      company: '此前确认的公司',
+      city: '北京',
+      salary: '1-2万/月',
+      experience: '5-10年',
+      education: '本科',
+      recruitment: '',
+      employment: '全职',
+      jd: '此前确认的完整正文',
+      detailRead: true,
+    }
+    const previous = normalizeJob(raw, 1)
+    const refreshed = normalizeJob({ ...raw, ...snapshot.detail }, 2, previous)
+    expect(refreshed.company).toBe(complete ? '' : '此前确认的公司')
+    expect(refreshed.missing?.company).toBe(complete ? 'not_provided' : undefined)
+  },
+)
+
 it('keeps highlighted detail fields plain without replacing the original JD with AI content', () => {
   window.history.replaceState({}, '', '/zhaogong/485431773.html')
   document.body.innerHTML =
-    '<h1>Java 开发</h1><div class="addeh">职责：Java &amp; C++\n要求：沟通能力</div><script id="__NEXT_DATA__" type="application/json"></script>'
+    '<main><div><h1>Java 开发</h1><div class="agba"><div class="adede">本科</div><div class="adeee">职责：Java &amp; C++\n要求：沟通能力</div><div class="adefb">AI改写的另一份正文</div></div></div></main><script id="__NEXT_DATA__" type="application/json"></script>'
   document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
     props: {
       pageProps: {
@@ -509,6 +692,7 @@ it('keeps highlighted detail fields plain without replacing the original JD with
           id: 485431773,
           title: '<span>备用标题</span>',
           salary: '<span>1-2万/月</span>',
+          tags: ['<span>本科</span>'],
           fullData: {
             jobId: 485431773,
             title: "<span style='color:#0099ff'>Java</span>&nbsp;开发",
@@ -516,7 +700,7 @@ it('keeps highlighted detail fields plain without replacing the original JD with
             companyName: '<span>研发</span>&amp;销售',
             address: '<span>北京</span>·海淀',
             detail: '<p>职责：<span>Java &amp; C++</span></p><p>要求：沟通能力</p>',
-            showTags: [{ name: '<span>本科</span>' }],
+            showTags: [{ name: 'Java' }],
             infoSeoExtra: { detail: 'AI 总结' },
           },
         },
@@ -538,4 +722,253 @@ it('keeps highlighted detail fields plain without replacing the original JD with
     detailRead: true,
     missing: {},
   })
+})
+
+it.each([
+  {
+    tags: ['5-10年', '本科', '全职', '社招', 'Java'],
+    expected: { experience: '5-10年', education: '本科', employment: '全职', recruitment: '社招' },
+  },
+  {
+    tags: ['1年以下', '本科', 'Java'],
+    expected: { experience: '1年以下', education: '本科', employment: '', recruitment: '' },
+  },
+  {
+    tags: ['在校/应届', '本科', 'Java'],
+    expected: { experience: '在校/应届', education: '本科', employment: '', recruitment: '' },
+  },
+  {
+    tags: ['5-10年', '中专/中技', 'Java'],
+    expected: { experience: '5-10年', education: '中专/中技', employment: '', recruitment: '' },
+  },
+  { tags: [], expected: { experience: '', education: '', employment: '', recruitment: '' } },
+  { tags: undefined, expected: { experience: '', education: '', employment: '', recruitment: '' } },
+  {
+    tags: { education: '本科' },
+    expected: { experience: '', education: '', employment: '', recruitment: '' },
+  },
+  {
+    tags: [{ name: '本科' }, 'Java'],
+    expected: { experience: '', education: '', employment: '', recruitment: '' },
+  },
+])('reads Yupao header fields only from current string tags: $tags', ({ tags, expected }) => {
+  window.history.replaceState({}, '', '/zhaogong/485431773.html')
+  document.body.innerHTML =
+    '<main><div><div class="agba"><div class="adeee">原始职责与要求</div><div class="adefb">另一份AI改写正文</div></div></div></main><script id="__NEXT_DATA__" type="application/json"></script>'
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+    props: {
+      pageProps: {
+        ppJobInfo: {
+          id: 485431773,
+          tags,
+          fullData: {
+            jobId: 485431773,
+            detail: '原始职责与要求',
+            showTags: [{ name: '1-3年' }, { name: '博士' }, { name: '实习' }, { name: '校招' }],
+          },
+        },
+      },
+    },
+  })
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  const state = window.eval(yupaoPageScript(true)) as PageSnapshot
+  expect(state.detail).toMatchObject({ ...expected, jd: '原始职责与要求', detailRead: true })
+})
+
+it.each(['display:none', 'opacity:0', 'visibility:hidden'])(
+  'requires the Yupao original JD to be visible through every ancestor with %s',
+  (style) => {
+    window.history.replaceState({}, '', '/zhaogong/485431773.html')
+    document.body.innerHTML = `<main><div><div class="agba" style="${style}"><div class="adeee">原始职责与要求</div></div></div><aside><div class="agba"><div class="adeee">原始职责与要求</div></div></aside></main><script id="__NEXT_DATA__" type="application/json"></script>`
+    document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+      props: {
+        pageProps: {
+          ppJobInfo: { id: 485431773, fullData: { jobId: 485431773, detail: '原始职责与要求' } },
+        },
+      },
+    })
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 100,
+      height: 50,
+    } as DOMRect)
+    const state = window.eval(yupaoPageScript(true)) as PageSnapshot
+    expect(state.detail).toMatchObject({
+      jd: '原始职责与要求',
+      detailRead: false,
+      missing: { jd: 'parse_error' },
+    })
+  },
+)
+
+it.each([
+  '<div class="adefb"><div class="adeee">原始职责与要求</div></div>',
+  '<div class="addjd">原始职责与要求</div><div class="adefb">AI改写正文</div>',
+  '<div class="adefb">原始职责与要求</div>',
+])(
+  'requires the current Yupao original section independently of adjacent content: %s',
+  (content) => {
+    window.history.replaceState({}, '', '/zhaogong/485431773.html')
+    document.body.innerHTML = `<main><div><div class="agba">${content}</div></div><aside><div class="agba"><div class="adeee">原始职责与要求</div></div></aside></main><script id="__NEXT_DATA__" type="application/json"></script>`
+    document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+      props: {
+        pageProps: {
+          ppJobInfo: { id: 485431773, fullData: { jobId: 485431773, detail: '原始职责与要求' } },
+        },
+      },
+    })
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 100,
+      height: 50,
+    } as DOMRect)
+    const state = window.eval(yupaoPageScript(true)) as PageSnapshot
+    expect(state.detail).toMatchObject({
+      jd: '原始职责与要求',
+      detailRead: false,
+      missing: { jd: 'parse_error' },
+    })
+  },
+)
+
+it.each([
+  { reason: 'truncated original', rendered: '原始职责', original: '原始职责与要求', hidden: false },
+  { reason: 'AI text only', rendered: '', original: '原始职责与要求', hidden: false },
+  { reason: 'missing original data', rendered: '原始职责与要求', original: '', hidden: false },
+  {
+    reason: 'hidden original',
+    rendered: '原始职责与要求',
+    original: '原始职责与要求',
+    hidden: true,
+  },
+  ...['展开', '展开全文', '展开全部', '展开更多', '登录后查看', '付费查看'].map((action) => ({
+    reason: action,
+    rendered: `原始职责与要求<button>${action}</button>`,
+    original: '原始职责与要求',
+    hidden: false,
+  })),
+])('leaves Yupao detail incomplete for $reason', ({ rendered, original, hidden }) => {
+  window.history.replaceState({}, '', '/zhaogong/485431773.html')
+  document.body.innerHTML = `<main><div><h1>开发工程师</h1><div class="agba"><div class="adeee" ${hidden ? 'hidden' : ''}>${rendered}</div><div class="adefb">职位总结：安全验证，原始职责与要求</div><div class="addfd">招聘者</div></div></div><aside><div class="agba"><div class="adeee">原始职责与要求</div></div></aside></main><script id="__NEXT_DATA__" type="application/json"></script>`
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+    props: {
+      pageProps: {
+        ppJobInfo: {
+          id: 485431773,
+          desc: '原始职责与要求',
+          fullData: {
+            jobId: 485431773,
+            detail: original,
+            infoSeoExtra: { detail: '原始职责与要求' },
+          },
+        },
+      },
+    },
+  })
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    return { width: this.closest('[hidden]') ? 0 : 100, height: 50 } as DOMRect
+  })
+  const state = window.eval(yupaoPageScript(true)) as PageSnapshot
+  expect(state.challenge).toBe(false)
+  expect(state.offline).toBe(false)
+  expect(state.detail).toMatchObject({
+    jd: original,
+    detailRead: false,
+    missing: { jd: 'parse_error' },
+  })
+})
+
+it.each([
+  ...['display:none', 'opacity:0', 'visibility:hidden'].map((style) => ({
+    wrapper: `<div style="${style}"><button>展开全部</button></div>`,
+    reason: `fold control hidden by ${style}`,
+  })),
+  {
+    wrapper: '<div class="adefb"><button>登录后查看</button></div>',
+    reason: 'AI section inside the original container',
+  },
+])('ignores $reason when confirming the current Yupao original', ({ wrapper }) => {
+  window.history.replaceState({}, '', '/zhaogong/485431773.html')
+  document.body.innerHTML = `<main><div><h1>Java</h1><div class="agba"><div class="adeee">原始职责与要求${wrapper}</div></div></div><aside><button>展开全文</button></aside></main><script id="__NEXT_DATA__" type="application/json"></script>`
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+    props: {
+      pageProps: {
+        ppJobInfo: {
+          id: 485431773,
+          fullData: { jobId: 485431773, detail: '原始职责与要求' },
+        },
+      },
+    },
+  })
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  expect((window.eval(yupaoPageScript(true)) as PageSnapshot).detail).toMatchObject({
+    jd: '原始职责与要求',
+    detailRead: true,
+  })
+})
+
+it.each([
+  {
+    ended: true,
+    status: '',
+    recommendedStatus: '职位已下架',
+    descriptionStatus: '',
+    summaryStatus: '',
+    offline: false,
+  },
+  {
+    ended: false,
+    status: '职位已下架',
+    recommendedStatus: '',
+    descriptionStatus: '',
+    summaryStatus: '',
+    offline: false,
+  },
+  {
+    ended: true,
+    status: '职位已下架',
+    recommendedStatus: '',
+    descriptionStatus: '',
+    summaryStatus: '',
+    offline: true,
+  },
+  {
+    ended: true,
+    status: '',
+    recommendedStatus: '',
+    descriptionStatus: '职位已下架',
+    summaryStatus: '',
+    offline: false,
+  },
+  {
+    ended: true,
+    status: '',
+    recommendedStatus: '',
+    descriptionStatus: '',
+    summaryStatus: '职位已下架',
+    offline: false,
+  },
+])('requires current-job data and visible status to mark Yupao offline (%j)', (example) => {
+  window.history.replaceState({}, '', '/zhaogong/485431773.html')
+  document.body.innerHTML = `<main><div><h1>开发工程师</h1><span>${example.status}</span><div class="agba"><div class="adeee">原始职责与要求<span>${example.descriptionStatus}</span></div><div class="adefb"><span>${example.summaryStatus}</span></div></div></div><aside><span>${example.recommendedStatus}</span></aside></main><script id="__NEXT_DATA__" type="application/json"></script>`
+  document.querySelector('#__NEXT_DATA__')!.textContent = JSON.stringify({
+    props: {
+      pageProps: {
+        ppJobInfo: {
+          id: 485431773,
+          isEnd: example.ended,
+          fullData: { jobId: 485431773, detail: '原始职责与要求' },
+        },
+      },
+    },
+  })
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  expect((window.eval(yupaoPageScript(true)) as PageSnapshot).offline).toBe(example.offline)
 })

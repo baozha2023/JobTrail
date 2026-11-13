@@ -1,20 +1,47 @@
 import { platformAdapter } from '../src/main/discovery/adapter-registry'
 import { EventEmitter } from 'node:events'
+import { runInNewContext } from 'node:vm'
 import type { WebContents } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
 import { bossRequest, bossResponse, BossSearch } from '../src/main/discovery/adapters/boss'
-import { liepinRequest, liepinResponse } from '../src/main/discovery/adapters/liepin'
+import { liepinRequest, liepinResponse, LiepinSearch } from '../src/main/discovery/adapters/liepin'
 import {
   zhilianRequest,
   zhilianResponse,
   zhilianInitial,
+  ZhilianSearch,
 } from '../src/main/discovery/adapters/zhilian'
 import { wuyouRequest, wuyouResponse, wuyouBody } from '../src/main/discovery/adapters/wuyou'
 import { SearchPage } from '../src/main/discovery/search-page'
-import { SourceError, type SourceBatch } from '../src/main/discovery/adapter'
+import {
+  SourceError,
+  type ParsedBatch,
+  type ResponseReader,
+  type SourceBatch,
+} from '../src/main/discovery/adapter'
 import { BatchCache, RoundBudget } from '../src/main/discovery/collection'
 
 const query = { keyword: 'agent', city: '北京' }
+const liepinEmptyScope = { keyword: 'unmatched-liepin-query', cityCode: '410' }
+const liepinEmptyPagination = {
+  currentPage: 0,
+  pageSize: 40,
+  hasNext: false,
+  totalPage: 0,
+  totalCounts: 0,
+}
+const liepinEmptyBody = {
+  flag: 1,
+  data: {
+    data: {
+      jobSubscribeInfo: {
+        keyword: liepinEmptyScope.keyword,
+        dqCode: liepinEmptyScope.cityCode,
+      },
+    },
+    pagination: liepinEmptyPagination,
+  },
+}
 const bossBody = {
   code: 0,
   zpData: {
@@ -65,6 +92,36 @@ describe('official platform request contracts', () => {
     expect(bossRequest({ ...req, method: 'GET' }, query, 2)).toBeNull()
     expect(bossResponse(bossBody, 2).jobs[0].title).toBe('智能体工程师')
   })
+  it.each([
+    [4, '实习'],
+    [0, ''],
+    [undefined, ''],
+    [999, ''],
+    ['4', ''],
+  ])('maps only the observed BOSS internship job type %s to %s', (jobType, employment) => {
+    const result = bossResponse(
+      {
+        ...bossBody,
+        zpData: {
+          ...bossBody.zpData,
+          jobList: [
+            {
+              ...bossBody.zpData.jobList[0],
+              jobType,
+              jobExperience: '',
+              salaryDesc: '360-450元/天',
+            },
+          ],
+        },
+      },
+      1,
+    )
+    expect(result.jobs[0]).toMatchObject({
+      employment,
+      experience: '',
+      salary: '360-450元/天',
+    })
+  })
   it('checks Liepin native zero-based pagination and retains campus job links', () => {
     const req = {
       url: 'https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job',
@@ -99,6 +156,188 @@ describe('official platform request contracts', () => {
     )
     expect(parsed.jobs[0].externalId).toBe('lptjob:85677533')
     expect(parsed.hasMore).toBeNull() // Only the verified official pager establishes the end.
+  })
+  it('accepts the observed Liepin zero-result response with an omitted job list', () => {
+    const parsed = liepinResponse(liepinEmptyBody, 1, '', liepinEmptyScope)
+    expect(parsed).toMatchObject({
+      jobs: [],
+      sourceIds: [],
+      page: 1,
+      rawCount: 0,
+      duplicateCount: 0,
+      rejectedCount: 0,
+      hasMore: false,
+      evidence: 'search_response',
+    })
+    const budget = new RoundBudget()
+    expect(budget.saved(parsed, 0, false)).toBe('completed')
+    expect(budget.jobs).toBe(0)
+  })
+  it.each(['410', 410])(
+    'retains the verified default Liepin city code as a string or number: %s',
+    (code) => {
+      const request = {
+        url: 'https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job',
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            mainSearchPcConditionForm: {
+              key: liepinEmptyScope.keyword,
+              dq: code,
+              currentPage: 0,
+              pageSize: 40,
+            },
+          },
+        }),
+      }
+      expect(liepinRequest(request, { keyword: liepinEmptyScope.keyword, city: '' }, 1)).toBe(true)
+      expect(
+        liepinResponse(
+          {
+            ...liepinEmptyBody,
+            data: {
+              ...liepinEmptyBody.data,
+              data: {
+                jobSubscribeInfo: { keyword: liepinEmptyScope.keyword, dqCode: code },
+              },
+            },
+          },
+          1,
+          '',
+          liepinEmptyScope,
+        ),
+      ).toMatchObject({ rawCount: 0, sourceIds: [], hasMore: false })
+    },
+  )
+  it.each([undefined, null, '', '上海', 'undefined', {}, ['410'], true, -1, 410.5])(
+    'rejects a Liepin request with an unproven default city code: %s',
+    (dq) => {
+      const request = {
+        url: 'https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job',
+        method: 'POST',
+        body: JSON.stringify({
+          data: {
+            mainSearchPcConditionForm: { key: 'Java', dq, currentPage: 0, pageSize: 40 },
+          },
+        }),
+      }
+      expect(liepinRequest(request, { keyword: 'Java', city: '' }, 1)).toBe(false)
+    },
+  )
+  it.each([undefined, null, '', '上海', 'undefined', {}, ['410'], true, -1, 410.5])(
+    'rejects a Liepin omitted-list response with an unproven city code: %s',
+    (dqCode) => {
+      expect(() =>
+        liepinResponse(
+          {
+            ...liepinEmptyBody,
+            data: {
+              ...liepinEmptyBody.data,
+              data: {
+                jobSubscribeInfo: { keyword: liepinEmptyScope.keyword, dqCode },
+              },
+            },
+          },
+          1,
+          '',
+          liepinEmptyScope,
+        ),
+      ).toThrow(SourceError)
+    },
+  )
+  it('rejects an omitted Liepin list when both city fields were missing before string conversion', () => {
+    expect(() =>
+      liepinResponse(
+        {
+          ...liepinEmptyBody,
+          data: {
+            ...liepinEmptyBody.data,
+            data: { jobSubscribeInfo: { keyword: liepinEmptyScope.keyword } },
+          },
+        },
+        1,
+        '',
+        { ...liepinEmptyScope, cityCode: String(undefined) },
+      ),
+    ).toThrow(SourceError)
+  })
+  it('retains the original Liepin explicit empty-array response path', () => {
+    expect(liepinResponse({ flag: 1, data: { data: { jobCardList: [] } } }, 1, '')).toMatchObject({
+      jobs: [],
+      sourceIds: [],
+      rawCount: 0,
+      hasMore: null,
+    })
+  })
+  it.each([
+    ['missing zero evidence', {}],
+    ['missing total count', { ...liepinEmptyPagination, totalCounts: undefined }],
+    ['nonzero total count', { ...liepinEmptyPagination, totalCounts: 1 }],
+    ['nonzero total pages', { ...liepinEmptyPagination, totalPage: 1 }],
+    ['wrong current page', { ...liepinEmptyPagination, currentPage: 1 }],
+    ['string current page', { ...liepinEmptyPagination, currentPage: '0' }],
+    ['more pages', { ...liepinEmptyPagination, hasNext: true }],
+    ['missing next-page evidence', { ...liepinEmptyPagination, hasNext: undefined }],
+    ['zero page size', { ...liepinEmptyPagination, pageSize: 0 }],
+    ['fractional page size', { ...liepinEmptyPagination, pageSize: 1.5 }],
+    ['string page size', { ...liepinEmptyPagination, pageSize: '40' }],
+    ['unsafe page size', { ...liepinEmptyPagination, pageSize: Number.MAX_SAFE_INTEGER + 1 }],
+  ])('rejects an omitted Liepin list with %s', (_, pagination) => {
+    expect(() =>
+      liepinResponse(
+        { ...liepinEmptyBody, data: { ...liepinEmptyBody.data, pagination } },
+        1,
+        '',
+        liepinEmptyScope,
+      ),
+    ).toThrow(
+      expect.objectContaining({ state: 'parse_error', message: 'response_contract_changed' }),
+    )
+  })
+  it.each([undefined, null, {}, '', false])(
+    'rejects an explicitly invalid Liepin job list even with zero pagination: %s',
+    (jobCardList) => {
+      expect(() =>
+        liepinResponse(
+          {
+            ...liepinEmptyBody,
+            data: {
+              ...liepinEmptyBody.data,
+              data: { ...liepinEmptyBody.data.data, jobCardList },
+            },
+          },
+          1,
+          '',
+          liepinEmptyScope,
+        ),
+      ).toThrow(SourceError)
+    },
+  )
+  it.each([
+    undefined,
+    { ...liepinEmptyScope, keyword: 'another-query' },
+    { ...liepinEmptyScope, cityCode: '010' },
+    { ...liepinEmptyScope, keyword: '' },
+    { ...liepinEmptyScope, cityCode: '' },
+    { ...liepinEmptyScope, cityCode: '上海' },
+    { ...liepinEmptyScope, cityCode: 'undefined' },
+    { ...liepinEmptyScope, cityCode: 'null' },
+  ])('rejects an omitted Liepin list outside its verified submitted scope: %s', (submitted) => {
+    expect(() => liepinResponse(liepinEmptyBody, 1, '', submitted)).toThrow(SourceError)
+  })
+  it('rejects an omitted Liepin list on a failed response or a different requested page', () => {
+    expect(() => liepinResponse({ ...liepinEmptyBody, flag: 0 }, 1, '', liepinEmptyScope)).toThrow(
+      SourceError,
+    )
+    expect(() => liepinResponse(liepinEmptyBody, 2, '', liepinEmptyScope)).toThrow(SourceError)
+    expect(() =>
+      liepinResponse(
+        { ...liepinEmptyBody, data: { ...liepinEmptyBody.data, data: {} } },
+        1,
+        '',
+        liepinEmptyScope,
+      ),
+    ).toThrow(SourceError)
   })
   it.each([undefined, null, '', '   ', 20000])(
     'requires BOSS re-login when a valid job has no salary text: %s',
@@ -186,6 +425,45 @@ describe('official platform request contracts', () => {
     expect(zhilianInitial(initial, { ...query, city: '上海' }, 1)).toBeNull()
     expect(zhilianInitial({ ...initial, pageMode: 'recommend' }, query, 1)).toBeNull()
   })
+  it.each([
+    { workType: '全职', employment: '全职' },
+    { workType: '兼职/临时', employment: '兼职/临时' },
+    { workType: '实习', employment: '实习' },
+    { workType: '项目合作', employment: '项目合作' },
+    { workType: ' 全职 ', employment: '全职' },
+    { workType: undefined, employment: '' },
+    { workType: null, employment: '' },
+    { workType: 4, employment: '' },
+    { workType: { label: '实习' }, employment: '' },
+  ])(
+    'preserves the Zhilian workType text $workType in response and initial batches',
+    ({ workType, employment }) => {
+      const list = [
+        {
+          positionUrl: 'https://www.zhaopin.com/jobdetail/CC1234.htm',
+          name: '开发工程师',
+          workType,
+          workTypeCode: 4,
+        },
+      ]
+      const response = zhilianResponse({ code: 200, data: { list, isEndPage: 1 } }, 1)
+      const initial = zhilianInitial(
+        {
+          pageMode: 'search',
+          queryParams: { kw: query.keyword, jl: '530' },
+          pageIndex: 1,
+          loadingStatus: false,
+          listLoadError: false,
+          hasMore: false,
+          positionList: list,
+        },
+        query,
+        1,
+      )
+      expect(response.jobs[0].employment).toBe(employment)
+      expect(initial?.jobs[0].employment).toBe(employment)
+    },
+  )
   it('reads the 51job resultbody contract and uses requested page size for a short final page', () => {
     const req = {
       url: 'https://we.51job.com/api/job/search-pc?keyword=agent&jobArea=010000&pageNum=2&pageSize=20',
@@ -236,6 +514,100 @@ describe('official platform request contracts', () => {
 })
 
 describe('whole batch advancement and cache', () => {
+  it('retains Zhilian workType in the normal SSR search projection', async () => {
+    const initialState = {
+      pageMode: 'search',
+      queryParams: { kw: query.keyword, jl: '530' },
+      pageIndex: 1,
+      loadingStatus: false,
+      listLoadError: false,
+      hasMore: false,
+      positionList: [
+        {
+          positionUrl: 'https://www.zhaopin.com/jobdetail/CC1234.htm',
+          name: '开发工程师',
+          workType: '兼职/临时',
+        },
+      ],
+    }
+    const transport = {
+      load: vi.fn(),
+      fill: vi.fn(),
+      enter: vi.fn(),
+      until: vi.fn().mockResolvedValue(true),
+      evaluate: vi.fn(async (script: string) =>
+        script.includes('window.__INITIAL_STATE__')
+          ? runInNewContext(script, { window: { __INITIAL_STATE__: initialState } })
+          : '',
+      ),
+      response: vi.fn(
+        async (
+          _reader: ResponseReader<ParsedBatch>,
+          action: () => Promise<void>,
+          _signal: AbortSignal,
+          initial: () => Promise<ParsedBatch | null>,
+        ) => {
+          await action()
+          return initial()
+        },
+      ),
+    } as unknown as SearchPage
+    const search = new ZhilianSearch(transport, { ...query, city: '' })
+    const result = await search.read(new AbortController().signal)
+    expect(result).toMatchObject({
+      evidence: 'search_initial_state',
+      submitted: { keyword: query.keyword, cityCode: '530' },
+    })
+    expect(result.jobs[0]).toMatchObject({
+      employment: '兼职/临时',
+      provenance: { employment: 'response' },
+    })
+  })
+  it('passes the matched Liepin request scope through the normal empty search entry point', async () => {
+    const response = vi.fn(
+      async (reader: ResponseReader<ParsedBatch>, action: () => Promise<void>) => {
+        await action()
+        expect(
+          reader.request({
+            url: 'https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job',
+            method: 'POST',
+            body: JSON.stringify({
+              data: {
+                mainSearchPcConditionForm: {
+                  key: liepinEmptyScope.keyword,
+                  dq: liepinEmptyScope.cityCode,
+                  currentPage: 0,
+                  pageSize: 40,
+                },
+              },
+            }),
+          }),
+        ).toBe(true)
+        return reader.response(liepinEmptyBody)
+      },
+    )
+    const transport = {
+      load: vi.fn(),
+      fill: vi.fn(),
+      click: vi.fn(),
+      evaluate: vi.fn().mockResolvedValue(true),
+      until: vi.fn(async (read: () => Promise<unknown>) => read()),
+      response,
+    } as unknown as SearchPage
+    const search = new LiepinSearch(transport, { keyword: liepinEmptyScope.keyword, city: '' })
+    const result = await search.read(new AbortController().signal)
+    expect(result).toMatchObject({
+      jobs: [],
+      sourceIds: [],
+      rawCount: 0,
+      hasMore: false,
+      submitted: liepinEmptyScope,
+    })
+    expect(await search.read(new AbortController().signal)).toBe(result)
+    expect(response).toHaveBeenCalledOnce()
+    expect(transport.until).toHaveBeenCalledOnce()
+    search.commit(result)
+  })
   it('retains a pending source batch until the save is explicitly committed', async () => {
     const response = vi.fn().mockResolvedValue(bossResponse(bossBody, 1))
     const transport = { load: vi.fn(), response } as unknown as SearchPage

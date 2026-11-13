@@ -74,10 +74,11 @@ export async function smoke(name, transportOptions, clientOptions = {}) {
       }
       const dynamic = await client.callTool({
         name: 'read_web_page',
-        arguments: { url: 'https://playwright.dev/', render: 'dynamic' },
+        arguments: { url: 'https://example.com/', render: 'dynamic' },
       })
       assert.notEqual(dynamic.isError, true, `${name}: ${JSON.stringify(dynamic.content)}`)
-      assert.match(dynamic.structuredContent.text, /Playwright/)
+      assert.equal(dynamic.structuredContent.title, 'Example Domain')
+      assert.match(dynamic.structuredContent.text, /documentation examples/)
       assert.equal(dynamic.structuredContent.incompleteReason, null)
       config.mcp.requireWriteConfirmation = false
       fs.writeFileSync(configPath, encodeTestConfig(config))

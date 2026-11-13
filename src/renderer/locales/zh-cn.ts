@@ -156,6 +156,7 @@ export default {
     newSearch: '新搜索',
     history: '搜索历史',
     keyword: '关键词',
+    keywordRequired: '搜索不能为空',
     city: '地点',
     selectPlatformsFirst: '请先选择招聘网站',
     noCommonCities: '所选网站暂无共同城市',

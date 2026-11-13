@@ -12,7 +12,7 @@ undocumented_unsafe_blocks = "deny"
 anyhow = "1.0"
 dirs = "6.0"
 mslnk = "0.1"
-rfd = { version = "0.15", features = ["common-controls-v6"] }
+rfd = { version = "0.15", default-features = false, features = ["common-controls-v6"] }
 roxmltree = "0.20"
 semver = "1.0"
 tempfile = "3"

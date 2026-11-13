@@ -33,6 +33,7 @@ import type { CompanySummary, Status, ResumeVersion, DiscoveryTourStepId } from 
 import { waitForTourLayout } from '../utils/tour-dom'
 import { commonCities, platformCity } from '../../shared/discovery-cities'
 import { errorCode, getErrorMessage } from '../utils/errors'
+import { reportRendererFault } from '../diagnostics'
 import DiscoveryLoginDialog from '../components/DiscoveryLoginDialog.vue'
 import { useDiscoveryRecovery } from '../composables/useDiscoveryRecovery'
 const props = defineProps<{
@@ -402,6 +403,14 @@ async function openVerification() {
 async function submitSearch() {
   if (busy.value) return
   await safely(async () => {
+    if (!run.value && !keyword.value.trim()) {
+      reportRendererFault('discovery.search.validate', {
+        code: 'VALIDATION_ERROR',
+        message: 'Job search keyword is empty',
+      })
+      emit('warning', label('keywordRequired'))
+      return
+    }
     busy.value = true
     try {
       if (running.value) {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { flushPromises, shallowMount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount, type VueWrapper } from '@vue/test-utils'
 import {
   NButton,
   NCheckbox,
@@ -21,6 +21,7 @@ import * as cityCatalog from '../src/shared/discovery-cities'
 import type { CompanySummary } from '../src/shared/types'
 import {
   platforms,
+  platformNames,
   type DiscoveredJob,
   type DiscoveryApi,
   type BrowserLoadingState,
@@ -39,6 +40,7 @@ beforeEach(() => {
     'ResizeObserver',
     class {
       observe() {}
+      unobserve() {}
       disconnect() {}
     },
   )
@@ -203,6 +205,95 @@ const qrWaiting: QrLoginState = {
   scanHint: { 'zh-CN': '使用官方 App 扫码', 'en-US': 'Scan with the official app' },
   verification: { available: false, window: 'closed', error: null },
 }
+
+it.each(
+  platforms.flatMap((platform) =>
+    (['login_required', 'session_expired', 'challenge'] as const).map((state) => ({
+      platform,
+      state,
+    })),
+  ),
+)(
+  'routes the real $platform $state recovery button to its search and platform',
+  async ({ platform, state }) => {
+    const { api, run } = await fixture(null, {
+      authenticated: [platform],
+      search: false,
+      realComponents: true,
+    })
+    run.query.platforms = [platform]
+    api.list.mockResolvedValue({ viewId: 'view-one', items: [], total: 0, page: 1, pageSize: 20 })
+    api.run.mockResolvedValue({
+      ...run,
+      state: 'partial',
+      sources: [source(platform, state)],
+    })
+    const waiting = { ...qrWaiting, platform }
+    api.qrLogin.mockResolvedValue(waiting)
+
+    await wrapper!.get('[data-tour="discovery-search"]').trigger('click')
+    await flushPromises()
+    expect(api.start).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { keyword: 'Java', city: '', platforms: [platform] } }),
+    )
+    await vi.advanceTimersByTimeAsync(1800)
+    await flushPromises()
+
+    const button = wrapper!.get<HTMLButtonElement>('.discovery-verification')
+    expect(button.element.tagName).toBe('BUTTON')
+    expect(button.element.disabled).toBe(false)
+    expect(button.text()).toBe(
+      `${platformNames[platform]} · ${i18n.global.t('discovery.' + state)}`,
+    )
+    expect(wrapper!.findAll('.discovery-verification')).toHaveLength(1)
+    expect(wrapper!.find('.discovery-source-warnings').exists()).toBe(false)
+    api.verification.mockClear()
+    if (state === 'challenge')
+      api.verification.mockResolvedValue({ runId: run.id, platform, phase: 'open' })
+
+    await button.trigger('click')
+    await flushPromises()
+
+    if (state === 'challenge') {
+      expect(api.verification).toHaveBeenCalledExactlyOnceWith({
+        action: 'open',
+        runId: run.id,
+        platform,
+      })
+      expect(api.qrLogin).not.toHaveBeenCalled()
+      expect(wrapper!.findComponent(DiscoveryLoginDialog).props('show')).toBe(false)
+      return
+    }
+
+    expect(api.qrLogin).toHaveBeenCalledExactlyOnceWith({ action: 'start', platform })
+    const panel = wrapper!.findComponent(DiscoveryLoginDialog)
+    expect(panel.props('show')).toBe(true)
+    expect(panel.props('platform')).toBe(platform)
+    expect(panel.props('accountManagement')).toBe(false)
+    expect(panel.get('.discovery-qr-title').text()).toBe(platformNames[platform])
+    expect(panel.get('.discovery-qr-image').attributes('src')).toBe(waiting.image)
+    expect(
+      api.verification.mock.calls.some(
+        ([input]) => (input as { action: string }).action === 'open',
+      ),
+    ).toBe(false)
+
+    api.qrLogin.mockResolvedValue({ ...waiting, state: 'authenticated', image: null })
+    api.verification.mockResolvedValue({ runId: run.id, platform, phase: 'checking' })
+    await vi.advanceTimersByTimeAsync(1800)
+    await flushPromises()
+    expect(api.verification).toHaveBeenCalledWith({
+      action: 'recheck',
+      runId: run.id,
+      platform,
+      attemptId: waiting.attemptId,
+    })
+    expect(panel.props('show')).toBe(false)
+    expect(api.start).toHaveBeenCalledOnce()
+    expect(api.continue).not.toHaveBeenCalled()
+  },
+)
+
 async function openLoginWarning(state: 'login_required' | 'session_expired') {
   const f = await fixture()
   f.api.run.mockResolvedValue({ ...f.run, state: 'partial', sources: [source('boss', state)] })
@@ -412,7 +503,13 @@ async function fixture(
     authenticated = ['boss'],
     search = true,
     companies = [],
-  }: { authenticated?: JobPlatform[]; search?: boolean; companies?: CompanySummary[] } = {},
+    realComponents = false,
+  }: {
+    authenticated?: JobPlatform[]
+    search?: boolean
+    companies?: CompanySummary[]
+    realComponents?: boolean
+  } = {},
 ) {
   const job: DiscoveredJob = {
     id: 'job-one',
@@ -480,12 +577,14 @@ async function fixture(
     qrLogin: vi.fn(async (_input: unknown): Promise<QrLoginState | null> => null),
   }
   Object.defineProperty(window, 'zhijiApi', { configurable: true, value: { discovery: api } })
-  wrapper = shallowMount(JobDiscoveryView, {
+  if (realComponents) vi.stubGlobal('matchMedia', () => ({ matches: false }))
+  const createWrapper = realComponents ? mount : shallowMount
+  wrapper = createWrapper(JobDiscoveryView, {
     props: { active: true, companies, statuses: [], resumes: [] },
     global: {
       plugins: [i18n],
       renderStubDefaultSlot: true,
-      stubs: { DiscoveryLoginDialog: false },
+      stubs: { DiscoveryLoginDialog: false, ...(realComponents ? { teleport: true } : {}) },
     },
   })
   wrapper!.findComponent(NInput).vm.$emit('update:value', 'Java')
@@ -1010,6 +1109,57 @@ it('leaves invalid drafts editable and starts with an unlocked blank page after 
   expectQueryLocked(false)
   expect(wrapper!.find('.discovery-job').exists()).toBe(false)
 })
+
+it.each(
+  (['zh-CN', 'en-US'] as const).flatMap((locale) =>
+    (['click', 'enter'] as const).flatMap((submission) => [
+      { locale, submission, keyword: '', draft: 'empty' },
+      { locale, submission, keyword: ' \t\n\u3000 ', draft: 'whitespace' },
+    ]),
+  ),
+)(
+  'shows a localized toast for a $draft keyword via $submission in $locale',
+  async ({ locale, submission, keyword }) => {
+    i18n.global.locale.value = locale
+    const report = vi.fn().mockResolvedValue({ status: 'written' })
+    vi.stubGlobal('diagnosticsApi', { report })
+    const { api } = await fixture(null, { search: false })
+    api.status.mockClear()
+    api.browser.mockClear()
+    wrapper!.findComponent(NInput).vm.$emit('update:value', keyword)
+    if (submission === 'click') searchButton().vm.$emit('click')
+    else wrapper!.findComponent(NInput).vm.$emit('keyup', { key: 'Enter' })
+    await flushPromises()
+
+    expect(wrapper!.emitted('warning')).toEqual([
+      [locale === 'zh-CN' ? '搜索不能为空' : 'Search keywords cannot be empty'],
+    ])
+    expect(wrapper!.findComponent(NAlert).exists()).toBe(false)
+    expect(report).toHaveBeenCalledOnce()
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'renderer', code: 'VALIDATION_ERROR' }),
+    )
+    expect(api.start).not.toHaveBeenCalled()
+    expect(api.status).not.toHaveBeenCalled()
+    expect(api.browser).not.toHaveBeenCalled()
+    expect(searchButton().props('loading')).toBe(false)
+    expectQueryLocked(false)
+    expect(wrapper!.findComponent(NInput).props('value')).toBe(keyword)
+    expect(
+      wrapper!.findComponent(NCheckboxGroup).findAllComponents(NCheckbox)[0].props('disabled'),
+    ).toBe(false)
+
+    wrapper!.findComponent(NInput).vm.$emit('update:value', 'Java')
+    searchButton().vm.$emit('click')
+    await flushPromises()
+    expect(api.start).toHaveBeenCalledOnce()
+    expect(api.start).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { keyword: 'Java', city: '', platforms: ['boss'] } }),
+    )
+    expect(wrapper!.findComponent(NAlert).exists()).toBe(false)
+    expectQueryLocked(true)
+  },
+)
 
 it('keeps the existing page when cancelling for a new search fails', async () => {
   const { api } = await fixture()

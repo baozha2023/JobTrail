@@ -12,7 +12,7 @@ import {
   type ParsedBatch,
   type SearchTransport,
 } from '../adapter'
-import { pageScript, type PageRules } from '../extraction'
+import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { LoginError, qrImage, type QrProtocol, type QrTransport } from '../qr-protocol'
 import { createCityLookup } from '../../../shared/discovery-city-catalog'
 import cityCatalog from '../../../shared/discovery-cities/boss.json'
@@ -64,6 +64,7 @@ export function bossResponse(value: unknown, page: number): ParsedBatch {
         salary: text(r.salaryDesc),
         experience: text(r.jobExperience),
         education: text(r.jobDegree),
+        employment: r.jobType === 4 ? '实习' : '',
       })
     },
     typeof data.hasMore === 'boolean' ? data.hasMore : null,
@@ -300,7 +301,7 @@ export const bossAdapter: PlatformAdapter = {
   cities,
   ...bossIdentity,
   accountCheckUrl: 'https://www.zhipin.com/',
-  contractVersion: 2,
+  contractVersion: 3,
   sessionCheck: 'operation',
   remoteFilters: ['keyword', 'city'],
   async checkSession(transport) {
@@ -310,7 +311,7 @@ export const bossAdapter: PlatformAdapter = {
     if (page.login) return 'login_required'
     return 'unknown'
   },
-  pageScript: (detail) => pageScript(pageRules, detail),
+  pageScript: bossPageScript,
   createSearch: (page, query) => new BossSearch(page, query),
   qr: {
     scanHint: wechatHint,
@@ -333,15 +334,47 @@ const pageRules: PageRules = {
   descriptionSelector: '.job-sec-text,.job-detail .text,.job-description',
   statusSelector: '.job-status,.job-banner .status,.job-banner .op-btn',
   tagsSelector:
-    '.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
+    '.job-banner .text-experiece,.job-banner .text-degree,.tag-list li,.job-labels span,.job-labels li,.job-card__tags span,.job-card__tags li,.joblist-item-jobinfo span,.job-properties span,.text-desc span,.job-qualifications span,.job-require span',
   fields: {
     title: '.job-name h1,.name h1,.job-title h1,.cn h1',
     company: '.sider-company .company-info a,.company-name,.company-title',
     city: '.job-banner .text-city,.job-area,.job-address,.job-dq',
     salary: '.job-banner .salary,.salary,.job-salary,.cn strong',
-    experience: '.job-experience,[class*="work-years"],[class*="workyear"]',
-    education: '.job-education,[class*="education"]',
+    experience:
+      '.job-banner .text-experiece,.job-experience,[class*="work-years"],[class*="workyear"]',
+    education: '.job-banner .text-degree,.job-education,[class*="education"]',
   },
   foldedSelector: '.job-sec button,.job-description button',
-  excludedSelector: 'aside,[class*="recommend"],.job-list,.company-intro',
+  excludedSelector: 'aside,[class*="recommend"],.job-list,.company-intro,.company-info-box',
+}
+
+function bossPageScript(detail: boolean): string {
+  if (!detail) return pageScript(pageRules, false)
+  return `(${readBossPage.toString()})(${pageScript(pageRules, true)},${JSON.stringify(pageRules.excludedSelector)})`
+}
+
+function readBossPage(state: PageSnapshot, excludedSelector: string): PageSnapshot {
+  if (state.login || state.challenge || state.offline) return state
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  // BOSS uses the experience header slot for internship attendance requirements.
+  const attendance = [...document.querySelectorAll('.job-banner .text-experiece')]
+    .filter((element) => visible(element) && !element.closest(excludedSelector))
+    .map((element) => ((element as HTMLElement).innerText ?? element.textContent ?? '').trim())
+    .find((value) => /^[1-7]天\/周\s+[1-9]\d*个月$/.test(value))
+  if (!attendance) return state
+  state.detail.experience = ''
+  state.detail.employment = '实习'
+  state.detail.missing = { ...state.detail.missing, experience: 'not_provided' }
+  if (state.detail.jd) state.detail.jd = attendance + '\n' + state.detail.jd
+  return state
 }

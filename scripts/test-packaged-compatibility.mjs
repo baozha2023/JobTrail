@@ -25,6 +25,7 @@ const releases = [
   { version: '2.5.0', commit: '6f15578', databaseVersion: 7, configVersion: 2 },
   { version: '2.6.0', commit: '3890679', databaseVersion: 8, configVersion: 2 },
   { version: '2.7.0', commit: '590cf80', databaseVersion: 9, configVersion: 2 },
+  { version: '2.8.0', commit: 'e009564', databaseVersion: 9, configVersion: 2 },
 ]
 const project = path.resolve(import.meta.dirname, '..')
 const clientVersion = JSON.parse(

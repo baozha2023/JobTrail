@@ -65,18 +65,28 @@ export function normalizeJob(
   previous?: JobObservation,
 ): JobObservation {
   const merged: RawJob = { ...raw, missing: { ...raw.missing }, provenance: { ...raw.provenance } }
-  // A list snapshot may refresh fields, but cannot erase a successful full detail read.
-  if (previous)
-    for (const field of jobFields) {
-      if (
-        (!raw[field]?.trim() || (field === 'jd' && !raw.detailRead && previous.detailRead)) &&
-        previous[field]
-      ) {
-        merged[field] = previous[field]
-        if (previous.provenance?.[field]) merged.provenance![field] = previous.provenance[field]
-      }
+  for (const field of jobFields) {
+    // Explicit absence is authoritative when correcting previously observed values.
+    if (!raw[field]?.trim() && raw.missing?.[field] === 'not_provided') {
+      merged[field] = ''
+      continue
     }
-  const detailReadAt = raw.detailRead && !!raw.jd.trim() ? now : (previous?.detailReadAt ?? null)
+    // Preserve a successful full detail read when a list snapshot contains only its summary.
+    if (
+      previous &&
+      (!raw[field]?.trim() || (field === 'jd' && !raw.detailRead && previous.detailRead)) &&
+      previous[field]
+    ) {
+      merged[field] = previous[field]
+      if (previous.provenance?.[field]) merged.provenance![field] = previous.provenance[field]
+    }
+  }
+  const detailReadAt =
+    !raw.jd.trim() && raw.missing?.jd === 'not_provided'
+      ? null
+      : raw.detailRead && !!raw.jd.trim()
+        ? now
+        : (previous?.detailReadAt ?? null)
   const missing = { ...previous?.missing, ...raw.missing }
   for (const field of jobFields) {
     // A list summary is useful text, but is not evidence of a complete JD.

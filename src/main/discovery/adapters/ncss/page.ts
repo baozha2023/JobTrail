@@ -69,7 +69,7 @@ function readNcssPage(detail: boolean): PageSnapshot {
     data.employment = ['全职', '兼职', '实习'].includes(employment) ? employment : ''
     data.jd = [...document.querySelectorAll('.jobdetail-box .mainContent')]
       .filter(currentJob)
-      .map((e) => ((e as HTMLElement).innerText || e.textContent || '').trim())
+      .map((e) => ((e as HTMLElement).innerText ?? e.textContent ?? '').trim())
       .filter(Boolean)
       .join('\n\n')
     data.detailRead = !!data.jd && !/展开全部|展开更多|登录后查看/.test(data.jd)

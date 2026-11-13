@@ -42,8 +42,9 @@ function readPage(rules: PageRules, detail: boolean): PageSnapshot {
     }
     return true
   }
+  // Preserve an empty rendered value so hidden descendant text stays excluded.
   const text = (e: Element | null) =>
-    ((e as HTMLElement)?.innerText || e?.textContent || '').trim().replace(/\u00a0/g, ' ')
+    ((e as HTMLElement)?.innerText ?? e?.textContent ?? '').trim().replace(/\u00a0/g, ' ')
   const jobNodes = (root: ParentNode, selectors: string) =>
     Array.from(root.querySelectorAll(selectors)).filter(
       (node) => visible(node) && !node.closest(rules.excludedSelector),

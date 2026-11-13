@@ -11,7 +11,7 @@ import { nowcoderAccount, nowcoderQr } from '../src/main/discovery/adapters/nowc
 import type { AccountTransport, SearchTransport } from '../src/main/discovery/adapter'
 import type { QrTransport } from '../src/main/discovery/qr-protocol'
 import type { PageSnapshot } from '../src/main/discovery/extraction'
-import { salaryExclusion } from '../src/main/discovery/normalization'
+import { normalizeJob, salaryExclusion } from '../src/main/discovery/normalization'
 
 // Synthetic cards shaped after the official 2026-10-16 square-search contract.
 const row = (id: number, type = 1) => ({
@@ -56,7 +56,10 @@ const response = (
 ) => ({ code: 0, data: { datas, currentPage: page, totalPage, totalCount: datas.length ? 42 : 0 } })
 const query = { keyword: 'Java', city: '上海' }
 const endpoint = 'https://www.nowcoder.com/np-api/u/job/square-search'
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  document.body.innerHTML = ''
+})
 
 it('sends one fixed mixed query and isolates typed, expanded, stale and duplicate parameters', () => {
   const body = nowcoderForm(query, 2),
@@ -240,4 +243,172 @@ it('reads only the current header, complete JD and official company card', () =>
     .querySelector('.job-detail-infos')!
     .appendChild(Object.assign(document.createElement('button'), { textContent: '展开全部' }))
   expect(read().detail.detailRead).toBe(false)
+})
+
+it('reads unclassed Nowcoder experience separately from unrestricted education and city', () => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  document.body.innerHTML =
+    '<div class="recommend-list"><div class="job-detail-wrap"><div class="extra"><span>5-10年</span></div></div></div><div class="job-detail-wrap"><h1 class="title">Java</h1><div class="extra"><span>Java</span><span class="el-tooltip">北京</span><span class="edu-level">不限</span><span>1-3年</span></div></div><div class="job-detail-infos">完整原始岗位职责</div>'
+  const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+  expect(snapshot.detail).toMatchObject({
+    title: 'Java',
+    city: '北京',
+    education: '不限',
+    experience: '1-3年',
+    jd: '完整原始岗位职责',
+    detailRead: true,
+  })
+  expect(snapshot.detail.missing?.experience).toBeUndefined()
+})
+
+it.each([
+  {
+    reason: 'visible experience with a hidden annotation',
+    markup: '1-3年<span style="display:none">经验说明</span>',
+    renderedText: '1-3年',
+    experience: '1-3年',
+    missing: undefined,
+  },
+  {
+    reason: 'empty rendered text with hidden experience content',
+    markup: '<span style="display:none">5-10年</span>',
+    renderedText: '',
+    experience: '',
+    missing: 'not_provided',
+  },
+])('uses rendered Nowcoder header text for $reason', (example) => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  document.body.innerHTML = `<div class="job-detail-wrap"><h1 class="title">Java</h1><div class="extra"><span class="el-tooltip">北京</span><span class="edu-level">本科</span><span id="experience">${example.markup}</span></div></div><div class="job-detail-infos">完整原始岗位职责</div>`
+  Object.defineProperty(document.querySelector('#experience')!, 'innerText', {
+    value: example.renderedText,
+  })
+  const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+  expect(snapshot.detail.experience).toBe(example.experience)
+  expect(snapshot.detail.missing?.experience).toBe(example.missing)
+})
+
+it('preserves all observed Nowcoder internship conditions including the minimum month wording', () => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  document.body.innerHTML =
+    '<div class="job-detail-wrap"><h1 class="title">Java实习生</h1><div class="extra"><span>Java</span><span class="el-tooltip">北京</span><span class="edu-level">不限</span><span>5天/周</span><span>最少4个月</span><span>有转正</span></div></div><div class="job-detail-infos">完整原始岗位职责</div>'
+  const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+  expect(snapshot.detail).toMatchObject({
+    education: '不限',
+    experience: '',
+    jd: '5天/周\n最少4个月\n有转正\n完整原始岗位职责',
+    detailRead: true,
+    missing: { experience: 'not_provided' },
+  })
+})
+
+it.each(['不限', '本科'])(
+  'clears old Nowcoder experience only after reading a populated internship header with education %s',
+  (education) => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 100,
+      height: 50,
+    } as DOMRect)
+    document.body.innerHTML = `<div class="job-detail-wrap"><h1 class="title">Java实习生</h1><div class="extra"><span>Java</span><span class="el-tooltip">北京</span><span class="edu-level">${education}</span><span>实习</span><span>4天/周</span><span>至少3个月</span></div></div><div class="job-detail-infos">完整原始岗位职责</div>`
+    const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+    expect(snapshot.detail).toMatchObject({
+      education,
+      experience: '',
+      employment: '实习',
+      recruitment: '实习',
+      missing: { experience: 'not_provided' },
+    })
+    expect(snapshot.detail.jd).toBe('4天/周\n至少3个月\n完整原始岗位职责')
+    const raw = {
+      platform: 'nowcoder' as const,
+      url: 'https://www.nowcoder.com/jobs/detail/434164',
+      title: 'Java实习生',
+      company: '此前确认的公司',
+      city: '北京',
+      salary: '200元/天',
+      experience: '不限',
+      education,
+      recruitment: '实习',
+      employment: '实习',
+      jd: '此前确认的完整岗位职责',
+      detailRead: true,
+    }
+    const previous = normalizeJob(raw, 1)
+    const refreshed = normalizeJob({ ...raw, ...snapshot.detail }, 2, previous)
+    expect(refreshed).toMatchObject({
+      education,
+      experience: '',
+      missing: { experience: 'not_provided' },
+    })
+  },
+)
+
+it.each([
+  { reason: 'no main header', content: '' },
+  {
+    reason: 'empty header',
+    content: '<div class="job-detail-wrap"><div class="extra"></div></div>',
+  },
+  {
+    reason: 'blank header spans',
+    content: '<div class="job-detail-wrap"><div class="extra"><span> </span></div></div>',
+  },
+  {
+    reason: 'recommendation header only',
+    content:
+      '<div class="recommend-list"><div class="job-detail-wrap"><div class="extra"><span class="edu-level">不限</span><span>5-10年</span><span>最少12个月</span><span>有转正</span></div></div></div>',
+  },
+  ...['display:none', 'opacity:0', 'visibility:hidden'].map((style) => ({
+    reason: `main header hidden by ${style}`,
+    content: `<div style="${style}"><div class="job-detail-wrap"><div class="extra"><span class="edu-level">不限</span><span>5-10年</span><span>最少12个月</span><span>有转正</span></div></div></div>`,
+  })),
+])('preserves observed Nowcoder experience with $reason', ({ content }) => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  document.body.innerHTML = `${content}<div class="job-detail-infos">完整原始岗位职责</div>`
+  const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+  expect(snapshot.detail.experience).toBe('')
+  expect(snapshot.detail.jd).toBe('完整原始岗位职责')
+  expect(snapshot.detail.missing?.experience).toBeUndefined()
+  const raw = {
+    platform: 'nowcoder' as const,
+    url: 'https://www.nowcoder.com/jobs/detail/464912',
+    title: 'Java',
+    company: '此前确认的公司',
+    city: '北京',
+    salary: '15-25K/月',
+    experience: '1-3年',
+    education: '本科',
+    recruitment: '社招',
+    employment: '全职',
+    jd: '此前确认的完整岗位职责',
+    detailRead: true,
+  }
+  const previous = normalizeJob(raw, 1)
+  expect(normalizeJob({ ...raw, ...snapshot.detail }, 2, previous).experience).toBe('1-3年')
+})
+
+it.each([
+  { reason: 'login', content: '<div class="login-container">登录</div>', state: 'login' },
+  { reason: 'challenge', content: '<h1>安全验证</h1>', state: 'challenge' },
+  { reason: 'offline', content: '<p>该职位已下架</p>', state: 'offline' },
+])('does not change Nowcoder detail during $reason', ({ content, state }) => {
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 100,
+    height: 50,
+  } as DOMRect)
+  document.body.innerHTML = `${content}<div class="job-detail-wrap"><div class="extra"><span class="edu-level">不限</span></div></div><div class="job-detail-infos">完整原始岗位职责</div>`
+  const snapshot = window.eval(nowcoderAdapter.pageScript(true)) as PageSnapshot
+  expect(snapshot[state as 'login' | 'challenge' | 'offline']).toBe(true)
+  expect(snapshot.detail).toEqual({})
 })

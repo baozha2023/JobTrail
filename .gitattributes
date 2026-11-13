@@ -1,2 +1,10 @@
+/src/** text=auto eol=lf
+/tests/** text=auto eol=lf
+/scripts/** text=auto eol=lf
+/docs/** text=auto eol=lf
+/*.ts text=auto eol=lf
+/*.json text=auto eol=lf
+/*.md text=auto eol=lf
+
 # Published persistence fixtures are verified byte-for-byte; never convert their line endings.
 tests/fixtures/** -text

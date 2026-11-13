@@ -435,6 +435,8 @@ export class DiscoveryRuntime implements DiscoveryLive {
     const seen = context?.seen ?? new Set<string>()
     let durableFailure = false
     const budget = new RoundBudget(context?.noGrowth ?? 0)
+    let cachedReplay: ReturnType<BatchCache['read']>
+    let cachedReplayIndex = 0
     const assertAccount = () => {
       this.writable(p)
       signal.throwIfAborted()
@@ -499,7 +501,15 @@ export class DiscoveryRuntime implements DiscoveryLive {
       if (context) context.noGrowth = budget.noGrowth
       return state
     }
-    try {
+    const saveBatch = (batch: SourceBatch, at = Date.now(), cached = false) => {
+      try {
+        return save(batch, at, cached)
+      } catch (error) {
+        durableFailure = !(error instanceof SourceError)
+        throw error
+      }
+    }
+    const collectAttempt = async (retrying = false) => {
       this.writable(p)
       signal.throwIfAborted()
       // Historical runs may outlive a platform's catalog entry. Reject before cache
@@ -514,10 +524,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
         this.releaseQueries(id, p)
         context = undefined
       }
-      const cached = !context && !source.batches ? this.cache.read(scope) : undefined
-      if (cached) {
-        for (const batch of cached.batches) {
-          const state = save(batch, cached.at, true)
+      if (!cachedReplay && !retrying && !context && !progress.batches)
+        cachedReplay = this.cache.read(scope)
+      if (cachedReplay) {
+        while (cachedReplayIndex < cachedReplay.batches.length && !budget.exhausted) {
+          const state = saveBatch(cachedReplay.batches[cachedReplayIndex], cachedReplay.at, true)
+          cachedReplayIndex++
           progress.state = state === 'completed' ? 'completed' : 'partial'
           if (state === 'completed' || budget.exhausted) break
         }
@@ -542,12 +554,12 @@ export class DiscoveryRuntime implements DiscoveryLive {
           ),
           scope,
           token: randomUUID(),
-          recoveringUntil: source.sourcePage,
-          noGrowth: 0,
+          recoveringUntil: progress.sourcePage,
+          noGrowth: budget.noGrowth,
           seen,
         }
         this.queries.set(key, context)
-        if (source.batches) {
+        if (progress.batches) {
           progress.message = 'cursor_expired_restarted'
           update()
         }
@@ -566,13 +578,7 @@ export class DiscoveryRuntime implements DiscoveryLive {
           if (page.login) throw new SourceError('login_required')
           signal.throwIfAborted()
         }
-        let state: ReturnType<RoundBudget['saved']>
-        try {
-          state = save(batch)
-        } catch (error) {
-          durableFailure = !(error instanceof SourceError)
-          throw error
-        }
+        const state = saveBatch(batch)
         // Never advance the adapter before all rows and source progress commit.
         context.adapter.commit(batch)
         this.cache.append(scope, batch)
@@ -585,6 +591,41 @@ export class DiscoveryRuntime implements DiscoveryLive {
         }
         if (state !== 'more') break
         if (!budget.exhausted) await delay(1200, signal)
+      }
+    }
+    try {
+      try {
+        await collectAttempt()
+      } catch (error) {
+        const retryable =
+          durableFailure ||
+          (error instanceof SourceError
+            ? ['parse_error', 'scope_unverified', 'network_error', 'timeout'].includes(error.state)
+            : !(error instanceof AppServiceError))
+        const account = this.service.repository.status().find((item) => item.platform === p)!
+        if (
+          !retryable ||
+          signal.aborted ||
+          budget.exhausted ||
+          this.suspended ||
+          this.changing.has(p) ||
+          isUpdateFrozen(this.root) ||
+          account.generation !== generation
+        )
+          throw error
+        captureError(error, { operation: `discovery.${p}.retry`, level: 'warn' })
+        // A failed page is rebuilt, while an uncommitted batch stays on its adapter.
+        if (!durableFailure) {
+          this.releaseQueries(id, p)
+          context = undefined
+          cachedReplay = undefined
+          cachedReplayIndex = 0
+        }
+        durableFailure = false
+        progress = { ...progress, state: 'running', message: '', cachedAt: null }
+        update()
+        await delay(1200, signal)
+        await collectAttempt(true)
       }
     } catch (error) {
       const reason = signal.aborted
@@ -941,13 +982,15 @@ export class DiscoveryRuntime implements DiscoveryLive {
         } else {
           if (!sameJob) throw new SourceError('scope_unverified')
           raw.missing = { ...raw.missing, ...snapshot.detail.missing }
-          for (const field of jobFields)
-            if (snapshot.detail[field]) {
-              raw[field] = snapshot.detail[field]!
+          for (const field of jobFields) {
+            const value = snapshot.detail[field]
+            if (value?.trim() || snapshot.detail.missing?.[field] === 'not_provided') {
+              raw[field] = value?.trim() ? value : ''
               raw.provenance = { ...raw.provenance, [field]: 'dom' }
             }
+          }
           raw.detailRead = !!snapshot.detail.detailRead
-          if (!raw.detailRead) raw.missing!.jd = 'parse_error'
+          if (!raw.detailRead) raw.missing!.jd = snapshot.detail.missing?.jd ?? 'parse_error'
           else
             for (const field of jobFields) {
               if (!raw[field])

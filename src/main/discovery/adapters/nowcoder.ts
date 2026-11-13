@@ -14,7 +14,7 @@ export const nowcoderAdapter: PlatformAdapter = {
   ...nowcoderIdentity,
   cities: createCityLookup(cityCatalog),
   accountCheckUrl: 'https://www.nowcoder.com/jobs/school/jobs',
-  contractVersion: 1,
+  contractVersion: 2,
   sessionCheck: 'batch',
   remoteFilters: ['keyword', 'city'],
   createSearch: (page, query) => new NowcoderSearch(page, query),

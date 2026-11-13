@@ -53,7 +53,7 @@ The installer, uninstaller, and app on first launch use English on English-langu
 
 You can start managing applications right away. Guided tours introduce the app and job discovery on first use, and can be restarted from Settings.
 
-- **Search for jobs**: Sign in to recruitment platforms with their official QR codes in account management, then enter a keyword and choose a location. Follow any sign-in or website-verification prompts to continue. Some platforms require another scan after restarting; search history and saved applications remain available.
+- **Search for jobs**: Sign in to recruitment platforms with their official QR codes in account management, then enter a keyword and choose a location. Recoverable collection errors are retried once before a source warning appears. Follow any sign-in or website-verification prompts to continue. Some platforms require another scan after restarting; search history and saved applications remain available.
 - **Use the AI assistant**: Enter your model service URL, model name, and API key in Settings, then reference jobs, resumes, and other content in chat.
 - **Connect external AI tools**: Copy the connection configuration from the MCP page in Settings. MCP is enabled by default and can be turned off; live job discovery starts JobTrail in the system tray when needed.
 

@@ -2,7 +2,9 @@
 
 所有命令从仓库根目录运行。`scripts/` 中的 `.mjs` 分为构建发布、自动测试、安装包验收和共享辅助模块；入口可以由 `package.json`、测试自动发现或其他脚本调用。
 
-`pnpm package:win` 在编译后显式调用 Electron 官方 `install-electron`，确保当前锁定版本的二进制已下载并校验，再将 `node_modules/electron/dist` 交给 electron-builder。当前 Electron 43.8.4 不通过包的 postinstall 自动下载，不能依赖曾经运行过开发环境或测试才具备该目录。
+`pnpm package:win` 在编译后显式调用 Electron 官方 `install-electron`，确保当前锁定版本的二进制已下载并校验，再将 `node_modules/electron/dist` 交给 electron-builder。当前 Electron 43.8.10 的二进制由该显式安装步骤准备。
+
+Electron 官方下载器使用构建进程的 Node 网络栈。使用代理下载时，可在当前终端通过 `ELECTRON_GET_USE_PROXY`、`HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY` 配置官方代理入口，地址沿用本机已有网络配置。代理配置仅属于构建环境，凭据应由本机环境提供。
 
 ## 构建与发布
 
@@ -29,11 +31,11 @@
 | `pnpm test:mcp:package`                              | `test-packaged-mcp.mjs` 验证独立 MCP、系统 Edge 与 sandbox、动态网页、无 Edge 错误及协议行为                                                          |
 | `pnpm test:mcp:launcher`                             | `test-mcp-launcher.mjs` 用 Cargo 锁文件构建启动器，再验证更新与 MCP 启动                                                                              |
 | `pnpm test:agent:package`、`pnpm test:exams:package` | `test-packaged-agent.mjs`、`test-packaged-exams.mjs` 验证智能体和试卷完整流程；智能体 worker 通过测试专用 bootstrap 禁止外部 fetch，验证随包本地分词  |
-| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.3.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
+| `pnpm test:compatibility:package`                    | `test-packaged-compatibility.mjs` 使用 1.0.0—2.8.0 原始正式版本代码生成数据和备份，验证升级、恢复及数据保留                                           |
 | `pnpm test:diagnostics:package`                      | `test-packaged-diagnostics.mjs` 验证 MCP / Agent 文件诊断与输出隔离                                                                                   |
 | `pnpm test:discovery:local`                          | 岗位发现连接安全、界面、合成会话重启、MCP 冷启动及已有桌面复用；全部使用隔离安装目录，不访问招聘网站                                                  |
 
-开发和验收机器须安装 Edge Stable，保持浏览器更新。网页读取使用系统 Edge，不下载或打包独立的 Playwright Chromium。MCP 验收会访问 https://playwright.dev/，需要可用公网连接；浏览器缓存使用隔离路径，缺失 Edge 用子进程环境变量隔离搜索位置模拟，不修改本机安装。桌面验收同样隔离 Edge 搜索位置，验证本地功能。该模拟不等同于全新虚拟机验收。
+开发和验收机器须安装 Edge Stable，保持浏览器更新。网页读取使用系统 Edge，不下载或打包独立的 Playwright Chromium。MCP 验收使用 https://example.com/ 完成真实 Edge 强制动态读取，并以 https://playwright.dev/ 验证静态读取，需要可用公网连接。生产读取器的异步脚本与 fetch 更新由受控页面回归验证。浏览器缓存使用隔离路径，缺失 Edge 用子进程环境变量隔离搜索位置模拟，不修改本机安装。桌面验收同样隔离 Edge 搜索位置，验证本地功能。该模拟不等同于全新虚拟机验收。
 
 通用网页读取器会校验系统 DNS 结果并连接获准的公网地址。代理软件的 Fake-IP 模式若返回 `198.18.0.0/15` 等非公网地址，会按安全规则返回 `WEB_BLOCKED`；关闭该模式后仍需确认目标地址可达。`WEB_UNAVAILABLE` 仅表示读取不可用，应结合隔离安装的诊断日志定位连接或页面错误，不能仅凭错误码认定为代理问题。遇到此类环境故障，调整网络后重跑 `test:mcp:package` 和 `test:mcp:launcher`，不放宽公网地址校验，也不将跳过的外网验收记录为通过。
 
@@ -42,6 +44,8 @@
 `test-desktop-lifecycle.mjs` 使用隔离数据运行真实桌面，覆盖系统英文首次启动、语言传至界面，以及手动切换中文后重启不再检测或覆盖。系统语言通过测试入口替换 Electron API 返回值，不修改 Windows 语言设置；检测失败与中文兜底由配置和语言单元测试覆盖。
 
 `cargo test --manifest-path native/bootstrap/Cargo.toml --locked` 覆盖原生程序的语言检测、中英文文案完整性、真实 Windows 安装控件在 96/120/144/192 DPI 下的文字布局，以及卸载确认/完成窗口与取消保护。原生界面测试仅操作测试进程自己的窗口，不执行安装或卸载；目录清理、关联保护和更新回滚由对应 Rust 测试覆盖。
+
+Windows 原生构建为 `rfd` 显式选择 `common-controls-v6`，并设置 `default-features = false`，保留自定义按钮支持及 Windows 后端。`Cargo.lock` 中的 `rustix` 使用安全补丁 `1.1.6`。依赖审查同时核对完整锁文件审计和 Windows x64 的实际依赖图，撤回版本查询使用可达的官方 registry。
 
 `test:discovery:local` 还需要 `native/bootstrap/target/debug/launcher.exe` 和 `native/bootstrap/target/release/uninstaller.exe`。首次运行前分别执行 `cargo build --locked --manifest-path native/bootstrap/Cargo.toml --bin launcher` 和 `cargo build --locked --release --manifest-path native/bootstrap/Cargo.toml --bin uninstaller`。
 
@@ -103,3 +107,5 @@ NCSS 接入（v2.6.0，数据库 v8）：`ncss-adapter.test.ts` 覆盖固定完�
 性质筛选仅接受六种字典代码，不接受 null；单测和安装包 MCP 双协议验收均覆盖“选择性质排除空值、清空筛选包含空值、非法空值选项拒绝”。历史升级验收逐行比对时，明确要求旧公司的 `company_nature` 和旧题的 `default_answer` 都为 NULL。
 
 v2.8.0 保持数据库 v9、配置 v2、备份封装 v1。`opportunity-company-picker.test.ts` 使用真实 Naive UI 选择器验证名称、别名和部分匹配的 Enter 行为、显式创建、创建后刷新失败、摘要不含地点、重复提交及过期表单隔离；`company-store.test.ts` 覆盖过期列表响应，`database.test.ts` 比较快捷输入与管理页输入的自定义公司默认值及内置标识拒绝。安装包历史验收加入 v2.7.0 原始提交 `590cf80`，v9 到 v9 不执行迁移、不补字段或重新 seed；旧版正式迁移仍按既有版本链验收。
+
+v2.9.0 的目标为数据库 v9、配置 v2、备份封装 v1。岗位发现回归覆盖空关键词 Toast、每平台每轮一次自动重试、缓存批次保存重试、明确缺失字段清除、当前主详情区域及合法空响应。安装包历史验收加入 v2.8.0 原始提交 `e009564`，核对现有 v9 数据和 v2 配置的启动、备份导入与往返。九平台真实请求沿用已完成的专项记录，发布回归使用隔离数据、合成账号与本地页面。

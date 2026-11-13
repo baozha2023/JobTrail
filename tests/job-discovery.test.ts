@@ -187,6 +187,61 @@ describe('monthly salary normalization and admission', () => {
     expect(normalizeJob(summary, 400, complete).jd).toBe(job().jd)
     expect(normalizeJob(summary, 400, complete).missing.jd).toBeUndefined()
   })
+  it.each(['experience', 'company'] as const)(
+    'clears a previous %s when the current empty field is explicitly not provided',
+    (field) => {
+      const previous = normalizeJob(job({ provenance: { [field]: 'response' } }), 100)
+      const refreshed = normalizeJob(
+        job({ [field]: '', missing: { [field]: 'not_provided' } }),
+        200,
+        previous,
+      )
+      expect(refreshed[field]).toBe('')
+      expect(refreshed.missing[field]).toBe('not_provided')
+      expect(refreshed.provenance?.[field]).toBeUndefined()
+      expect(refreshed.detailRead).toBe(true)
+    },
+  )
+  it.each([undefined, 'parse_error'] as const)(
+    'preserves previous values for an empty field with missing reason %s',
+    (reason) => {
+      const previous = normalizeJob(job({ provenance: { experience: 'response' } }), 100)
+      const refreshed = normalizeJob(
+        job({ experience: '', missing: reason ? { experience: reason } : undefined }),
+        200,
+        previous,
+      )
+      expect(refreshed.experience).toBe(previous.experience)
+      expect(refreshed.provenance?.experience).toBe('response')
+    },
+  )
+  it('prefers a nonempty current value over a conflicting not-provided marker', () => {
+    const previous = normalizeJob(job({ provenance: { experience: 'response' } }), 100)
+    const refreshed = normalizeJob(
+      job({
+        experience: '5年以上',
+        missing: { experience: 'not_provided' },
+        provenance: { experience: 'dom' },
+      }),
+      200,
+      previous,
+    )
+    expect(refreshed.experience).toBe('5年以上')
+    expect(refreshed.missing.experience).toBeUndefined()
+    expect(refreshed.provenance?.experience).toBe('dom')
+  })
+  it('clears an explicitly absent JD and its old full-detail timestamp', () => {
+    const previous = normalizeJob(job(), 100)
+    const refreshed = normalizeJob(
+      job({ jd: ' \t ', detailRead: false, missing: { jd: 'not_provided' } }),
+      200,
+      previous,
+    )
+    expect(refreshed.jd).toBe('')
+    expect(refreshed.missing.jd).toBe('not_provided')
+    expect(refreshed.detailRead).toBe(false)
+    expect(refreshed.detailReadAt).toBeNull()
+  })
   it.each([
     ['12.5-20K·13薪', 12500, 20000, null],
     ['15–25K/月', 15000, 25000, null],

@@ -15,7 +15,7 @@ import {
   type SourceBatch,
   type ParsedBatch,
 } from '../adapter'
-import { pageScript, type PageRules } from '../extraction'
+import { pageScript, type PageRules, type PageSnapshot } from '../extraction'
 import { LoginError, type QrProtocol, type QrTransport } from '../qr-protocol'
 import { batch, job, record, rows, text } from '../parsing'
 
@@ -330,13 +330,13 @@ export const iguopinAdapter: PlatformAdapter = {
   cities,
   ...identity,
   accountCheckUrl: `${origin}/login`,
-  contractVersion: 1,
+  contractVersion: 2,
   sessionCheck: 'batch',
   remoteFilters: ['keyword', 'city'],
   checkSession: async (transport) =>
     (await checkSession(transport)) ? 'authenticated' : 'login_required',
   createSearch: (page, query) => new IguopinSearch(page, query),
-  pageScript: (detail) => pageScript(rules, detail),
+  pageScript: iguopinPageScript,
   qr: {
     scanHint: wechatHint,
     methods: [
@@ -357,7 +357,7 @@ const rules: PageRules = {
   tagsSelector: '.job-overview-section .overview-desc',
   fields: {
     title: '.job-banner .title-section .title',
-    company: '.job-detail-wrap .address-section .address:last-child',
+    company: '[data-unused-company]',
     city: '.job-detail-wrap .address-section .address:first-of-type',
     salary: '.job-detail-wrap .salary-section',
     experience: '.job-overview-section [data-unused-experience]',
@@ -365,4 +365,45 @@ const rules: PageRules = {
   },
   foldedSelector: '.job-intro-section button',
   excludedSelector: '.job-content .right,.job-search-wrap,.job-competition-analysis-wrap,footer',
+}
+
+function iguopinPageScript(detail: boolean): string {
+  if (!detail) return pageScript(rules, false)
+  return `(${readIguopinPage.toString()})(${pageScript(rules, true)})`
+}
+
+function readIguopinPage(state: PageSnapshot): PageSnapshot {
+  if (state.login || state.challenge || state.offline) return state
+  const visible = (element: Element) => {
+    const rect = element.getBoundingClientRect(),
+      style = getComputedStyle(element)
+    if (rect.width <= 0 || rect.height <= 0 || /hidden|collapse/.test(style.visibility))
+      return false
+    for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+      const parentStyle = getComputedStyle(parent)
+      if (parentStyle.display === 'none' || parentStyle.opacity === '0') return false
+    }
+    return true
+  }
+  // The right-side employer card is separate from the header's address and department.
+  const company = [
+    ...document.querySelectorAll(
+      '.job-content .right .job-company-wrap .job-company-desc .company-title',
+    ),
+  ]
+    .filter(
+      (element) =>
+        visible(element) &&
+        !element.closest(
+          '.job-search-wrap,.job-competition-analysis-wrap,[class*="recommend"],footer',
+        ),
+    )
+    .map((element) =>
+      ((element as HTMLElement).innerText ?? element.textContent ?? '')
+        .trim()
+        .replace(/\u00a0/g, ' '),
+    )
+    .find(Boolean)
+  if (company) state.detail.company = company
+  return state
 }

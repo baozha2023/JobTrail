@@ -2,8 +2,10 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { verificationPageScript } from '../src/main/discovery/adapters/liepin'
 
-function read(html: string) {
+function read(html: string, renderedText?: string) {
   document.documentElement.innerHTML = html
+  if (renderedText !== undefined)
+    Object.defineProperty(document.body, 'innerText', { value: renderedText })
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
     width: 300,
     height: 200,
@@ -30,4 +32,12 @@ it('requires visible verification controls and waits for an SPA to mount', () =>
 it('does not mistake a home or sign-in page for a verification challenge', () => {
   expect(read('<h1>登录猎聘</h1><input type="password"><button>登录</button>')).toBe('loading')
   expect(read('<h1>猎聘首页</h1><button>搜索岗位</button>')).toBe('loading')
+})
+it('keeps an empty rendered safety page blank when only hidden soft-404 text exists', () => {
+  expect(read('<div style="display:none">此页面似乎不存在</div>', '')).toBe('blank')
+})
+it('waits for visible verification text when the rendered body is empty', () => {
+  expect(read('<div style="display:none">请拖动滑块完成验证</div><button></button>', '')).toBe(
+    'loading',
+  )
 })
